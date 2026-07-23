@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 1.7
+**Version:** 1.8
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -223,18 +223,18 @@ Verified by `test/balldontlie-terminal-pa-contracts.test.ts` and `test/balldontl
 
 ## M6 — Shared game and hitter opportunity foundation
 
-- [ ] Define `GameScenarioSet` contract.
-- [ ] Define shared lineup state.
-- [ ] Define home/away state.
-- [ ] Define shared offensive-environment state.
-- [ ] Define starter and bullpen scenario interfaces.
-- [ ] Define scenario-weight conservation.
-- [ ] Define hitter PA survival interface by lineup slot.
-- [ ] Preserve raw and monotone-adjusted survival curves.
-- [ ] Test survival-to-count conversion.
-- [ ] Test consistency with team batters faced.
-- [ ] Test shared scenarios move opportunity and outcome assumptions together.
-- [ ] Prohibit feature-specific contradictory game scenarios.
+- [x] Define `GameScenarioSet` contract.
+- [x] Define shared lineup state.
+- [x] Define home/away state.
+- [x] Define shared offensive-environment state.
+- [x] Define starter and bullpen scenario interfaces.
+- [x] Define scenario-weight conservation.
+- [x] Define hitter PA survival interface by lineup slot.
+- [x] Preserve raw and monotone-adjusted survival curves.
+- [x] Test survival-to-count conversion.
+- [x] Test consistency with team batters faced.
+- [x] Test shared scenarios move opportunity and outcome assumptions together.
+- [x] Prohibit feature-specific contradictory game scenarios.
 
 ---
 
@@ -279,6 +279,7 @@ Verified by `test/balldontlie-terminal-pa-contracts.test.ts` and `test/balldontl
 - [ ] Bullpen transition scenarios.
 - [ ] Shared offensive-environment scenarios.
 - [ ] Hitter PA survival by lineup slot and home/away.
+- [ ] Define and validate monotonicity handling for fitted hitter PA survival curves; prefer monotone-by-construction computation, preserve raw and adjusted curves, and prohibit any production repair threshold without current-season evidence.
 - [ ] Eligibility and participation probability.
 - [ ] Opportunity/outcome dependence benchmark.
 
@@ -363,6 +364,13 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 1.8 — 2026-07-23
+
+- Recorded complete M6 shared-game and hitter-opportunity infrastructure from merged commit `7b97a58`, including exact lineup-slot opportunity tails, joint starter/bullpen workload-path consistency, fail-closed rejection of every non-monotone raw survival curve, pre-adjusted-curve bypass protection, and exact-zero-only PMF tail trimming.
+- Recorded that `src/game/` is the canonical shared boundary consumed through `src/game/index.ts`, with no real market enabled.
+- Added the explicit M8 follow-up requiring evidence-backed monotonicity handling and prohibiting any production repair threshold without current-season evidence.
+- The complete GitHub Actions verification gate passed on PR #9.
 
 ### Version 1.7 — 2026-07-23
 
