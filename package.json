@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc",
     "architecture": "depcruise --config .dependency-cruiser.cjs src test --exclude '^test/architecture/fixtures/'",
+    "test:selected-side": "node --test dist/test/selected-side.test.js",
+    "test:architecture-protective": "node --test dist/test/architecture-boundaries.test.js",
     "test": "npm run build && node --test dist/test",
     "verify": "npm run typecheck && npm run architecture && npm test"
   },
