@@ -14,6 +14,7 @@ export type {
   SharedScenarioReference,
   StarterScenarioState,
   SurvivalAdjustmentMethod,
+  SurvivalMonotonicityPolicy,
   TeamOffenseScenarioState,
   TeamSide,
 } from './contracts.js';
