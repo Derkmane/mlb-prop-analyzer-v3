@@ -3,6 +3,7 @@ import path from 'node:path';
 import {
   fetchJsonSnapshot,
   requireSecret,
+  sanitizeText,
   timestampForPath,
   writeJsonAtomic,
   writeTextAtomic,
@@ -52,7 +53,8 @@ async function capture({ label, fileName, url, headers }) {
         : `Provider returned HTTP ${snapshot.response.status}.`,
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const rawMessage = error instanceof Error ? error.message : String(error);
+    const message = sanitizeText(rawMessage, secrets);
     return {
       label,
       ok: false,
