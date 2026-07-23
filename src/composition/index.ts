@@ -1,2 +1,3 @@
 /** Public boundary for the composition layer. */
-export {};
+export * from './planned-market-catalog.js';
+export * from './registries.js';
