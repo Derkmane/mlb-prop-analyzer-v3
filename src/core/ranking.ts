@@ -1,5 +1,8 @@
 import type { SettlementResult } from '../domain/settlement.js';
-import { validateProbability } from './probability-validation.js';
+import {
+  PROBABILITY_TOLERANCE,
+  validateProbability,
+} from './probability-validation.js';
 
 function rankableWinProbability(result: SettlementResult): number {
   if (result.winProbabilityGivenGrades === null) {
@@ -14,7 +17,8 @@ function rankableWinProbability(result: SettlementResult): number {
 
 /**
  * Orders selected sides only by P(Win | grades) descending, then P(Void)
- * ascending. Exact ties remain ties so callers retain deterministic stable order.
+ * ascending. Differences within the approved numerical tolerance are treated
+ * as equal so floating-point noise cannot bypass the required tiebreak.
  */
 export function compareSettlementResultsForRanking(
   left: SettlementResult,
@@ -27,18 +31,15 @@ export function compareSettlementResultsForRanking(
     right.voidProbability,
     'right void probability',
   );
+  const winProbabilityDifference = leftWinGivenGrades - rightWinGivenGrades;
 
-  if (leftWinGivenGrades > rightWinGivenGrades) {
-    return -1;
+  if (Math.abs(winProbabilityDifference) > PROBABILITY_TOLERANCE) {
+    return winProbabilityDifference > 0 ? -1 : 1;
   }
-  if (leftWinGivenGrades < rightWinGivenGrades) {
-    return 1;
-  }
-  if (leftVoid < rightVoid) {
-    return -1;
-  }
-  if (leftVoid > rightVoid) {
-    return 1;
+
+  const voidProbabilityDifference = leftVoid - rightVoid;
+  if (Math.abs(voidProbabilityDifference) > PROBABILITY_TOLERANCE) {
+    return voidProbabilityDifference < 0 ? -1 : 1;
   }
 
   return 0;
