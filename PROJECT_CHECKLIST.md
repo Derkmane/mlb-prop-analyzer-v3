@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 1.3  
+**Version:** 1.4  
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -139,7 +139,7 @@ Checked terminal-category items above mean fixture-backed observed capability on
 
 - [ ] Verify categories are mutually exclusive.
 - [ ] Verify categories are collectively exhaustive.
-- [x] Document that unmapped raw values must be preserved and fail closed; implementation and tests remain pending.
+- [x] Document that unmapped raw values must be preserved and fail closed; the strict normalized boundary exists, while raw-result mapping and unknown/context-insufficient normalization tests remain pending.
 
 ### M2 exit gate
 
@@ -168,16 +168,18 @@ Checked terminal-category items above mean fixture-backed observed capability on
 - [ ] Raw BALLDONTLIE player schema.
 - [ ] Raw game schema.
 - [ ] Raw lineup schema.
-- [ ] Raw plate-appearance schema.
-- [ ] Raw play schema where required.
+- [x] Raw plate-appearance schema — all 607 promoted PA rows parse; unknown fields are preserved and missing required observed fields fail validation.
+- [x] Raw play schema where required — all 3,497 promoted play rows parse; nullable identities/text and observed pagination shapes are preserved.
 - [ ] `NormalizedBoardOffer`.
 - [ ] `NormalizedGame`.
 - [ ] `NormalizedPlayer`.
 - [ ] `NormalizedLineup`.
-- [ ] `NormalizedTerminalPA`.
-- [ ] Provider IDs, source timestamps, and fixture hashes survive normalization.
-- [ ] Unknown or malformed provider data fails closed.
+- [x] `NormalizedTerminalPA` boundary contract — accepts only canonical terminal categories plus explicit provider IDs, game/PA context, raw result, and snapshot SHA-256; provider-result mapping is not implemented.
+- [ ] Provider IDs, source timestamps, and fixture hashes survive normalization across every required provider contract.
+- [ ] Unknown or malformed provider data fails closed across every required provider contract.
 - [ ] Selected side and line survive unchanged.
+
+Verified by `test/balldontlie-terminal-pa-contracts.test.ts`: typecheck, dependency architecture, build, and five focused tests passed. The current boundary cannot silently treat raw labels such as `Single` or `Caught Stealing 2B` as canonical terminal categories.
 
 ---
 
@@ -361,6 +363,14 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 1.4 — 2026-07-23
+
+- Recorded the evidence-derived canonical terminal-PA and separate baserunning domain categories.
+- Recorded runtime-validated raw BALLDONTLIE plate-appearance and play schemas that preserve unknown fields.
+- Recorded the strict `NormalizedTerminalPA` boundary with explicit provider/game/player/PA identity and source snapshot SHA-256.
+- Recorded direct verification across 607 PA rows, 3,497 play rows, typecheck, dependency architecture, build, and five focused tests.
+- Kept provider-result mapping, unknown/context-insufficient normalization, mutual exclusivity, collective exhaustiveness, and the overall terminal-PA gate open.
 
 ### Version 1.3 — 2026-07-23
 
