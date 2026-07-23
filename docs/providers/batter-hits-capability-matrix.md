@@ -1,11 +1,11 @@
 # Batter Hits Provider Capability Matrix
 
-**Version:** 1.2  
-**Status:** DATA UNDER INVESTIGATION — partial evidence-derived contracts exist; provider mapping and production normalization are not approved  
+**Version:** 1.3
+**Status:** DATA UNDER INVESTIGATION — fixture-backed terminal-PA mapping is verified; broader provider contracts and production ranking are not approved
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`  
 **Evidence date:** 2026-07-23
 
-This matrix records observed provider capabilities and the limited evidence-derived contract boundaries for the first Batter Hits vertical slice before probability models or production ranking are implemented.
+This matrix records observed provider capabilities and the limited evidence-derived contract and mapping boundaries for the first Batter Hits vertical slice before probability models or production ranking are implemented.
 
 It does not establish provider-wide schema stability. A result observed in one capture is evidence for that capture only. Unknown, missing, ambiguous, or unlinked values must fail closed.
 
@@ -238,22 +238,22 @@ The observed category evidence below is `VERIFIED_FIXTURE`, except `OTHER_PA`, w
 
 `VERIFIED_FIXTURE` means only that the listed raw result and context occurred in the preserved sample. It does not approve a provider-wide mapping or production normalizer.
 
-| Canonical category | Observed raw result or play evidence | Provisional observed mapping constraint |
+| Canonical category | Observed raw result or play evidence | Verified mapping behavior and remaining limit |
 |---|---|---|
 | `K` | `Strikeout`; one `Strikeout Double Play` ended on `Swinging Strike` while a runner was separately caught stealing. | `Strikeout Double Play` contributes terminal `K`; the separate runner event belongs in the baserunning layer. |
-| `UBB` | `Walk` occurred separately from `Intent Walk`. | Candidate mapping is `Walk` → `UBB`; the production mapping remains pending. |
-| `IBB` | `Intent Walk` | Candidate mapping is `Intent Walk` → `IBB`. |
-| `HBP` | Exact raw result `Hit By Pitch` | Candidate mapping is `Hit By Pitch` → `HBP`. |
-| `1B` | `Single` | Candidate mapping is `Single` → `1B`. |
-| `2B` | `Double` | Candidate mapping is `Double` → `2B`. |
-| `3B` | `Triple` | Candidate mapping is `Triple` → `3B`. |
-| `HR` | Diagnostics reported `HR` in the full-date summary and `Home Run` in game-level evidence. | Preserve and explicitly map every verified raw spelling; do not assume one provider-wide label. |
-| `ROE` | `Field Error`; play text showed the batter reaching safely on an error. | Candidate mapping is `Field Error` → `ROE`. |
-| `FC` | `Fielders Choice`, `Fielders Choice Out`, and `Forceout` instances where the batter reached and another runner was retired or all runners were safe. | Compound labels require batter-result or play evidence. Do not map every string containing `Out` to `BIP_OUT`. |
-| `SF` | `Sac Fly` | Candidate mapping is `Sac Fly` → `SF`. |
-| `SH` | `Sac Bunt` | Candidate mapping is `Sac Bunt` → `SH`; separate `Bunt Groundout` and `Bunt Pop Out` results were observed. |
-| `BIP_OUT` | `Flyout`, `Groundout`, `Lineout`, `Pop Out`, `Bunt Groundout`, `Bunt Pop Out`, `GIDP`, an observed batter-out `Double Play`, and an observed batter-out `Triple Play`. | Ambiguous compound-play labels require play context confirming whether the batter was retired. |
-| `CATCHER_INTERFERENCE` | Exact PA result `Catcher Interference`; play text stated that the batter reached first on catcher's interference after an overturned challenge. | Candidate mapping is exact result → `CATCHER_INTERFERENCE`. Evidence report: `balldontlie-catcher-interference-5059159-report.json`. |
+| `UBB` | `Walk` occurred separately from `Intent Walk`. | Implemented exact mapping: `Walk` → `UBB`. |
+| `IBB` | `Intent Walk` | Implemented exact mapping: `Intent Walk` → `IBB`. |
+| `HBP` | Exact raw result `Hit By Pitch` | Implemented exact mapping: `Hit By Pitch` → `HBP`. |
+| `1B` | `Single` | Implemented exact mapping: `Single` → `1B`. |
+| `2B` | `Double` | Implemented exact mapping: `Double` → `2B`. |
+| `3B` | `Triple` | Implemented exact mapping: `Triple` → `3B`. |
+| `HR` | Diagnostics reported `HR` in the full-date summary and `Home Run` in game-level evidence. | Implemented mapping accepts exact `Home Run`; diagnostic-only `HR` remains unsupported and fails closed. |
+| `ROE` | `Field Error`; play text showed the batter reaching safely on an error. | Implemented exact mapping: `Field Error` → `ROE`. |
+| `FC` | `Fielders Choice`, `Fielders Choice Out`, and `Forceout` instances where the batter reached and another runner was retired or all runners were safe. | Implemented only when explicit context establishes that the batter reached; missing or contradictory disposition fails closed. |
+| `SF` | `Sac Fly` | Implemented exact mapping: `Sac Fly` → `SF`. |
+| `SH` | `Sac Bunt` | Implemented exact mapping: `Sac Bunt` → `SH`; `Bunt Groundout` and `Bunt Pop Out` map separately to `BIP_OUT`. |
+| `BIP_OUT` | `Flyout`, `Groundout`, `Lineout`, `Pop Out`, `Bunt Groundout`, `Bunt Pop Out`, `GIDP`, an observed batter-out `Double Play`, and an observed batter-out `Triple Play`. | Direct out labels map exactly; `Double Play` and `Triple Play` require explicit context establishing that the batter was retired. |
+| `CATCHER_INTERFERENCE` | Exact PA result `Catcher Interference`; play text stated that the batter reached first on catcher's interference after an overturned challenge. | Implemented exact mapping: `Catcher Interference` → `CATCHER_INTERFERENCE`. |
 | `OTHER_PA` | No generic other terminal result was observed. | `NOT_OBSERVED`; an unknown future terminal string must be preserved and fail closed until explicitly mapped. |
 
 ### Required sequence-aware protections
@@ -273,19 +273,22 @@ Promoted evidence and diagnostics established:
 + named terminal categories preserved in committed fixtures
 + complete play context preserved for selected compound events
 + catcher interference preserved
-+ fixture hashes and JSON validity protected by a focused test
++ fixture hashes and JSON validity protected by focused tests
 + caught stealing preserved as a separate baserunning event
 + canonical terminal and baserunning domain category sets are separate
 + raw PA/play schemas preserve unknown fields and reject malformed required fields
 + strict NormalizedTerminalPA boundary requires canonical categories and explicit snapshot context
-- raw provider results are not yet mapped into canonical categories
++ verified exact raw labels map deterministically
++ ambiguous compound labels require explicit batter disposition
++ all 607 promoted PA rows produce one explicit deterministic state
++ unknown, malformed, contradictory, and insufficient-context values fail closed
+- play-derived batter-disposition resolution is not yet implemented
 - OTHER_PA not observed
 - future unknown strings are not exhaustively enumerable
-- unknown and context-insufficient normalization is not implementation-tested
-- exact-one mapping, mutual exclusivity, and collective exhaustiveness are not normalization-tested
+- provider-wide collective exhaustiveness is not established
 ```
 
-The raw-schema and normalized-boundary blockers are closed. The overall terminal-PA capability gate remains open until the evidence-backed mapping function and its fail-closed, context-aware, exact-one-category, exclusivity, and exhaustiveness tests are complete.
+The raw-schema, normalized-boundary, and fixture-backed mapping blockers are closed. The overall terminal-PA capability gate remains open until play context can deterministically derive required batter disposition and provider-wide collective exhaustiveness is supported.
 
 ---
 
@@ -295,10 +298,9 @@ The raw-schema and normalized-boundary blockers are closed. The overall terminal
 2. Define and test the generalized cross-provider game join; the observed one-minute difference is not an approved tolerance.
 3. Verify complete game-status semantics for scheduled, active, final, postponed, suspended, and cancelled states before pregame eligibility is implemented.
 4. Define player matching so zero or multiple matches fail closed; never use fuzzy matching without separately approved evidence and tests.
-5. Implement terminal-PA mapping from the promoted fixtures, including context-aware handling for compound events and separate terminal/baserunning layers.
-6. Add focused mapping tests proving exact-one-category behavior, unknown-value rejection, context-insufficient rejection, mutual exclusivity, and collective exhaustiveness.
-7. Keep `OTHER_PA` unavailable until a supported raw provider result is observed or an explicitly approved rule is established.
-8. Preserve raw provider IDs, timestamps when available, market key, selected side, line, and snapshot hash through every later contract.
+5. Implement and test the play-context resolver that derives required batter disposition for ambiguous compound labels.
+6. Keep `OTHER_PA` unavailable until a supported raw provider result is observed or an explicitly approved rule is established.
+7. Preserve raw provider IDs, timestamps when available, market key, selected side, line, and snapshot hash through every later contract.
 
 ---
 
@@ -318,6 +320,14 @@ Price, multiplier, player reputation, and raw expected performance are not ranki
 ---
 
 ## Changelog
+
+### Version 1.3 — 2026-07-23
+
+- Recorded the verified deterministic terminal-PA mapping boundary and its full 24-test repository gate.
+- Recorded exact-label mappings, explicit-context compound mappings, and separate caught-stealing handling.
+- Recorded fail-closed rejection for unknown, malformed, contradictory, and insufficient-context inputs.
+- Recorded deterministic classification of all 607 promoted PA rows without an `OTHER_PA` fallback.
+- Kept play-derived batter-disposition resolution, `OTHER_PA`, provider-wide collective exhaustiveness, broader provider contracts, models, and ranking open.
 
 ### Version 1.2 — 2026-07-23
 
