@@ -25,6 +25,13 @@ function deterministicCount(count: number) {
   return createProbabilityMassFunction(probabilities);
 }
 
+function twoPointCount(first: number, second: number) {
+  const probabilities = Array<number>(Math.max(first, second) + 1).fill(0);
+  probabilities[first] = (probabilities[first] ?? 0) + 0.5;
+  probabilities[second] = (probabilities[second] ?? 0) + 0.5;
+  return createProbabilityMassFunction(probabilities);
+}
+
 function lineup(teamId: string, side: TeamSide): LineupState {
   return {
     teamId,
@@ -66,6 +73,16 @@ function teamScenario(
       teamId: opponentTeamId,
       workloadVersion: 'synthetic-bullpen-workload-v1',
       battersFacedDistribution: deterministicCount(bullpenBattersFaced),
+    },
+    jointPitchingWorkload: {
+      version: 'synthetic-joint-workload-v1',
+      paths: [
+        {
+          weight: 1,
+          starterBattersFaced,
+          bullpenBattersFaced,
+        },
+      ],
     },
     teamBattersFacedDistribution: deterministicCount(teamBattersFaced),
     lineupSlotOpportunities: teamLineup.entries.map((entry) =>
@@ -140,7 +157,7 @@ function assertVectorClose(
   }
 }
 
-test('GameScenarioSet preserves shared lineup, home-away, environment, starter, bullpen, and conserved weights', () => {
+test('GameScenarioSet preserves shared lineup, home-away, environment, starter, bullpen, joint workload, and conserved weights', () => {
   const set = createGameScenarioSet(scenarioSetInput());
 
   assert.equal(set.scenarios.length, 2);
@@ -151,18 +168,10 @@ test('GameScenarioSet preserves shared lineup, home-away, environment, starter, 
   assert.equal(set.homeAway.homeTeamId, 'home-team');
   assert.equal(set.homeAway.awayTeamId, 'away-team');
   assert.equal(set.scenarios[0]!.teams[0].lineup.entries.length, 9);
-  assert.equal(
-    set.scenarios[0]!.teams[0].lineupSlotOpportunities.length,
-    9,
-  );
-  assert.equal(
-    set.scenarios[0]!.teams[0].opposingStarter.teamId,
-    'away-team',
-  );
-  assert.equal(
-    set.scenarios[0]!.teams[0].opposingBullpen.teamId,
-    'away-team',
-  );
+  assert.equal(set.scenarios[0]!.teams[0].lineupSlotOpportunities.length, 9);
+  assert.equal(set.scenarios[0]!.teams[0].opposingStarter.teamId, 'away-team');
+  assert.equal(set.scenarios[0]!.teams[0].opposingBullpen.teamId, 'away-team');
+  assert.equal(set.scenarios[0]!.teams[0].jointPitchingWorkload.paths.length, 1);
   assert.ok(Object.isFrozen(set));
   assert.ok(Object.isFrozen(set.scenarios));
   assert.ok(Object.isFrozen(set.scenarios[0]!.teams));
@@ -236,8 +245,8 @@ test('scenario weights fail closed unless they conserve total probability', () =
   );
 });
 
-test('lineup-slot survival is derived exactly from team batters faced', () => {
-  const probabilities = Array<number>(20).fill(0);
+test('lineup-slot survival is derived exactly and ignores exact trailing zero padding', () => {
+  const probabilities = Array<number>(25).fill(0);
   probabilities[10] = 0.5;
   probabilities[19] = 0.5;
   const distribution = createProbabilityMassFunction(probabilities);
@@ -286,7 +295,7 @@ test('a slot curve with the right expectation but the wrong tail fails team-PA c
   );
 });
 
-test('starter and bullpen workload expectations must agree with team batters faced', () => {
+test('joint workload marginals must match the stored starter and bullpen distributions', () => {
   const input = scenarioSetInput();
   const firstScenario = input.scenarios[0]!;
   const home = firstScenario.teams[0];
@@ -308,7 +317,44 @@ test('starter and bullpen workload expectations must agree with team batters fac
         ...input,
         scenarios: [inconsistentScenario, input.scenarios[1]!],
       }),
-    /starter and bullpen workload expectations must match team batters faced/,
+    /bullpen marginal must match bullpen batters faced/,
+  );
+});
+
+test('matching workload expectations cannot hide impossible combined tails', () => {
+  const input = scenarioSetInput();
+  const firstScenario = input.scenarios[0]!;
+  const home = firstScenario.teams[0];
+  const inconsistentHome: TeamOffenseScenarioState = {
+    ...home,
+    opposingStarter: {
+      ...home.opposingStarter,
+      battersFacedDistribution: twoPointCount(0, 36),
+    },
+    opposingBullpen: {
+      ...home.opposingBullpen,
+      battersFacedDistribution: twoPointCount(0, 36),
+    },
+    jointPitchingWorkload: {
+      version: 'synthetic-impossible-joint-workload-v1',
+      paths: [
+        { weight: 0.5, starterBattersFaced: 0, bullpenBattersFaced: 0 },
+        { weight: 0.5, starterBattersFaced: 36, bullpenBattersFaced: 36 },
+      ],
+    },
+  };
+  const inconsistentScenario: GameScenario = {
+    ...firstScenario,
+    teams: [inconsistentHome, firstScenario.teams[1]],
+  };
+
+  assert.throws(
+    () =>
+      createGameScenarioSet({
+        ...input,
+        scenarios: [inconsistentScenario, input.scenarios[1]!],
+      }),
+    /joint pitching workload totals must match team batters faced/,
   );
 });
 
@@ -322,8 +368,10 @@ test('the same shared scenario moves hitter opportunity and outcome assumptions 
     'lower-offense',
     'home-team',
     'home-team-player-1',
-    (context) =>
-      deriveSyntheticOutcome(context.offensiveEnvironment.environmentId),
+    (context) => {
+      assert.equal(context.jointPitchingWorkload.paths.length, 1);
+      return deriveSyntheticOutcome(context.offensiveEnvironment.environmentId);
+    },
   );
   const higher = deriveJointHitterScenarioAssumptions(
     set,
