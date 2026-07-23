@@ -1,5 +1,6 @@
 import {
   hitterSurvivalToCountProbabilityMassFunction,
+  validateProbability,
   validateUnitIntervalVector,
 } from '../core/index.js';
 import type { ProbabilityMassFunction } from '../domain/probability.js';
@@ -7,12 +8,14 @@ import type {
   HitterPASurvivalState,
   LineupSlot,
   SurvivalAdjustmentMethod,
+  SurvivalMonotonicityPolicy,
 } from './contracts.js';
 
 export interface HitterPASurvivalInput {
   readonly lineupSlot: LineupSlot;
   readonly rawSurvival: readonly number[];
   readonly weights?: readonly number[];
+  readonly monotonicityPolicy: SurvivalMonotonicityPolicy;
 }
 
 interface IsotonicBlock {
@@ -24,6 +27,12 @@ interface IsotonicBlock {
 
 function blockMean(block: IsotonicBlock): number {
   return block.weightedSum / block.totalWeight;
+}
+
+function assertNonEmpty(value: string, label: string): void {
+  if (value.trim().length === 0) {
+    throw new RangeError(`${label} must not be empty`);
+  }
 }
 
 function validateLineupSlot(lineupSlot: number): asserts lineupSlot is LineupSlot {
@@ -52,6 +61,19 @@ function validateWeights(
       return weight;
     }),
   );
+}
+
+function maximumUpwardIncrease(values: readonly number[]): number {
+  let maximum = 0;
+  for (let index = 1; index < values.length; index += 1) {
+    const previous = values[index - 1];
+    const current = values[index];
+    if (previous === undefined || current === undefined) {
+      throw new RangeError('invalid survival-vector indexing');
+    }
+    maximum = Math.max(maximum, current - previous);
+  }
+  return maximum;
 }
 
 function projectWeightedNonIncreasing(
@@ -119,11 +141,26 @@ export function createHitterPASurvivalState(
   input: HitterPASurvivalInput,
 ): HitterPASurvivalState {
   validateLineupSlot(input.lineupSlot);
+  assertNonEmpty(
+    input.monotonicityPolicy.version,
+    'survival monotonicity policy version',
+  );
+  const maximumAllowedIncrease = validateProbability(
+    input.monotonicityPolicy.maximumAllowedIncrease,
+    'maximum allowed survival increase',
+  );
 
   const rawSurvival = validateUnitIntervalVector(
     input.rawSurvival,
     'raw hitter PA survival',
   );
+  const observedMaximumIncrease = maximumUpwardIncrease(rawSurvival);
+  if (observedMaximumIncrease > maximumAllowedIncrease) {
+    throw new RangeError(
+      `raw hitter PA survival increase ${observedMaximumIncrease} exceeds allowed ${maximumAllowedIncrease}`,
+    );
+  }
+
   const weights = validateWeights(rawSurvival, input.weights);
   const adjustedSurvival = projectWeightedNonIncreasing(rawSurvival, weights);
   const method = adjustmentMethod(rawSurvival, adjustedSurvival);
@@ -135,6 +172,9 @@ export function createHitterPASurvivalState(
     adjustmentMethod: method,
     adjustmentVersion:
       method === 'weighted-isotonic' ? 'weighted-isotonic-v1' : 'none-v1',
+    monotonicityPolicyVersion: input.monotonicityPolicy.version,
+    maximumAllowedIncrease,
+    observedMaximumIncrease,
   });
 }
 
