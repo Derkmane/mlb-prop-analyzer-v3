@@ -1,11 +1,11 @@
 # Batter Hits Provider Capability Matrix
 
-**Version:** 1.1  
-**Status:** DATA UNDER INVESTIGATION — provider contracts are not approved  
+**Version:** 1.2  
+**Status:** DATA UNDER INVESTIGATION — partial evidence-derived contracts exist; provider mapping and production normalization are not approved  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`  
 **Evidence date:** 2026-07-23
 
-This matrix records observed provider capabilities for the first Batter Hits vertical slice before provider-derived contracts, normalization adapters, probability models, or production ranking are implemented.
+This matrix records observed provider capabilities and the limited evidence-derived contract boundaries for the first Batter Hits vertical slice before probability models or production ranking are implemented.
 
 It does not establish provider-wide schema stability. A result observed in one capture is evidence for that capture only. Unknown, missing, ambiguous, or unlinked values must fail closed.
 
@@ -52,6 +52,17 @@ test/terminal-pa-fixtures.test.mjs
 ```
 
 The focused test verifies all 49 checksums, JSON validity, absence of secret-like content, and preserved context needed to distinguish observed batter outcomes from runner events.
+
+The first evidence-derived terminal-PA contract slice was committed across `03176da` through `f5c81a7`:
+
+```text
+src/domain/terminal-pa.ts
+src/adapters/providers/balldontlie/contracts.ts
+src/adapters/providers/balldontlie/index.ts
+test/balldontlie-terminal-pa-contracts.test.ts
+```
+
+Direct verification passed typecheck, dependency architecture, build, and five focused tests. The raw schemas parsed all 607 promoted PA rows and 3,497 promoted play rows, preserved unknown provider fields, accepted observed nullable play fields, and rejected malformed required data. The strict normalized boundary requires canonical terminal categories and explicit provider/game/player/PA identity plus the source snapshot SHA-256. It does not map raw provider results into canonical categories.
 
 ---
 
@@ -230,7 +241,7 @@ The observed category evidence below is `VERIFIED_FIXTURE`, except `OTHER_PA`, w
 | Canonical category | Observed raw result or play evidence | Provisional observed mapping constraint |
 |---|---|---|
 | `K` | `Strikeout`; one `Strikeout Double Play` ended on `Swinging Strike` while a runner was separately caught stealing. | `Strikeout Double Play` contributes terminal `K`; the separate runner event belongs in the baserunning layer. |
-| `UBB` | `Walk` occurred separately from `Intent Walk`. | Candidate mapping is `Walk` → `UBB`; the production contract remains pending. |
+| `UBB` | `Walk` occurred separately from `Intent Walk`. | Candidate mapping is `Walk` → `UBB`; the production mapping remains pending. |
 | `IBB` | `Intent Walk` | Candidate mapping is `Intent Walk` → `IBB`. |
 | `HBP` | Exact raw result `Hit By Pitch` | Candidate mapping is `Hit By Pitch` → `HBP`. |
 | `1B` | `Single` | Candidate mapping is `Single` → `1B`. |
@@ -264,28 +275,30 @@ Promoted evidence and diagnostics established:
 + catcher interference preserved
 + fixture hashes and JSON validity protected by a focused test
 + caught stealing preserved as a separate baserunning event
++ canonical terminal and baserunning domain category sets are separate
++ raw PA/play schemas preserve unknown fields and reject malformed required fields
++ strict NormalizedTerminalPA boundary requires canonical categories and explicit snapshot context
+- raw provider results are not yet mapped into canonical categories
 - OTHER_PA not observed
 - future unknown strings are not exhaustively enumerable
-- the production normalization contract is not defined
-- unknown and context-insufficient values are not implementation-tested
-- mutual exclusivity and collective exhaustiveness are not normalization-tested
+- unknown and context-insufficient normalization is not implementation-tested
+- exact-one mapping, mutual exclusivity, and collective exhaustiveness are not normalization-tested
 ```
 
-The fixture-promotion blocker is closed. The overall terminal-PA capability gate remains open until the evidence-backed normalization contract and its fail-closed, exclusivity, and exhaustiveness tests are complete.
+The raw-schema and normalized-boundary blockers are closed. The overall terminal-PA capability gate remains open until the evidence-backed mapping function and its fail-closed, context-aware, exact-one-category, exclusivity, and exhaustiveness tests are complete.
 
 ---
 
-## 6. Current blockers before provider-derived contracts
+## 6. Current blockers before broader provider-derived contracts
 
 1. Promote the five-event offer-pair and tuple-uniqueness diagnostic if it will support identity validation.
 2. Define and test the generalized cross-provider game join; the observed one-minute difference is not an approved tolerance.
 3. Verify complete game-status semantics for scheduled, active, final, postponed, suspended, and cancelled states before pregame eligibility is implemented.
-4. Define runtime-validated raw schemas that preserve unknown fields and reject malformed required fields.
-5. Define player matching so zero or multiple matches fail closed; never use fuzzy matching without separately approved evidence and tests.
-6. Define terminal-PA normalization from the promoted fixtures, including context-aware handling for compound events and separate terminal/baserunning layers.
-7. Add focused normalization tests proving exact-one-category behavior, unknown-value rejection, context-insufficient rejection, mutual exclusivity, and collective exhaustiveness.
-8. Keep `OTHER_PA` unavailable until a supported raw provider result is observed or an explicitly approved rule is established.
-9. Preserve raw provider IDs, timestamps, market key, selected side, line, and snapshot hash through every later contract.
+4. Define player matching so zero or multiple matches fail closed; never use fuzzy matching without separately approved evidence and tests.
+5. Implement terminal-PA mapping from the promoted fixtures, including context-aware handling for compound events and separate terminal/baserunning layers.
+6. Add focused mapping tests proving exact-one-category behavior, unknown-value rejection, context-insufficient rejection, mutual exclusivity, and collective exhaustiveness.
+7. Keep `OTHER_PA` unavailable until a supported raw provider result is observed or an explicitly approved rule is established.
+8. Preserve raw provider IDs, timestamps when available, market key, selected side, line, and snapshot hash through every later contract.
 
 ---
 
@@ -305,6 +318,14 @@ Price, multiplier, player reputation, and raw expected performance are not ranki
 ---
 
 ## Changelog
+
+### Version 1.2 — 2026-07-23
+
+- Recorded the evidence-derived canonical terminal-PA and separate baserunning domain category sets.
+- Recorded runtime-validated raw BALLDONTLIE PA/play schemas that parse all promoted fixtures, preserve unknown fields, and reject malformed required fields.
+- Recorded the strict `NormalizedTerminalPA` boundary with explicit provider/game/player/PA identity and snapshot SHA-256.
+- Recorded direct typecheck, architecture, build, and five-test verification.
+- Closed the raw-schema and normalized-boundary blockers while keeping raw-result mapping, `OTHER_PA`, unknown/context-insufficient handling, exact-one mapping, mutual exclusivity, and collective exhaustiveness open.
 
 ### Version 1.1 — 2026-07-23
 
