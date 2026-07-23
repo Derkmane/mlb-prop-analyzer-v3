@@ -41,6 +41,19 @@ function expectedCount(distribution: ProbabilityMassFunction): number {
   );
 }
 
+function maximumUpwardIncrease(values: readonly number[]): number {
+  let maximum = 0;
+  for (let index = 1; index < values.length; index += 1) {
+    const previous = values[index - 1];
+    const current = values[index];
+    if (previous === undefined || current === undefined) {
+      throw new RangeError('invalid survival-vector indexing');
+    }
+    maximum = Math.max(maximum, current - previous);
+  }
+  return maximum;
+}
+
 function cloneDistribution(
   distribution: ProbabilityMassFunction,
   label: string,
@@ -155,6 +168,10 @@ function cloneLineupSlotOpportunity(
     throw new RangeError('unknown survival adjustment method');
   }
   assertNonEmpty(state.adjustmentVersion, 'survival adjustmentVersion');
+  assertNonEmpty(
+    state.monotonicityPolicyVersion,
+    'survival monotonicity policy version',
+  );
   if (state.rawSurvival.length !== state.adjustedSurvival.length) {
     throw new RangeError('raw and adjusted survival curves must have equal lengths');
   }
@@ -167,6 +184,21 @@ function cloneLineupSlotOpportunity(
     state.adjustedSurvival,
     'adjusted hitter PA survival',
   );
+  const maximumAllowedIncrease = validateProbability(
+    state.maximumAllowedIncrease,
+    'maximum allowed survival increase',
+  );
+  const observedMaximumIncrease = validateProbability(
+    state.observedMaximumIncrease,
+    'observed maximum survival increase',
+  );
+  const actualMaximumIncrease = maximumUpwardIncrease(rawSurvival);
+  if (actualMaximumIncrease !== observedMaximumIncrease) {
+    throw new RangeError('stored survival violation must match the raw curve');
+  }
+  if (observedMaximumIncrease > maximumAllowedIncrease) {
+    throw new RangeError('raw survival violation exceeds its versioned policy');
+  }
 
   for (let index = 1; index < adjustedSurvival.length; index += 1) {
     const previous = adjustedSurvival[index - 1];
@@ -180,12 +212,25 @@ function cloneLineupSlotOpportunity(
     }
   }
 
+  const curvesDiffer = rawSurvival.some(
+    (value, index) => value !== adjustedSurvival[index],
+  );
+  if (
+    (curvesDiffer && state.adjustmentMethod !== 'weighted-isotonic') ||
+    (!curvesDiffer && state.adjustmentMethod !== 'none')
+  ) {
+    throw new RangeError('survival adjustment metadata must match the stored curves');
+  }
+
   return Object.freeze({
     lineupSlot: state.lineupSlot,
     rawSurvival,
     adjustedSurvival,
     adjustmentMethod: state.adjustmentMethod,
     adjustmentVersion: state.adjustmentVersion,
+    monotonicityPolicyVersion: state.monotonicityPolicyVersion,
+    maximumAllowedIncrease,
+    observedMaximumIncrease,
   });
 }
 
