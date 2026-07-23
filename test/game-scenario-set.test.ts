@@ -15,15 +15,9 @@ import {
   type GameScenario,
   type GameScenarioSet,
   type LineupState,
-  type SurvivalMonotonicityPolicy,
   type TeamOffenseScenarioState,
   type TeamSide,
 } from '../src/game/index.js';
-
-const SYNTHETIC_MONOTONICITY_POLICY: SurvivalMonotonicityPolicy = Object.freeze({
-  version: 'synthetic-monotonicity-policy-v1',
-  maximumAllowedIncrease: 0.05,
-});
 
 function deterministicCount(count: number) {
   const probabilities = Array<number>(count + 1).fill(0);
@@ -78,7 +72,6 @@ function teamScenario(
       createHitterPASurvivalState({
         lineupSlot: entry.lineupSlot,
         rawSurvival: Array<number>(maxPlateAppearances).fill(1),
-        monotonicityPolicy: SYNTHETIC_MONOTONICITY_POLICY,
       }),
     ),
   };
@@ -175,49 +168,64 @@ test('GameScenarioSet preserves shared lineup, home-away, environment, starter, 
   assert.ok(Object.isFrozen(set.scenarios[0]!.teams));
 });
 
-test('raw and weighted-isotonic hitter survival curves are both preserved and convert exactly to counts', () => {
+test('accepted survival curves preserve separate raw and adjusted fields and convert exactly to counts', () => {
   const state = createHitterPASurvivalState({
     lineupSlot: 1,
-    rawSurvival: [1, 0.8, 0.82, 0.4],
-    monotonicityPolicy: SYNTHETIC_MONOTONICITY_POLICY,
+    rawSurvival: [1, 0.8, 0.6, 0.4],
   });
 
-  assert.deepEqual(state.rawSurvival, [1, 0.8, 0.82, 0.4]);
-  assertVectorClose(state.adjustedSurvival, [1, 0.81, 0.81, 0.4]);
-  assert.equal(state.adjustmentMethod, 'weighted-isotonic');
-  assert.equal(state.adjustmentVersion, 'weighted-isotonic-v1');
-  assert.equal(
-    state.monotonicityPolicyVersion,
-    'synthetic-monotonicity-policy-v1',
-  );
-  assertVectorClose([state.observedMaximumIncrease], [0.02]);
+  assert.deepEqual(state.rawSurvival, [1, 0.8, 0.6, 0.4]);
+  assert.deepEqual(state.adjustedSurvival, [1, 0.8, 0.6, 0.4]);
+  assert.notEqual(state.rawSurvival, state.adjustedSurvival);
+  assert.equal(state.adjustmentMethod, 'none');
+  assert.equal(state.adjustmentVersion, 'none-v1');
   assertVectorClose(
     hitterOpportunityCountDistribution(state).probabilities,
-    [0, 0.19, 0, 0.41, 0.4],
+    [0, 0.2, 0.2, 0.2, 0.4],
   );
 });
 
-test('even a sub-tolerance survival increase is projected before strict core conversion', () => {
-  const state = createHitterPASurvivalState({
-    lineupSlot: 1,
-    rawSurvival: [0.8, 0.8000000000005],
-    monotonicityPolicy: SYNTHETIC_MONOTONICITY_POLICY,
-  });
-
-  assert.equal(state.adjustmentMethod, 'weighted-isotonic');
-  assert.equal(state.adjustedSurvival[0], state.adjustedSurvival[1]);
-  assert.doesNotThrow(() => hitterOpportunityCountDistribution(state));
-});
-
-test('survival-order violations above the versioned policy fail closed', () => {
+test('any upward survival violation fails closed before count conversion', () => {
   assert.throws(
     () =>
       createHitterPASurvivalState({
         lineupSlot: 1,
-        rawSurvival: [0.7, 0.9],
-        monotonicityPolicy: SYNTHETIC_MONOTONICITY_POLICY,
+        rawSurvival: [0.8, 0.8000000000005],
       }),
-    /exceeds allowed/,
+    /must be monotone non-increasing/,
+  );
+});
+
+test('a pre-adjusted curve cannot bypass the strict M6 survival gate', () => {
+  const input = scenarioSetInput();
+  const firstScenario = input.scenarios[0]!;
+  const home = firstScenario.teams[0];
+  const firstSlot = home.lineupSlotOpportunities[0]!;
+  const inconsistentHome: TeamOffenseScenarioState = {
+    ...home,
+    lineupSlotOpportunities: [
+      {
+        lineupSlot: firstSlot.lineupSlot,
+        rawSurvival: firstSlot.rawSurvival,
+        adjustedSurvival: [1, 1, 1, 0.9],
+        adjustmentMethod: 'weighted-isotonic',
+        adjustmentVersion: 'weighted-isotonic-v1',
+      },
+      ...home.lineupSlotOpportunities.slice(1),
+    ],
+  };
+  const inconsistentScenario: GameScenario = {
+    ...firstScenario,
+    teams: [inconsistentHome, firstScenario.teams[1]],
+  };
+
+  assert.throws(
+    () =>
+      createGameScenarioSet({
+        ...input,
+        scenarios: [inconsistentScenario, input.scenarios[1]!],
+      }),
+    /projected survival curves are not enabled in M6/,
   );
 });
 
@@ -259,7 +267,6 @@ test('a slot curve with the right expectation but the wrong tail fails team-PA c
       createHitterPASurvivalState({
         lineupSlot: firstSlot.lineupSlot,
         rawSurvival: [1, 1, 0.5, 0.5, 0.5, 0.5],
-        monotonicityPolicy: SYNTHETIC_MONOTONICITY_POLICY,
       }),
       ...home.lineupSlotOpportunities.slice(1),
     ],
