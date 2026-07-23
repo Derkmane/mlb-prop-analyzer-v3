@@ -1,0 +1,37 @@
+{
+  "data": [
+    {
+      "id": 208,
+      "first_name": "Shohei",
+      "last_name": "Ohtani",
+      "full_name": "Shohei Ohtani",
+      "debut_year": 2017,
+      "jersey": "17",
+      "college": null,
+      "position": "DH",
+      "active": true,
+      "birth_place": "Oshu, Japan",
+      "dob": "07/05/94",
+      "age": 32,
+      "height": "6' 4\"",
+      "weight": "210 lbs",
+      "draft": null,
+      "bats_throws": "L/R",
+      "team": {
+        "id": 14,
+        "slug": "los-angeles-dodgers",
+        "abbreviation": "LAD",
+        "display_name": "Los Angeles Dodgers",
+        "short_display_name": "Dodgers",
+        "name": "Dodgers",
+        "location": "Los Angeles",
+        "league": "National",
+        "division": "West"
+      }
+    }
+  ],
+  "meta": {
+    "next_cursor": 208,
+    "per_page": 1
+  }
+}
