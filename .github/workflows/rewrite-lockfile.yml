@@ -1,0 +1,54 @@
+name: rewrite-portable-lockfile
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/rewrite-lockfile.yml
+
+permissions:
+  contents: write
+
+jobs:
+  rewrite:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out pull-request branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Replace only the private registry prefix
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path('package-lock.json')
+          original = path.read_text(encoding='utf-8')
+          old = 'http://package-firewall.replit.local/npm/'
+          new = 'https://registry.npmjs.org/'
+          replacement_count = original.count(old)
+
+          json.loads(original)
+          if replacement_count == 0:
+              print('No private registry prefixes remain.')
+              raise SystemExit(0)
+
+          updated = original.replace(old, new)
+          json.loads(updated)
+          if updated.replace(new, old) != original:
+              raise RuntimeError('A non-prefix byte changed during lockfile rewrite')
+
+          path.write_text(updated, encoding='utf-8')
+          print(f'Replaced {replacement_count} private registry prefixes.')
+          PY
+      - name: Commit the portable lockfile
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add package-lock.json
+          git commit -m "Make locked registry URLs portable"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
