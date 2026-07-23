@@ -1,0 +1,25 @@
+{
+  "name": "mlb-prop-analyzer-v3",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "architecture": "depcruise --config .dependency-cruiser.cjs src test --exclude '^test/architecture/fixtures/'",
+    "test": "npm run build && node --test dist/test",
+    "verify": "npm run typecheck && npm run architecture && npm test"
+  },
+  "dependencies": {
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "dependency-cruiser": "17.4.3",
+    "typescript": "5.9.3"
+  }
+}
