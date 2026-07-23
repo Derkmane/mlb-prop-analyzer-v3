@@ -14,9 +14,15 @@ import {
   type GameScenario,
   type GameScenarioSet,
   type LineupState,
+  type SurvivalMonotonicityPolicy,
   type TeamOffenseScenarioState,
   type TeamSide,
 } from '../src/game/index.js';
+
+const SYNTHETIC_MONOTONICITY_POLICY: SurvivalMonotonicityPolicy = Object.freeze({
+  version: 'synthetic-monotonicity-policy-v1',
+  maximumAllowedIncrease: 0.05,
+});
 
 function deterministicCount(count: number) {
   const probabilities = Array<number>(count + 1).fill(0);
@@ -71,6 +77,7 @@ function teamScenario(
       createHitterPASurvivalState({
         lineupSlot: entry.lineupSlot,
         rawSurvival: Array<number>(maxPlateAppearances).fill(1),
+        monotonicityPolicy: SYNTHETIC_MONOTONICITY_POLICY,
       }),
     ),
   };
@@ -171,12 +178,18 @@ test('raw and weighted-isotonic hitter survival curves are both preserved and co
   const state = createHitterPASurvivalState({
     lineupSlot: 1,
     rawSurvival: [1, 0.8, 0.82, 0.4],
+    monotonicityPolicy: SYNTHETIC_MONOTONICITY_POLICY,
   });
 
   assert.deepEqual(state.rawSurvival, [1, 0.8, 0.82, 0.4]);
   assertVectorClose(state.adjustedSurvival, [1, 0.81, 0.81, 0.4]);
   assert.equal(state.adjustmentMethod, 'weighted-isotonic');
   assert.equal(state.adjustmentVersion, 'weighted-isotonic-v1');
+  assert.equal(
+    state.monotonicityPolicyVersion,
+    'synthetic-monotonicity-policy-v1',
+  );
+  assertVectorClose([state.observedMaximumIncrease], [0.02]);
   assertVectorClose(
     hitterOpportunityCountDistribution(state).probabilities,
     [0, 0.19, 0, 0.41, 0.4],
@@ -187,11 +200,24 @@ test('even a sub-tolerance survival increase is projected before strict core con
   const state = createHitterPASurvivalState({
     lineupSlot: 1,
     rawSurvival: [0.8, 0.8000000000005],
+    monotonicityPolicy: SYNTHETIC_MONOTONICITY_POLICY,
   });
 
   assert.equal(state.adjustmentMethod, 'weighted-isotonic');
   assert.equal(state.adjustedSurvival[0], state.adjustedSurvival[1]);
   assert.doesNotThrow(() => hitterOpportunityCountDistribution(state));
+});
+
+test('survival-order violations above the versioned policy fail closed', () => {
+  assert.throws(
+    () =>
+      createHitterPASurvivalState({
+        lineupSlot: 1,
+        rawSurvival: [0.7, 0.9],
+        monotonicityPolicy: SYNTHETIC_MONOTONICITY_POLICY,
+      }),
+    /exceeds allowed/,
+  );
 });
 
 test('scenario weights fail closed unless they conserve total probability', () => {
@@ -212,6 +238,7 @@ test('lineup-slot opportunity expectations must agree with team batters faced', 
       createHitterPASurvivalState({
         lineupSlot: firstSlot.lineupSlot,
         rawSurvival: [1, 1, 1],
+        monotonicityPolicy: SYNTHETIC_MONOTONICITY_POLICY,
       }),
       ...home.lineupSlotOpportunities.slice(1),
     ],
