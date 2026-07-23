@@ -1,0 +1,42 @@
+[
+  {
+    "id": "22fc220be6958e93fba4354054d8fd16",
+    "sport_key": "baseball_mlb",
+    "sport_title": "MLB",
+    "commence_time": "2026-07-23T16:16:00Z",
+    "home_team": "Atlanta Braves",
+    "away_team": "San Diego Padres"
+  },
+  {
+    "id": "5c7e77b42c0db49ce882d3c9473d74c1",
+    "sport_key": "baseball_mlb",
+    "sport_title": "MLB",
+    "commence_time": "2026-07-23T17:11:00Z",
+    "home_team": "Cleveland Guardians",
+    "away_team": "Minnesota Twins"
+  },
+  {
+    "id": "36ba7a8a8c46e8cc308c1dd037995889",
+    "sport_key": "baseball_mlb",
+    "sport_title": "MLB",
+    "commence_time": "2026-07-23T19:08:00Z",
+    "home_team": "Toronto Blue Jays",
+    "away_team": "Tampa Bay Rays"
+  },
+  {
+    "id": "8e2411581a27c6dccd9eae0b233fe64c",
+    "sport_key": "baseball_mlb",
+    "sport_title": "MLB",
+    "commence_time": "2026-07-23T21:16:00Z",
+    "home_team": "St. Louis Cardinals",
+    "away_team": "Arizona Diamondbacks"
+  },
+  {
+    "id": "38d3052ec454022a14314b324e0ff5f3",
+    "sport_key": "baseball_mlb",
+    "sport_title": "MLB",
+    "commence_time": "2026-07-23T22:41:00Z",
+    "home_team": "Detroit Tigers",
+    "away_team": "Kansas City Royals"
+  }
+]

@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -27,8 +27,8 @@ This checklist is evidence-driven. A box is checked only after direct verificati
 - [x] Configure GitHub Actions CI.
 - [x] Add foundation scripts for typecheck, architecture checks, tests, and build.
 - [x] Add a protective-failure architecture test.
-- [ ] Add a synthetic disabled-market fail-closed test.
-- [ ] Add a synthetic historical-record rendering test that does not import feature code.
+- [x] Add a synthetic disabled-market fail-closed test.
+- [x] Add a synthetic historical-record rendering test that does not import feature code.
 
 ### M0 exit gate
 
@@ -39,7 +39,7 @@ This checklist is evidence-driven. A box is checked only after direct verificati
 - [x] CI passes for the currently implemented foundation scope.
 - [x] No production feature implementation exists.
 - [x] No synthetic value can appear as a production prediction.
-- [ ] Synthetic fail-closed and historical-independence protections pass.
+- [x] Synthetic fail-closed and historical-independence protections pass.
 
 ---
 
@@ -47,11 +47,11 @@ This checklist is evidence-driven. A box is checked only after direct verificati
 
 ### The Odds API
 
-- [ ] Verify secret access without exposing the secret.
-- [ ] Verify MLB event access.
+- [x] Verify secret access without exposing the secret.
+- [x] Verify MLB event access.
 - [ ] Verify Underdog bookmaker access.
 - [ ] Verify region and market parameters from real responses.
-- [ ] Capture sanitized MLB event fixture.
+- [x] Capture sanitized MLB event fixture.
 - [ ] Capture sanitized Batter Hits baseline fixture.
 - [ ] Capture sanitized Batter Hits alternate fixture.
 - [ ] Verify provider event, player, market, side, line, start-time, and offer-type identity.
@@ -59,8 +59,8 @@ This checklist is evidence-driven. A box is checked only after direct verificati
 
 ### BALLDONTLIE
 
-- [ ] Verify secret access without exposing the secret.
-- [ ] Capture sanitized players fixture.
+- [x] Verify secret access without exposing the secret.
+- [x] Capture sanitized players fixture.
 - [ ] Capture sanitized games fixture.
 - [ ] Capture sanitized lineups fixture.
 - [ ] Capture sanitized plate-appearances fixture.
@@ -353,6 +353,13 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 1.1 — 2026-07-23
+
+- Recorded direct CI evidence for the synthetic disabled-market and historical-independence protections and closed the M0 exit gate.
+- Recorded successful secret-safe access to both approved providers.
+- Recorded the preserved sanitized The Odds API MLB events fixture and BALLDONTLIE player fixture.
+- Left Underdog market access, game/status data, lineups, plate appearances, plays, and current-season statistics open until their real capability captures are inspected.
 
 ### Version 1.0 — 2026-07-23
 

@@ -1,0 +1,71 @@
+{
+  "probeVersion": 1,
+  "capturedAt": "2026-07-23T14:40:38.454Z",
+  "purpose": "Verify provider authentication and preserve sanitized raw evidence before provider-derived contracts.",
+  "providers": {
+    "theOddsApi": {
+      "label": "the-odds-api-mlb-events-access",
+      "ok": true,
+      "request": {
+        "origin": "https://api.the-odds-api.com",
+        "pathname": "/v4/sports/baseball_mlb/events",
+        "queryKeys": [
+          "apiKey",
+          "dateFormat"
+        ],
+        "headerNames": []
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": {
+          "content-type": "application/json; charset=utf-8",
+          "x-requests-last": "0",
+          "x-requests-remaining": "73711",
+          "x-requests-used": "26289"
+        },
+        "rawBodySha256": "ee870e265d75d9de462641d0c0c560e703b2ade6b1c4dd655dbd58d9d44ab8f8",
+        "bodySummary": {
+          "type": "array",
+          "recordCount": 5
+        }
+      },
+      "sanitizedBodyPath": "artifacts/provider-access/2026-07-23T14-40-38-454Z/the-odds-api-mlb-events.json",
+      "error": null
+    },
+    "balldontlie": {
+      "label": "balldontlie-player-lookup-access",
+      "ok": true,
+      "request": {
+        "origin": "https://api.balldontlie.io",
+        "pathname": "/mlb/v1/players",
+        "queryKeys": [
+          "first_name",
+          "last_name",
+          "per_page"
+        ],
+        "headerNames": [
+          "Authorization"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "statusText": "OK",
+        "headers": {
+          "content-type": "application/json; charset=utf-8"
+        },
+        "rawBodySha256": "1550855075b0321ddc70f18a6614ef014a434c2a3b258ad9462b98e176b1f639",
+        "bodySummary": {
+          "type": "object",
+          "topLevelKeys": [
+            "data",
+            "meta"
+          ],
+          "dataRecordCount": 1
+        }
+      },
+      "sanitizedBodyPath": "artifacts/provider-access/2026-07-23T14-40-38-454Z/balldontlie-player-lookup.json",
+      "error": null
+    }
+  }
+}
