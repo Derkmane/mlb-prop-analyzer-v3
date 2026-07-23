@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 1.6
+**Version:** 1.7
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -158,8 +158,8 @@ Checked terminal-category items above mean fixture-backed observed capability pl
 - [x] `EligibilityProbability`.
 - [x] `SettlementResult`.
 - [x] `WinLossVoid`.
-- [ ] `MarketStatus`.
-- [ ] `FeatureStatus`.
+- [x] `MarketStatus`.
+- [x] `FeatureStatus`.
 
 ### Provider and normalized contracts
 
@@ -207,17 +207,17 @@ Verified by `test/balldontlie-terminal-pa-contracts.test.ts` and `test/balldontl
 
 ## M5 — Registries, fail-closed behavior, and historical independence
 
-- [ ] Planned-market catalog.
-- [ ] Implemented-market registry.
-- [ ] Feature registry with enable/disable state.
-- [ ] Settlement registry with versions and effective dates.
-- [ ] Single-source market-key ownership test.
-- [ ] No silent fallback test.
-- [ ] Disabled feature cannot produce a prediction.
-- [ ] Not-yet-production-validated market cannot rank.
-- [ ] Immutable saved-prediction envelope.
-- [ ] Generic historical renderer independent of active feature code.
-- [ ] Feature-specific historical data uses a versioned isolated envelope.
+- [x] Planned-market catalog.
+- [x] Implemented-market registry.
+- [x] Feature registry with enable/disable state.
+- [x] Settlement registry with versions and effective dates.
+- [x] Single-source market-key ownership test.
+- [x] No silent fallback test.
+- [x] Disabled feature cannot produce a prediction.
+- [x] Not-yet-production-validated market cannot rank.
+- [x] Immutable saved-prediction envelope.
+- [x] Generic historical renderer independent of active feature code.
+- [x] Feature-specific historical data uses a versioned isolated envelope.
 
 ---
 
@@ -363,6 +363,10 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 1.7 — 2026-07-23
+
+- Recorded verified `MarketStatus`, `FeatureStatus`, and complete M5 registry, fail-closed, immutable-snapshot, and historical-independence protections from merged commit `3e18c86`; the full verification gate passed, production registries remain empty, and no real market was enabled.
 
 ### Version 1.6 — 2026-07-23
 
