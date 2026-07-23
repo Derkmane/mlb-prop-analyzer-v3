@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 1.1  
+**Version:** 1.2  
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -49,20 +49,20 @@ This checklist is evidence-driven. A box is checked only after direct verificati
 
 - [x] Verify secret access without exposing the secret.
 - [x] Verify MLB event access.
-- [ ] Verify Underdog bookmaker access.
-- [ ] Verify region and market parameters from real responses.
+- [x] Verify Underdog bookmaker access.
+- [ ] Verify region and market parameters from preserved real-response request metadata.
 - [x] Capture sanitized MLB event fixture.
-- [ ] Capture sanitized Batter Hits baseline fixture.
-- [ ] Capture sanitized Batter Hits alternate fixture.
-- [ ] Verify provider event, player, market, side, line, start-time, and offer-type identity.
-- [ ] Verify observed market keys and multipliers/offer metadata actually supplied.
+- [x] Capture sanitized Batter Hits baseline fixture.
+- [x] Capture sanitized Batter Hits alternate fixture.
+- [ ] Verify complete provider event, player, market, side, line, start-time, and offer-type identity.
+- [x] Verify observed market keys and multipliers/offer metadata actually supplied.
 
 ### BALLDONTLIE
 
 - [x] Verify secret access without exposing the secret.
 - [x] Capture sanitized players fixture.
-- [ ] Capture sanitized games fixture.
-- [ ] Capture sanitized lineups fixture.
+- [x] Capture sanitized games fixture.
+- [x] Capture sanitized lineups fixture.
 - [ ] Capture sanitized plate-appearances fixture.
 - [ ] Capture sanitized plays fixture if required by terminal-outcome mapping.
 - [ ] Capture sanitized current-season statistics fixture.
@@ -81,33 +81,39 @@ This checklist is evidence-driven. A box is checked only after direct verificati
 
 For every required component, record endpoint, exact JSON path, fixture, availability, ambiguity, normalization rule, and blocking consequence.
 
+Primary document:
+
+```text
+docs/providers/batter-hits-capability-matrix.md
+```
+
 ### Offer and settlement identity
 
-- [ ] Underdog source identity.
-- [ ] Event identity.
-- [ ] Player identity.
-- [ ] Market identity.
-- [ ] Baseline/alternate identity.
-- [ ] Selected Higher/Lower side.
-- [ ] Posted line.
-- [ ] Pregame start time/status.
+- [x] Underdog source identity.
+- [x] Event identity.
+- [x] Player identity — partial capability recorded; zero or multiple matches fail closed.
+- [x] Market identity.
+- [x] Baseline/alternate identity.
+- [x] Selected Higher/Lower side.
+- [x] Posted line.
+- [ ] Pregame start time/status — scheduled and final observed; complete state semantics remain open.
 
 ### Game and player joins
 
-- [ ] MLB game identity and provider join.
-- [ ] Team identity and opponent.
-- [ ] Player identity mapping.
-- [ ] Current-season guard.
-- [ ] Home/away state.
+- [x] MLB game identity and one observed provider join; generalized join tolerance remains open.
+- [x] Team identity and opponent.
+- [x] Player identity mapping — 17 unique matches and one zero-match fail-closed case preserved.
+- [x] Current-season game guard fields.
+- [x] Home/away state.
 
 ### Lineup and opportunity
 
-- [ ] Confirmed lineup availability.
-- [ ] Batting-order/lineup-slot availability.
+- [x] Confirmed lineup availability.
+- [x] Batting-order/lineup-slot availability.
 - [ ] Probable opposing starter identity.
 - [ ] Plate-appearance ordering.
 - [ ] Batter and pitcher identity per PA.
-- [ ] Handedness where required.
+- [ ] Handedness where required across the complete PA matchup path.
 
 ### Canonical terminal PA vector
 
@@ -131,7 +137,7 @@ Determine whether approved data can map every raw PA into exactly one of:
 
 - [ ] Verify categories are mutually exclusive.
 - [ ] Verify categories are collectively exhaustive.
-- [ ] Preserve unmapped raw values and fail closed.
+- [x] Document that unmapped raw values must be preserved and fail closed; implementation and tests remain pending.
 
 ### M2 exit gate
 
@@ -353,6 +359,15 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 1.2 — 2026-07-23
+
+- Added the dedicated Batter Hits provider capability matrix.
+- Recorded preserved Underdog baseline and alternate fixtures, market keys, selected-side fields, lines, multipliers, and null source IDs.
+- Recorded preserved BALLDONTLIE game and lineup fixtures.
+- Recorded one observed cross-provider game join and the 17-of-18 player-linkage result with James Jarvis failing closed.
+- Kept complete pregame status semantics, PA/plays fixture promotion, terminal-category closure, and every M2 exit gate open.
+- Did not begin provider-derived contracts.
 
 ### Version 1.1 — 2026-07-23
 
