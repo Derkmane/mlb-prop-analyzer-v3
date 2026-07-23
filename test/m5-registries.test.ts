@@ -146,6 +146,20 @@ test('a missing settlement rule cannot produce a prediction', () => {
   assert.equal(error.code, 'SETTLEMENT_RULE_NOT_REGISTERED');
 });
 
+test('a settlement rule for the wrong official statistic cannot authorize a prediction', () => {
+  const mismatchedRule: SettlementRuleRegistration = Object.freeze({
+    ...validSettlementRule,
+    officialSettlementStatistic: 'different-synthetic-statistic',
+  });
+  const error = captureMarketError(() =>
+    authorizeMarketForPrediction(
+      snapshot(validMarket, validFeature, [mismatchedRule]),
+      validMarket.baseMarketKey,
+    ),
+  );
+  assert.equal(error.code, 'SETTLEMENT_STATISTIC_MISMATCH');
+});
+
 test('a fully validated synthetic market receives an immutable authorization', () => {
   const authorization = authorizeMarketForPrediction(
     snapshot(),
