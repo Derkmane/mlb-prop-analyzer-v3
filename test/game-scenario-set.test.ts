@@ -67,9 +67,8 @@ function teamScenario(
       battersFacedDistribution: deterministicCount(bullpenBattersFaced),
     },
     teamBattersFacedDistribution: deterministicCount(teamBattersFaced),
-    hitterOpportunities: teamLineup.entries.map((entry) =>
+    lineupSlotOpportunities: teamLineup.entries.map((entry) =>
       createHitterPASurvivalState({
-        playerId: entry.playerId,
         lineupSlot: entry.lineupSlot,
         rawSurvival: Array<number>(maxPlateAppearances).fill(1),
       }),
@@ -152,6 +151,10 @@ test('GameScenarioSet preserves shared lineup, home-away, environment, starter, 
   assert.equal(set.homeAway.awayTeamId, 'away-team');
   assert.equal(set.scenarios[0]!.teams[0].lineup.entries.length, 9);
   assert.equal(
+    set.scenarios[0]!.teams[0].lineupSlotOpportunities.length,
+    9,
+  );
+  assert.equal(
     set.scenarios[0]!.teams[0].opposingStarter.teamId,
     'away-team',
   );
@@ -166,7 +169,6 @@ test('GameScenarioSet preserves shared lineup, home-away, environment, starter, 
 
 test('raw and weighted-isotonic hitter survival curves are both preserved and convert exactly to counts', () => {
   const state = createHitterPASurvivalState({
-    playerId: 'synthetic-hitter',
     lineupSlot: 1,
     rawSurvival: [1, 0.8, 0.82, 0.4],
   });
@@ -181,6 +183,17 @@ test('raw and weighted-isotonic hitter survival curves are both preserved and co
   );
 });
 
+test('even a sub-tolerance survival increase is projected before strict core conversion', () => {
+  const state = createHitterPASurvivalState({
+    lineupSlot: 1,
+    rawSurvival: [0.8, 0.8000000000005],
+  });
+
+  assert.equal(state.adjustmentMethod, 'weighted-isotonic');
+  assert.equal(state.adjustedSurvival[0], state.adjustedSurvival[1]);
+  assert.doesNotThrow(() => hitterOpportunityCountDistribution(state));
+});
+
 test('scenario weights fail closed unless they conserve total probability', () => {
   assert.throws(
     () => createGameScenarioSet(scenarioSetInput(0.4, 0.5)),
@@ -188,20 +201,19 @@ test('scenario weights fail closed unless they conserve total probability', () =
   );
 });
 
-test('hitter opportunity expectations must agree with team batters faced', () => {
+test('lineup-slot opportunity expectations must agree with team batters faced', () => {
   const input = scenarioSetInput();
   const firstScenario = input.scenarios[0]!;
   const home = firstScenario.teams[0];
-  const firstHitter = home.hitterOpportunities[0]!;
+  const firstSlot = home.lineupSlotOpportunities[0]!;
   const inconsistentHome: TeamOffenseScenarioState = {
     ...home,
-    hitterOpportunities: [
+    lineupSlotOpportunities: [
       createHitterPASurvivalState({
-        playerId: firstHitter.playerId,
-        lineupSlot: firstHitter.lineupSlot,
+        lineupSlot: firstSlot.lineupSlot,
         rawSurvival: [1, 1, 1],
       }),
-      ...home.hitterOpportunities.slice(1),
+      ...home.lineupSlotOpportunities.slice(1),
     ],
   };
   const inconsistentScenario: GameScenario = {
@@ -215,7 +227,7 @@ test('hitter opportunity expectations must agree with team batters faced', () =>
         ...input,
         scenarios: [inconsistentScenario, input.scenarios[1]!],
       }),
-    /hitter opportunity expectations must match team batters faced/,
+    /lineup-slot opportunity expectations must match team batters faced/,
   );
 });
 
@@ -275,6 +287,8 @@ test('the same shared scenario moves hitter opportunity and outcome assumptions 
     expectedCountFromProbabilityMassFunction(higher.opportunityCountDistribution),
     5,
   );
+  assert.equal(lower.lineupSlot, 1);
+  assert.equal(higher.lineupSlot, 1);
   assert.equal(lower.outcomeAssumption, 0.2);
   assert.equal(higher.outcomeAssumption, 0.3);
   assert.equal(lower.offensiveEnvironmentId, 'home-lower-offense');
