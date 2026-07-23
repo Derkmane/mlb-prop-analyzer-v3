@@ -9,6 +9,7 @@ import {
   createHitterPASurvivalState,
   createSharedScenarioReference,
   deriveJointHitterScenarioAssumptions,
+  deriveLineupSlotSurvivalFromTeamBattersFaced,
   expectedCountFromProbabilityMassFunction,
   hitterOpportunityCountDistribution,
   type GameScenario,
@@ -227,7 +228,27 @@ test('scenario weights fail closed unless they conserve total probability', () =
   );
 });
 
-test('lineup-slot opportunity expectations must agree with team batters faced', () => {
+test('lineup-slot survival is derived exactly from team batters faced', () => {
+  const probabilities = Array<number>(20).fill(0);
+  probabilities[10] = 0.5;
+  probabilities[19] = 0.5;
+  const distribution = createProbabilityMassFunction(probabilities);
+
+  assert.deepEqual(
+    deriveLineupSlotSurvivalFromTeamBattersFaced(distribution, 1),
+    [1, 1, 0.5],
+  );
+  assert.deepEqual(
+    deriveLineupSlotSurvivalFromTeamBattersFaced(distribution, 2),
+    [1, 0.5],
+  );
+  assert.deepEqual(
+    deriveLineupSlotSurvivalFromTeamBattersFaced(distribution, 9),
+    [1, 0.5],
+  );
+});
+
+test('a slot curve with the right expectation but the wrong tail fails team-PA consistency', () => {
   const input = scenarioSetInput();
   const firstScenario = input.scenarios[0]!;
   const home = firstScenario.teams[0];
@@ -237,7 +258,7 @@ test('lineup-slot opportunity expectations must agree with team batters faced', 
     lineupSlotOpportunities: [
       createHitterPASurvivalState({
         lineupSlot: firstSlot.lineupSlot,
-        rawSurvival: [1, 1, 1],
+        rawSurvival: [1, 1, 0.5, 0.5, 0.5, 0.5],
         monotonicityPolicy: SYNTHETIC_MONOTONICITY_POLICY,
       }),
       ...home.lineupSlotOpportunities.slice(1),
@@ -254,7 +275,7 @@ test('lineup-slot opportunity expectations must agree with team batters faced', 
         ...input,
         scenarios: [inconsistentScenario, input.scenarios[1]!],
       }),
-    /lineup-slot opportunity expectations must match team batters faced/,
+    /adjusted lineup-slot survival must match team batters-faced support/,
   );
 });
 
