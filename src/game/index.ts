@@ -20,6 +20,7 @@ export type {
 } from './contracts.js';
 export {
   createHitterPASurvivalState,
+  deriveLineupSlotSurvivalFromTeamBattersFaced,
   expectedHitterPlateAppearances,
   hitterOpportunityCountDistribution,
 } from './hitter-opportunity.js';
