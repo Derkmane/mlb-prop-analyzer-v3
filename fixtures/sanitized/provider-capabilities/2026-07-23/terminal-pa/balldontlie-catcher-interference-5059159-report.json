@@ -1,0 +1,195 @@
+{
+  "date": "2026-07-08",
+  "gameId": 5059159,
+  "gameIdentity": {
+    "homeTeamName": "Cincinnati Reds",
+    "awayTeamName": "Philadelphia Phillies",
+    "status": "STATUS_FINAL",
+    "datetime": null
+  },
+  "plateAppearanceCount": 84,
+  "observedPaResults": [
+    "Bunt Groundout",
+    "Catcher Interference",
+    "Double",
+    "Flyout",
+    "GIDP",
+    "Groundout",
+    "Home Run",
+    "Lineout",
+    "Pop Out",
+    "Sac Fly",
+    "Single",
+    "Strikeout",
+    "Triple",
+    "Walk"
+  ],
+  "interferencePlateAppearances": [
+    {
+      "paNumber": 74,
+      "inning": 8,
+      "halfInning": "top",
+      "batterId": 545,
+      "pitcherId": 621,
+      "result": "Catcher Interference",
+      "outs": 2,
+      "isBallInPlayOut": false,
+      "runnersBefore": {
+        "first": false,
+        "second": true,
+        "third": false
+      },
+      "pitches": [
+        {
+          "pitch_number": 1,
+          "balls": 0,
+          "strikes": 0,
+          "pitch_call": "B",
+          "description": "Ball",
+          "pitch_call_code": "ball",
+          "call_name": "Ball",
+          "pitch_type_code": "SL",
+          "pitch_type": "Slider",
+          "release_speed": 83.6,
+          "plate_speed": 76.9,
+          "spin_rate": 2746,
+          "release_extension": 6.23,
+          "plate_time": 0.45,
+          "plate_x": -0.45,
+          "plate_z": 1.6,
+          "strike_zone": 7,
+          "strike_zone_top": 3.19,
+          "strike_zone_bottom": 1.61,
+          "horizontal_movement": -0.08,
+          "vertical_movement": 0.08,
+          "horizontal_break": 1,
+          "vertical_break": -39,
+          "induced_vertical_break": 1,
+          "release_pos_x": -2.53,
+          "release_pos_y": 50,
+          "release_pos_z": 5.53,
+          "velocity_x": 4.95,
+          "velocity_y": -121.63,
+          "velocity_z": -2.71,
+          "acceleration_x": -0.18,
+          "acceleration_y": 24.26,
+          "acceleration_z": -31.1,
+          "bat_speed": null,
+          "exit_velocity": null,
+          "launch_angle": null,
+          "hit_distance": null,
+          "expected_batting_average": null,
+          "is_barrel": null,
+          "hit_coordinate_x": null,
+          "hit_coordinate_y": null,
+          "is_in_zone": true,
+          "is_swing": false,
+          "is_whiff": false,
+          "is_contact": false,
+          "is_chase": false,
+          "is_command": true,
+          "expected_woba": null,
+          "woba_value": 0.7,
+          "woba_denom": 1,
+          "expected_slugging": null,
+          "game_pitch_count": 313,
+          "pitcher_pitch_count": 15
+        }
+      ]
+    }
+  ],
+  "playPageCount": 7,
+  "totalPlayCount": 655,
+  "playPages": [
+    {
+      "page": 1,
+      "filePath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-plays-5059159-page-1.json",
+      "recordCount": 100,
+      "sha256": "6ef2849a99a51fde8d76e91b908aaae4f2222cbc32c253f0046583daaeca3d4e",
+      "meta": {
+        "next_cursor": 234408705,
+        "per_page": 100
+      }
+    },
+    {
+      "page": 2,
+      "filePath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-plays-5059159-page-2.json",
+      "recordCount": 100,
+      "sha256": "28dea8f2c1581ec3ef38d586023b2528b43ae8b71808e11678c8df80c10be5e6",
+      "meta": {
+        "prev_cursor": 234408705,
+        "next_cursor": 234472682,
+        "per_page": 100
+      }
+    },
+    {
+      "page": 3,
+      "filePath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-plays-5059159-page-3.json",
+      "recordCount": 100,
+      "sha256": "06667fc4ac04d944e1b1627afa4268c49fbf973a7a863280ef11327e363f2347",
+      "meta": {
+        "prev_cursor": 234472682,
+        "next_cursor": 234572404,
+        "per_page": 100
+      }
+    },
+    {
+      "page": 4,
+      "filePath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-plays-5059159-page-4.json",
+      "recordCount": 100,
+      "sha256": "d83f31e582ea48f05cbd57c1dd21091ef82f5117c93e8bc473da4434e4ab5cb6",
+      "meta": {
+        "prev_cursor": 234572404,
+        "next_cursor": 234715653,
+        "per_page": 100
+      }
+    },
+    {
+      "page": 5,
+      "filePath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-plays-5059159-page-5.json",
+      "recordCount": 100,
+      "sha256": "eadad946de7f84cda4f831e9e02580ef08872f57fc1d808aac49c6b828edb072",
+      "meta": {
+        "prev_cursor": 234715653,
+        "next_cursor": 234820140,
+        "per_page": 100
+      }
+    },
+    {
+      "page": 6,
+      "filePath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-plays-5059159-page-6.json",
+      "recordCount": 100,
+      "sha256": "d06cabe36c81f736c13e21d35f4760f4ed780ba2ed2a551534288d7dc7965ffd",
+      "meta": {
+        "prev_cursor": 234820140,
+        "next_cursor": 234914035,
+        "per_page": 100
+      }
+    },
+    {
+      "page": 7,
+      "filePath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-plays-5059159-page-7.json",
+      "recordCount": 55,
+      "sha256": "06654e4dc98617dcf9260fa9d87a0159d37be605cc24a98a9a41e9be7433f5f2",
+      "meta": {
+        "prev_cursor": 234914035,
+        "per_page": 100
+      }
+    }
+  ],
+  "interferencePlays": [
+    {
+      "page": 6,
+      "order": 234896578,
+      "inning": 8,
+      "inningType": "Top",
+      "type": "Play Result",
+      "text": "Sosa reached first base on catcher's interference. Philadelphia Phillies challenged: call on the field was overturned.",
+      "batterId": 545,
+      "pitcherId": 621,
+      "outs": 2,
+      "balls": 1,
+      "strikes": 0
+    }
+  ]
+}

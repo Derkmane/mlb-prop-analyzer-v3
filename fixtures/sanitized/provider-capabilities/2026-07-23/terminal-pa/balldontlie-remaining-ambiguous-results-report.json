@@ -1,0 +1,496 @@
+[
+  {
+    "gameId": 5059296,
+    "pages": [
+      {
+        "page": 1,
+        "filePath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-plays-5059296-page-1.json",
+        "recordCount": 100,
+        "sha256": "fd4e41d50fe8a9ecb24938edc5fdc93104402e8bcb8fe6999a9afe1f20608eb6",
+        "meta": {
+          "next_cursor": 257444379,
+          "per_page": 100
+        }
+      },
+      {
+        "page": 2,
+        "filePath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-plays-5059296-page-2.json",
+        "recordCount": 100,
+        "sha256": "a41258bd8c34b7fe2d75975597de8cf6fb14e2aa9f86a338053a6c43ecd1adfd",
+        "meta": {
+          "prev_cursor": 257444379,
+          "next_cursor": 257552226,
+          "per_page": 100
+        }
+      },
+      {
+        "page": 3,
+        "filePath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-plays-5059296-page-3.json",
+        "recordCount": 100,
+        "sha256": "c736437b091f8e71b14dca2185c5d6459dbcc8daa5d791e2e19fc2aa13f351cf",
+        "meta": {
+          "prev_cursor": 257552226,
+          "next_cursor": 257667635,
+          "per_page": 100
+        }
+      },
+      {
+        "page": 4,
+        "filePath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-plays-5059296-page-4.json",
+        "recordCount": 100,
+        "sha256": "8b7f2f7c6261524d7f2fb498b55bcf2c8418aa7adf0ea2e213ec3131f66313e2",
+        "meta": {
+          "prev_cursor": 257667635,
+          "next_cursor": 257777043,
+          "per_page": 100
+        }
+      }
+    ],
+    "findings": [
+      {
+        "target": "Fielders Choice Out",
+        "inning": 3,
+        "halfInning": "top",
+        "batterId": 180,
+        "resolved": true,
+        "relatedPlays": [
+          {
+            "order": 257525618,
+            "type": "Start Batter/Pitcher",
+            "text": "Michael Lorenzen pitches to Jose Tena",
+            "outs": 2,
+            "balls": 0,
+            "strikes": 0,
+            "batterId": 180,
+            "pitcherId": 2293
+          },
+          {
+            "order": 257525619,
+            "type": "Strike Swinging",
+            "text": "Pitch 1 : Strike 1 Swinging",
+            "outs": 2,
+            "balls": 0,
+            "strikes": 0,
+            "batterId": 180,
+            "pitcherId": 2293
+          },
+          {
+            "order": 257525620,
+            "type": "Foul Ball",
+            "text": "Pitch 2 : Strike 2 Foul",
+            "outs": 2,
+            "balls": 0,
+            "strikes": 1,
+            "batterId": 180,
+            "pitcherId": 2293
+          },
+          {
+            "order": 257528642,
+            "type": "Ball",
+            "text": "Pitch 3 : Ball 1",
+            "outs": 2,
+            "balls": 0,
+            "strikes": 2,
+            "batterId": 180,
+            "pitcherId": 2293
+          },
+          {
+            "order": 257528643,
+            "type": "Ball",
+            "text": "Pitch 4 : Ball 2",
+            "outs": 2,
+            "balls": 1,
+            "strikes": 2,
+            "batterId": 180,
+            "pitcherId": 2293
+          },
+          {
+            "order": 257528644,
+            "type": "Foul Ball",
+            "text": "Pitch 5 : Strike 2 Foul",
+            "outs": 2,
+            "balls": 2,
+            "strikes": 2,
+            "batterId": 180,
+            "pitcherId": 2293
+          },
+          {
+            "order": 257531893,
+            "type": "Batters Fielders Choice - Runner Out",
+            "text": "Pitch 6 : Ball In Play",
+            "outs": 2,
+            "balls": 2,
+            "strikes": 2,
+            "batterId": 180,
+            "pitcherId": 2293
+          },
+          {
+            "order": 257531894,
+            "type": "Play Result",
+            "text": "Tena grounded into fielder's choice to pitcher, García Jr. out at home.",
+            "outs": 2,
+            "balls": 2,
+            "strikes": 2,
+            "batterId": 180,
+            "pitcherId": 2293
+          },
+          {
+            "order": 257531895,
+            "type": "End Batter/Pitcher",
+            "text": null,
+            "outs": 2,
+            "balls": 2,
+            "strikes": 2,
+            "batterId": 180,
+            "pitcherId": 2293
+          }
+        ]
+      },
+      {
+        "target": "Double Play",
+        "inning": 6,
+        "halfInning": "top",
+        "batterId": 164,
+        "resolved": true,
+        "relatedPlays": [
+          {
+            "order": 257721866,
+            "type": "Start Batter/Pitcher",
+            "text": "Victor Vodnik pitches to Nasim Nunez",
+            "outs": 3,
+            "balls": 0,
+            "strikes": 0,
+            "batterId": 164,
+            "pitcherId": 76
+          },
+          {
+            "order": 257727439,
+            "type": "Ball",
+            "text": "Pitch 1 : Ball 1",
+            "outs": 3,
+            "balls": 0,
+            "strikes": 0,
+            "batterId": 164,
+            "pitcherId": 76
+          },
+          {
+            "order": 257730809,
+            "type": "Ground Out",
+            "text": "Pitch 2 : Ball In Play",
+            "outs": 3,
+            "balls": 1,
+            "strikes": 0,
+            "batterId": 164,
+            "pitcherId": 76
+          },
+          {
+            "order": 257730810,
+            "type": "Play Result",
+            "text": "Nuñez grounded into double play, second to catcher to catcher to first to second, Nuñez out at second, Lile out at home.",
+            "outs": 3,
+            "balls": 1,
+            "strikes": 0,
+            "batterId": 164,
+            "pitcherId": 76
+          },
+          {
+            "order": 257730811,
+            "type": "End Batter/Pitcher",
+            "text": null,
+            "outs": 3,
+            "balls": 1,
+            "strikes": 0,
+            "batterId": 164,
+            "pitcherId": 76
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "gameId": 5059309,
+    "pages": [
+      {
+        "page": 1,
+        "filePath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-plays-5059309-page-1.json",
+        "recordCount": 100,
+        "sha256": "dc2bd6c40b449d38a7daf3b979b5f2ef607bca93499e1f67a3f3f325522e2e91",
+        "meta": {
+          "next_cursor": 259672900,
+          "per_page": 100
+        }
+      },
+      {
+        "page": 2,
+        "filePath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-plays-5059309-page-2.json",
+        "recordCount": 100,
+        "sha256": "92eb7b10eaac5388b145f90bf65726007d5abaa0752eb807265addc01f72f32a",
+        "meta": {
+          "prev_cursor": 259672900,
+          "next_cursor": 259703022,
+          "per_page": 100
+        }
+      },
+      {
+        "page": 3,
+        "filePath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-plays-5059309-page-3.json",
+        "recordCount": 100,
+        "sha256": "db39388d3b6bed9a8f84953d6e84a8c85fdf7017a8dfd62c7a31faa6f59bfb38",
+        "meta": {
+          "prev_cursor": 259703022,
+          "next_cursor": 259766041,
+          "per_page": 100
+        }
+      },
+      {
+        "page": 4,
+        "filePath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-plays-5059309-page-4.json",
+        "recordCount": 100,
+        "sha256": "b795992dab45519a4d0261de7f1082e460df9522d43139f6a4d03f3086daef8d",
+        "meta": {
+          "prev_cursor": 259766041,
+          "next_cursor": 259845086,
+          "per_page": 100
+        }
+      },
+      {
+        "page": 5,
+        "filePath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-plays-5059309-page-5.json",
+        "recordCount": 100,
+        "sha256": "5a310e04ca7c6e27878adc1f44294289210a9e6a6cc41e0610da978a30736754",
+        "meta": {
+          "prev_cursor": 259845086,
+          "next_cursor": 259963420,
+          "per_page": 100
+        }
+      }
+    ],
+    "findings": [
+      {
+        "target": "Strikeout Double Play",
+        "inning": 8,
+        "halfInning": "top",
+        "batterId": 161,
+        "resolved": true,
+        "relatedPlays": [
+          {
+            "order": 259919907,
+            "type": "Start Batter/Pitcher",
+            "text": "Brendon Little pitches to Taylor Walls",
+            "outs": 3,
+            "balls": 0,
+            "strikes": 0,
+            "batterId": 161,
+            "pitcherId": 763
+          },
+          {
+            "order": 259919908,
+            "type": "Bunted Foul",
+            "text": "Pitch 1 : Strike 1 Bunted Foul",
+            "outs": 3,
+            "balls": 0,
+            "strikes": 0,
+            "batterId": 161,
+            "pitcherId": 763
+          },
+          {
+            "order": 259923631,
+            "type": "Ball",
+            "text": "Pitch 2 : Ball 1",
+            "outs": 3,
+            "balls": 0,
+            "strikes": 1,
+            "batterId": 161,
+            "pitcherId": 763
+          },
+          {
+            "order": 259923632,
+            "type": "Bunted Foul",
+            "text": "Pitch 3 : Strike 2 Bunted Foul",
+            "outs": 3,
+            "balls": 1,
+            "strikes": 1,
+            "batterId": 161,
+            "pitcherId": 763
+          },
+          {
+            "order": 259923633,
+            "type": "Ball",
+            "text": "Pitch 4 : Ball 2",
+            "outs": 3,
+            "balls": 1,
+            "strikes": 2,
+            "batterId": 161,
+            "pitcherId": 763
+          },
+          {
+            "order": 259923634,
+            "type": "Foul Ball",
+            "text": "Pitch 5 : Strike 2 Foul",
+            "outs": 3,
+            "balls": 2,
+            "strikes": 2,
+            "batterId": 161,
+            "pitcherId": 763
+          },
+          {
+            "order": 259927632,
+            "type": "Ball",
+            "text": "Pitch 6 : Ball 3",
+            "outs": 3,
+            "balls": 2,
+            "strikes": 2,
+            "batterId": 161,
+            "pitcherId": 763
+          },
+          {
+            "order": 259930971,
+            "type": "Strike Swinging",
+            "text": "Pitch 7 : Strike 3 Swinging",
+            "outs": 3,
+            "balls": 3,
+            "strikes": 2,
+            "batterId": 161,
+            "pitcherId": 763
+          },
+          {
+            "order": 259930972,
+            "type": "Play Result",
+            "text": "Walls struck out swinging, Mesa Jr. caught stealing second, catcher to second.",
+            "outs": 3,
+            "balls": 3,
+            "strikes": 3,
+            "batterId": 161,
+            "pitcherId": 763
+          },
+          {
+            "order": 259930973,
+            "type": "End Batter/Pitcher",
+            "text": null,
+            "outs": 3,
+            "balls": 3,
+            "strikes": 3,
+            "batterId": 161,
+            "pitcherId": 763
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "gameId": 5059310,
+    "pages": [
+      {
+        "page": 1,
+        "filePath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-plays-5059310-page-1.json",
+        "recordCount": 100,
+        "sha256": "b0b4444b8e12bca5a6bbd5cfbcc4535debd5b466b4aa575ad8c440c450f56a87",
+        "meta": {
+          "next_cursor": 259676670,
+          "per_page": 100
+        }
+      }
+    ],
+    "findings": [
+      {
+        "target": "Fielders Choice",
+        "inning": 1,
+        "halfInning": "top",
+        "batterId": 2288,
+        "resolved": true,
+        "relatedPlays": [
+          {
+            "order": 259650310,
+            "type": "Start Batter/Pitcher",
+            "text": "Eduardo Rivera pitches to Tyler O'Neill",
+            "outs": 1,
+            "balls": 0,
+            "strikes": 0,
+            "batterId": 2288,
+            "pitcherId": 5135370
+          },
+          {
+            "order": 259650311,
+            "type": "Ball",
+            "text": "Pitch 1 : Ball 1",
+            "outs": 1,
+            "balls": 0,
+            "strikes": 0,
+            "batterId": 2288,
+            "pitcherId": 5135370
+          },
+          {
+            "order": 259650621,
+            "type": "Foul Ball",
+            "text": "Pitch 2 : Strike 1 Foul",
+            "outs": 1,
+            "balls": 1,
+            "strikes": 0,
+            "batterId": 2288,
+            "pitcherId": 5135370
+          },
+          {
+            "order": 259650622,
+            "type": "Ball",
+            "text": "Pitch 3 : Ball 2",
+            "outs": 1,
+            "balls": 1,
+            "strikes": 1,
+            "batterId": 2288,
+            "pitcherId": 5135370
+          },
+          {
+            "order": 259651617,
+            "type": "Foul Ball",
+            "text": "Pitch 4 : Strike 2 Foul",
+            "outs": 1,
+            "balls": 2,
+            "strikes": 1,
+            "batterId": 2288,
+            "pitcherId": 5135370
+          },
+          {
+            "order": 259651618,
+            "type": "Ball",
+            "text": "Pitch 5 : Ball 3",
+            "outs": 1,
+            "balls": 2,
+            "strikes": 2,
+            "batterId": 2288,
+            "pitcherId": 5135370
+          },
+          {
+            "order": 259652693,
+            "type": "Batters Fielders Choice - All Runners Safe",
+            "text": "Pitch 6 : Ball In Play",
+            "outs": 1,
+            "balls": 3,
+            "strikes": 2,
+            "batterId": 2288,
+            "pitcherId": 5135370
+          },
+          {
+            "order": 259652694,
+            "type": "Play Result",
+            "text": "O'Neill grounded into fielder's choice to third, Henderson to second, Alonso to third.",
+            "outs": 1,
+            "balls": 3,
+            "strikes": 2,
+            "batterId": 2288,
+            "pitcherId": 5135370
+          },
+          {
+            "order": 259652695,
+            "type": "End Batter/Pitcher",
+            "text": null,
+            "outs": 1,
+            "balls": 3,
+            "strikes": 2,
+            "batterId": 2288,
+            "pitcherId": 5135370
+          }
+        ]
+      }
+    ]
+  }
+]
