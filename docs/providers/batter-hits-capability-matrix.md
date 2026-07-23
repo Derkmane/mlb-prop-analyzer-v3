@@ -1,6 +1,6 @@
 # Batter Hits Provider Capability Matrix
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Status:** DATA UNDER INVESTIGATION — provider contracts are not approved  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`  
 **Evidence date:** 2026-07-23
@@ -36,6 +36,22 @@ The following raw SHA-256 values were verified before commit `91d1cf7`.
 | Cross-provider player-linkage report | `fixtures/sanitized/provider-capabilities/2026-07-23/player-identity/cross-provider-player-linkage-5059315.json` | `7e5a10dd3109ba6e4ecb301c34df743ed28eb54b6f53ad01d3cee475411ed239` |
 
 The Git blob SHA returned by GitHub is not a substitute for the raw response SHA-256 above.
+
+The terminal-PA evidence bundle was promoted in commit `5850fa0`:
+
+```text
+fixtures/sanitized/provider-capabilities/2026-07-23/terminal-pa/
+```
+
+The directory contains 49 committed JSON fixtures plus `SHA256SUMS`. The manifest records the raw SHA-256 for every JSON fixture.
+
+The fixture-integrity and context-evidence test was committed in `40b0bb8`:
+
+```text
+test/terminal-pa-fixtures.test.mjs
+```
+
+The focused test verifies all 49 checksums, JSON validity, absence of secret-like content, and preserved context needed to distinguish observed batter outcomes from runner events.
 
 ---
 
@@ -201,26 +217,28 @@ GET /mlb/v1/plate_appearances?game_id={gameId}
 GET /mlb/v1/plays?game_id={gameId}&sort_order=asc&per_page=100
 ```
 
-The following evidence was captured under:
+The promoted evidence is preserved under:
 
 ```text
-artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/
+fixtures/sanitized/provider-capabilities/2026-07-23/terminal-pa/
 ```
 
-The terminal-PA artifacts have not yet been promoted into committed sanitized fixtures. Every mapping below is therefore `OBSERVED_NOT_PROMOTED`, not implementation-ready.
+The observed category evidence below is `VERIFIED_FIXTURE`, except `OTHER_PA`, which remains `NOT_OBSERVED`.
+
+`VERIFIED_FIXTURE` means only that the listed raw result and context occurred in the preserved sample. It does not approve a provider-wide mapping or production normalizer.
 
 | Canonical category | Observed raw result or play evidence | Provisional observed mapping constraint |
 |---|---|---|
-| `K` | `Strikeout`; one `Strikeout Double Play` play completed a strikeout while a runner was separately retired. | `Strikeout Double Play` contributes terminal `K`; the separate runner out belongs in the baserunning layer. |
-| `UBB` | `Walk` occurred separately from `Intent Walk`. | Candidate mapping is `Walk` → `UBB`; promote fixtures before contract definition. |
+| `K` | `Strikeout`; one `Strikeout Double Play` ended on `Swinging Strike` while a runner was separately caught stealing. | `Strikeout Double Play` contributes terminal `K`; the separate runner event belongs in the baserunning layer. |
+| `UBB` | `Walk` occurred separately from `Intent Walk`. | Candidate mapping is `Walk` → `UBB`; the production contract remains pending. |
 | `IBB` | `Intent Walk` | Candidate mapping is `Intent Walk` → `IBB`. |
-| `HBP` | `HBP` | Candidate mapping is `HBP` → `HBP`. |
+| `HBP` | Exact raw result `Hit By Pitch` | Candidate mapping is `Hit By Pitch` → `HBP`. |
 | `1B` | `Single` | Candidate mapping is `Single` → `1B`. |
 | `2B` | `Double` | Candidate mapping is `Double` → `2B`. |
 | `3B` | `Triple` | Candidate mapping is `Triple` → `3B`. |
-| `HR` | Diagnostics reported `HR` in the full-date scan and `Home Run` in the catcher-interference game result set. | Preserve and explicitly map every verified raw spelling; do not assume one provider-wide label. |
-| `ROE` | `Field Error`; play text showed the batter safe at first on a throwing error. | Candidate mapping is `Field Error` → `ROE`. |
-| `FC` | `Fielders Choice`, `Fielders Choice Out`, and `Forceout` instances where the batter reached and another runner was retired. | Compound labels require batter-result or play evidence. Do not map every string containing `Out` to `BIP_OUT`. |
+| `HR` | Diagnostics reported `HR` in the full-date summary and `Home Run` in game-level evidence. | Preserve and explicitly map every verified raw spelling; do not assume one provider-wide label. |
+| `ROE` | `Field Error`; play text showed the batter reaching safely on an error. | Candidate mapping is `Field Error` → `ROE`. |
+| `FC` | `Fielders Choice`, `Fielders Choice Out`, and `Forceout` instances where the batter reached and another runner was retired or all runners were safe. | Compound labels require batter-result or play evidence. Do not map every string containing `Out` to `BIP_OUT`. |
 | `SF` | `Sac Fly` | Candidate mapping is `Sac Fly` → `SF`. |
 | `SH` | `Sac Bunt` | Candidate mapping is `Sac Bunt` → `SH`; separate `Bunt Groundout` and `Bunt Pop Out` results were observed. |
 | `BIP_OUT` | `Flyout`, `Groundout`, `Lineout`, `Pop Out`, `Bunt Groundout`, `Bunt Pop Out`, `GIDP`, an observed batter-out `Double Play`, and an observed batter-out `Triple Play`. | Ambiguous compound-play labels require play context confirming whether the batter was retired. |
@@ -229,40 +247,45 @@ The terminal-PA artifacts have not yet been promoted into committed sanitized fi
 
 ### Required sequence-aware protections
 
-Observed diagnostics also established:
+Promoted evidence and diagnostics established:
 
-1. `Caught Stealing 2B` occurred during a live `2-1` count, and the same batter later completed the plate appearance. It is an interrupted PA plus separate `CS`, not a terminal PA result.
-2. `pa_number` was not contiguous in one captured game while pitch counts continued across the gap. It is an ordering identifier, not a completed-PA count.
-3. The raw `outs` value showed timing behavior that was not reliable as a universal pre-PA-state field.
-4. `Double Play`, `Fielders Choice Out`, `Forceout`, and similar compound strings cannot be normalized safely from the result label alone in every case.
-5. Plays pagination was required to inspect complete games; a first-page-only capture is insufficient for rare outcomes.
+1. `Caught Stealing 2B` occurred on a pitch recorded as `Ball`, and matching caught-stealing play records had `batter_id=null`. It is a separate `CS` event, not a completed terminal PA.
+2. `Strikeout Double Play` ended on `Swinging Strike`; play text recorded the batter striking out while a runner was separately caught stealing.
+3. `pa_number` was not contiguous in one captured game while pitch counts continued across the gap. It is an ordering identifier, not a completed-PA count.
+4. The raw `outs` value showed timing behavior that was not reliable as a universal pre-PA-state field.
+5. `Double Play`, `Fielders Choice Out`, `Forceout`, and similar compound strings cannot be normalized safely from the result label alone in every case.
+6. Plays pagination was required to inspect complete games; a first-page-only capture is insufficient for rare outcomes.
 
 ### Terminal-PA gate status
 
 ```text
-named categories observed in local diagnostics
-+ context-sensitive mapping rules identified
-+ catcher interference observed
-- terminal fixtures not yet promoted
++ named terminal categories preserved in committed fixtures
++ complete play context preserved for selected compound events
++ catcher interference preserved
++ fixture hashes and JSON validity protected by a focused test
++ caught stealing preserved as a separate baserunning event
 - OTHER_PA not observed
-- future unknown strings not exhaustively enumerable
-- mutual exclusivity and collective exhaustiveness not yet fixture-tested
+- future unknown strings are not exhaustively enumerable
+- the production normalization contract is not defined
+- unknown and context-insufficient values are not implementation-tested
+- mutual exclusivity and collective exhaustiveness are not normalization-tested
 ```
 
-Therefore the terminal-PA capability gate remains open. No `NormalizedTerminalPA` contract may be implemented from this document alone.
+The fixture-promotion blocker is closed. The overall terminal-PA capability gate remains open until the evidence-backed normalization contract and its fail-closed, exclusivity, and exhaustiveness tests are complete.
 
 ---
 
 ## 6. Current blockers before provider-derived contracts
 
-1. Promote the terminal plate-appearance and complete plays evidence into committed sanitized fixtures with SHA-256 records.
-2. Promote the five-event offer-pair and tuple-uniqueness diagnostic if it will support identity validation.
-3. Define and test the generalized cross-provider game join; the observed one-minute difference is not an approved tolerance.
-4. Verify complete game-status semantics for scheduled, active, final, postponed, suspended, and cancelled states before pregame eligibility is implemented.
-5. Define a runtime-validated raw schema that preserves unknown fields and rejects malformed required fields.
-6. Define player matching so zero or multiple matches fail closed; never use fuzzy matching without separately approved evidence and tests.
-7. Define terminal-PA normalization only from promoted fixtures, with separate terminal and baserunning layers.
-8. Preserve raw provider IDs, timestamps, market key, selected side, line, and snapshot hash through every later contract.
+1. Promote the five-event offer-pair and tuple-uniqueness diagnostic if it will support identity validation.
+2. Define and test the generalized cross-provider game join; the observed one-minute difference is not an approved tolerance.
+3. Verify complete game-status semantics for scheduled, active, final, postponed, suspended, and cancelled states before pregame eligibility is implemented.
+4. Define runtime-validated raw schemas that preserve unknown fields and reject malformed required fields.
+5. Define player matching so zero or multiple matches fail closed; never use fuzzy matching without separately approved evidence and tests.
+6. Define terminal-PA normalization from the promoted fixtures, including context-aware handling for compound events and separate terminal/baserunning layers.
+7. Add focused normalization tests proving exact-one-category behavior, unknown-value rejection, context-insufficient rejection, mutual exclusivity, and collective exhaustiveness.
+8. Keep `OTHER_PA` unavailable until a supported raw provider result is observed or an explicitly approved rule is established.
+9. Preserve raw provider IDs, timestamps, market key, selected side, line, and snapshot hash through every later contract.
 
 ---
 
@@ -282,6 +305,15 @@ Price, multiplier, player reputation, and raw expected performance are not ranki
 ---
 
 ## Changelog
+
+### Version 1.1 — 2026-07-23
+
+- Recorded terminal-PA fixture promotion in commit `5850fa0`.
+- Recorded the focused fixture-integrity and context-evidence test in commit `40b0bb8`.
+- Promoted observed terminal, compound-play, sequence, and catcher-interference evidence from `OBSERVED_NOT_PROMOTED` to `VERIFIED_FIXTURE`.
+- Corrected the observed HBP raw label to `Hit By Pitch`.
+- Closed the fixture-promotion blocker while keeping normalization, `OTHER_PA`, unknown-value handling, mutual exclusivity, and collective exhaustiveness open.
+- Did not define provider-derived contracts or production mappings.
 
 ### Version 1.0 — 2026-07-23
 
