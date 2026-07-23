@@ -1,2 +1,3 @@
 /** Public boundary for the application layer. */
-export {};
+export * from './feature-gate.js';
+export * from './market-registry-gate.js';
