@@ -18,7 +18,8 @@ export type MarketRegistryUnavailableCode =
   | 'FEATURE_NOT_REGISTERED'
   | 'SETTLEMENT_REGISTRY_UNVERSIONED'
   | 'SETTLEMENT_RULE_NOT_REGISTERED'
-  | 'SETTLEMENT_RULE_MARKET_MISMATCH';
+  | 'SETTLEMENT_RULE_MARKET_MISMATCH'
+  | 'SETTLEMENT_STATISTIC_MISMATCH';
 
 export class MarketRegistryUnavailableError extends Error {
   readonly code: MarketRegistryUnavailableCode;
@@ -139,6 +140,17 @@ export function authorizeMarketForPrediction(
       baseMarketKey,
       'SETTLEMENT_RULE_MARKET_MISMATCH',
       `Settlement rule ${settlementRule.version} belongs to ${settlementRule.baseMarketKey}, not ${baseMarketKey}.`,
+    );
+  }
+
+  if (
+    settlementRule.officialSettlementStatistic !==
+    market.officialSettlementStatistic
+  ) {
+    return unavailable(
+      baseMarketKey,
+      'SETTLEMENT_STATISTIC_MISMATCH',
+      `Settlement rule ${settlementRule.version} uses ${settlementRule.officialSettlementStatistic}, not ${market.officialSettlementStatistic}.`,
     );
   }
 
