@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 1.4  
+**Version:** 1.5
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -135,11 +135,11 @@ Determine whether approved data can map every raw PA into exactly one of:
 - [x] `CATCHER_INTERFERENCE` — observed exact raw `Catcher Interference` with play confirmation.
 - [ ] `OTHER_PA` — no supporting raw terminal result was observed; unknown values must fail closed.
 
-Checked terminal-category items above mean fixture-backed observed capability only. They do not approve provider-wide mappings or close the normalization gate.
+Checked terminal-category items above mean fixture-backed observed capability plus the tested mapping behavior for supported labels. This does not create a provider-wide guarantee or make `OTHER_PA` available.
 
-- [ ] Verify categories are mutually exclusive.
-- [ ] Verify categories are collectively exhaustive.
-- [x] Document that unmapped raw values must be preserved and fail closed; the strict normalized boundary exists, while raw-result mapping and unknown/context-insufficient normalization tests remain pending.
+- [x] Verify supported mappings are mutually exclusive — each accepted promoted row produces exactly one canonical terminal category.
+- [ ] Verify provider results are collectively exhaustive — `OTHER_PA` remains unobserved and unknown future labels fail closed.
+- [x] Document and test that unmapped, malformed, contradictory, and context-insufficient raw values fail closed without an `OTHER_PA` fallback.
 
 ### M2 exit gate
 
@@ -174,12 +174,12 @@ Checked terminal-category items above mean fixture-backed observed capability on
 - [ ] `NormalizedGame`.
 - [ ] `NormalizedPlayer`.
 - [ ] `NormalizedLineup`.
-- [x] `NormalizedTerminalPA` boundary contract — accepts only canonical terminal categories plus explicit provider IDs, game/PA context, raw result, and snapshot SHA-256; provider-result mapping is not implemented.
+- [x] `NormalizedTerminalPA` and evidence-backed mapping — verified exact labels map deterministically; contextual compound labels require explicit batter disposition; caught stealing remains separate; unknown values fail closed.
 - [ ] Provider IDs, source timestamps, and fixture hashes survive normalization across every required provider contract.
 - [ ] Unknown or malformed provider data fails closed across every required provider contract.
 - [ ] Selected side and line survive unchanged.
 
-Verified by `test/balldontlie-terminal-pa-contracts.test.ts`: typecheck, dependency architecture, build, and five focused tests passed. The current boundary cannot silently treat raw labels such as `Single` or `Caught Stealing 2B` as canonical terminal categories.
+Verified by `test/balldontlie-terminal-pa-contracts.test.ts` and `test/balldontlie-terminal-pa-mapping.test.ts`. All 607 promoted PA rows produce exactly one explicit state: normalized terminal PA, baserunning-only, or fail-closed rejection. The full `npm run verify` suite passed 24 tests with no regressions.
 
 ---
 
@@ -363,6 +363,15 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 1.5 — 2026-07-23
+
+- Recorded the deterministic BALLDONTLIE terminal-PA mapping boundary.
+- Recorded exact verified-label mappings and context-required compound mappings.
+- Recorded separate caught-stealing handling and rejection of unknown, malformed, contradictory, or insufficient-context inputs.
+- Recorded deterministic classification of all 607 promoted PA rows without an `OTHER_PA` fallback.
+- Recorded the complete verification gate: typecheck, script checks, architecture, build, and 24 passing tests.
+- Kept `OTHER_PA`, provider-wide collective exhaustiveness, remaining provider contracts, models, and real-prop ranking open.
 
 ### Version 1.4 — 2026-07-23
 
