@@ -138,6 +138,12 @@ test('Poisson-binomial dynamic programming matches brute-force enumeration', () 
   );
 });
 
+test('one guaranteed opportunity produces one exact Bernoulli distribution', () => {
+  const result = buildBernoulliCountProbabilityMassFunction([1], [0.4]);
+
+  assertVectorClose(result.probabilities, [0.6, 0.4]);
+});
+
 test('count mixing reproduces the canonical Batter Hits worked example', () => {
   const survival = [0.99, 0.97, 0.9, 0.7, 0.25];
   const hitProbabilities = [0.22, 0.24, 0.26, 0.25, 0.25];
@@ -187,8 +193,15 @@ test('scenario mixing matches manual weighted calculations and validates weights
       distribution: createProbabilityMassFunction([0.2, 0.3, 0.5]),
     },
   ]);
+  const singleScenario = mixProbabilityMassFunctions([
+    {
+      weight: 1,
+      distribution: createProbabilityMassFunction([0.4, 0.6]),
+    },
+  ]);
 
   assertVectorClose(mixed.probabilities, [0.275, 0.35, 0.375]);
+  assert.deepEqual(singleScenario.probabilities, [0.4, 0.6]);
   assert.throws(
     () =>
       mixProbabilityMassFunctions([
