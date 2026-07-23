@@ -2,15 +2,19 @@ import type { ProbabilityMassFunction } from './probability.js';
 import type { SelectedSide } from './selected-side.js';
 
 export type JsonPrimitive = string | number | boolean | null;
-export type JsonValue =
-  | JsonPrimitive
-  | readonly JsonValue[]
-  | Readonly<Record<string, JsonValue>>;
+
+export interface JsonArray extends ReadonlyArray<JsonValue> {}
+
+export interface JsonObject {
+  readonly [key: string]: JsonValue;
+}
+
+export type JsonValue = JsonPrimitive | JsonArray | JsonObject;
 
 export interface FeatureDataEnvelope {
   readonly featureId: string;
   readonly schemaVersion: number;
-  readonly values: Readonly<Record<string, JsonValue>>;
+  readonly values: JsonObject;
 }
 
 export interface ProviderSnapshotReference {
@@ -101,9 +105,7 @@ export function createSavedPredictionSnapshot(
     featureData: Object.freeze({
       featureId: input.featureData.featureId,
       schemaVersion: input.featureData.schemaVersion,
-      values: cloneJsonValue(input.featureData.values) as Readonly<
-        Record<string, JsonValue>
-      >,
+      values: cloneJsonValue(input.featureData.values) as JsonObject,
     }),
   });
 }
