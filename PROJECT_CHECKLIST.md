@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 1.5
+**Version:** 1.6
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -153,11 +153,11 @@ Checked terminal-category items above mean fixture-backed observed capability pl
 
 ### Pure domain contracts
 
-- [ ] `SelectedSide`.
-- [ ] `ProbabilityMassFunction`.
-- [ ] `EligibilityProbability`.
-- [ ] `SettlementResult`.
-- [ ] `WinLossVoid`.
+- [x] `SelectedSide`.
+- [x] `ProbabilityMassFunction`.
+- [x] `EligibilityProbability`.
+- [x] `SettlementResult`.
+- [x] `WinLossVoid`.
 - [ ] `MarketStatus`.
 - [ ] `FeatureStatus`.
 
@@ -185,23 +185,23 @@ Verified by `test/balldontlie-terminal-pa-contracts.test.ts` and `test/balldontl
 
 ## M4 — Verified deterministic core
 
-- [ ] Probability-vector validation.
-- [ ] Scenario-weight validation.
-- [ ] Hitter survival-to-count conversion.
-- [ ] Exact deterministic convolution.
-- [ ] Scenario mixing.
-- [ ] Higher settlement.
-- [ ] Lower settlement.
-- [ ] Integer-line tie handling.
-- [ ] Half-point handling.
-- [ ] `P(Win)+P(Loss)+P(Void)=1` invariant.
-- [ ] `P(Win | grades)`.
-- [ ] Side-aware ranking comparator.
-- [ ] Higher/Lower symmetry tests.
-- [ ] Upward/downward distribution-shift tests.
-- [ ] Dynamic programming versus brute force.
-- [ ] Canonical worked-example golden test.
-- [ ] Deterministic identical-input rerun test.
+- [x] Probability-vector validation.
+- [x] Scenario-weight validation.
+- [x] Hitter survival-to-count conversion.
+- [x] Exact deterministic convolution.
+- [x] Scenario mixing.
+- [x] Higher settlement.
+- [x] Lower settlement.
+- [x] Integer-line tie handling.
+- [x] Half-point handling.
+- [x] `P(Win)+P(Loss)+P(Void)=1` invariant.
+- [x] `P(Win | grades)`.
+- [x] Side-aware ranking comparator.
+- [x] Higher/Lower symmetry tests.
+- [x] Upward/downward distribution-shift tests.
+- [x] Dynamic programming versus brute force.
+- [x] Canonical worked-example golden test.
+- [x] Deterministic identical-input rerun test.
 
 ---
 
@@ -363,6 +363,10 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 1.6 — 2026-07-23
+
+- Recorded the verified M3 probability and settlement contracts and complete M4 deterministic core from merged commit `9d80e51`, with all 44 tests passing.
 
 ### Version 1.5 — 2026-07-23
 
