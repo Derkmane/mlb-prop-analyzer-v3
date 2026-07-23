@@ -42,17 +42,20 @@ function expectedCount(distribution: ProbabilityMassFunction): number {
   );
 }
 
-function maximumUpwardIncrease(values: readonly number[]): number {
-  let maximum = 0;
+function assertMonotoneNonIncreasing(
+  values: readonly number[],
+  label: string,
+): void {
   for (let index = 1; index < values.length; index += 1) {
     const previous = values[index - 1];
     const current = values[index];
     if (previous === undefined || current === undefined) {
       throw new RangeError('invalid survival-vector indexing');
     }
-    maximum = Math.max(maximum, current - previous);
+    if (previous < current) {
+      throw new RangeError(`${label} must be monotone non-increasing`);
+    }
   }
-  return maximum;
 }
 
 function cloneDistribution(
@@ -163,16 +166,13 @@ function cloneLineupSlotOpportunity(
     throw new RangeError('opportunity lineupSlot must be an integer from 1 through 9');
   }
   if (
-    state.adjustmentMethod !== 'none' &&
-    state.adjustmentMethod !== 'weighted-isotonic'
+    state.adjustmentMethod !== 'none' ||
+    state.adjustmentVersion !== 'none-v1'
   ) {
-    throw new RangeError('unknown survival adjustment method');
+    throw new RangeError(
+      'projected survival curves are not enabled in M6 before an evidence-backed policy is validated',
+    );
   }
-  assertNonEmpty(state.adjustmentVersion, 'survival adjustmentVersion');
-  assertNonEmpty(
-    state.monotonicityPolicyVersion,
-    'survival monotonicity policy version',
-  );
   if (state.rawSurvival.length !== state.adjustedSurvival.length) {
     throw new RangeError('raw and adjusted survival curves must have equal lengths');
   }
@@ -185,53 +185,23 @@ function cloneLineupSlotOpportunity(
     state.adjustedSurvival,
     'adjusted hitter PA survival',
   );
-  const maximumAllowedIncrease = validateProbability(
-    state.maximumAllowedIncrease,
-    'maximum allowed survival increase',
-  );
-  const observedMaximumIncrease = validateProbability(
-    state.observedMaximumIncrease,
-    'observed maximum survival increase',
-  );
-  const actualMaximumIncrease = maximumUpwardIncrease(rawSurvival);
-  if (actualMaximumIncrease !== observedMaximumIncrease) {
-    throw new RangeError('stored survival violation must match the raw curve');
-  }
-  if (observedMaximumIncrease > maximumAllowedIncrease) {
-    throw new RangeError('raw survival violation exceeds its versioned policy');
-  }
+  assertMonotoneNonIncreasing(rawSurvival, 'raw hitter PA survival');
+  assertMonotoneNonIncreasing(adjustedSurvival, 'adjusted hitter PA survival');
 
-  for (let index = 1; index < adjustedSurvival.length; index += 1) {
-    const previous = adjustedSurvival[index - 1];
-    const current = adjustedSurvival[index];
-    if (
-      previous === undefined ||
-      current === undefined ||
-      previous < current
-    ) {
-      throw new RangeError('adjusted hitter PA survival must be monotone non-increasing');
+  for (const [index, rawProbability] of rawSurvival.entries()) {
+    if (rawProbability !== adjustedSurvival[index]) {
+      throw new RangeError(
+        'projected survival curves are not enabled in M6 before an evidence-backed policy is validated',
+      );
     }
-  }
-
-  const curvesDiffer = rawSurvival.some(
-    (value, index) => value !== adjustedSurvival[index],
-  );
-  if (
-    (curvesDiffer && state.adjustmentMethod !== 'weighted-isotonic') ||
-    (!curvesDiffer && state.adjustmentMethod !== 'none')
-  ) {
-    throw new RangeError('survival adjustment metadata must match the stored curves');
   }
 
   return Object.freeze({
     lineupSlot: state.lineupSlot,
     rawSurvival,
     adjustedSurvival,
-    adjustmentMethod: state.adjustmentMethod,
-    adjustmentVersion: state.adjustmentVersion,
-    monotonicityPolicyVersion: state.monotonicityPolicyVersion,
-    maximumAllowedIncrease,
-    observedMaximumIncrease,
+    adjustmentMethod: 'none',
+    adjustmentVersion: 'none-v1',
   });
 }
 
