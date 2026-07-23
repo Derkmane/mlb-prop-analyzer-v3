@@ -68,7 +68,13 @@ export function deriveLineupSlotSurvivalFromTeamBattersFaced(
     teamBattersFacedDistribution,
     'team batters-faced distribution',
   );
-  const maximumTeamBattersFaced = distribution.probabilities.length - 1;
+  let maximumTeamBattersFaced = distribution.probabilities.length - 1;
+  while (
+    maximumTeamBattersFaced > 0 &&
+    distribution.probabilities[maximumTeamBattersFaced] === 0
+  ) {
+    maximumTeamBattersFaced -= 1;
+  }
   const survival: number[] = [];
 
   for (
@@ -78,7 +84,7 @@ export function deriveLineupSlotSurvivalFromTeamBattersFaced(
   ) {
     survival.push(
       distribution.probabilities
-        .slice(requiredTeamBattersFaced)
+        .slice(requiredTeamBattersFaced, maximumTeamBattersFaced + 1)
         .reduce((sum, mass) => sum + mass, 0),
     );
   }
