@@ -25,5 +25,11 @@ jobs:
         run: npm run typecheck
       - name: Check architecture
         run: npm run architecture
-      - name: Run tests
-        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Test selected-side domain
+        run: npm run test:selected-side
+      - name: Test protective architecture rejection
+        run: npm run test:architecture-protective
+      - name: Run complete test suite
+        run: node --test dist/test
