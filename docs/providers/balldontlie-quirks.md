@@ -1,6 +1,6 @@
 # BALLDONTLIE MLB — Observed Quirks and Verification Ledger
 
-**Version:** 1.2  
+**Version:** 1.3  
 **Status:** Active provider-verification ledger  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -244,90 +244,119 @@ A fixture-backed join test must prove:
 
 ## Q6 — Plate-appearance numbering and baserunning events require sequence-aware normalization
 
-### V3 evidence captured but not promoted
-
-Evidence was captured under:
+### V3 committed fixture evidence
 
 ```text
-artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/
+Fixture directory:
+fixtures/sanitized/provider-capabilities/2026-07-23/terminal-pa/
+
+Checksum manifest:
+fixtures/sanitized/provider-capabilities/2026-07-23/terminal-pa/SHA256SUMS
+
+Fixture commit:
+5850fa0
+
+Protecting test:
+test/terminal-pa-fixtures.test.mjs
+
+Test commit:
+40b0bb8
 ```
 
 Observed findings:
 
-1. A raw `Caught Stealing 2B` record occurred during a live `2-1` count. The same batter later completed the plate appearance. This record is an interrupted PA plus a separate `CS`, not a terminal PA outcome.
-2. An observed `Strikeout Double Play` completed a strikeout while another runner was separately retired. The terminal PA category is `K`; the runner event belongs in the baserunning layer.
-3. One game skipped `pa_number=34` while pitch counts continued from 133 to 134 between surrounding PA records. `pa_number` is an ordering identifier and cannot be assumed contiguous or used as a completed-PA count.
+1. A raw `Caught Stealing 2B` row ended on a pitch recorded as `Ball`. Matching caught-stealing play records had `batter_id=null`. This is a separate `CS` event, not a completed terminal PA.
+2. An observed `Strikeout Double Play` ended on `Swinging Strike`; the play text recorded the batter striking out while a runner was separately caught stealing. The terminal outcome is `K`, with the runner event remaining separate.
+3. One captured sequence showed that `pa_number` cannot be assumed to be a contiguous completed-PA count.
 4. The raw `outs` value showed timing behavior that was not reliable as a universal pre-PA-state field.
 5. Complete plays pagination was required to inspect rare and compound events.
 
 ### Verified conclusion
 
-No production normalizer may treat every plate-appearance endpoint row as a completed terminal PA. Baserunning events must remain separate from the canonical terminal PA vector, and compound events require sequence/play context.
+No production normalizer may treat every plate-appearance endpoint row as a completed terminal PA. Baserunning events must remain separate from the canonical terminal PA vector, and compound events require sequence or play context.
 
-### Required protecting test
+### Protecting-test status
 
-After sanitized fixture promotion, focused tests must prove:
+The committed test currently proves:
 
-- `Caught Stealing 2B` does not create a terminal PA;
-- `Strikeout Double Play` produces terminal `K` plus separate baserunning mass;
-- gaps in `pa_number` do not create missing terminal PAs;
-- raw `outs` is not interpreted as pre-PA state without an approved rule;
-- pagination is complete before rare-event normalization.
+- all promoted terminal-PA fixture hashes match;
+- every promoted fixture is valid JSON;
+- no secret-like content is present;
+- caught-stealing evidence is preserved as a separate runner event;
+- strikeout-double-play evidence preserves both the batter strikeout and separate caught stealing.
 
-**V3 fixture:** local sanitized artifacts captured; not yet promoted  
-**Verification status:** `OBSERVED_NOT_PROMOTED` — implementation reliance prohibited
+The production normalizer, explicit `pa_number` behavior test, raw-`outs` behavior test, pagination-completeness assertion, and unknown-event fail-closed test remain pending.
+
+**V3 fixture:** committed and checksum-protected  
+**Verification status:** fixture-backed evidence confirmed; normalization contract and remaining behavior tests pending
 
 ---
 
 ## Q7 — Compound result labels cannot always determine whether the batter was retired
 
-### V3 evidence captured but not promoted
+### V3 committed fixture evidence
 
-Observed play investigations established:
+The promoted fixtures and focused test preserve these observed contexts:
 
-- `Fielders Choice` and observed `Fielders Choice Out`/`Forceout` instances mapped to `FC` when the batter reached and another runner was retired.
-- An observed `Double Play` mapped to `BIP_OUT` when the batter and another runner were retired.
-- An observed `Triple Play` mapped to `BIP_OUT` when the batter was retired.
-- `Field Error` mapped to `ROE` when the batter reached first on the error.
-- `GIDP` mapped to `BIP_OUT` when the batter was retired.
+- `Fielders Choice`: the batter reached and all runners were safe.
+- `Fielders Choice Out`: the batter reached while another runner was retired.
+- `Forceout`: the batter reached while another runner was retired.
+- `Double Play`: the batter was retired along with another runner.
+- `Triple Play`: the batter was retired as part of the triple play.
+- `Field Error`: the batter reached on an error.
+- `GIDP`: the batter was retired.
+
+```text
+Fixture directory:
+fixtures/sanitized/provider-capabilities/2026-07-23/terminal-pa/
+
+Protecting test:
+test/terminal-pa-fixtures.test.mjs
+```
 
 ### Verified conclusion
 
-Strings containing `Out`, `Double Play`, `Forceout`, or `Fielders Choice` cannot be mapped safely by substring or label alone in every case. The normalizer must use verified batter result or play context and must fail closed when the batter's terminal result cannot be established.
+Strings containing `Out`, `Double Play`, `Forceout`, or `Fielders Choice` cannot be mapped safely by substring or label alone in every case.
 
-### Required protecting test
+The normalizer must use verified batter-result or play context and must fail closed when the batter's terminal result cannot be established.
 
-Promoted fixtures must test each observed Higher-level mapping in both batter-reaches and batter-out contexts where supported. An unknown compound string must preserve its raw value and fail closed.
+### Protecting-test status
 
-**V3 fixture:** local sanitized artifacts captured; not yet promoted  
-**Verification status:** `OBSERVED_NOT_PROMOTED` — implementation reliance prohibited
+The focused test preserves both batter-reaches and batter-out examples for the observed compound labels. It does not yet implement the normalized mapping or test unknown compound strings.
+
+**V3 fixture:** committed and checksum-protected  
+**Verification status:** observed contexts fixture-tested; normalization and unknown-value fail-closed tests pending
 
 ---
 
 ## Q8 — Catcher interference is exposed as an exact terminal PA result
 
-### V3 evidence captured but not promoted
+### V3 committed fixture evidence
 
 ```text
 Game ID: 5059159
 Plate-appearance result: Catcher Interference
 Play text: Sosa reached first base on catcher's interference. Philadelphia Phillies challenged: call on the field was overturned.
-Evidence report: artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-catcher-interference-5059159-report.json
+Committed evidence report:
+fixtures/sanitized/provider-capabilities/2026-07-23/terminal-pa/balldontlie-catcher-interference-5059159-report.json
 Complete plays captured: 655 records across 7 pages
+Fixture commit: 5850fa0
+Protecting test: test/terminal-pa-fixtures.test.mjs
+Test commit: 40b0bb8
 ```
 
 ### Verified conclusion
 
-The observed exact PA result can map to canonical `CATCHER_INTERFERENCE`. The play feed independently confirmed that the batter reached first and that the overturned challenge produced the final official result.
+The observed exact PA result supports canonical `CATCHER_INTERFERENCE`. The play feed independently confirmed that the batter reached first and that the overturned challenge produced the final official result.
 
-This is one observed case, not a provider-wide guarantee. The fixture must be promoted before a production mapping is implemented.
+This remains one observed fixture-backed case, not a provider-wide schema guarantee.
 
-### Required protecting test
+### Protecting-test status
 
-A promoted fixture-backed test must map the exact raw result to `CATCHER_INTERFERENCE`, preserve the batter and game IDs, and reject unknown interference spellings until explicitly verified.
+The focused test verifies that the exact catcher-interference PA evidence, batter identity, and non-BIP-out flag remain preserved. The production mapping and unknown-interference-spelling rejection test remain pending.
 
-**V3 fixture:** local sanitized artifacts captured; not yet promoted  
-**Verification status:** `OBSERVED_NOT_PROMOTED` — implementation reliance prohibited
+**V3 fixture:** committed and checksum-protected  
+**Verification status:** fixture evidence confirmed; normalization mapping test pending
 
 ---
 
@@ -351,7 +380,7 @@ This record proves access and the observed response only. It does not define a p
 docs/providers/batter-hits-capability-matrix.md
 ```
 
-The matrix distinguishes committed fixture evidence from local unpromoted observations and records the blocking consequence for every incomplete capability.
+The matrix distinguishes committed fixture evidence from remaining local unpromoted observations and records the blocking consequence for every incomplete capability.
 
 ---
 
@@ -375,6 +404,14 @@ Notes:
 ---
 
 ## Changelog
+
+### Version 1.3 — 2026-07-23
+
+- Recorded the committed 49-file terminal-PA fixture bundle and checksum manifest from commit `5850fa0`.
+- Recorded the focused fixture-integrity and context-evidence test from commit `40b0bb8`.
+- Promoted sequence-aware PA, compound-play, and catcher-interference observations from unpromoted evidence to fixture-backed evidence.
+- Kept production normalization, unknown-value rejection, `pa_number`, raw-`outs`, and pagination behavior tests explicitly pending.
+- Did not convert the limited fixtures into provider-wide schema guarantees.
 
 ### Version 1.2 — 2026-07-23
 
