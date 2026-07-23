@@ -10,35 +10,36 @@ This checklist is evidence-driven. A box is checked only after direct verificati
 
 ## M0 — Authority and modular foundation
 
-- [ ] Create and approve complete `PROJECT_RULES.md` for V3.
-- [ ] Create and approve complete `CANONICAL_MATH_SPEC.md` for V3 terminology.
-- [ ] Create this master checklist.
-- [ ] Create `docs/providers/balldontlie-quirks.md` with carried-forward observations and V3 verification requirements.
-- [ ] Confirm strict TypeScript as the implementation language.
-- [ ] Select and version the supported Node LTS runtime after environment verification.
-- [ ] Create the empty modular-monolith directory structure.
-- [ ] Configure strict TypeScript.
-- [ ] Configure runtime schema validation.
-- [ ] Configure dependency-cruiser.
-- [ ] Enforce one-directional layer boundaries.
-- [ ] Enforce feature-to-feature imports through public `index` entrypoints only.
-- [ ] Enforce no circular or unresolved imports.
-- [ ] Configure the test runner.
-- [ ] Configure GitHub Actions CI.
-- [ ] Add foundation scripts for typecheck, architecture checks, tests, and build.
-- [ ] Add a protective-failure architecture test.
+- [x] Create and approve complete `PROJECT_RULES.md` for V3.
+- [x] Create and approve complete `CANONICAL_MATH_SPEC.md` for V3 terminology.
+- [x] Create this master checklist.
+- [x] Create `docs/providers/balldontlie-quirks.md` with carried-forward observations and V3 verification requirements.
+- [x] Confirm strict TypeScript as the implementation language.
+- [x] Select and version the supported Node LTS runtime after environment verification.
+- [x] Create the empty modular-monolith directory structure.
+- [x] Configure strict TypeScript.
+- [x] Configure runtime schema validation.
+- [x] Configure dependency-cruiser.
+- [x] Enforce one-directional layer boundaries.
+- [x] Enforce feature-to-feature imports through public `index` entrypoints only.
+- [x] Enforce no circular or unresolved imports.
+- [x] Configure the test runner.
+- [x] Configure GitHub Actions CI.
+- [x] Add foundation scripts for typecheck, architecture checks, tests, and build.
+- [x] Add a protective-failure architecture test.
 - [ ] Add a synthetic disabled-market fail-closed test.
 - [ ] Add a synthetic historical-record rendering test that does not import feature code.
 
 ### M0 exit gate
 
-- [ ] Authority files are complete and versioned.
-- [ ] Typecheck passes.
-- [ ] Architecture checks pass.
-- [ ] Tests pass.
-- [ ] CI passes.
-- [ ] No production feature implementation exists.
-- [ ] No synthetic value can appear as a production prediction.
+- [x] Authority files are complete and versioned.
+- [x] Typecheck passes.
+- [x] Architecture checks pass.
+- [x] Tests pass for the currently implemented foundation scope.
+- [x] CI passes for the currently implemented foundation scope.
+- [x] No production feature implementation exists.
+- [x] No synthetic value can appear as a production prediction.
+- [ ] Synthetic fail-closed and historical-independence protections pass.
 
 ---
 
@@ -361,3 +362,4 @@ These are intended investigations, not abandoned markets. No empty feature folde
 - Preserved the verified core-math and first Batter Hits vertical-slice sequence.
 - Promoted current-season fitting and validation into a major dedicated phase.
 - Preserved H+R+RBI and Pitcher Strikeouts as planned future markets with their required joint model families.
+- Recorded the directly verified strict TypeScript, architecture, test, build, and CI foundation progress.
