@@ -40,15 +40,14 @@ export interface BullpenScenarioState {
 
 export type SurvivalAdjustmentMethod = 'none' | 'weighted-isotonic';
 
-export interface SurvivalMonotonicityPolicy {
-  readonly version: string;
-  readonly maximumAllowedIncrease: number;
-}
-
 /**
  * Opportunity survival for one batting-order slot. Player identity is carried
  * separately by the lineup so future substitutions do not break team-PA
  * conservation.
+ *
+ * M6 accepts only already-monotone raw curves. The adjusted field is preserved
+ * as a separate versioned contract but must equal the raw curve until an
+ * evidence-backed projection policy is fitted and validated in M8.
  */
 export interface HitterPASurvivalState {
   readonly lineupSlot: LineupSlot;
@@ -56,9 +55,6 @@ export interface HitterPASurvivalState {
   readonly adjustedSurvival: readonly number[];
   readonly adjustmentMethod: SurvivalAdjustmentMethod;
   readonly adjustmentVersion: string;
-  readonly monotonicityPolicyVersion: string;
-  readonly maximumAllowedIncrease: number;
-  readonly observedMaximumIncrease: number;
 }
 
 export interface TeamOffenseScenarioState {
