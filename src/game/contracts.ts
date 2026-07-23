@@ -40,8 +40,12 @@ export interface BullpenScenarioState {
 
 export type SurvivalAdjustmentMethod = 'none' | 'weighted-isotonic';
 
+/**
+ * Opportunity survival for one batting-order slot. Player identity is carried
+ * separately by the lineup so future substitutions do not break team-PA
+ * conservation.
+ */
 export interface HitterPASurvivalState {
-  readonly playerId: string;
   readonly lineupSlot: LineupSlot;
   readonly rawSurvival: readonly number[];
   readonly adjustedSurvival: readonly number[];
@@ -57,7 +61,7 @@ export interface TeamOffenseScenarioState {
   readonly opposingStarter: StarterScenarioState;
   readonly opposingBullpen: BullpenScenarioState;
   readonly teamBattersFacedDistribution: ProbabilityMassFunction;
-  readonly hitterOpportunities: readonly HitterPASurvivalState[];
+  readonly lineupSlotOpportunities: readonly HitterPASurvivalState[];
 }
 
 export interface GameScenario {
@@ -98,6 +102,7 @@ export interface JointHitterScenarioAssumptions<TOutcomeAssumption> {
   readonly scenarioId: string;
   readonly teamId: string;
   readonly playerId: string;
+  readonly lineupSlot: LineupSlot;
   readonly offensiveEnvironmentId: string;
   readonly opportunityCountDistribution: ProbabilityMassFunction;
   readonly outcomeAssumption: TOutcomeAssumption;
