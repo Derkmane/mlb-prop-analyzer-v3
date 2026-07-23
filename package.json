@@ -14,7 +14,8 @@
     "test:selected-side": "node --test dist/test/selected-side.test.js",
     "test:architecture-protective": "node --test dist/test/architecture-boundaries.test.js",
     "test": "npm run build && node --test \"dist/test/**/*.test.js\"",
-    "verify": "npm run typecheck && npm run architecture && npm test"
+    "verify": "npm run typecheck && npm run architecture && npm test",
+    "verify:provider-access": "node scripts/verify-provider-access.mjs"
   },
   "dependencies": {
     "zod": "4.4.3"
