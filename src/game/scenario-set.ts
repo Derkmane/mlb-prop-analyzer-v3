@@ -138,10 +138,22 @@ function cloneBullpen(
   });
 }
 
-function cloneHitterOpportunity(
+function cloneLineupSlotOpportunity(
   state: HitterPASurvivalState,
 ): HitterPASurvivalState {
-  assertNonEmpty(state.playerId, 'hitter opportunity playerId');
+  if (
+    !Number.isInteger(state.lineupSlot) ||
+    state.lineupSlot < 1 ||
+    state.lineupSlot > 9
+  ) {
+    throw new RangeError('opportunity lineupSlot must be an integer from 1 through 9');
+  }
+  if (
+    state.adjustmentMethod !== 'none' &&
+    state.adjustmentMethod !== 'weighted-isotonic'
+  ) {
+    throw new RangeError('unknown survival adjustment method');
+  }
   assertNonEmpty(state.adjustmentVersion, 'survival adjustmentVersion');
   if (state.rawSurvival.length !== state.adjustedSurvival.length) {
     throw new RangeError('raw and adjusted survival curves must have equal lengths');
@@ -162,14 +174,13 @@ function cloneHitterOpportunity(
     if (
       previous === undefined ||
       current === undefined ||
-      previous + PROBABILITY_TOLERANCE < current
+      previous < current
     ) {
       throw new RangeError('adjusted hitter PA survival must be monotone non-increasing');
     }
   }
 
   return Object.freeze({
-    playerId: state.playerId,
     lineupSlot: state.lineupSlot,
     rawSurvival,
     adjustedSurvival,
@@ -217,38 +228,36 @@ function cloneTeamScenario(
     team.teamBattersFacedDistribution,
     'team batters-faced distribution',
   );
-  const hitterOpportunities = team.hitterOpportunities.map(cloneHitterOpportunity);
+  const lineupSlotOpportunities = team.lineupSlotOpportunities.map(
+    cloneLineupSlotOpportunity,
+  );
 
-  if (hitterOpportunities.length !== lineup.entries.length) {
-    throw new RangeError('every lineup entry must have one shared hitter opportunity curve');
+  if (lineupSlotOpportunities.length !== 9) {
+    throw new RangeError('every batting-order slot must have one shared opportunity curve');
   }
 
-  const opportunityByPlayer = new Map(
-    hitterOpportunities.map((state) => [state.playerId, state] as const),
+  const opportunityBySlot = new Map(
+    lineupSlotOpportunities.map((state) => [state.lineupSlot, state] as const),
   );
-  if (opportunityByPlayer.size !== hitterOpportunities.length) {
-    throw new RangeError('hitter opportunity player identities must be unique');
+  if (opportunityBySlot.size !== 9) {
+    throw new RangeError('lineup-slot opportunity identities must be unique');
   }
 
   for (const entry of lineup.entries) {
-    const opportunity = opportunityByPlayer.get(entry.playerId);
-    if (
-      opportunity === undefined ||
-      opportunity.lineupSlot !== entry.lineupSlot
-    ) {
-      throw new RangeError('hitter opportunity identity and lineup slot must match the lineup');
+    if (!opportunityBySlot.has(entry.lineupSlot)) {
+      throw new RangeError('every lineup slot must have a shared opportunity curve');
     }
   }
 
   const expectedTeamBattersFaced = expectedCount(teamBattersFacedDistribution);
-  const expectedFromHitters = hitterOpportunities.reduce(
+  const expectedFromLineupSlots = lineupSlotOpportunities.reduce(
     (sum, state) => sum + expectedHitterPlateAppearances(state),
     0,
   );
   assertExpectedCountsAgree(
-    expectedFromHitters,
+    expectedFromLineupSlots,
     expectedTeamBattersFaced,
-    'hitter opportunity expectations must match team batters faced',
+    'lineup-slot opportunity expectations must match team batters faced',
   );
 
   const expectedFromPitchingWorkload =
@@ -268,7 +277,7 @@ function cloneTeamScenario(
     opposingStarter,
     opposingBullpen,
     teamBattersFacedDistribution,
-    hitterOpportunities: Object.freeze(hitterOpportunities),
+    lineupSlotOpportunities: Object.freeze(lineupSlotOpportunities),
   });
 }
 
@@ -391,11 +400,18 @@ export function deriveJointHitterScenarioAssumptions<TOutcomeAssumption>(
     throw new RangeError(`team ${teamId} is not present in scenario ${scenarioId}`);
   }
 
-  const hitter = team.hitterOpportunities.find(
+  const lineupEntry = team.lineup.entries.find(
     (candidate) => candidate.playerId === playerId,
   );
-  if (hitter === undefined) {
-    throw new RangeError(`player ${playerId} has no shared opportunity state`);
+  if (lineupEntry === undefined) {
+    throw new RangeError(`player ${playerId} is not present in the shared lineup`);
+  }
+
+  const opportunity = team.lineupSlotOpportunities.find(
+    (candidate) => candidate.lineupSlot === lineupEntry.lineupSlot,
+  );
+  if (opportunity === undefined) {
+    throw new RangeError(`lineup slot ${lineupEntry.lineupSlot} has no shared opportunity state`);
   }
 
   const context: SharedOutcomeContext = Object.freeze({
@@ -415,9 +431,10 @@ export function deriveJointHitterScenarioAssumptions<TOutcomeAssumption>(
     gameId: scenarioSet.gameId,
     scenarioId: scenario.scenarioId,
     teamId: team.teamId,
-    playerId: hitter.playerId,
+    playerId: lineupEntry.playerId,
+    lineupSlot: lineupEntry.lineupSlot,
     offensiveEnvironmentId: team.offensiveEnvironment.environmentId,
-    opportunityCountDistribution: hitterOpportunityCountDistribution(hitter),
+    opportunityCountDistribution: hitterOpportunityCountDistribution(opportunity),
     outcomeAssumption: deriveOutcomeAssumption(context),
   });
 }
