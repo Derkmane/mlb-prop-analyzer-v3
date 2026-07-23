@@ -27,6 +27,14 @@ function collectTypeScriptFiles(directory: string): string[] {
   return files;
 }
 
+function countExactQuotedLiteral(source: string, value: string): number {
+  return (
+    source.split(`'${value}'`).length -
+    1 +
+    (source.split(`"${value}"`).length - 1)
+  );
+}
+
 test('every planned base-market key has exactly one production-source declaration', () => {
   const source = collectTypeScriptFiles(join(process.cwd(), 'src'))
     .map((path) => readFileSync(path, 'utf8'))
@@ -34,7 +42,7 @@ test('every planned base-market key has exactly one production-source declaratio
 
   for (const key of Object.values(PLANNED_MARKET_KEYS)) {
     assert.equal(
-      source.split(key).length - 1,
+      countExactQuotedLiteral(source, key),
       1,
       `${key} must have exactly one literal declaration under src`,
     );
