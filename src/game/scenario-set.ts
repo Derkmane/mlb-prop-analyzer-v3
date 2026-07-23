@@ -22,6 +22,7 @@ import type {
   TeamSide,
 } from './contracts.js';
 import {
+  deriveLineupSlotSurvivalFromTeamBattersFaced,
   expectedHitterPlateAppearances,
   hitterOpportunityCountDistribution,
 } from './hitter-opportunity.js';
@@ -255,6 +256,32 @@ function assertExpectedCountsAgree(
   }
 }
 
+function assertSlotSurvivalMatchesTeamBattersFaced(
+  opportunity: HitterPASurvivalState,
+  teamBattersFacedDistribution: ProbabilityMassFunction,
+): void {
+  const required = deriveLineupSlotSurvivalFromTeamBattersFaced(
+    teamBattersFacedDistribution,
+    opportunity.lineupSlot,
+  );
+  if (required.length !== opportunity.adjustedSurvival.length) {
+    throw new RangeError(
+      'adjusted lineup-slot survival must match team batters-faced support',
+    );
+  }
+  for (const [index, requiredProbability] of required.entries()) {
+    const actualProbability = opportunity.adjustedSurvival[index];
+    if (
+      actualProbability === undefined ||
+      Math.abs(actualProbability - requiredProbability) > PROBABILITY_TOLERANCE
+    ) {
+      throw new RangeError(
+        'adjusted lineup-slot survival must match team batters-faced distribution',
+      );
+    }
+  }
+}
+
 function cloneTeamScenario(
   team: TeamOffenseScenarioState,
   homeAway: HomeAwayState,
@@ -292,6 +319,12 @@ function cloneTeamScenario(
     if (!opportunityBySlot.has(entry.lineupSlot)) {
       throw new RangeError('every lineup slot must have a shared opportunity curve');
     }
+  }
+  for (const opportunity of lineupSlotOpportunities) {
+    assertSlotSurvivalMatchesTeamBattersFaced(
+      opportunity,
+      teamBattersFacedDistribution,
+    );
   }
 
   const expectedTeamBattersFaced = expectedCount(teamBattersFacedDistribution);
