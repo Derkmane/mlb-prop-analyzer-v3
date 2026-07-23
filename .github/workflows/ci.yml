@@ -32,4 +32,4 @@ jobs:
       - name: Test protective architecture rejection
         run: npm run test:architecture-protective
       - name: Run complete test suite
-        run: node --test dist/test
+        run: node --test "dist/test/**/*.test.js"
