@@ -1,7 +1,9 @@
 import {
   PROBABILITY_TOLERANCE,
+  createProbabilityMassFunction,
   validateProbability,
   validateProbabilityMassFunction,
+  validateProbabilityVector,
   validateUnitIntervalVector,
 } from '../core/index.js';
 import type { ProbabilityMassFunction } from '../domain/probability.js';
@@ -12,6 +14,8 @@ import type {
   HitterPASurvivalState,
   HomeAwayState,
   JointHitterScenarioAssumptions,
+  JointPitchingWorkloadPath,
+  JointPitchingWorkloadState,
   LineupEntryState,
   LineupState,
   SharedOffensiveEnvironmentState,
@@ -63,6 +67,84 @@ function cloneDistribution(
   label: string,
 ): ProbabilityMassFunction {
   return validateProbabilityMassFunction(distribution, label);
+}
+
+function assertNonNegativeInteger(value: number, label: string): void {
+  if (!Number.isInteger(value) || value < 0) {
+    throw new RangeError(`${label} must be a non-negative integer`);
+  }
+}
+
+function cloneJointPitchingWorkload(
+  workload: JointPitchingWorkloadState,
+): JointPitchingWorkloadState {
+  assertNonEmpty(workload.version, 'joint pitching workload version');
+  if (workload.paths.length === 0) {
+    throw new RangeError('joint pitching workload must contain at least one path');
+  }
+  const weights = validateProbabilityVector(
+    workload.paths.map((path) => path.weight),
+    'joint pitching workload path weights',
+  );
+  const paths = workload.paths.map((path, index) => {
+    assertNonNegativeInteger(
+      path.starterBattersFaced,
+      `joint pitching workload path[${index}].starterBattersFaced`,
+    );
+    assertNonNegativeInteger(
+      path.bullpenBattersFaced,
+      `joint pitching workload path[${index}].bullpenBattersFaced`,
+    );
+    const weight = weights[index];
+    if (weight === undefined) {
+      throw new RangeError('missing joint pitching workload path weight');
+    }
+    return Object.freeze({
+      weight,
+      starterBattersFaced: path.starterBattersFaced,
+      bullpenBattersFaced: path.bullpenBattersFaced,
+    });
+  });
+  return Object.freeze({
+    version: workload.version,
+    paths: Object.freeze(paths),
+  });
+}
+
+function distributionFromWorkloadPaths(
+  paths: readonly JointPitchingWorkloadPath[],
+  countForPath: (path: JointPitchingWorkloadPath) => number,
+  label: string,
+): ProbabilityMassFunction {
+  const counts = paths.map(countForPath);
+  const maximumCount = Math.max(...counts);
+  const probabilities = Array<number>(maximumCount + 1).fill(0);
+  for (const [index, path] of paths.entries()) {
+    const count = counts[index];
+    if (count === undefined) {
+      throw new RangeError('missing joint workload count');
+    }
+    probabilities[count] = (probabilities[count] ?? 0) + path.weight;
+  }
+  return createProbabilityMassFunction(probabilities, label);
+}
+
+function assertDistributionsEquivalent(
+  actual: ProbabilityMassFunction,
+  expected: ProbabilityMassFunction,
+  message: string,
+): void {
+  const maximumLength = Math.max(
+    actual.probabilities.length,
+    expected.probabilities.length,
+  );
+  for (let index = 0; index < maximumLength; index += 1) {
+    const actualMass = actual.probabilities[index] ?? 0;
+    const expectedMass = expected.probabilities[index] ?? 0;
+    if (Math.abs(actualMass - expectedMass) > PROBABILITY_TOLERANCE) {
+      throw new RangeError(message);
+    }
+  }
 }
 
 function cloneHomeAway(state: HomeAwayState): HomeAwayState {
@@ -266,12 +348,46 @@ function cloneTeamScenario(
   const offensiveEnvironment = cloneEnvironment(team.offensiveEnvironment);
   const opposingStarter = cloneStarter(team.opposingStarter, opponentTeamId);
   const opposingBullpen = cloneBullpen(team.opposingBullpen, opponentTeamId);
+  const jointPitchingWorkload = cloneJointPitchingWorkload(
+    team.jointPitchingWorkload,
+  );
   const teamBattersFacedDistribution = cloneDistribution(
     team.teamBattersFacedDistribution,
     'team batters-faced distribution',
   );
   const lineupSlotOpportunities = team.lineupSlotOpportunities.map(
     cloneLineupSlotOpportunity,
+  );
+
+  const jointStarterDistribution = distributionFromWorkloadPaths(
+    jointPitchingWorkload.paths,
+    (path) => path.starterBattersFaced,
+    'joint-workload starter marginal',
+  );
+  const jointBullpenDistribution = distributionFromWorkloadPaths(
+    jointPitchingWorkload.paths,
+    (path) => path.bullpenBattersFaced,
+    'joint-workload bullpen marginal',
+  );
+  const jointTeamDistribution = distributionFromWorkloadPaths(
+    jointPitchingWorkload.paths,
+    (path) => path.starterBattersFaced + path.bullpenBattersFaced,
+    'joint-workload team batters faced',
+  );
+  assertDistributionsEquivalent(
+    jointStarterDistribution,
+    opposingStarter.battersFacedDistribution,
+    'joint pitching workload starter marginal must match starter batters faced',
+  );
+  assertDistributionsEquivalent(
+    jointBullpenDistribution,
+    opposingBullpen.battersFacedDistribution,
+    'joint pitching workload bullpen marginal must match bullpen batters faced',
+  );
+  assertDistributionsEquivalent(
+    jointTeamDistribution,
+    teamBattersFacedDistribution,
+    'joint pitching workload totals must match team batters faced',
   );
 
   if (lineupSlotOpportunities.length !== 9) {
@@ -308,15 +424,6 @@ function cloneTeamScenario(
     'lineup-slot opportunity expectations must match team batters faced',
   );
 
-  const expectedFromPitchingWorkload =
-    expectedCount(opposingStarter.battersFacedDistribution) +
-    expectedCount(opposingBullpen.battersFacedDistribution);
-  assertExpectedCountsAgree(
-    expectedFromPitchingWorkload,
-    expectedTeamBattersFaced,
-    'starter and bullpen workload expectations must match team batters faced',
-  );
-
   return Object.freeze({
     teamId: team.teamId,
     side: team.side,
@@ -324,6 +431,7 @@ function cloneTeamScenario(
     offensiveEnvironment,
     opposingStarter,
     opposingBullpen,
+    jointPitchingWorkload,
     teamBattersFacedDistribution,
     lineupSlotOpportunities: Object.freeze(lineupSlotOpportunities),
   });
@@ -471,6 +579,7 @@ export function deriveJointHitterScenarioAssumptions<TOutcomeAssumption>(
     offensiveEnvironment: team.offensiveEnvironment,
     opposingStarter: team.opposingStarter,
     opposingBullpen: team.opposingBullpen,
+    jointPitchingWorkload: team.jointPitchingWorkload,
   });
 
   return Object.freeze({
