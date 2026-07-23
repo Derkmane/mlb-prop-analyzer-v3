@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 1.2  
+**Version:** 1.3  
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -63,8 +63,8 @@ This checklist is evidence-driven. A box is checked only after direct verificati
 - [x] Capture sanitized players fixture.
 - [x] Capture sanitized games fixture.
 - [x] Capture sanitized lineups fixture.
-- [ ] Capture sanitized plate-appearances fixture.
-- [ ] Capture sanitized plays fixture if required by terminal-outcome mapping.
+- [x] Capture sanitized plate-appearances fixture.
+- [x] Capture sanitized plays fixtures required by terminal-outcome mapping.
 - [ ] Capture sanitized current-season statistics fixture.
 - [ ] Reverify every observation in `docs/providers/balldontlie-quirks.md`.
 - [ ] Add one protecting test per confirmed quirk.
@@ -111,29 +111,31 @@ docs/providers/batter-hits-capability-matrix.md
 - [x] Confirmed lineup availability.
 - [x] Batting-order/lineup-slot availability.
 - [ ] Probable opposing starter identity.
-- [ ] Plate-appearance ordering.
-- [ ] Batter and pitcher identity per PA.
+- [x] Plate-appearance ordering — `pa_number` is preserved as ordering metadata and is not assumed to be a contiguous completed-PA count.
+- [x] Batter and pitcher identity fields per PA are preserved in the promoted fixtures.
 - [ ] Handedness where required across the complete PA matchup path.
 
 ### Canonical terminal PA vector
 
 Determine whether approved data can map every raw PA into exactly one of:
 
-- [ ] `K`
-- [ ] `UBB`
-- [ ] `IBB`
-- [ ] `HBP`
-- [ ] `1B`
-- [ ] `2B`
-- [ ] `3B`
-- [ ] `HR`
-- [ ] `ROE`
-- [ ] `FC`
-- [ ] `SF`
-- [ ] `SH`
-- [ ] `BIP_OUT`
-- [ ] `CATCHER_INTERFERENCE`
-- [ ] `OTHER_PA`
+- [x] `K` — observed in promoted fixture evidence, including `Strikeout Double Play` with a separate runner event.
+- [x] `UBB` — observed raw `Walk`, distinct from `Intent Walk`.
+- [x] `IBB` — observed raw `Intent Walk`.
+- [x] `HBP` — observed raw `Hit By Pitch`.
+- [x] `1B` — observed raw `Single`.
+- [x] `2B` — observed raw `Double`.
+- [x] `3B` — observed raw `Triple`.
+- [x] `HR` — observed raw home-run labels preserved in fixture-backed evidence.
+- [x] `ROE` — observed raw `Field Error` with batter-safe context.
+- [x] `FC` — observed `Fielders Choice`, `Fielders Choice Out`, and `Forceout` batter-safe contexts.
+- [x] `SF` — observed raw `Sac Fly`.
+- [x] `SH` — observed raw `Sac Bunt`.
+- [x] `BIP_OUT` — observed standard and compound batter-out contexts.
+- [x] `CATCHER_INTERFERENCE` — observed exact raw `Catcher Interference` with play confirmation.
+- [ ] `OTHER_PA` — no supporting raw terminal result was observed; unknown values must fail closed.
+
+Checked terminal-category items above mean fixture-backed observed capability only. They do not approve provider-wide mappings or close the normalization gate.
 
 - [ ] Verify categories are mutually exclusive.
 - [ ] Verify categories are collectively exhaustive.
@@ -359,6 +361,16 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 1.3 — 2026-07-23
+
+- Recorded terminal-PA fixture promotion in commit `5850fa0`.
+- Recorded the focused checksum, sanitization, and compound-event evidence test in commit `40b0bb8`.
+- Closed the plate-appearance and plays fixture-capture checklist items.
+- Recorded fixture-backed capability for every observed canonical terminal category except `OTHER_PA`.
+- Recorded `pa_number` as ordering metadata rather than a contiguous completed-PA count.
+- Kept mutual exclusivity, collective exhaustiveness, production normalization, and all M2 exit gates open.
+- Did not begin provider-derived contracts.
 
 ### Version 1.2 — 2026-07-23
 
