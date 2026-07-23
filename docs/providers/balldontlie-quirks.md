@@ -1,6 +1,6 @@
 # BALLDONTLIE MLB — Observed Quirks and Verification Ledger
 
-**Version:** 1.3  
+**Version:** 1.4  
 **Status:** Active provider-verification ledger  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -256,11 +256,14 @@ fixtures/sanitized/provider-capabilities/2026-07-23/terminal-pa/SHA256SUMS
 Fixture commit:
 5850fa0
 
-Protecting test:
+Evidence test:
 test/terminal-pa-fixtures.test.mjs
 
-Test commit:
-40b0bb8
+Contract test:
+test/balldontlie-terminal-pa-contracts.test.ts
+
+Contract head:
+f5c81a7
 ```
 
 Observed findings:
@@ -277,18 +280,24 @@ No production normalizer may treat every plate-appearance endpoint row as a comp
 
 ### Protecting-test status
 
-The committed test currently proves:
+The committed tests now prove:
 
 - all promoted terminal-PA fixture hashes match;
 - every promoted fixture is valid JSON;
 - no secret-like content is present;
 - caught-stealing evidence is preserved as a separate runner event;
-- strikeout-double-play evidence preserves both the batter strikeout and separate caught stealing.
+- strikeout-double-play evidence preserves both the batter strikeout and separate caught stealing;
+- canonical terminal and baserunning category sets are separate;
+- all 607 promoted PA rows and 3,497 promoted play rows satisfy runtime schemas;
+- unknown raw provider fields survive the raw-schema boundary;
+- observed nullable play identities/text and pagination shapes remain accepted;
+- malformed required fields fail validation;
+- the strict normalized boundary rejects raw labels such as `Caught Stealing 2B` as terminal categories.
 
-The production normalizer, explicit `pa_number` behavior test, raw-`outs` behavior test, pagination-completeness assertion, and unknown-event fail-closed test remain pending.
+The production mapping function, explicit `pa_number` behavior test, raw-`outs` behavior test, pagination-completeness assertion, context-insufficient rejection, and exact-one-category mapping tests remain pending.
 
 **V3 fixture:** committed and checksum-protected  
-**Verification status:** fixture-backed evidence confirmed; normalization contract and remaining behavior tests pending
+**Verification status:** raw schemas and normalized boundary verified; production mapping and remaining sequence behavior tests pending
 
 ---
 
@@ -310,8 +319,11 @@ The promoted fixtures and focused test preserve these observed contexts:
 Fixture directory:
 fixtures/sanitized/provider-capabilities/2026-07-23/terminal-pa/
 
-Protecting test:
+Evidence test:
 test/terminal-pa-fixtures.test.mjs
+
+Contract test:
+test/balldontlie-terminal-pa-contracts.test.ts
 ```
 
 ### Verified conclusion
@@ -322,10 +334,12 @@ The normalizer must use verified batter-result or play context and must fail clo
 
 ### Protecting-test status
 
-The focused test preserves both batter-reaches and batter-out examples for the observed compound labels. It does not yet implement the normalized mapping or test unknown compound strings.
+The evidence test preserves batter-reaches and batter-out examples for the observed compound labels. The contract test verifies that raw provider strings cannot be inserted directly as canonical terminal categories and that malformed raw records fail validation.
+
+No compound-result mapping has been implemented. Unknown compound strings and missing required context still require explicit fail-closed mapping tests.
 
 **V3 fixture:** committed and checksum-protected  
-**Verification status:** observed contexts fixture-tested; normalization and unknown-value fail-closed tests pending
+**Verification status:** raw boundary protected; context-aware normalization and unknown-value fail-closed tests pending
 
 ---
 
@@ -341,8 +355,9 @@ Committed evidence report:
 fixtures/sanitized/provider-capabilities/2026-07-23/terminal-pa/balldontlie-catcher-interference-5059159-report.json
 Complete plays captured: 655 records across 7 pages
 Fixture commit: 5850fa0
-Protecting test: test/terminal-pa-fixtures.test.mjs
-Test commit: 40b0bb8
+Evidence test: test/terminal-pa-fixtures.test.mjs
+Contract test: test/balldontlie-terminal-pa-contracts.test.ts
+Contract head: f5c81a7
 ```
 
 ### Verified conclusion
@@ -353,10 +368,12 @@ This remains one observed fixture-backed case, not a provider-wide schema guaran
 
 ### Protecting-test status
 
-The focused test verifies that the exact catcher-interference PA evidence, batter identity, and non-BIP-out flag remain preserved. The production mapping and unknown-interference-spelling rejection test remain pending.
+The evidence test verifies that the exact catcher-interference PA evidence, batter identity, and non-BIP-out flag remain preserved. The contract test verifies the strict canonical category boundary and explicit snapshot context.
+
+The production `Catcher Interference` mapping and unknown-interference-spelling rejection tests remain pending.
 
 **V3 fixture:** committed and checksum-protected  
-**Verification status:** fixture evidence confirmed; normalization mapping test pending
+**Verification status:** raw and normalized boundaries verified; production mapping test pending
 
 ---
 
@@ -404,6 +421,14 @@ Notes:
 ---
 
 ## Changelog
+
+### Version 1.4 — 2026-07-23
+
+- Recorded runtime-validated raw PA/play schemas across all promoted terminal fixtures.
+- Recorded preservation of unknown provider fields and rejection of malformed required fields.
+- Recorded the separate canonical terminal-PA and baserunning category boundaries.
+- Recorded the strict `NormalizedTerminalPA` boundary with explicit provider/game/player/PA identity and snapshot SHA-256.
+- Kept raw-result mapping, sequence/context resolution, unknown-value rejection, exact-one-category behavior, and provider-wide guarantees pending.
 
 ### Version 1.3 — 2026-07-23
 
