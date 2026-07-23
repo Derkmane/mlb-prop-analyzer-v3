@@ -38,6 +38,17 @@ export interface BullpenScenarioState {
   readonly battersFacedDistribution: ProbabilityMassFunction;
 }
 
+export interface JointPitchingWorkloadPath {
+  readonly weight: number;
+  readonly starterBattersFaced: number;
+  readonly bullpenBattersFaced: number;
+}
+
+export interface JointPitchingWorkloadState {
+  readonly version: string;
+  readonly paths: readonly JointPitchingWorkloadPath[];
+}
+
 export type SurvivalAdjustmentMethod = 'none' | 'weighted-isotonic';
 
 /**
@@ -66,6 +77,7 @@ export interface TeamOffenseScenarioState {
   readonly offensiveEnvironment: SharedOffensiveEnvironmentState;
   readonly opposingStarter: StarterScenarioState;
   readonly opposingBullpen: BullpenScenarioState;
+  readonly jointPitchingWorkload: JointPitchingWorkloadState;
   readonly teamBattersFacedDistribution: ProbabilityMassFunction;
   readonly lineupSlotOpportunities: readonly HitterPASurvivalState[];
 }
@@ -99,6 +111,7 @@ export interface SharedOutcomeContext {
   readonly offensiveEnvironment: SharedOffensiveEnvironmentState;
   readonly opposingStarter: StarterScenarioState;
   readonly opposingBullpen: BullpenScenarioState;
+  readonly jointPitchingWorkload: JointPitchingWorkloadState;
 }
 
 export interface JointHitterScenarioAssumptions<TOutcomeAssumption> {
