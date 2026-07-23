@@ -20,7 +20,7 @@ jobs:
           node-version: 24
           package-manager-cache: false
       - name: Install dependencies
-        run: npm install --ignore-scripts
+        run: npm install --ignore-scripts --registry=https://registry.npmjs.org --replace-registry-host=always
       - name: Typecheck
         run: npm run typecheck
       - name: Check architecture
