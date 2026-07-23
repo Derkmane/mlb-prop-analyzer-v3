@@ -6,6 +6,8 @@ export type {
   HitterPASurvivalState,
   HomeAwayState,
   JointHitterScenarioAssumptions,
+  JointPitchingWorkloadPath,
+  JointPitchingWorkloadState,
   LineupEntryState,
   LineupSlot,
   LineupState,
