@@ -1,6 +1,7 @@
 import {
   hitterSurvivalToCountProbabilityMassFunction,
   validateProbability,
+  validateProbabilityMassFunction,
   validateUnitIntervalVector,
 } from '../core/index.js';
 import type { ProbabilityMassFunction } from '../domain/probability.js';
@@ -176,6 +177,33 @@ export function createHitterPASurvivalState(
     maximumAllowedIncrease,
     observedMaximumIncrease,
   });
+}
+
+export function deriveLineupSlotSurvivalFromTeamBattersFaced(
+  teamBattersFacedDistribution: ProbabilityMassFunction,
+  lineupSlot: LineupSlot,
+): readonly number[] {
+  validateLineupSlot(lineupSlot);
+  const distribution = validateProbabilityMassFunction(
+    teamBattersFacedDistribution,
+    'team batters-faced distribution',
+  );
+  const maximumTeamBattersFaced = distribution.probabilities.length - 1;
+  const survival: number[] = [];
+
+  for (
+    let requiredTeamBattersFaced = lineupSlot;
+    requiredTeamBattersFaced <= maximumTeamBattersFaced;
+    requiredTeamBattersFaced += 9
+  ) {
+    survival.push(
+      distribution.probabilities
+        .slice(requiredTeamBattersFaced)
+        .reduce((sum, mass) => sum + mass, 0),
+    );
+  }
+
+  return Object.freeze(survival);
 }
 
 export function hitterOpportunityCountDistribution(
