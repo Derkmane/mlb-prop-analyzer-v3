@@ -9,12 +9,14 @@
   "scripts": {
     "clean": "node scripts/clean.mjs",
     "typecheck": "tsc --noEmit",
+    "check:scripts": "node --check scripts/clean.mjs && node --check scripts/provider-probe-utils.mjs && node --check scripts/verify-provider-access.mjs",
     "build": "tsc",
     "architecture": "depcruise --config .dependency-cruiser.cjs src test --exclude '^test/architecture/fixtures/'",
     "test:selected-side": "node --test dist/test/selected-side.test.js",
     "test:architecture-protective": "node --test dist/test/architecture-boundaries.test.js",
-    "test": "npm run build && node --test \"dist/test/**/*.test.js\"",
-    "verify": "npm run typecheck && npm run architecture && npm test",
+    "test:provider-probe-utils": "node --test test/provider-probe-utils.test.mjs",
+    "test": "npm run build && node --test \"dist/test/**/*.test.js\" \"test/**/*.test.mjs\"",
+    "verify": "npm run typecheck && npm run check:scripts && npm run architecture && npm test",
     "verify:provider-access": "node scripts/verify-provider-access.mjs"
   },
   "dependencies": {
