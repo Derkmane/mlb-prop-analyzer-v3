@@ -12,10 +12,18 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           package-manager-cache: false
-      - run: npm install --ignore-scripts
-      - run: npm run verify
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Check architecture
+        run: npm run architecture
+      - name: Run tests
+        run: npm test
