@@ -1,0 +1,319 @@
+{
+  "id": "22fc220be6958e93fba4354054d8fd16",
+  "sport_key": "baseball_mlb",
+  "sport_title": "MLB",
+  "commence_time": "2026-07-23T16:16:00Z",
+  "home_team": "Atlanta Braves",
+  "away_team": "San Diego Padres",
+  "bookmakers": [
+    {
+      "key": "underdog",
+      "title": "Underdog",
+      "sid": null,
+      "markets": [
+        {
+          "key": "batter_hits",
+          "last_update": "2026-07-23T15:11:47Z",
+          "sid": null,
+          "outcomes": [
+            {
+              "name": "Over",
+              "description": "Gavin Sheets",
+              "price": -137,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 1
+            },
+            {
+              "name": "Under",
+              "description": "Gavin Sheets",
+              "price": -137,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 1
+            },
+            {
+              "name": "Over",
+              "description": "Jake Cronenworth",
+              "price": -137,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 1
+            },
+            {
+              "name": "Under",
+              "description": "Jake Cronenworth",
+              "price": -137,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 1
+            },
+            {
+              "name": "Over",
+              "description": "Freddy Fermin",
+              "price": -137,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 1
+            },
+            {
+              "name": "Under",
+              "description": "Freddy Fermin",
+              "price": -137,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 1
+            }
+          ]
+        },
+        {
+          "key": "batter_hits_alternate",
+          "last_update": "2026-07-23T15:11:47Z",
+          "sid": null,
+          "outcomes": [
+            {
+              "name": "Over",
+              "description": "Fernando Tatis Jr.",
+              "price": -334,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 0.75
+            },
+            {
+              "name": "Under",
+              "description": "Fernando Tatis Jr.",
+              "price": -108,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 1.11
+            },
+            {
+              "name": "Over",
+              "description": "Manny Machado",
+              "price": -272,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 0.79
+            },
+            {
+              "name": "Under",
+              "description": "Manny Machado",
+              "price": -128,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 1.03
+            },
+            {
+              "name": "Over",
+              "description": "Matt Olson",
+              "price": 136,
+              "point": 1.5,
+              "sid": null,
+              "multiplier": 1.36
+            },
+            {
+              "name": "Under",
+              "description": "Matt Olson",
+              "price": -563,
+              "point": 1.5,
+              "sid": null,
+              "multiplier": 0.68
+            },
+            {
+              "name": "Over",
+              "description": "Austin Riley",
+              "price": -355,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 0.74
+            },
+            {
+              "name": "Under",
+              "description": "Austin Riley",
+              "price": -103,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 1.14
+            },
+            {
+              "name": "Over",
+              "description": "Xander Bogaerts",
+              "price": -248,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 0.81
+            },
+            {
+              "name": "Under",
+              "description": "Xander Bogaerts",
+              "price": -122,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 1.05
+            },
+            {
+              "name": "Over",
+              "description": "Ozzie Albies",
+              "price": 134,
+              "point": 1.5,
+              "sid": null,
+              "multiplier": 1.35
+            },
+            {
+              "name": "Under",
+              "description": "Ozzie Albies",
+              "price": -563,
+              "point": 1.5,
+              "sid": null,
+              "multiplier": 0.68
+            },
+            {
+              "name": "Over",
+              "description": "Mike Yastrzemski",
+              "price": -159,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 0.94
+            },
+            {
+              "name": "Under",
+              "description": "Mike Yastrzemski",
+              "price": -128,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 1.03
+            },
+            {
+              "name": "Over",
+              "description": "Ty France",
+              "price": -259,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 0.8
+            },
+            {
+              "name": "Under",
+              "description": "Ty France",
+              "price": -117,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 1.07
+            },
+            {
+              "name": "Over",
+              "description": "Drake Baldwin",
+              "price": -563,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 0.68
+            },
+            {
+              "name": "Under",
+              "description": "Drake Baldwin",
+              "price": 136,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 1.36
+            },
+            {
+              "name": "Over",
+              "description": "Luis Rengifo",
+              "price": -378,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 0.73
+            },
+            {
+              "name": "Under",
+              "description": "Luis Rengifo",
+              "price": -101,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 1.15
+            },
+            {
+              "name": "Over",
+              "description": "Mauricio Dubon",
+              "price": -513,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 0.69
+            },
+            {
+              "name": "Under",
+              "description": "Mauricio Dubon",
+              "price": 127,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 1.31
+            },
+            {
+              "name": "Over",
+              "description": "Dominic Smith",
+              "price": -300,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 0.77
+            },
+            {
+              "name": "Under",
+              "description": "Dominic Smith",
+              "price": -125,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 1.04
+            },
+            {
+              "name": "Over",
+              "description": "Michael Harris II",
+              "price": 123,
+              "point": 1.5,
+              "sid": null,
+              "multiplier": 1.29
+            },
+            {
+              "name": "Under",
+              "description": "Michael Harris II",
+              "price": -513,
+              "point": 1.5,
+              "sid": null,
+              "multiplier": 0.69
+            },
+            {
+              "name": "Over",
+              "description": "James Jarvis",
+              "price": -248,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 0.81
+            },
+            {
+              "name": "Under",
+              "description": "James Jarvis",
+              "price": -122,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 1.05
+            },
+            {
+              "name": "Over",
+              "description": "Jase Bowen",
+              "price": -125,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 1.04
+            },
+            {
+              "name": "Under",
+              "description": "Jase Bowen",
+              "price": -238,
+              "point": 0.5,
+              "sid": null,
+              "multiplier": 0.82
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

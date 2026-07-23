@@ -1,0 +1,556 @@
+{
+  "oddsEvent": {
+    "eventId": "22fc220be6958e93fba4354054d8fd16",
+    "commenceTime": "2026-07-23T16:16:00Z",
+    "homeTeam": "Atlanta Braves",
+    "awayTeam": "San Diego Padres"
+  },
+  "balldontlieGame": {
+    "gameId": 5059315,
+    "date": "2026-07-23T16:15:00.000Z",
+    "datetime": null,
+    "status": "STATUS_SCHEDULED",
+    "homeTeam": "Atlanta Braves",
+    "awayTeam": "San Diego Padres"
+  },
+  "gamesPath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-games-2026-07-23.json",
+  "lineupsPath": "artifacts/provider-capabilities/2026-07-23T15-12-25-190Z/balldontlie-lineups-5059315.json",
+  "lineupRecordCount": 20,
+  "lineupPlayerCount": 20,
+  "uniqueOfferPlayerCount": 18,
+  "uniqueMatchCount": 17,
+  "unmatchedCount": 1,
+  "ambiguousCount": 0,
+  "unmatched": [
+    {
+      "offerPlayer": "James Jarvis",
+      "matchCount": 0,
+      "matches": [],
+      "offers": [
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Over",
+          "point": 0.5
+        },
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Under",
+          "point": 0.5
+        }
+      ]
+    }
+  ],
+  "ambiguous": [],
+  "matches": [
+    {
+      "offerPlayer": "Gavin Sheets",
+      "matchCount": 1,
+      "matches": [
+        {
+          "playerId": 725,
+          "fullName": "Gavin Sheets",
+          "normalizedName": "gavin sheets",
+          "battingOrder": 6,
+          "position": "DH",
+          "probablePitcher": false,
+          "teamId": 23,
+          "teamAbbreviation": "SD",
+          "teamDisplayName": "San Diego Padres"
+        }
+      ],
+      "offers": [
+        {
+          "marketKey": "batter_hits",
+          "rawSide": "Over",
+          "point": 0.5
+        },
+        {
+          "marketKey": "batter_hits",
+          "rawSide": "Under",
+          "point": 0.5
+        }
+      ]
+    },
+    {
+      "offerPlayer": "Jake Cronenworth",
+      "matchCount": 1,
+      "matches": [
+        {
+          "playerId": 403,
+          "fullName": "Jake Cronenworth",
+          "normalizedName": "jake cronenworth",
+          "battingOrder": 9,
+          "position": "2B",
+          "probablePitcher": false,
+          "teamId": 23,
+          "teamAbbreviation": "SD",
+          "teamDisplayName": "San Diego Padres"
+        }
+      ],
+      "offers": [
+        {
+          "marketKey": "batter_hits",
+          "rawSide": "Over",
+          "point": 0.5
+        },
+        {
+          "marketKey": "batter_hits",
+          "rawSide": "Under",
+          "point": 0.5
+        }
+      ]
+    },
+    {
+      "offerPlayer": "Freddy Fermin",
+      "matchCount": 1,
+      "matches": [
+        {
+          "playerId": 127,
+          "fullName": "Freddy Fermin",
+          "normalizedName": "freddy fermin",
+          "battingOrder": 7,
+          "position": "C",
+          "probablePitcher": false,
+          "teamId": 23,
+          "teamAbbreviation": "SD",
+          "teamDisplayName": "San Diego Padres"
+        }
+      ],
+      "offers": [
+        {
+          "marketKey": "batter_hits",
+          "rawSide": "Over",
+          "point": 0.5
+        },
+        {
+          "marketKey": "batter_hits",
+          "rawSide": "Under",
+          "point": 0.5
+        }
+      ]
+    },
+    {
+      "offerPlayer": "Fernando Tatis Jr.",
+      "matchCount": 1,
+      "matches": [
+        {
+          "playerId": 492,
+          "fullName": "Fernando Tatis Jr.",
+          "normalizedName": "fernando tatis jr",
+          "battingOrder": 1,
+          "position": "RF",
+          "probablePitcher": false,
+          "teamId": 23,
+          "teamAbbreviation": "SD",
+          "teamDisplayName": "San Diego Padres"
+        }
+      ],
+      "offers": [
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Over",
+          "point": 0.5
+        },
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Under",
+          "point": 0.5
+        }
+      ]
+    },
+    {
+      "offerPlayer": "Manny Machado",
+      "matchCount": 1,
+      "matches": [
+        {
+          "playerId": 412,
+          "fullName": "Manny Machado",
+          "normalizedName": "manny machado",
+          "battingOrder": 3,
+          "position": "3B",
+          "probablePitcher": false,
+          "teamId": 23,
+          "teamAbbreviation": "SD",
+          "teamDisplayName": "San Diego Padres"
+        }
+      ],
+      "offers": [
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Over",
+          "point": 0.5
+        },
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Under",
+          "point": 0.5
+        }
+      ]
+    },
+    {
+      "offerPlayer": "Matt Olson",
+      "matchCount": 1,
+      "matches": [
+        {
+          "playerId": 856,
+          "fullName": "Matt Olson",
+          "normalizedName": "matt olson",
+          "battingOrder": 3,
+          "position": "1B",
+          "probablePitcher": false,
+          "teamId": 2,
+          "teamAbbreviation": "ATL",
+          "teamDisplayName": "Atlanta Braves"
+        }
+      ],
+      "offers": [
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Over",
+          "point": 1.5
+        },
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Under",
+          "point": 1.5
+        }
+      ]
+    },
+    {
+      "offerPlayer": "Austin Riley",
+      "matchCount": 1,
+      "matches": [
+        {
+          "playerId": 863,
+          "fullName": "Austin Riley",
+          "normalizedName": "austin riley",
+          "battingOrder": 6,
+          "position": "3B",
+          "probablePitcher": false,
+          "teamId": 2,
+          "teamAbbreviation": "ATL",
+          "teamDisplayName": "Atlanta Braves"
+        }
+      ],
+      "offers": [
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Over",
+          "point": 0.5
+        },
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Under",
+          "point": 0.5
+        }
+      ]
+    },
+    {
+      "offerPlayer": "Xander Bogaerts",
+      "matchCount": 1,
+      "matches": [
+        {
+          "playerId": 388,
+          "fullName": "Xander Bogaerts",
+          "normalizedName": "xander bogaerts",
+          "battingOrder": 5,
+          "position": "SS",
+          "probablePitcher": false,
+          "teamId": 23,
+          "teamAbbreviation": "SD",
+          "teamDisplayName": "San Diego Padres"
+        }
+      ],
+      "offers": [
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Over",
+          "point": 0.5
+        },
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Under",
+          "point": 0.5
+        }
+      ]
+    },
+    {
+      "offerPlayer": "Ozzie Albies",
+      "matchCount": 1,
+      "matches": [
+        {
+          "playerId": 825,
+          "fullName": "Ozzie Albies",
+          "normalizedName": "ozzie albies",
+          "battingOrder": 2,
+          "position": "2B",
+          "probablePitcher": false,
+          "teamId": 2,
+          "teamAbbreviation": "ATL",
+          "teamDisplayName": "Atlanta Braves"
+        }
+      ],
+      "offers": [
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Over",
+          "point": 1.5
+        },
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Under",
+          "point": 1.5
+        }
+      ]
+    },
+    {
+      "offerPlayer": "Mike Yastrzemski",
+      "matchCount": 1,
+      "matches": [
+        {
+          "playerId": 167,
+          "fullName": "Mike Yastrzemski",
+          "normalizedName": "mike yastrzemski",
+          "battingOrder": 8,
+          "position": "RF",
+          "probablePitcher": false,
+          "teamId": 2,
+          "teamAbbreviation": "ATL",
+          "teamDisplayName": "Atlanta Braves"
+        }
+      ],
+      "offers": [
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Over",
+          "point": 0.5
+        },
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Under",
+          "point": 0.5
+        }
+      ]
+    },
+    {
+      "offerPlayer": "Ty France",
+      "matchCount": 1,
+      "matches": [
+        {
+          "playerId": 1471,
+          "fullName": "Ty France",
+          "normalizedName": "ty france",
+          "battingOrder": 4,
+          "position": "1B",
+          "probablePitcher": false,
+          "teamId": 23,
+          "teamAbbreviation": "SD",
+          "teamDisplayName": "San Diego Padres"
+        }
+      ],
+      "offers": [
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Over",
+          "point": 0.5
+        },
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Under",
+          "point": 0.5
+        }
+      ]
+    },
+    {
+      "offerPlayer": "Drake Baldwin",
+      "matchCount": 1,
+      "matches": [
+        {
+          "playerId": 114368,
+          "fullName": "Drake Baldwin",
+          "normalizedName": "drake baldwin",
+          "battingOrder": 1,
+          "position": "C",
+          "probablePitcher": false,
+          "teamId": 2,
+          "teamAbbreviation": "ATL",
+          "teamDisplayName": "Atlanta Braves"
+        }
+      ],
+      "offers": [
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Over",
+          "point": 0.5
+        },
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Under",
+          "point": 0.5
+        }
+      ]
+    },
+    {
+      "offerPlayer": "Luis Rengifo",
+      "matchCount": 1,
+      "matches": [
+        {
+          "playerId": 3455,
+          "fullName": "Luis Rengifo",
+          "normalizedName": "luis rengifo",
+          "battingOrder": 2,
+          "position": "LF",
+          "probablePitcher": false,
+          "teamId": 23,
+          "teamAbbreviation": "SD",
+          "teamDisplayName": "San Diego Padres"
+        }
+      ],
+      "offers": [
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Over",
+          "point": 0.5
+        },
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Under",
+          "point": 0.5
+        }
+      ]
+    },
+    {
+      "offerPlayer": "Mauricio Dubon",
+      "matchCount": 1,
+      "matches": [
+        {
+          "playerId": 628,
+          "fullName": "Mauricio Dubon",
+          "normalizedName": "mauricio dubon",
+          "battingOrder": 5,
+          "position": "LF",
+          "probablePitcher": false,
+          "teamId": 2,
+          "teamAbbreviation": "ATL",
+          "teamDisplayName": "Atlanta Braves"
+        }
+      ],
+      "offers": [
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Over",
+          "point": 0.5
+        },
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Under",
+          "point": 0.5
+        }
+      ]
+    },
+    {
+      "offerPlayer": "Dominic Smith",
+      "matchCount": 1,
+      "matches": [
+        {
+          "playerId": 2234,
+          "fullName": "Dominic Smith",
+          "normalizedName": "dominic smith",
+          "battingOrder": 7,
+          "position": "DH",
+          "probablePitcher": false,
+          "teamId": 2,
+          "teamAbbreviation": "ATL",
+          "teamDisplayName": "Atlanta Braves"
+        }
+      ],
+      "offers": [
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Over",
+          "point": 0.5
+        },
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Under",
+          "point": 0.5
+        }
+      ]
+    },
+    {
+      "offerPlayer": "Michael Harris II",
+      "matchCount": 1,
+      "matches": [
+        {
+          "playerId": 874,
+          "fullName": "Michael Harris II",
+          "normalizedName": "michael harris ii",
+          "battingOrder": 4,
+          "position": "CF",
+          "probablePitcher": false,
+          "teamId": 2,
+          "teamAbbreviation": "ATL",
+          "teamDisplayName": "Atlanta Braves"
+        }
+      ],
+      "offers": [
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Over",
+          "point": 1.5
+        },
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Under",
+          "point": 1.5
+        }
+      ]
+    },
+    {
+      "offerPlayer": "James Jarvis",
+      "matchCount": 0,
+      "matches": [],
+      "offers": [
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Over",
+          "point": 0.5
+        },
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Under",
+          "point": 0.5
+        }
+      ]
+    },
+    {
+      "offerPlayer": "Jase Bowen",
+      "matchCount": 1,
+      "matches": [
+        {
+          "playerId": 4839022,
+          "fullName": "Jase Bowen",
+          "normalizedName": "jase bowen",
+          "battingOrder": 8,
+          "position": "CF",
+          "probablePitcher": false,
+          "teamId": 23,
+          "teamAbbreviation": "SD",
+          "teamDisplayName": "San Diego Padres"
+        }
+      ],
+      "offers": [
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Over",
+          "point": 0.5
+        },
+        {
+          "marketKey": "batter_hits_alternate",
+          "rawSide": "Under",
+          "point": 0.5
+        }
+      ]
+    }
+  ]
+}
