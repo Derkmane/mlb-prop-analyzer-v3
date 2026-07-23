@@ -67,10 +67,11 @@ export function settleDiscreteStatistic(
     'win/loss/void probabilities',
   );
 
+  const gradedProbability = winProbability + lossProbability;
   const conditionalGradedProbability =
     conditionalWinProbability + conditionalLossProbability;
   const winProbabilityGivenGrades =
-    conditionalGradedProbability === 0
+    gradedProbability === 0
       ? null
       : conditionalWinProbability / conditionalGradedProbability;
 
