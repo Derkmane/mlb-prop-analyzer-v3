@@ -1,5 +1,4 @@
 import {
-  PROBABILITY_TOLERANCE,
   hitterSurvivalToCountProbabilityMassFunction,
   validateUnitIntervalVector,
 } from '../core/index.js';
@@ -11,7 +10,6 @@ import type {
 } from './contracts.js';
 
 export interface HitterPASurvivalInput {
-  readonly playerId: string;
   readonly lineupSlot: LineupSlot;
   readonly rawSurvival: readonly number[];
   readonly weights?: readonly number[];
@@ -26,12 +24,6 @@ interface IsotonicBlock {
 
 function blockMean(block: IsotonicBlock): number {
   return block.weightedSum / block.totalWeight;
-}
-
-function assertNonEmpty(value: string, label: string): void {
-  if (value.trim().length === 0) {
-    throw new RangeError(`${label} must not be empty`);
-  }
 }
 
 function validateLineupSlot(lineupSlot: number): asserts lineupSlot is LineupSlot {
@@ -88,7 +80,7 @@ function projectWeightedNonIncreasing(
         throw new RangeError('invalid isotonic block state');
       }
 
-      if (blockMean(left) + PROBABILITY_TOLERANCE >= blockMean(right)) {
+      if (blockMean(left) >= blockMean(right)) {
         break;
       }
 
@@ -117,9 +109,7 @@ function adjustmentMethod(
   adjustedSurvival: readonly number[],
 ): SurvivalAdjustmentMethod {
   return rawSurvival.some(
-    (value, index) =>
-      Math.abs(value - (adjustedSurvival[index] ?? Number.NaN)) >
-      PROBABILITY_TOLERANCE,
+    (value, index) => value !== adjustedSurvival[index],
   )
     ? 'weighted-isotonic'
     : 'none';
@@ -128,7 +118,6 @@ function adjustmentMethod(
 export function createHitterPASurvivalState(
   input: HitterPASurvivalInput,
 ): HitterPASurvivalState {
-  assertNonEmpty(input.playerId, 'playerId');
   validateLineupSlot(input.lineupSlot);
 
   const rawSurvival = validateUnitIntervalVector(
@@ -140,7 +129,6 @@ export function createHitterPASurvivalState(
   const method = adjustmentMethod(rawSurvival, adjustedSurvival);
 
   return Object.freeze({
-    playerId: input.playerId,
     lineupSlot: input.lineupSlot,
     rawSurvival,
     adjustedSurvival,
