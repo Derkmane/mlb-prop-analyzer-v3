@@ -4,8 +4,6 @@ import test from 'node:test';
 import {
   createSavedPredictionSnapshot,
   type JsonValue,
-  type ProviderSnapshotReference,
-  type ScenarioWeightSnapshot,
 } from '../src/domain/saved-prediction.js';
 import { renderHistoricalPrediction } from '../src/historical/index.js';
 
@@ -13,14 +11,14 @@ test('an immutable saved prediction renders after its feature implementation is 
   const modelArtifactVersions: Record<string, string> = {
     syntheticModel: 'synthetic-artifact-v1',
   };
-  const providerSnapshots: ProviderSnapshotReference[] = [
+  const providerSnapshots = [
     {
       provider: 'synthetic-provider',
       snapshotId: 'synthetic-provider-snapshot-1',
       sha256: 'a'.repeat(64),
     },
   ];
-  const scenarioWeights: ScenarioWeightSnapshot[] = [
+  const scenarioWeights = [
     { scenarioId: 'synthetic-scenario-1', weight: 1 },
   ];
   const opportunityProbabilities = [0, 1];
@@ -66,19 +64,19 @@ test('an immutable saved prediction renders after its feature implementation is 
     },
   });
 
-  modelArtifactVersions.syntheticModel = 'mutated';
+  modelArtifactVersions['syntheticModel'] = 'mutated';
   providerSnapshots[0]!.snapshotId = 'mutated';
   scenarioWeights[0]!.weight = 0;
   opportunityProbabilities[0] = 1;
   statisticProbabilities[0] = 1;
-  featureValues.deletedFeatureOnlyValue = 'mutated';
+  featureValues['deletedFeatureOnlyValue'] = 'mutated';
 
-  assert.equal(snapshot.modelArtifactVersions.syntheticModel, 'synthetic-artifact-v1');
+  assert.equal(snapshot.modelArtifactVersions['syntheticModel'], 'synthetic-artifact-v1');
   assert.equal(snapshot.providerSnapshots[0]!.snapshotId, 'synthetic-provider-snapshot-1');
   assert.equal(snapshot.scenarioWeights[0]!.weight, 1);
   assert.deepEqual(snapshot.opportunityDistribution.probabilities, [0, 1]);
   assert.deepEqual(snapshot.statisticDistribution.probabilities, [0.36, 0.64]);
-  assert.equal(snapshot.featureData.values.deletedFeatureOnlyValue, 'still preserved');
+  assert.equal(snapshot.featureData.values['deletedFeatureOnlyValue'], 'still preserved');
   assert.ok(Object.isFrozen(snapshot));
   assert.ok(Object.isFrozen(snapshot.providerSnapshots));
   assert.ok(Object.isFrozen(snapshot.providerSnapshots[0]));
