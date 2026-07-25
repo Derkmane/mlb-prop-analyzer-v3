@@ -1,7 +1,6 @@
 import type { PlannedMarketDefinition } from '../domain/market.js';
 
 export const PLANNED_MARKET_KEYS = {
-  BATTER_HITS: 'batter-hits',
   BATTER_TOTAL_BASES: 'batter-total-bases',
   BATTER_HITS_RUNS_RBIS: 'batter-hits-runs-rbis',
   PITCHER_STRIKEOUTS: 'pitcher-strikeouts',
@@ -11,13 +10,6 @@ export type PlannedMarketKey =
   (typeof PLANNED_MARKET_KEYS)[keyof typeof PLANNED_MARKET_KEYS];
 
 const definitions = [
-  {
-    baseMarketKey: PLANNED_MARKET_KEYS.BATTER_HITS,
-    displayName: 'Batter Hits',
-    mathematicalFamily: 'self-contained-hitter-pa',
-    status: 'planned',
-    blocker: 'The first vertical slice is not implemented and its current-season production fit is not validated.',
-  },
   {
     baseMarketKey: PLANNED_MARKET_KEYS.BATTER_TOTAL_BASES,
     displayName: 'Batter Total Bases',
