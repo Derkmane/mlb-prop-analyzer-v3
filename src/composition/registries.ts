@@ -2,14 +2,50 @@ import type { ProductionRegistrySnapshot } from '../application/market-registry-
 import type { FeatureRegistration } from '../domain/feature-status.js';
 import type { ImplementedMarketRegistration, PlannedMarketDefinition } from '../domain/market.js';
 import type { SettlementRegistry } from '../domain/settlement-rule.js';
+import {
+  BATTER_HITS_FEATURE_ID,
+  BATTER_HITS_MARKET_KEY,
+} from '../features/batter-hits/manifest.js';
 import { PLANNED_MARKET_CATALOG } from './planned-market-catalog.js';
 
 export const SETTLEMENT_REGISTRY_VERSION = 'settlement-registry-v1';
 
-export const IMPLEMENTED_MARKET_REGISTRY: readonly ImplementedMarketRegistration[] =
-  Object.freeze([]);
+const implementedMarketRegistrations = [
+  {
+    baseMarketKey: BATTER_HITS_MARKET_KEY,
+    providerMarketKeys: Object.freeze([]),
+    featureId: BATTER_HITS_FEATURE_ID,
+    officialSettlementStatistic: 'hits',
+    mathematicalFamily: 'self-contained-hitter-pa',
+    requiredNormalizedInputs: Object.freeze([]),
+    requiredSharedScenarioFields: Object.freeze(['GameScenarioSet']),
+    distributionBuilderVersion: 'batter-hits-synthetic-v1',
+    distributionBuilderValidated: false,
+    settlementRuleVersion: 'batter-hits-settlement-not-production-validated',
+    status: 'model-under-development',
+    blocker:
+      'Batter Hits is synthetic-test-only; no provider contract, production distribution fit, validated settlement rule, or production prediction authorization exists.',
+  },
+] satisfies readonly ImplementedMarketRegistration[];
 
-export const FEATURE_REGISTRY: readonly FeatureRegistration[] = Object.freeze([]);
+export const IMPLEMENTED_MARKET_REGISTRY: readonly ImplementedMarketRegistration[] =
+  Object.freeze(
+    implementedMarketRegistrations.map((registration) =>
+      Object.freeze(registration),
+    ),
+  );
+
+const featureRegistrations = [
+  {
+    featureId: BATTER_HITS_FEATURE_ID,
+    enabled: false,
+    status: 'model-under-development',
+  },
+] satisfies readonly FeatureRegistration[];
+
+export const FEATURE_REGISTRY: readonly FeatureRegistration[] = Object.freeze(
+  featureRegistrations.map((registration) => Object.freeze(registration)),
+);
 
 export const SETTLEMENT_REGISTRY: SettlementRegistry = Object.freeze({
   version: SETTLEMENT_REGISTRY_VERSION,
