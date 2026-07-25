@@ -106,10 +106,10 @@ test('implemented Batter Hits remains disabled and fails closed for production',
 
 test('duplicate ownership across the planned catalog and a feature manifest is rejected', () => {
   const duplicate: ImplementedMarketRegistration = Object.freeze({
-    baseMarketKey: BATTER_HITS_MARKET_KEY,
+    baseMarketKey: PLANNED_MARKET_KEYS.BATTER_TOTAL_BASES,
     providerMarketKeys: Object.freeze(['synthetic-provider-key']),
     featureId: 'synthetic-feature',
-    officialSettlementStatistic: 'hits',
+    officialSettlementStatistic: 'total-bases',
     mathematicalFamily: 'self-contained-hitter-pa',
     requiredNormalizedInputs: Object.freeze([]),
     requiredSharedScenarioFields: Object.freeze([]),
