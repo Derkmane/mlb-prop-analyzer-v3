@@ -6,14 +6,16 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  build-checklist-artifact:
+  update-checklist:
     runs-on: ubuntu-24.04
     steps:
-      - name: Check out repository
+      - name: Check out source branch
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Build exact M7 checklist replacement
         shell: python
@@ -23,39 +25,46 @@ jobs:
           path = Path("PROJECT_CHECKLIST.md")
           text = path.read_text(encoding="utf-8")
 
-          old_version = "**Version:** 1.8"
-          if text.count(old_version) != 1:
-              raise SystemExit("Expected exactly one checklist Version 1.8 marker")
-          text = text.replace(old_version, "**Version:** 1.9", 1)
+          if "**Version:** 1.8" in text:
+              if text.count("**Version:** 1.8") != 1:
+                  raise SystemExit("Expected exactly one checklist Version 1.8 marker")
+              text = text.replace("**Version:** 1.8", "**Version:** 1.9", 1)
 
-          start_marker = "## M7 — Synthetic Batter Hits vertical slice"
-          end_marker = "\n---\n\n## M8 — Current-season fitting and validation"
-          start = text.index(start_marker)
-          end = text.index(end_marker, start)
-          m7 = text[start:end]
-          unchecked = m7.count("- [ ]")
-          if unchecked != 15:
-              raise SystemExit(f"Expected 15 unchecked M7 items, found {unchecked}")
-          m7 = m7.replace("- [ ]", "- [x]")
-          text = text[:start] + m7 + text[end:]
+              start_marker = "## M7 — Synthetic Batter Hits vertical slice"
+              end_marker = "\n---\n\n## M8 — Current-season fitting and validation"
+              start = text.index(start_marker)
+              end = text.index(end_marker, start)
+              m7 = text[start:end]
+              unchecked = m7.count("- [ ]")
+              if unchecked != 15:
+                  raise SystemExit(f"Expected 15 unchecked M7 items, found {unchecked}")
+              m7 = m7.replace("- [ ]", "- [x]")
+              text = text[:start] + m7 + text[end:]
 
-          changelog_marker = "## Changelog\n\n"
-          if text.count(changelog_marker) != 1:
-              raise SystemExit("Expected exactly one changelog marker")
-          entry = (
-              "### Version 1.9 — 2026-07-26\n\n"
-              "- Recorded complete M7 synthetic Batter Hits vertical-slice implementation from merged PR #11 and merge commit `ed1c601`.\n"
-              "- Recorded exact Higher/Lower settlement, baseline/alternate reuse of one statistic distribution, generic candidate and immutable synthetic prediction output, deterministic JSON rendering, disabled fail-closed behavior, removal safety, and exact Git restoration.\n"
-              "- Recorded final GitHub Actions verify run 120 and the literal complete-suite tally of 77 tests, 77 passing, and 0 failing.\n"
-              "- Batter Hits remains synthetic-only, disabled, model-under-development, and ineligible for real ranking until M8 and M9 gates pass.\n\n"
-          )
-          text = text.replace(changelog_marker, changelog_marker + entry, 1)
-          path.write_text(text, encoding="utf-8")
+              changelog_marker = "## Changelog\n\n"
+              if text.count(changelog_marker) != 1:
+                  raise SystemExit("Expected exactly one changelog marker")
+              entry = (
+                  "### Version 1.9 — 2026-07-26\n\n"
+                  "- Recorded complete M7 synthetic Batter Hits vertical-slice implementation from merged PR #11 and merge commit `ed1c601`.\n"
+                  "- Recorded exact Higher/Lower settlement, baseline/alternate reuse of one statistic distribution, generic candidate and immutable synthetic prediction output, deterministic JSON rendering, disabled fail-closed behavior, removal safety, and exact Git restoration.\n"
+                  "- Recorded final GitHub Actions verify run 120 and the literal complete-suite tally of 77 tests, 77 passing, and 0 failing.\n"
+                  "- Batter Hits remains synthetic-only, disabled, model-under-development, and ineligible for real ranking until M8 and M9 gates pass.\n\n"
+              )
+              text = text.replace(changelog_marker, changelog_marker + entry, 1)
+              path.write_text(text, encoding="utf-8")
+          elif "**Version:** 1.9" not in text:
+              raise SystemExit("Checklist is neither expected Version 1.8 nor generated Version 1.9")
 
-      - name: Upload complete checklist replacement
-        uses: actions/upload-artifact@v4
-        with:
-          name: project-checklist-v1.9
-          path: PROJECT_CHECKLIST.md
-          if-no-files-found: error
-          retention-days: 7
+      - name: Commit generated checklist when changed
+        shell: bash
+        run: |
+          if git diff --quiet -- PROJECT_CHECKLIST.md; then
+            echo "Checklist already generated."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add PROJECT_CHECKLIST.md
+          git commit -m "Record verified M7 completion"
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
