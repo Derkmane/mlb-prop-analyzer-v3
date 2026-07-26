@@ -1,6 +1,6 @@
 # MLB Prop Analyzer — Project Rules
 
-**Version:** 2.0  
+**Version:** 2.1  
 **Status:** Canonical project rules  
 **Applies to:** MLB Prop Analyzer V3  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
@@ -633,7 +633,9 @@ Do not blindly obey the conflict and do not silently ignore it.
 
 ---
 
-## 26. Canonical-source change process — LOCKED
+## 26. Canonical-source change and synchronization process — LOCKED
+
+### Approved revisions
 
 When either canonical source needs revision:
 
@@ -641,15 +643,44 @@ When either canonical source needs revision:
 2. show the evidence and practical impact
 3. propose exact replacement language or formula
 4. obtain approval
-5. update the canonical source before code
-6. increase the version
+5. update the complete canonical source before code
+6. increase that document's own version
 7. add a dated changelog entry
-8. provide the complete updated file
-9. update implementation second
-10. add or update a focused regression test
-11. run it and report the result
+8. provide the complete updated file using the exact canonical filename
+9. verify the delivered file is byte-for-byte identical to the approved repository copy
+10. update implementation second
+11. add or update a focused regression test
+12. run it and report the result
 
-No silent source changes. Do not provide only a patch or excerpt when a complete canonical replacement is required.
+No silent source changes. Do not provide only a patch, excerpt, diff, or summary when a complete canonical replacement is required.
+
+### Zero-tolerance mismatch recovery
+
+At every preflight, and before any technical decision or repository work, read the complete Project Source copies and the complete repository copies of:
+
+- `PROJECT_RULES.md`
+- `CANONICAL_MATH_SPEC.md`
+
+Compare the exact canonical filename, internal version, dated changelog, complete content, and content hash. A filename suffix, upload label, PR description, prior response, summary, or memory is not proof of identity.
+
+When a mismatch is discovered:
+
+1. stop the affected work immediately
+2. identify which copy is stale using complete-content and hash evidence
+3. do not merely report that the files differ
+4. immediately provide the user the complete confirmed-current replacement file using the exact canonical filename
+5. state the stale copy's version and hash and the replacement copy's version and hash
+6. verify the delivered replacement is byte-for-byte identical to the confirmed-current authority
+7. do not continue dependent work until the complete replacement has been delivered
+
+If the confirmed-current authority cannot be determined, stop and identify the exact ambiguity. Never guess, reconstruct from memory, combine versions, relabel an older file as current, or deliver a file whose complete content and hash were not verified.
+
+The active repository may contain only one canonical path for each authority file:
+
+- `/PROJECT_RULES.md`
+- `/CANONICAL_MATH_SPEC.md`
+
+Do not create or retain active suffixed, renamed, backup, generated, or duplicate canonical copies in the repository. Historical Git commits may retain earlier versions, but they are not active authority. An active branch whose canonical copy is stale may not be merged or used as preflight authority until it is synchronized.
 
 ---
 
@@ -681,6 +712,13 @@ There is no separate Project Knowledge deliverable.
 ---
 
 ## Changelog
+
+### Version 2.1 — 2026-07-26
+
+- Added zero-tolerance canonical mismatch recovery requiring immediate delivery of the complete confirmed-current replacement file instead of merely reporting divergence.
+- Required exact filename, internal version, changelog, complete-content, and content-hash verification before claiming canonical synchronization.
+- Prohibited active suffixed, renamed, backup, generated, or duplicate canonical copies and blocked stale authority copies from merge or preflight use.
+- Clarified that historical Git commits may retain earlier versions but are not active authority.
 
 ### Version 2.0 — 2026-07-23
 
