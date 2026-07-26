@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 1.8
+**Version:** 1.9
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -240,21 +240,21 @@ Verified by `test/balldontlie-terminal-pa-contracts.test.ts` and `test/balldontl
 
 ## M7 — Synthetic Batter Hits vertical slice
 
-- [ ] Create `src/features/batter-hits/` only when implementation begins.
-- [ ] Create small feature manifest.
-- [ ] Transfer Batter Hits market-key ownership from planned catalog to feature manifest in one commit.
-- [ ] Implement public feature `index` entrypoint.
-- [ ] Accept normalized board offer and shared scenarios.
-- [ ] Build a clearly synthetic Hits distribution.
-- [ ] Apply generic settlement for Higher.
-- [ ] Apply generic settlement for Lower.
-- [ ] Support baseline and alternate lines from the same distribution.
-- [ ] Produce generic candidate record.
-- [ ] Save immutable synthetic prediction outside production output paths.
-- [ ] Render through CLI or JSON entrypoint.
-- [ ] Disable the feature and prove fail-closed behavior.
-- [ ] Remove the feature and prove historical rendering still works.
-- [ ] Restore only after the removal proof passes.
+- [x] Create `src/features/batter-hits/` only when implementation begins.
+- [x] Create small feature manifest.
+- [x] Transfer Batter Hits market-key ownership from planned catalog to feature manifest in one commit.
+- [x] Implement public feature `index` entrypoint.
+- [x] Accept normalized board offer and shared scenarios.
+- [x] Build a clearly synthetic Hits distribution.
+- [x] Apply generic settlement for Higher.
+- [x] Apply generic settlement for Lower.
+- [x] Support baseline and alternate lines from the same distribution.
+- [x] Produce generic candidate record.
+- [x] Save immutable synthetic prediction outside production output paths.
+- [x] Render through CLI or JSON entrypoint.
+- [x] Disable the feature and prove fail-closed behavior.
+- [x] Remove the feature and prove historical rendering still works.
+- [x] Restore only after the removal proof passes.
 
 ---
 
@@ -364,6 +364,13 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 1.9 — 2026-07-26
+
+- Recorded complete M7 synthetic Batter Hits vertical-slice implementation from merged PR #11 and merge commit `ed1c601`.
+- Recorded exact Higher/Lower settlement, baseline/alternate reuse of one statistic distribution, generic candidate and immutable synthetic prediction output, deterministic JSON rendering, disabled fail-closed behavior, removal safety, and exact Git restoration.
+- Recorded final GitHub Actions verify run 120 and the literal complete-suite tally of 77 tests, 77 passing, and 0 failing.
+- Batter Hits remains synthetic-only, disabled, model-under-development, and ineligible for real ranking until M8 and M9 gates pass.
 
 ### Version 1.8 — 2026-07-23
 
