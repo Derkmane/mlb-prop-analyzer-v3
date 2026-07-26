@@ -17,6 +17,10 @@ import { PLANNED_MARKET_KEYS } from '../src/composition/planned-market-catalog.j
 import type { FeatureRegistration } from '../src/domain/feature-status.js';
 import type { ImplementedMarketRegistration } from '../src/domain/market.js';
 import type { SettlementRuleRegistration } from '../src/domain/settlement-rule.js';
+import {
+  BATTER_HITS_FEATURE_ID,
+  BATTER_HITS_MARKET_KEY,
+} from '../src/features/batter-hits/manifest.js';
 
 const validMarket: ImplementedMarketRegistration = Object.freeze({
   baseMarketKey: 'synthetic-market',
@@ -80,9 +84,20 @@ function captureMarketError(action: () => unknown): MarketRegistryUnavailableErr
   assert.fail('expected registry admission to fail closed');
 }
 
-test('production registries are explicit, frozen, and empty before a feature exists', () => {
-  assert.deepEqual(IMPLEMENTED_MARKET_REGISTRY, []);
-  assert.deepEqual(FEATURE_REGISTRY, []);
+test('production registries are explicit, frozen, and keep implemented Batter Hits disabled', () => {
+  assert.equal(IMPLEMENTED_MARKET_REGISTRY.length, 1);
+  assert.equal(IMPLEMENTED_MARKET_REGISTRY[0]?.baseMarketKey, BATTER_HITS_MARKET_KEY);
+  assert.equal(IMPLEMENTED_MARKET_REGISTRY[0]?.status, 'model-under-development');
+  assert.equal(IMPLEMENTED_MARKET_REGISTRY[0]?.distributionBuilderValidated, false);
+  assert.notEqual(IMPLEMENTED_MARKET_REGISTRY[0]?.blocker, null);
+  assert.deepEqual(IMPLEMENTED_MARKET_REGISTRY[0]?.providerMarketKeys, []);
+  assert.deepEqual(FEATURE_REGISTRY, [
+    {
+      featureId: BATTER_HITS_FEATURE_ID,
+      enabled: false,
+      status: 'model-under-development',
+    },
+  ]);
   assert.deepEqual(SETTLEMENT_REGISTRY.rules, []);
   assert.ok(Object.isFrozen(IMPLEMENTED_MARKET_REGISTRY));
   assert.ok(Object.isFrozen(FEATURE_REGISTRY));
@@ -90,14 +105,21 @@ test('production registries are explicit, frozen, and empty before a feature exi
   assert.ok(Object.isFrozen(PRODUCTION_REGISTRIES));
 });
 
-test('a planned market cannot produce or rank a prediction', () => {
+test('a still-planned market cannot produce or rank a prediction', () => {
   const error = captureMarketError(() =>
     authorizeMarketForPrediction(
       PRODUCTION_REGISTRIES,
-      PLANNED_MARKET_KEYS.BATTER_HITS,
+      PLANNED_MARKET_KEYS.BATTER_TOTAL_BASES,
     ),
   );
   assert.equal(error.code, 'MARKET_NOT_IMPLEMENTED');
+});
+
+test('implemented but disabled Batter Hits cannot produce or rank a prediction', () => {
+  const error = captureMarketError(() =>
+    authorizeMarketForPrediction(PRODUCTION_REGISTRIES, BATTER_HITS_MARKET_KEY),
+  );
+  assert.equal(error.code, 'MARKET_NOT_PRODUCTION_ENABLED');
 });
 
 test('an unknown market receives no fallback registration', () => {
