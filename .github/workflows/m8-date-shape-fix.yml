@@ -1,0 +1,241 @@
+name: m8-date-shape-fix
+
+on:
+  push:
+    branches: [agent/m8-recency-weighting]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-test:
+    if: github.actor != 'github-actions[bot]' && github.event.head_commit.message != 'Remove temporary M8 date-shape workflow'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out M8 branch
+        uses: actions/checkout@v6
+        with:
+          ref: agent/m8-recency-weighting
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Apply exact verified provider-date correction
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          utility_path = Path('scripts/m8-recency-weighting-utils.mjs')
+          utility = utility_path.read_text()
+
+          utility = utility.replace(
+              "const ISO_DATE_PATTERN = /^\\d{4}-\\d{2}-\\d{2}$/;\nconst MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;",
+              "const ISO_DATE_PATTERN = /^\\d{4}-\\d{2}-\\d{2}$/;\nconst ISO_UTC_TIMESTAMP_PATTERN =\n  /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$/;\nconst MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;",
+          )
+
+          old_block = """export function selectFinalGamesForDate(body, expectedDate, activeSeason) {
+  assertCurrentSeasonDate(expectedDate, activeSeason, 'expectedDate');
+  const envelope = assertPlainObject(body, 'BALLDONTLIE games response');
+  if (!Array.isArray(envelope.data)) {
+    throw new TypeError('BALLDONTLIE games response data must be an array.');
+  }
+
+  return Object.freeze(
+    envelope.data
+      .map((rawGame, index) => {
+        const game = assertPlainObject(rawGame, `games[${index}]`);
+        if (!Number.isSafeInteger(game.id) || game.id <= 0) {
+          throw new TypeError(`games[${index}].id must be a positive integer.`);
+        }
+        const date = assertNonEmptyString(
+          game.date,
+          `games[${index}].date`,
+        );
+        assertCurrentSeasonDate(date, activeSeason, `games[${index}].date`);
+        if (date !== expectedDate) {
+          throw new RangeError(
+            `game ${game.id} date ${date} does not match requested date ${expectedDate}.`,
+          );
+        }
+        const status = assertNonEmptyString(
+          game.status,
+          `games[${index}].status`,
+        );
+        return Object.freeze({ id: game.id, date, status });
+      })
+      .filter((game) => game.status === 'STATUS_FINAL'),
+  );
+}
+"""
+
+          new_block = """function normalizeProviderGameDate(value, activeSeason, label) {
+  const rawDate = assertNonEmptyString(value, label);
+  let utcDate;
+
+  if (ISO_DATE_PATTERN.test(rawDate)) {
+    utcDate = rawDate;
+  } else {
+    if (!ISO_UTC_TIMESTAMP_PATTERN.test(rawDate)) {
+      throw new TypeError(
+        `${label} must use YYYY-MM-DD or an ISO UTC timestamp ending in Z.`,
+      );
+    }
+    const parsed = new Date(rawDate);
+    if (Number.isNaN(parsed.getTime()) || parsed.toISOString() !== rawDate) {
+      throw new TypeError(`${label} must be a real ISO UTC timestamp.`);
+    }
+    utcDate = parsed.toISOString().slice(0, 10);
+  }
+
+  assertCurrentSeasonDate(utcDate, activeSeason, label);
+  return Object.freeze({ rawDate, utcDate });
+}
+
+export function selectFinalGamesForDate(body, expectedDate, activeSeason) {
+  assertCurrentSeasonDate(expectedDate, activeSeason, 'expectedDate');
+  const envelope = assertPlainObject(body, 'BALLDONTLIE games response');
+  if (!Array.isArray(envelope.data)) {
+    throw new TypeError('BALLDONTLIE games response data must be an array.');
+  }
+
+  return Object.freeze(
+    envelope.data
+      .map((rawGame, index) => {
+        const game = assertPlainObject(rawGame, `games[${index}]`);
+        if (!Number.isSafeInteger(game.id) || game.id <= 0) {
+          throw new TypeError(`games[${index}].id must be a positive integer.`);
+        }
+        const observedDate = normalizeProviderGameDate(
+          game.date,
+          activeSeason,
+          `games[${index}].date`,
+        );
+        if (observedDate.utcDate !== expectedDate) {
+          throw new RangeError(
+            `game ${game.id} UTC date ${observedDate.utcDate} from ${observedDate.rawDate} does not match requested date ${expectedDate}.`,
+          );
+        }
+        const status = assertNonEmptyString(
+          game.status,
+          `games[${index}].status`,
+        );
+        return Object.freeze({
+          id: game.id,
+          date: observedDate.rawDate,
+          status,
+        });
+      })
+      .filter((game) => game.status === 'STATUS_FINAL'),
+  );
+}
+"""
+
+          if old_block not in utility:
+              raise SystemExit('Expected selectFinalGamesForDate block not found')
+          utility_path.write_text(utility.replace(old_block, new_block))
+
+          test_path = Path('test/m8-recency-weighting-utils.test.mjs')
+          test_source = test_path.read_text()
+          old_test = """test('selects only exact observed final games for the requested active-season date', () => {
+  const selected = selectFinalGamesForDate(
+    {
+      data: [
+        { id: 101, date: '2026-07-01', status: 'STATUS_FINAL' },
+        { id: 102, date: '2026-07-01', status: 'STATUS_SCHEDULED' },
+      ],
+    },
+    '2026-07-01',
+    activeSeason,
+  );
+
+  assert.deepEqual(selected, [
+    { id: 101, date: '2026-07-01', status: 'STATUS_FINAL' },
+  ]);
+  assert.throws(
+    () =>
+      selectFinalGamesForDate(
+        { data: [{ id: 101, date: '2026-07-02', status: 'STATUS_FINAL' }] },
+        '2026-07-01',
+        activeSeason,
+      ),
+    /does not match requested date/,
+  );
+});
+"""
+          new_test = """test('selects final games from verified date-only and ISO UTC provider dates', () => {
+  const selected = selectFinalGamesForDate(
+    {
+      data: [
+        {
+          id: 101,
+          date: '2026-07-01T19:45:00.000Z',
+          status: 'STATUS_FINAL',
+        },
+        { id: 102, date: '2026-07-01', status: 'STATUS_SCHEDULED' },
+      ],
+    },
+    '2026-07-01',
+    activeSeason,
+  );
+
+  assert.deepEqual(selected, [
+    {
+      id: 101,
+      date: '2026-07-01T19:45:00.000Z',
+      status: 'STATUS_FINAL',
+    },
+  ]);
+  assert.throws(
+    () =>
+      selectFinalGamesForDate(
+        {
+          data: [
+            {
+              id: 101,
+              date: '2026-07-02T00:05:00.000Z',
+              status: 'STATUS_FINAL',
+            },
+          ],
+        },
+        '2026-07-01',
+        activeSeason,
+      ),
+    /does not match requested date/,
+  );
+  assert.throws(
+    () =>
+      selectFinalGamesForDate(
+        {
+          data: [
+            {
+              id: 101,
+              date: '2026-07-01T19:45:00.000-05:00',
+              status: 'STATUS_FINAL',
+            },
+          ],
+        },
+        '2026-07-01',
+        activeSeason,
+      ),
+    /ISO UTC timestamp ending in Z/,
+  );
+});
+"""
+          if old_test not in test_source:
+              raise SystemExit('Expected final-game test block not found')
+          test_path.write_text(test_source.replace(old_test, new_test))
+          PY
+      - name: Install dependencies
+        run: npm ci
+      - name: Run focused M8 date-shape test file
+        run: npm run test:m8-recency
+      - name: Commit focused correction
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add scripts/m8-recency-weighting-utils.mjs test/m8-recency-weighting-utils.test.mjs
+          git commit -m "Accept verified BALLDONTLIE UTC game dates"
+          git push origin HEAD:agent/m8-recency-weighting
