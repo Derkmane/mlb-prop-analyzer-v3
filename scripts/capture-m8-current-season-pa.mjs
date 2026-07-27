@@ -4,6 +4,7 @@ import {
   fetchJsonSnapshot,
   requireSecret,
   sanitizeText,
+  sha256,
   timestampForPath,
   writeJsonAtomic,
   writeTextAtomic,
@@ -146,6 +147,7 @@ try {
       gamesSnapshot: {
         filePath: path.relative(outputRoot, gamesPath),
         rawBodySha256: gamesSnapshot.response.rawBodySha256,
+        savedBodySha256: sha256(gamesSnapshot.sanitizedBodyText),
         request: gamesSnapshot.request,
         responseStatus: gamesSnapshot.response.status,
       },
@@ -191,6 +193,9 @@ try {
         plateAppearancesSnapshot: {
           filePath: path.relative(outputRoot, plateAppearancesPath),
           rawBodySha256: plateAppearancesSnapshot.response.rawBodySha256,
+          savedBodySha256: sha256(
+            plateAppearancesSnapshot.sanitizedBodyText,
+          ),
           request: plateAppearancesSnapshot.request,
           responseStatus: plateAppearancesSnapshot.response.status,
           recordCount: plateAppearanceCount,
