@@ -277,6 +277,65 @@ test('selects only exact observed final games for the requested active-season da
   );
 });
 
+test('accepts verified BALLDONTLIE UTC game timestamps and preserves the raw value', () => {
+  const selected = selectFinalGamesForDate(
+    {
+      data: [
+        {
+          id: 201,
+          date: '2026-07-01T19:45:00.000Z',
+          status: 'STATUS_FINAL',
+        },
+      ],
+    },
+    '2026-07-01',
+    activeSeason,
+  );
+
+  assert.deepEqual(selected, [
+    {
+      id: 201,
+      date: '2026-07-01T19:45:00.000Z',
+      status: 'STATUS_FINAL',
+    },
+  ]);
+
+  assert.throws(
+    () =>
+      selectFinalGamesForDate(
+        {
+          data: [
+            {
+              id: 202,
+              date: '2026-07-02T00:05:00.000Z',
+              status: 'STATUS_FINAL',
+            },
+          ],
+        },
+        '2026-07-01',
+        activeSeason,
+      ),
+    /does not match requested date/,
+  );
+
+  assert.throws(
+    () =>
+      selectFinalGamesForDate(
+        {
+          data: [
+            {
+              id: 203,
+              date: '2026-07-01T19:45:00.000-05:00',
+              status: 'STATUS_FINAL',
+            },
+          ],
+        },
+        '2026-07-01',
+        activeSeason,
+      ),
+    /ISO UTC timestamp ending in Z/,
+  );
+});
 test('counts only an explicit plate-appearance data array', () => {
   assert.equal(countPlateAppearances({ data: [{}, {}, {}] }), 3);
   assert.throws(

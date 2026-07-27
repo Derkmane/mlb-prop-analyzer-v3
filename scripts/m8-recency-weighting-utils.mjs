@@ -1,4 +1,6 @@
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_UTC_TIMESTAMP_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function assertPlainObject(value, label) {
@@ -332,6 +334,28 @@ export function selectRecencyCandidateFromValidation(results) {
   });
 }
 
+function normalizeProviderGameDate(value, activeSeason, label) {
+  const rawDate = assertNonEmptyString(value, label);
+  let utcDate;
+
+  if (ISO_DATE_PATTERN.test(rawDate)) {
+    utcDate = rawDate;
+  } else {
+    if (!ISO_UTC_TIMESTAMP_PATTERN.test(rawDate)) {
+      throw new TypeError(
+        `${label} must use YYYY-MM-DD or an ISO UTC timestamp ending in Z.`,
+      );
+    }
+    const parsed = new Date(rawDate);
+    if (Number.isNaN(parsed.getTime()) || parsed.toISOString() !== rawDate) {
+      throw new TypeError(`${label} must be a real ISO UTC timestamp.`);
+    }
+    utcDate = parsed.toISOString().slice(0, 10);
+  }
+
+  assertCurrentSeasonDate(utcDate, activeSeason, label);
+  return Object.freeze({ rawDate, utcDate });
+}
 export function selectFinalGamesForDate(body, expectedDate, activeSeason) {
   assertCurrentSeasonDate(expectedDate, activeSeason, 'expectedDate');
   const envelope = assertPlainObject(body, 'BALLDONTLIE games response');
@@ -346,21 +370,25 @@ export function selectFinalGamesForDate(body, expectedDate, activeSeason) {
         if (!Number.isSafeInteger(game.id) || game.id <= 0) {
           throw new TypeError(`games[${index}].id must be a positive integer.`);
         }
-        const date = assertNonEmptyString(
+        const observedDate = normalizeProviderGameDate(
           game.date,
+          activeSeason,
           `games[${index}].date`,
         );
-        assertCurrentSeasonDate(date, activeSeason, `games[${index}].date`);
-        if (date !== expectedDate) {
+        if (observedDate.utcDate !== expectedDate) {
           throw new RangeError(
-            `game ${game.id} date ${date} does not match requested date ${expectedDate}.`,
+            `game ${game.id} UTC date ${observedDate.utcDate} from ${observedDate.rawDate} does not match requested date ${expectedDate}.`,
           );
         }
         const status = assertNonEmptyString(
           game.status,
           `games[${index}].status`,
         );
-        return Object.freeze({ id: game.id, date, status });
+        return Object.freeze({
+          id: game.id,
+          date: observedDate.rawDate,
+          status,
+        });
       })
       .filter((game) => game.status === 'STATUS_FINAL'),
   );
