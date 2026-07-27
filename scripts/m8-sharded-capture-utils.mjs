@@ -1,4 +1,4 @@
-import { access } from 'node:fs/promises';
+import { access, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 import { verifyM8CaptureDirectory } from './m8-capture-verification-utils.mjs';
@@ -43,13 +43,27 @@ export function buildM8ShardPlan({
   );
 }
 
-async function manifestExists(shardRoot) {
+async function inspectShardPath(shardRoot) {
+  let details;
   try {
-    await access(path.join(shardRoot, 'capture-manifest.json'));
-    return true;
+    details = await stat(shardRoot);
   } catch (error) {
     if (error?.code === 'ENOENT') {
-      return false;
+      return 'missing';
+    }
+    throw error;
+  }
+
+  if (!details.isDirectory()) {
+    throw new Error(`Existing shard path ${shardRoot} is not a directory.`);
+  }
+
+  try {
+    await access(path.join(shardRoot, 'capture-manifest.json'));
+    return 'manifest-present';
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return 'incomplete';
     }
     throw error;
   }
@@ -65,9 +79,15 @@ export async function inspectM8Shard({
   const root = assertNonEmptyString(shardRoot, 'shardRoot');
   const expectedDate = assertNonEmptyString(date, 'date');
   const season = assertActiveSeason(activeSeason);
+  const pathState = await inspectShardPath(root);
 
-  if (!(await manifestExists(root))) {
+  if (pathState === 'missing') {
     return Object.freeze({ status: 'missing', date: expectedDate, shardRoot: root });
+  }
+  if (pathState === 'incomplete') {
+    throw new Error(
+      `Existing shard ${expectedDate} has no capture manifest; refusing to overwrite it.`,
+    );
   }
 
   let result;
