@@ -11,8 +11,7 @@ import {
   segmentVerifiedM8ContextPlaySequence,
 } from '../scripts/m8-context-play-signature-audit-run-utils.mjs';
 
-const DATASET_SHA = 'a'.repeat(64);
-const TEST_RESERVATION = Object.freeze({
+const FULL_TEST_RESERVATION = Object.freeze({
   startDate: '2026-07-06',
   endDate: '2026-07-25',
   shardCount: 20,
@@ -23,6 +22,7 @@ const TEST_RESERVATION = Object.freeze({
 });
 
 function play({
+  gameId = 9001,
   order,
   type,
   batterId = null,
@@ -32,7 +32,7 @@ function play({
   text = null,
 }) {
   return {
-    game_id: 9001,
+    game_id: gameId,
     order,
     type,
     text,
@@ -45,6 +45,7 @@ function play({
 }
 
 function batterSegment({
+  gameId = 9001,
   startOrder,
   batterId = 10,
   pitcherId = 20,
@@ -54,12 +55,14 @@ function batterSegment({
 }) {
   const rows = [
     play({
+      gameId,
       order: startOrder,
       type: 'Start Batter/Pitcher',
       batterId,
       pitcherId,
     }),
     play({
+      gameId,
       order: startOrder + 1,
       type: outcomeType,
       batterId,
@@ -70,6 +73,7 @@ function batterSegment({
   if (includeNullCaughtStealing) {
     rows.push(
       play({
+        gameId,
         order: startOrder + 2,
         type: 'Caught Stealing',
         batterId: null,
@@ -80,6 +84,7 @@ function batterSegment({
   }
   rows.push(
     play({
+      gameId,
       order: startOrder + (includeNullCaughtStealing ? 3 : 2),
       type: 'Play Result',
       batterId,
@@ -87,6 +92,7 @@ function batterSegment({
       text: resultText,
     }),
     play({
+      gameId,
       order: startOrder + (includeNullCaughtStealing ? 4 : 3),
       type: 'End Batter/Pitcher',
       batterId,
@@ -117,6 +123,15 @@ function stringify(value) {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
+function reducedTestReservation(reservation) {
+  return {
+    startDate: reservation.startDate,
+    endDate: reservation.endDate,
+    plateAppearanceCount: reservation.plateAppearanceCount,
+    rowsIncluded: reservation.rowsIncluded,
+  };
+}
+
 async function createAuditFixture({ rowsIncluded = false } = {}) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'm8-context-signature-'));
   const datasetPath = path.join(root, 'dataset.json');
@@ -126,17 +141,34 @@ async function createAuditFixture({ rowsIncluded = false } = {}) {
   await mkdir(pagesDirectory, { recursive: true });
 
   const row = contextRow();
-  const reservation = { ...TEST_RESERVATION, rowsIncluded };
+  const fullReservation = { ...FULL_TEST_RESERVATION, rowsIncluded };
+  const periods = {
+    fit: {
+      startDate: '2026-03-26',
+      endDate: '2026-06-21',
+      rowCount: 1,
+      rows: [row],
+    },
+    validation: {
+      startDate: '2026-06-22',
+      endDate: '2026-07-05',
+      rowCount: 0,
+      rows: [],
+    },
+  };
+  const datasetIdentity = {
+    activeSeason: 2026,
+    sourcePartitionSha256: 'd'.repeat(64),
+    sourceEvidenceSetSha256: 'e'.repeat(64),
+    periods,
+    untouchedTestReservation: fullReservation,
+  };
   const dataset = {
     datasetVersion: 2,
-    activeSeason: 2026,
-    datasetSha256: DATASET_SHA,
-    periods: {
-      fit: { rows: [row] },
-      validation: { rows: [] },
-    },
+    purpose: 'test',
+    ...datasetIdentity,
     totals: { contextRequiredCount: 1 },
-    untouchedTestReservation: reservation,
+    datasetSha256: sha256(JSON.stringify(datasetIdentity)),
   };
   await writeFile(datasetPath, stringify(dataset), 'utf8');
 
@@ -197,7 +229,7 @@ async function createAuditFixture({ rowsIncluded = false } = {}) {
   };
   const captureIdentity = {
     activeSeason: 2026,
-    sourceDatasetSha256: DATASET_SHA,
+    sourceDatasetSha256: dataset.datasetSha256,
     sourceDatasetFileSha256: sha256(await readFile(datasetPath, 'utf8')),
     sourcePlanSha256: 'b'.repeat(64),
     sourcePlanFileSha256: 'c'.repeat(64),
@@ -207,7 +239,7 @@ async function createAuditFixture({ rowsIncluded = false } = {}) {
     games: [gameSummary],
     totalPageCount: 1,
     totalPlayRecordCount: pageBody.data.length,
-    untouchedTestReservation: reservation,
+    untouchedTestReservation: reducedTestReservation(fullReservation),
   };
   const captureManifest = {
     captureVersion: 1,
@@ -224,7 +256,12 @@ async function createAuditFixture({ rowsIncluded = false } = {}) {
     'utf8',
   );
 
-  return { root, datasetPath, captureRoot, pagePath: path.join(pagesDirectory, 'page-0001.json') };
+  return {
+    root,
+    datasetPath,
+    captureRoot,
+    pagePath: path.join(pagesDirectory, 'page-0001.json'),
+  };
 }
 
 test('segments complete batter blocks while preserving non-batter inning markers and null-batter events', () => {
@@ -248,15 +285,15 @@ test('segments complete batter blocks while preserving non-batter inning markers
 });
 
 test('conserves unique, multiple, and zero matches without inferring a disposition or terminal category', () => {
-  const one = segmentVerifiedM8ContextPlaySequence({
+  const uniqueSegments = segmentVerifiedM8ContextPlaySequence({
     gameId: 9001,
-    plays: batterSegment({ startOrder: 10 }),
+    plays: batterSegment({ gameId: 9001, startOrder: 10 }),
   });
-  const repeated = segmentVerifiedM8ContextPlaySequence({
-    gameId: 9001,
+  const repeatedSegments = segmentVerifiedM8ContextPlaySequence({
+    gameId: 9002,
     plays: [
-      ...batterSegment({ startOrder: 20 }),
-      ...batterSegment({ startOrder: 30 }),
+      ...batterSegment({ gameId: 9002, startOrder: 20 }),
+      ...batterSegment({ gameId: 9002, startOrder: 30 }),
     ],
   });
   const audit = auditM8ContextRowsAgainstSegments({
@@ -266,8 +303,8 @@ test('conserves unique, multiple, and zero matches without inferring a dispositi
       contextRow({ rowId: 'zero', providerGameId: 9003 }),
     ],
     segmentsByGameId: new Map([
-      [9001, one],
-      [9002, repeated],
+      [9001, uniqueSegments],
+      [9002, repeatedSegments],
     ]),
   });
 
@@ -298,6 +335,12 @@ test('verifies the frozen capture and produces a deterministic no-mapping audit'
   assert.equal(first.mappingApplied, false);
   assert.equal(first.rows[0].inferredBatterDisposition, null);
   assert.equal(first.rows[0].inferredTerminalCategory, null);
+  assert.deepEqual(first.untouchedTestReservation, {
+    startDate: FULL_TEST_RESERVATION.startDate,
+    endDate: FULL_TEST_RESERVATION.endDate,
+    plateAppearanceCount: FULL_TEST_RESERVATION.plateAppearanceCount,
+    rowsIncluded: false,
+  });
   assert.equal(first.untouchedTestRowsRead, false);
 });
 
