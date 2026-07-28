@@ -59,10 +59,11 @@ test('returns the league vector when both pooled effects are neutral', () => {
   approximateDistribution(result.probabilities, leagueTarget);
   assert.equal(result.poolingPassCountPerParameter, 1);
   assert.equal(result.secondShrinkageAllowed, false);
-  assert.equal(
-    Object.values(result.probabilities).reduce((sum, probability) => sum + probability, 0),
-    1,
+  const probabilitySum = Object.values(result.probabilities).reduce(
+    (sum, probability) => sum + probability,
+    0,
   );
+  assert.ok(Math.abs(probabilitySum - 1) <= 1e-12);
 });
 
 test('reproduces one pooled parameter exactly when the other effect is neutral and its coefficient is one', () => {
