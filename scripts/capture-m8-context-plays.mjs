@@ -1,4 +1,4 @@
-import { access, mkdir, readFile } from 'node:fs/promises';
+import { access, mkdir, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 
 import {
@@ -8,6 +8,7 @@ import {
   writeJsonAtomic,
 } from './provider-probe-utils.mjs';
 import { parseNonNegativeInteger } from './provider-capability-utils.mjs';
+import { selectM8ContextPlayCaptureBatch } from './m8-context-play-batch-utils.mjs';
 import {
   buildM8ContextPlayCapturePlan,
   collectCompleteM8PlayPages,
@@ -41,12 +42,29 @@ async function pathExists(value) {
   }
 }
 
+function capturedGameSummary(game, verified) {
+  return Object.freeze({
+    gameId: game.gameId,
+    observedDate: game.observedDate,
+    contextRowCount: game.contextRowCount,
+    resultCounts: game.resultCounts,
+    pageCount: verified.pageCount,
+    recordCount: verified.recordCount,
+    gameManifestSha256: verified.gameManifestSha256,
+  });
+}
+
 const datasetPath = requireEnvironmentValue('M8_RECENCY_DATASET_PATH');
 const outputRoot = requireEnvironmentValue('M8_CONTEXT_PLAY_OUTPUT_DIR');
 const delayMs = parseNonNegativeInteger(
   process.env.BDL_CAPTURE_DELAY_MS,
   'BDL_CAPTURE_DELAY_MS',
   13_000,
+);
+const maxNewGames = parseNonNegativeInteger(
+  process.env.M8_CONTEXT_PLAY_MAX_NEW_GAMES,
+  'M8_CONTEXT_PLAY_MAX_NEW_GAMES',
+  0,
 );
 const apiKey = requireSecret('BALLDONTLIE_API_KEY');
 const secrets = [apiKey];
@@ -61,6 +79,7 @@ console.log(`Source dataset SHA-256: ${plan.sourceDatasetSha256}`);
 console.log(`Output root: ${outputRoot}`);
 console.log(`Context-required rows: ${plan.contextRowCount}`);
 console.log(`Games requiring complete plays: ${plan.gameCount}`);
+console.log(`Maximum new games this run: ${maxNewGames === 0 ? 'all missing games' : maxNewGames}`);
 console.log(
   `Untouched test sealed: ${plan.untouchedTestReservation.startDate} through ${plan.untouchedTestReservation.endDate} — ${plan.untouchedTestReservation.plateAppearanceCount} rows excluded`,
 );
@@ -108,30 +127,40 @@ async function fetchPlayPage({ gameId, sortOrder, perPage, cursor, pageNumber })
   };
 }
 
-const capturedGames = [];
+const capturedByGameId = new Map();
+const verifiedGameIds = [];
 for (const [index, game] of plan.games.entries()) {
   const gameDirectory = path.join(outputRoot, 'games', String(game.gameId));
-  if (await pathExists(gameDirectory)) {
-    const verified = await verifyM8ContextPlayGameCapture({
-      gameDirectory,
-      expectedGameId: game.gameId,
-      secret: apiKey,
-    });
-    capturedGames.push({
-      gameId: game.gameId,
-      observedDate: game.observedDate,
-      contextRowCount: game.contextRowCount,
-      resultCounts: game.resultCounts,
-      pageCount: verified.pageCount,
-      recordCount: verified.recordCount,
-      gameManifestSha256: verified.gameManifestSha256,
-    });
-    console.log(
-      `[${index + 1}/${plan.gameCount}] Reused verified game ${game.gameId}: ${verified.pageCount} pages, ${verified.recordCount} plays.`,
-    );
-    continue;
-  }
+  if (!(await pathExists(gameDirectory))) continue;
 
+  const verified = await verifyM8ContextPlayGameCapture({
+    gameDirectory,
+    expectedGameId: game.gameId,
+    secret: apiKey,
+  });
+  capturedByGameId.set(game.gameId, capturedGameSummary(game, verified));
+  verifiedGameIds.push(game.gameId);
+  console.log(
+    `[${index + 1}/${plan.gameCount}] Reused verified game ${game.gameId}: ${verified.pageCount} pages, ${verified.recordCount} plays.`,
+  );
+}
+
+const batch = selectM8ContextPlayCaptureBatch({
+  plannedGames: plan.games,
+  verifiedGameIds,
+  maxNewGames,
+});
+console.log(`Verified before this run: ${batch.verifiedBeforeCount}`);
+console.log(`Missing before this run: ${batch.missingBeforeCount}`);
+console.log(`New games selected: ${batch.selectedNewGameCount}`);
+console.log(`Expected remaining after this batch: ${batch.remainingAfterBatchCount}`);
+
+const planIndexByGameId = new Map(
+  plan.games.map((game, index) => [game.gameId, index]),
+);
+for (const game of batch.selectedGames) {
+  const index = planIndexByGameId.get(game.gameId);
+  const gameDirectory = path.join(outputRoot, 'games', String(game.gameId));
   console.log(
     `[${index + 1}/${plan.gameCount}] Capturing complete plays for game ${game.gameId} (${game.contextRowCount} context rows).`,
   );
@@ -149,18 +178,52 @@ for (const [index, game] of plan.games.entries()) {
     expectedGameId: game.gameId,
     secret: apiKey,
   });
-  capturedGames.push({
-    gameId: game.gameId,
-    observedDate: game.observedDate,
-    contextRowCount: game.contextRowCount,
-    resultCounts: game.resultCounts,
-    pageCount: verified.pageCount,
-    recordCount: verified.recordCount,
-    gameManifestSha256: verified.gameManifestSha256,
-  });
+  capturedByGameId.set(game.gameId, capturedGameSummary(game, verified));
   console.log(
     `Captured game ${game.gameId}: ${verified.pageCount} pages, ${verified.recordCount} plays.`,
   );
+}
+
+const capturedGames = plan.games
+  .map((game) => capturedByGameId.get(game.gameId))
+  .filter((game) => game !== undefined);
+
+if (!batch.completesPlan) {
+  const progressIdentity = {
+    activeSeason: plan.activeSeason,
+    sourceDatasetSha256: plan.sourceDatasetSha256,
+    sourcePlanSha256: plan.planSha256,
+    plannedGameCount: plan.gameCount,
+    verifiedGameCount: capturedGames.length,
+    newlyCapturedGameCount: batch.selectedNewGameCount,
+    remainingGameCount: batch.remainingAfterBatchCount,
+    maxNewGames,
+    verifiedGameIdsSha256: sha256(
+      JSON.stringify(capturedGames.map((game) => game.gameId)),
+    ),
+    untouchedTestReservation: plan.untouchedTestReservation,
+  };
+  const progress = {
+    captureVersion: 1,
+    purpose:
+      'Record resumable partial progress for fit-validation context-play evidence capture.',
+    provider: 'BALLDONTLIE MLB API',
+    status: 'partial',
+    error: null,
+    ...progressIdentity,
+    progressSha256: sha256(JSON.stringify(progressIdentity)),
+  };
+  await writeJsonAtomic(path.join(outputRoot, 'capture-progress.json'), progress);
+  console.log('=== M8 CONTEXT PLAY CAPTURE BATCH COMPLETE ===');
+  console.log(`Verified games: ${progress.verifiedGameCount}/${progress.plannedGameCount}`);
+  console.log(`Remaining games: ${progress.remainingGameCount}`);
+  console.log(`Progress SHA-256: ${progress.progressSha256}`);
+  console.log('Complete capture manifest not written because planned games remain.');
+  process.exit(0);
+}
+
+if (capturedGames.length !== plan.gameCount) {
+  throw new Error('complete capture did not verify every planned game.');
 }
 
 const planText = await readFile(path.join(outputRoot, 'capture-plan.json'), 'utf8');
@@ -195,6 +258,7 @@ const manifest = {
   captureSha256: sha256(JSON.stringify(captureIdentity)),
 };
 await writeJsonAtomic(path.join(outputRoot, 'capture-manifest.json'), manifest);
+await rm(path.join(outputRoot, 'capture-progress.json'), { force: true });
 
 console.log('=== M8 CONTEXT PLAY CAPTURE COMPLETE ===');
 console.log(`Games captured or reused: ${manifest.gameCount}`);
