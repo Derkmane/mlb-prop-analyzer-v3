@@ -95,12 +95,10 @@ test('verified direct BALLDONTLIE results map to exactly one canonical terminal 
 
   for (const [rawResult, terminalCategory] of cases) {
     const result = normalizeBallDontLieTerminalPa(mappingInput(rawResult));
-
     assert.equal(result.status, 'normalized', rawResult);
     if (result.status !== 'normalized') {
       continue;
     }
-
     assert.equal(result.terminalPa.rawResult, rawResult);
     assert.equal(result.terminalPa.terminalCategory, terminalCategory);
     assert.deepEqual(result.baserunningEvents, []);
@@ -114,14 +112,11 @@ test('ambiguous fielder-choice and multi-out labels require explicit batter disp
     'Fielders Choice Out',
     'Forceout',
   ]) {
-    assert.deepEqual(
-      normalizeBallDontLieTerminalPa(mappingInput(rawResult)),
-      {
-        status: 'rejected',
-        rawResult,
-        reason: 'context-required',
-      },
-    );
+    assert.deepEqual(normalizeBallDontLieTerminalPa(mappingInput(rawResult)), {
+      status: 'rejected',
+      rawResult,
+      reason: 'context-required',
+    });
 
     const reached = normalizeBallDontLieTerminalPa(
       mappingInput(rawResult, {
@@ -129,7 +124,6 @@ test('ambiguous fielder-choice and multi-out labels require explicit batter disp
         plateAppearanceOverrides: { is_ball_in_play_out: true },
       }),
     );
-
     assert.equal(reached.status, 'normalized');
     if (reached.status === 'normalized') {
       assert.equal(reached.terminalPa.terminalCategory, 'FC');
@@ -148,19 +142,15 @@ test('ambiguous fielder-choice and multi-out labels require explicit batter disp
   }
 
   for (const rawResult of ['Double Play', 'Triple Play']) {
-    assert.deepEqual(
-      normalizeBallDontLieTerminalPa(mappingInput(rawResult)),
-      {
-        status: 'rejected',
-        rawResult,
-        reason: 'context-required',
-      },
-    );
+    assert.deepEqual(normalizeBallDontLieTerminalPa(mappingInput(rawResult)), {
+      status: 'rejected',
+      rawResult,
+      reason: 'context-required',
+    });
 
     const retired = normalizeBallDontLieTerminalPa(
       mappingInput(rawResult, { batterDisposition: 'retired' }),
     );
-
     assert.equal(retired.status, 'normalized');
     if (retired.status === 'normalized') {
       assert.equal(retired.terminalPa.terminalCategory, 'BIP_OUT');
@@ -185,7 +175,6 @@ test('compound strikeout and caught-stealing rows keep terminal and baserunning 
       finalPitchDescription: 'Swinging Strike',
     }),
   );
-
   assert.equal(strikeoutDoublePlay.status, 'normalized');
   if (strikeoutDoublePlay.status === 'normalized') {
     assert.equal(strikeoutDoublePlay.terminalPa.terminalCategory, 'K');
@@ -220,11 +209,8 @@ test('compound strikeout and caught-stealing rows keep terminal and baserunning 
   );
 
   const caughtStealing = normalizeBallDontLieTerminalPa(
-    mappingInput('Caught Stealing 2B', {
-      finalPitchDescription: 'Ball',
-    }),
+    mappingInput('Caught Stealing 2B', { finalPitchDescription: 'Ball' }),
   );
-
   assert.equal(caughtStealing.status, 'baserunning-only');
   if (caughtStealing.status === 'baserunning-only') {
     assert.deepEqual(caughtStealing.baserunningEvents, ['CS']);
@@ -254,21 +240,16 @@ test('unknown, canonical-looking raw labels, malformed context, and contradictor
       reason: 'unknown-result',
     },
   );
-
-  assert.deepEqual(
-    normalizeBallDontLieTerminalPa(mappingInput('OTHER_PA')),
-    {
-      status: 'rejected',
-      rawResult: 'OTHER_PA',
-      reason: 'unknown-result',
-    },
-  );
+  assert.deepEqual(normalizeBallDontLieTerminalPa(mappingInput('OTHER_PA')), {
+    status: 'rejected',
+    rawResult: 'OTHER_PA',
+    reason: 'unknown-result',
+  });
 
   const malformed = mappingInput('Single') as {
     sourceSnapshotSha256: string;
   };
   malformed.sourceSnapshotSha256 = 'not-a-sha';
-
   assert.deepEqual(normalizeBallDontLieTerminalPa(malformed), {
     status: 'rejected',
     rawResult: 'Single',
@@ -309,13 +290,19 @@ test('all promoted PA rows produce one explicit deterministic state without OTHE
         name.endsWith('.json'),
     )
     .sort();
-
   assert.equal(fixtureNames.length, 8);
 
   let rowCount = 0;
   let normalizedCount = 0;
   let baserunningOnlyCount = 0;
   let contextRequiredCount = 0;
+  const contextRequiredLabels = new Set([
+    'Fielders Choice',
+    'Fielders Choice Out',
+    'Forceout',
+    'Double Play',
+    'Triple Play',
+  ]);
 
   for (const name of fixtureNames) {
     const gameId = Number(
@@ -329,7 +316,6 @@ test('all promoted PA rows produce one explicit deterministic state without OTHE
 
     for (const rawPlateAppearance of payload.data) {
       rowCount += 1;
-
       const result = normalizeBallDontLieTerminalPa({
         plateAppearance: rawPlateAppearance,
         providerGameId: gameId,
@@ -341,7 +327,6 @@ test('all promoted PA rows produce one explicit deterministic state without OTHE
         assert.notEqual(result.terminalPa.terminalCategory, 'OTHER_PA');
         continue;
       }
-
       if (result.status === 'baserunning-only') {
         baserunningOnlyCount += 1;
         assert.equal(rawPlateAppearance.result, 'Caught Stealing 2B');
@@ -349,21 +334,19 @@ test('all promoted PA rows produce one explicit deterministic state without OTHE
       }
 
       assert.equal(result.reason, 'context-required');
-      assert.ok(
-        [
-          'Fielders Choice',
-          'Fielders Choice Out',
-          'Forceout',
-          'Double Play',
-          'Triple Play',
-        ].includes(rawPlateAppearance.result),
-      );
+      assert.notEqual(rawPlateAppearance.result, null);
+      if (rawPlateAppearance.result !== null) {
+        assert.equal(contextRequiredLabels.has(rawPlateAppearance.result), true);
+      }
       contextRequiredCount += 1;
     }
   }
 
   assert.equal(rowCount, 607);
-  assert.equal(normalizedCount + baserunningOnlyCount + contextRequiredCount, 607);
+  assert.equal(
+    normalizedCount + baserunningOnlyCount + contextRequiredCount,
+    607,
+  );
   assert.equal(baserunningOnlyCount, 1);
   assert.ok(contextRequiredCount > 0);
 });
