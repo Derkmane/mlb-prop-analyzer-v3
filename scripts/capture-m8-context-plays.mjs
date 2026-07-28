@@ -1,6 +1,7 @@
 import { access, mkdir, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 
+import { createBdlAdaptiveRateLimiter } from './bdl-adaptive-rate-limit-utils.mjs';
 import {
   fetchJsonSnapshot,
   requireSecret,
@@ -56,10 +57,18 @@ function capturedGameSummary(game, verified) {
 
 const datasetPath = requireEnvironmentValue('M8_RECENCY_DATASET_PATH');
 const outputRoot = requireEnvironmentValue('M8_CONTEXT_PLAY_OUTPUT_DIR');
-const delayMs = parseNonNegativeInteger(
+const fallbackDelayMs = parseNonNegativeInteger(
   process.env.BDL_CAPTURE_DELAY_MS,
   'BDL_CAPTURE_DELAY_MS',
   13_000,
+);
+if (fallbackDelayMs === 0) {
+  throw new RangeError('BDL_CAPTURE_DELAY_MS fallback must be positive.');
+}
+const max429Retries = parseNonNegativeInteger(
+  process.env.BDL_CAPTURE_MAX_429_RETRIES,
+  'BDL_CAPTURE_MAX_429_RETRIES',
+  8,
 );
 const maxNewGames = parseNonNegativeInteger(
   process.env.M8_CONTEXT_PLAY_MAX_NEW_GAMES,
@@ -70,9 +79,58 @@ const apiKey = requireSecret('BALLDONTLIE_API_KEY');
 const secrets = [apiKey];
 const headers = { Authorization: apiKey };
 const plan = await buildM8ContextPlayCapturePlan({ datasetPath });
+const rateLimiter = createBdlAdaptiveRateLimiter({
+  fallbackDelayMs,
+  utilization: 0.9,
+});
+let latestRateState = rateLimiter.snapshot();
+let persistedRateProfile = null;
 
 await mkdir(path.join(outputRoot, 'games'), { recursive: true });
 await writeJsonAtomic(path.join(outputRoot, 'capture-plan.json'), plan);
+
+async function persistRateLimitEvidence({
+  gameId,
+  pageNumber,
+  status,
+  force = false,
+}) {
+  const profile = JSON.stringify({
+    source: latestRateState.source,
+    limitPerMinute: latestRateState.limitPerMinute,
+    intervalMs: latestRateState.intervalMs,
+  });
+  if (!force && profile === persistedRateProfile) return;
+  const identity = {
+    provider: 'BALLDONTLIE MLB API',
+    sourceDatasetSha256: plan.sourceDatasetSha256,
+    sourcePlanSha256: plan.planSha256,
+    gameId,
+    pageNumber,
+    status,
+    source: latestRateState.source,
+    limitPerMinute: latestRateState.limitPerMinute,
+    remaining: latestRateState.remaining,
+    resetAtMs: latestRateState.resetAtMs,
+    intervalMs: latestRateState.intervalMs,
+    utilization: latestRateState.utilization,
+    fallbackDelayMs: latestRateState.fallbackDelayMs,
+    responseHeaders: latestRateState.headers,
+    untouchedTestReservation: plan.untouchedTestReservation,
+  };
+  const evidence = {
+    evidenceVersion: 1,
+    purpose:
+      'Preserve the latest response-derived BALLDONTLIE rate-limit evidence used by the resumable M8 context-play capture.',
+    ...identity,
+    evidenceSha256: sha256(JSON.stringify(identity)),
+  };
+  await writeJsonAtomic(
+    path.join(outputRoot, 'rate-limit-evidence.json'),
+    evidence,
+  );
+  persistedRateProfile = profile;
+}
 
 console.log('=== M8 CONTEXT PLAY CAPTURE ===');
 console.log(`Source dataset SHA-256: ${plan.sourceDatasetSha256}`);
@@ -81,19 +139,14 @@ console.log(`Context-required rows: ${plan.contextRowCount}`);
 console.log(`Games requiring complete plays: ${plan.gameCount}`);
 console.log(`Maximum new games this run: ${maxNewGames === 0 ? 'all missing games' : maxNewGames}`);
 console.log(
+  `Adaptive rate limiting: 90% of the response-derived account limit; ${fallbackDelayMs} ms fallback only when no recognized limit headers are present.`,
+);
+console.log(`Maximum automatic HTTP 429 retries per page: ${max429Retries}`);
+console.log(
   `Untouched test sealed: ${plan.untouchedTestReservation.startDate} through ${plan.untouchedTestReservation.endDate} — ${plan.untouchedTestReservation.plateAppearanceCount} rows excluded`,
 );
 
-let lastRequestAt = 0;
-async function waitForProviderInterval() {
-  const elapsed = Date.now() - lastRequestAt;
-  if (lastRequestAt > 0 && elapsed < delayMs) {
-    await new Promise((resolve) => setTimeout(resolve, delayMs - elapsed));
-  }
-}
-
 async function fetchPlayPage({ gameId, sortOrder, perPage, cursor, pageNumber }) {
-  await waitForProviderInterval();
   const url = new URL('https://api.balldontlie.io/mlb/v1/plays');
   url.searchParams.set('game_id', String(gameId));
   url.searchParams.set('sort_order', sortOrder);
@@ -102,29 +155,58 @@ async function fetchPlayPage({ gameId, sortOrder, perPage, cursor, pageNumber })
     url.searchParams.set('cursor', String(cursor));
   }
 
-  const snapshot = await fetchJsonSnapshot({
-    label: `m8-context-plays-${gameId}-page-${pageNumber}`,
-    url,
-    headers,
-    secrets,
-  });
-  lastRequestAt = Date.now();
-  if (!snapshot.ok) {
-    throw new Error(
-      `plays game ${gameId} page ${pageNumber} returned HTTP ${snapshot.response.status} ${snapshot.response.statusText}.`,
-    );
+  for (let attempt = 0; attempt <= max429Retries; attempt += 1) {
+    await rateLimiter.beforeRequest();
+    const snapshot = await fetchJsonSnapshot({
+      label: `m8-context-plays-${gameId}-page-${pageNumber}`,
+      url,
+      headers,
+      secrets,
+    });
+    latestRateState = rateLimiter.afterResponse({
+      status: snapshot.response.status,
+      headers: snapshot.response.headers,
+    });
+    await persistRateLimitEvidence({
+      gameId,
+      pageNumber,
+      status: snapshot.response.status,
+      force: snapshot.response.status === 429,
+    });
+
+    if (snapshot.response.status === 429) {
+      if (attempt >= max429Retries) {
+        throw new Error(
+          `plays game ${gameId} page ${pageNumber} exceeded ${max429Retries} automatic HTTP 429 retries.`,
+        );
+      }
+      const waitedMs = await rateLimiter.waitForRetry();
+      console.log(
+        `Rate limited on game ${gameId} page ${pageNumber}; waited ${waitedMs} ms before retry ${attempt + 1}/${max429Retries}.`,
+      );
+      continue;
+    }
+
+    if (!snapshot.ok) {
+      throw new Error(
+        `plays game ${gameId} page ${pageNumber} returned HTTP ${snapshot.response.status} ${snapshot.response.statusText}.`,
+      );
+    }
+
+    return {
+      body: parseJson(
+        snapshot.sanitizedBodyText,
+        `plays game ${gameId} page ${pageNumber}`,
+      ),
+      snapshot: {
+        rawBodySha256: snapshot.response.rawBodySha256,
+        responseStatus: snapshot.response.status,
+        request: snapshot.request,
+      },
+    };
   }
-  return {
-    body: parseJson(
-      snapshot.sanitizedBodyText,
-      `plays game ${gameId} page ${pageNumber}`,
-    ),
-    snapshot: {
-      rawBodySha256: snapshot.response.rawBodySha256,
-      responseStatus: snapshot.response.status,
-      request: snapshot.request,
-    },
-  };
+
+  throw new Error(`unreachable rate-limit retry state for game ${gameId}.`);
 }
 
 const capturedByGameId = new Map();
@@ -179,8 +261,14 @@ for (const game of batch.selectedGames) {
     secret: apiKey,
   });
   capturedByGameId.set(game.gameId, capturedGameSummary(game, verified));
+  await persistRateLimitEvidence({
+    gameId: game.gameId,
+    pageNumber: collected.pageCount,
+    status: 200,
+    force: true,
+  });
   console.log(
-    `Captured game ${game.gameId}: ${verified.pageCount} pages, ${verified.recordCount} plays.`,
+    `Captured game ${game.gameId}: ${verified.pageCount} pages, ${verified.recordCount} plays. Rate source=${latestRateState.source}, limit=${latestRateState.limitPerMinute ?? 'unknown'}/min, interval=${latestRateState.intervalMs} ms.`,
   );
 }
 
