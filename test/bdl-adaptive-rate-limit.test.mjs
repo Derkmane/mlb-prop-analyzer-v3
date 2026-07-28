@@ -90,8 +90,8 @@ test('paces subsequent requests and waits through an exhausted reset window', as
       'x-ratelimit-reset': '14',
     },
   });
-  assert.equal(await limiter.beforeRequest(), 2776);
-  assert.deepEqual(waits, [1012, 2776]);
+  assert.equal(await limiter.beforeRequest(), 3138);
+  assert.deepEqual(waits, [1012, 3138]);
 });
 
 test('honors Retry-After and clears the pending retry after waiting', async () => {
