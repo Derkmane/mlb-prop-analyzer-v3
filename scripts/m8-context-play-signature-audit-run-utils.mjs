@@ -7,6 +7,8 @@ import { auditM8ContextRowsAgainstSegments } from './m8-context-play-signature-a
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 const INCLUDED_PERIODS = Object.freeze(['fit', 'validation']);
 const SEGMENT_START_TYPE = 'Start Batter/Pitcher';
+const SEGMENT_END_TYPE = 'End Batter/Pitcher';
+const PLAY_RESULT_TYPE = 'Play Result';
 const INNING_BOUNDARY_TYPES = new Set(['Start Inning', 'End Inning', 'End Game']);
 
 function assertPlainObject(value, label) {
@@ -193,6 +195,106 @@ export function segmentVerifiedM8ContextPlaySequence({ gameId, plays }) {
   }
   return Object.freeze(segments);
 }
+
+
+export function buildM8PlayOpportunitySequence({
+  gameId,
+  plays,
+}) {
+  const providerGameId =
+    assertPositiveInteger(gameId, 'gameId');
+
+  const segments =
+    segmentVerifiedM8ContextPlaySequence({
+      gameId: providerGameId,
+      plays,
+    });
+
+  const opportunityCountByHalf = {
+    top: 0,
+    bottom: 0,
+  };
+
+  const opportunities = segments.map(
+    (segment, segmentIndex) => {
+      const hasExplicitEnd =
+        segment.plays.some(
+          (play) =>
+            play.type === SEGMENT_END_TYPE,
+        );
+
+      const batterMatchedResults =
+        segment.plays.filter(
+          (play) =>
+            play.type === PLAY_RESULT_TYPE &&
+            play.batterId === segment.batterId,
+        );
+
+      if (
+        !hasExplicitEnd ||
+        batterMatchedResults.length === 0
+      ) {
+        throw new Error(
+          `game ${providerGameId} segment ` +
+            `${segmentIndex} at order ` +
+            `${segment.startOrder} lacks ` +
+            'batter-matched terminal evidence.',
+        );
+      }
+
+      const sideOpportunityIndex =
+        opportunityCountByHalf[
+          segment.halfInning
+        ] + 1;
+
+      opportunityCountByHalf[
+        segment.halfInning
+      ] = sideOpportunityIndex;
+
+      return Object.freeze({
+        gameId: providerGameId,
+        inning: segment.inning,
+        halfInning: segment.halfInning,
+        batterId: segment.batterId,
+        pitcherId: segment.pitcherId,
+        startOrder: segment.startOrder,
+        endOrder: segment.endOrder,
+        sideOpportunityIndex,
+        lineupSlot:
+          ((sideOpportunityIndex - 1) % 9) + 1,
+        lineupTurn:
+          Math.floor(
+            (sideOpportunityIndex - 1) / 9,
+          ) + 1,
+        batterResultTexts: Object.freeze(
+          batterMatchedResults.map(
+            (play) => play.text,
+          ),
+        ),
+        playTypes: Object.freeze(
+          segment.plays.map(
+            (play) => play.type,
+          ),
+        ),
+      });
+    },
+  );
+
+  return Object.freeze({
+    gameId: providerGameId,
+    opportunityCount:
+      opportunities.length,
+    opportunityCountByHalf:
+      Object.freeze({
+        top: opportunityCountByHalf.top,
+        bottom:
+          opportunityCountByHalf.bottom,
+      }),
+    opportunities:
+      Object.freeze(opportunities),
+  });
+}
+
 
 function datasetIdentity(dataset) {
   return {
