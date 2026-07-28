@@ -62,7 +62,7 @@ test('raw evidence accepts observed nullable pitch metadata and a present null r
   assert.equal(missingTerminalResult.result, null);
 
   const absentResult = { ...missingTerminalResult } as Record<string, unknown>;
-  delete absentResult.result;
+  delete absentResult['result'];
   assert.equal(rawBallDontLiePlateAppearanceSchema.safeParse(absentResult).success, false);
 });
 
