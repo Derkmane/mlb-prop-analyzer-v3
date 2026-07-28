@@ -7,7 +7,7 @@ import { auditM8ContextRowsAgainstSegments } from './m8-context-play-signature-a
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 const INCLUDED_PERIODS = Object.freeze(['fit', 'validation']);
 const SEGMENT_START_TYPE = 'Start Batter/Pitcher';
-const SEGMENT_END_TYPE = 'End Batter/Pitcher';
+const INNING_BOUNDARY_TYPES = new Set(['Start Inning', 'End Inning', 'End Game']);
 
 function assertPlainObject(value, label) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
@@ -101,6 +101,37 @@ function validatePlay(rawPlay, gameId, label) {
   });
 }
 
+function finalizeSegment(active, endBoundary) {
+  const lastPlay = active.plays.at(-1);
+  if (lastPlay === undefined) {
+    throw new Error(`game ${active.gameId} batter segment contains no plays.`);
+  }
+  return Object.freeze({
+    gameId: active.gameId,
+    inning: active.inning,
+    halfInning: active.halfInning,
+    batterId: active.batterId,
+    pitcherId: active.pitcherId,
+    startOrder: active.startOrder,
+    endOrder: lastPlay.order,
+    endBoundary,
+    plays: Object.freeze(
+      active.plays.map((value) =>
+        Object.freeze({
+          ...value,
+          halfInning: value.inningType,
+        }),
+      ),
+    ),
+  });
+}
+
+function isInningBoundary(play, active) {
+  if (INNING_BOUNDARY_TYPES.has(play.type)) return true;
+  if (play.inningType !== 'top' && play.inningType !== 'bottom') return true;
+  return play.inning !== active.inning || play.inningType !== active.halfInning;
+}
+
 export function segmentVerifiedM8ContextPlaySequence({ gameId, plays }) {
   const providerGameId = assertPositiveInteger(gameId, 'gameId');
   const rows = assertArray(plays, 'plays').map((play, index) =>
@@ -124,9 +155,7 @@ export function segmentVerifiedM8ContextPlaySequence({ gameId, plays }) {
   for (const play of rows) {
     if (play.type === SEGMENT_START_TYPE) {
       if (active !== null) {
-        throw new Error(
-          `game ${providerGameId} started a batter segment before the prior segment ended.`,
-        );
+        segments.push(finalizeSegment(active, 'next-start'));
       }
       if (play.batterId === null || play.pitcherId === null) {
         throw new Error(
@@ -148,53 +177,19 @@ export function segmentVerifiedM8ContextPlaySequence({ gameId, plays }) {
       continue;
     }
 
-    if (active === null) {
-      if (play.type === SEGMENT_END_TYPE) {
-        throw new Error(`game ${providerGameId} ended a batter segment without a start.`);
-      }
+    if (active === null) continue;
+
+    if (isInningBoundary(play, active)) {
+      segments.push(finalizeSegment(active, 'inning-boundary'));
+      active = null;
       continue;
     }
 
     active.plays.push(play);
-    if (play.type !== SEGMENT_END_TYPE) continue;
-
-    const endHalf = requireBatterHalf(
-      play.inningType,
-      `game ${providerGameId} segment end inning type`,
-    );
-    if (
-      play.inning !== active.inning ||
-      endHalf !== active.halfInning ||
-      (play.batterId !== null && play.batterId !== active.batterId) ||
-      (play.pitcherId !== null && play.pitcherId !== active.pitcherId)
-    ) {
-      throw new Error(`game ${providerGameId} batter segment end identity drifted.`);
-    }
-
-    segments.push(
-      Object.freeze({
-        gameId: active.gameId,
-        inning: active.inning,
-        halfInning: active.halfInning,
-        batterId: active.batterId,
-        pitcherId: active.pitcherId,
-        startOrder: active.startOrder,
-        endOrder: play.order,
-        plays: Object.freeze(
-          active.plays.map((value) =>
-            Object.freeze({
-              ...value,
-              halfInning: value.inningType,
-            }),
-          ),
-        ),
-      }),
-    );
-    active = null;
   }
 
   if (active !== null) {
-    throw new Error(`game ${providerGameId} capture ended inside a batter segment.`);
+    segments.push(finalizeSegment(active, 'capture-end'));
   }
   return Object.freeze(segments);
 }
