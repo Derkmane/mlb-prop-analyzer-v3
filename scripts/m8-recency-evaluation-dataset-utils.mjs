@@ -7,6 +7,15 @@ import { enumerateCurrentSeasonDates } from './m8-recency-weighting-utils.mjs';
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 const INCLUDED_PERIODS = Object.freeze(['fit', 'validation']);
+const PRESERVED_UNRESOLVED_REASONS = Object.freeze([
+  'missing-result',
+  'unknown-result',
+  'context-required',
+  'context-contradiction',
+]);
+const PRESERVED_UNRESOLVED_REASON_SET = new Set(
+  PRESERVED_UNRESOLVED_REASONS,
+);
 
 function assertPlainObject(value, label) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
@@ -29,6 +38,10 @@ function assertNonEmptyString(value, label) {
   return value.trim();
 }
 
+function assertNullableNonEmptyString(value, label) {
+  return value === null ? null : assertNonEmptyString(value, label);
+}
+
 function assertInteger(value, label) {
   if (!Number.isSafeInteger(value)) {
     throw new TypeError(`${label} must be an integer.`);
@@ -42,6 +55,13 @@ function assertNonNegativeInteger(value, label) {
     throw new RangeError(`${label} must be non-negative.`);
   }
   return integer;
+}
+
+function assertBoolean(value, label) {
+  if (typeof value !== 'boolean') {
+    throw new TypeError(`${label} must be a boolean.`);
+  }
+  return value;
 }
 
 function assertSha256(value, label) {
@@ -142,23 +162,40 @@ function rowIdentity(date, gameId, paNumber) {
   return `${date}:${gameId}:${paNumber}`;
 }
 
+function assertTerminalIdentity(terminalPa, common) {
+  if (
+    assertInteger(terminalPa.providerGameId, 'classified providerGameId') !==
+      common.providerGameId ||
+    assertInteger(terminalPa.providerBatterId, 'classified providerBatterId') !==
+      common.providerBatterId ||
+    assertInteger(terminalPa.providerPitcherId, 'classified providerPitcherId') !==
+      common.providerPitcherId ||
+    assertInteger(terminalPa.providerPaNumber, 'classified providerPaNumber') !==
+      common.providerPaNumber
+  ) {
+    throw new Error(
+      `plate appearance ${common.rowId} classification identity drifted from raw evidence.`,
+    );
+  }
+}
+
 function mapRow({
   rawPlateAppearance,
   date,
   gameId,
   snapshotPath,
   snapshotSha256,
-  normalizeTerminalPa,
+  classifyTerminalPa,
 }) {
   const raw = assertPlainObject(rawPlateAppearance, 'raw plate appearance');
   const paNumber = assertInteger(raw.pa_number, 'raw plate appearance pa_number');
-  const mapping = assertPlainObject(
-    normalizeTerminalPa({
+  const classification = assertPlainObject(
+    classifyTerminalPa({
       plateAppearance: raw,
       providerGameId: gameId,
       sourceSnapshotSha256: snapshotSha256,
     }),
-    'terminal PA mapping result',
+    'terminal PA classification result',
   );
 
   const common = {
@@ -179,52 +216,136 @@ function mapRow({
       raw.half_inning,
       'raw plate appearance half_inning',
     ),
-    rawResult: assertNonEmptyString(raw.result, 'raw plate appearance result'),
+    rawBatterSide: assertNonEmptyString(
+      raw.batter_side,
+      'raw plate appearance batter_side',
+    ),
+    rawPitcherHand: assertNonEmptyString(
+      raw.pitcher_hand,
+      'raw plate appearance pitcher_hand',
+    ),
+    rawResult: assertNullableNonEmptyString(
+      raw.result,
+      'raw plate appearance result',
+    ),
     sourceSnapshotPath: portablePath(snapshotPath),
     sourceSnapshotSha256: snapshotSha256,
   };
 
-  if (mapping.status === 'normalized') {
-    const terminalPa = assertPlainObject(mapping.terminalPa, 'normalized terminal PA');
+  if (classification.status === 'classified-terminal') {
+    const terminalPa = assertPlainObject(
+      classification.terminalPa,
+      'classified terminal PA',
+    );
+    assertTerminalIdentity(terminalPa, common);
+    if (terminalPa.rawResult !== common.rawResult) {
+      throw new Error(
+        `plate appearance ${common.rowId} classified result drifted from raw evidence.`,
+      );
+    }
+    const overallOutcomeEligible = assertBoolean(
+      classification.overallOutcomeEligible,
+      'overallOutcomeEligible',
+    );
+    if (!overallOutcomeEligible) {
+      throw new Error(
+        `plate appearance ${common.rowId} classified terminal outcome must be overall eligible.`,
+      );
+    }
+    const platoonEligible = assertBoolean(
+      classification.platoonEligible,
+      'platoonEligible',
+    );
+    const batterSide = terminalPa.batterSide;
+    const pitcherHand = terminalPa.pitcherHand;
+    if (
+      platoonEligible !==
+      (batterSide !== null && pitcherHand !== null)
+    ) {
+      throw new Error(
+        `plate appearance ${common.rowId} platoon eligibility contradicts normalized handedness.`,
+      );
+    }
+
     return Object.freeze({
       ...common,
-      mappingStatus: 'normalized',
+      mappingStatus: 'classified-terminal',
+      unresolvedReason: null,
       terminalCategory: assertNonEmptyString(
         terminalPa.terminalCategory,
         'terminalCategory',
       ),
-      rejectionReason: null,
-      includedInTerminalPaModel: true,
+      normalizedBatterSide: batterSide,
+      normalizedPitcherHand: pitcherHand,
+      overallOutcomeEligible: true,
+      platoonEligible,
+      includedInOverallOutcomeModel: true,
+      includedInPlatoonModel: platoonEligible,
     });
   }
 
-  if (mapping.status === 'baserunning-only') {
+  if (classification.status === 'baserunning-only') {
     return Object.freeze({
       ...common,
       mappingStatus: 'baserunning-only',
+      unresolvedReason: null,
       terminalCategory: null,
-      rejectionReason: null,
-      includedInTerminalPaModel: false,
+      normalizedBatterSide: null,
+      normalizedPitcherHand: null,
+      overallOutcomeEligible: false,
+      platoonEligible: false,
+      includedInOverallOutcomeModel: false,
+      includedInPlatoonModel: false,
     });
   }
 
-  if (mapping.status === 'rejected' && mapping.reason === 'context-required') {
+  if (classification.status === 'unresolved') {
+    const reason = assertNonEmptyString(
+      classification.reason,
+      'terminal PA unresolved reason',
+    );
+    if (reason === 'malformed-input') {
+      throw new Error(
+        `plate appearance ${common.rowId} contains malformed structural evidence.`,
+      );
+    }
+    if (!PRESERVED_UNRESOLVED_REASON_SET.has(reason)) {
+      throw new Error(
+        `plate appearance ${common.rowId} returned unsupported unresolved reason: ${reason}.`,
+      );
+    }
+    if (reason === 'missing-result' && common.rawResult !== null) {
+      throw new Error(
+        `plate appearance ${common.rowId} missing-result state contradicts raw evidence.`,
+      );
+    }
+    if (reason !== 'missing-result' && common.rawResult === null) {
+      throw new Error(
+        `plate appearance ${common.rowId} null result must use missing-result state.`,
+      );
+    }
+
     return Object.freeze({
       ...common,
-      mappingStatus: 'context-required',
+      mappingStatus: 'unresolved',
+      unresolvedReason: reason,
       terminalCategory: null,
-      rejectionReason: 'context-required',
-      includedInTerminalPaModel: false,
+      normalizedBatterSide: null,
+      normalizedPitcherHand: null,
+      overallOutcomeEligible: false,
+      platoonEligible: false,
+      includedInOverallOutcomeModel: false,
+      includedInPlatoonModel: false,
     });
   }
 
-  const reason =
-    mapping.status === 'rejected' && typeof mapping.reason === 'string'
-      ? mapping.reason
-      : 'invalid-mapping-result';
   throw new Error(
-    `plate appearance ${common.rowId} failed closed during normalization: ${reason}.`,
+    `plate appearance ${common.rowId} returned an invalid classification status.`,
   );
+}
+
+function countRows(rows, predicate) {
+  return rows.reduce((count, row) => count + (predicate(row) ? 1 : 0), 0);
 }
 
 async function readPeriodRows({
@@ -234,7 +355,7 @@ async function readPeriodRows({
   shardCollectionRoot,
   secret,
   verifyCaptureDirectory,
-  normalizeTerminalPa,
+  classifyTerminalPa,
 }) {
   validateExpectedShardDates(periodId, period, activeSeason);
   const rows = [];
@@ -337,7 +458,7 @@ async function readPeriodRows({
           gameId,
           snapshotPath: path.relative(shardCollectionRoot, snapshotPath),
           snapshotSha256,
-          normalizeTerminalPa,
+          classifyTerminalPa,
         });
         if (seenRowIds.has(row.rowId)) {
           throw new Error(`duplicate plate-appearance row identity: ${row.rowId}.`);
@@ -363,33 +484,101 @@ async function readPeriodRows({
     throw new Error(`${periodId} verified PA count drifted from partition.`);
   }
 
-  const normalizedCount = rows.filter(
-    (row) => row.mappingStatus === 'normalized',
-  ).length;
-  const contextRequiredCount = rows.filter(
-    (row) => row.mappingStatus === 'context-required',
-  ).length;
-  const baserunningOnlyCount = rows.filter(
+  const classifiedTerminalCount = countRows(
+    rows,
+    (row) => row.mappingStatus === 'classified-terminal',
+  );
+  const baserunningOnlyCount = countRows(
+    rows,
     (row) => row.mappingStatus === 'baserunning-only',
-  ).length;
+  );
+  const unresolvedCount = countRows(
+    rows,
+    (row) => row.mappingStatus === 'unresolved',
+  );
+  const overallOutcomeEligibleCount = countRows(
+    rows,
+    (row) => row.includedInOverallOutcomeModel,
+  );
+  const platoonEligibleCount = countRows(
+    rows,
+    (row) => row.includedInPlatoonModel,
+  );
+  const platoonIneligibleTerminalCount = countRows(
+    rows,
+    (row) =>
+      row.mappingStatus === 'classified-terminal' &&
+      !row.includedInPlatoonModel,
+  );
+  const missingResultCount = countRows(
+    rows,
+    (row) => row.unresolvedReason === 'missing-result',
+  );
+  const contextRequiredCount = countRows(
+    rows,
+    (row) => row.unresolvedReason === 'context-required',
+  );
+  const unknownResultCount = countRows(
+    rows,
+    (row) => row.unresolvedReason === 'unknown-result',
+  );
+  const contextContradictionCount = countRows(
+    rows,
+    (row) => row.unresolvedReason === 'context-contradiction',
+  );
+
+  if (
+    classifiedTerminalCount + baserunningOnlyCount + unresolvedCount !==
+    rows.length
+  ) {
+    throw new Error(`${periodId} row-state accounting does not conserve rows.`);
+  }
+  if (overallOutcomeEligibleCount !== classifiedTerminalCount) {
+    throw new Error(`${periodId} overall-outcome eligibility count drifted.`);
+  }
+  if (
+    platoonEligibleCount + platoonIneligibleTerminalCount !==
+    classifiedTerminalCount
+  ) {
+    throw new Error(`${periodId} platoon eligibility does not conserve terminal rows.`);
+  }
+  if (
+    missingResultCount +
+      contextRequiredCount +
+      unknownResultCount +
+      contextContradictionCount !==
+    unresolvedCount
+  ) {
+    throw new Error(`${periodId} unresolved-reason accounting does not conserve rows.`);
+  }
 
   return Object.freeze({
     startDate: period.startDate,
     endDate: period.endDate,
     rowCount: rows.length,
-    normalizedCount,
-    contextRequiredCount,
+    classifiedTerminalCount,
+    overallOutcomeEligibleCount,
+    platoonEligibleCount,
+    platoonIneligibleTerminalCount,
     baserunningOnlyCount,
-    terminalModelEligibleRowCount: normalizedCount,
+    unresolvedCount,
+    missingResultCount,
+    contextRequiredCount,
+    unknownResultCount,
+    contextContradictionCount,
     rows: Object.freeze(rows),
   });
+}
+
+function sumPeriodCount(periods, key) {
+  return periods.fit[key] + periods.validation[key];
 }
 
 export async function buildM8RecencyEvaluationDataset({
   partitionManifestPath,
   secret = null,
   verifyCaptureDirectory = verifyM8CaptureDirectory,
-  normalizeTerminalPa,
+  classifyTerminalPa,
 }) {
   const manifestPath = assertNonEmptyString(
     partitionManifestPath,
@@ -398,8 +587,8 @@ export async function buildM8RecencyEvaluationDataset({
   if (typeof verifyCaptureDirectory !== 'function') {
     throw new TypeError('verifyCaptureDirectory must be a function.');
   }
-  if (typeof normalizeTerminalPa !== 'function') {
-    throw new TypeError('normalizeTerminalPa must be a function.');
+  if (typeof classifyTerminalPa !== 'function') {
+    throw new TypeError('classifyTerminalPa must be a function.');
   }
 
   const partitionText = await readTextChecked(
@@ -420,7 +609,7 @@ export async function buildM8RecencyEvaluationDataset({
       shardCollectionRoot: partition.shardCollectionRoot,
       secret,
       verifyCaptureDirectory,
-      normalizeTerminalPa,
+      classifyTerminalPa,
     });
   }
 
@@ -442,19 +631,34 @@ export async function buildM8RecencyEvaluationDataset({
   };
 
   return Object.freeze({
-    datasetVersion: 1,
+    datasetVersion: 2,
     purpose:
-      'Preserve deterministic fit and validation PA rows for M8 recency evaluation while keeping untouched-test outcomes sealed.',
+      'Preserve deterministic fit and validation terminal-PA evidence states for M8 recency evaluation while keeping untouched-test outcomes sealed.',
     ...datasetIdentity,
     totals: Object.freeze({
-      includedRowCount:
-        periods.fit.rowCount + periods.validation.rowCount,
-      normalizedCount:
-        periods.fit.normalizedCount + periods.validation.normalizedCount,
-      contextRequiredCount:
-        periods.fit.contextRequiredCount + periods.validation.contextRequiredCount,
-      baserunningOnlyCount:
-        periods.fit.baserunningOnlyCount + periods.validation.baserunningOnlyCount,
+      includedRowCount: sumPeriodCount(periods, 'rowCount'),
+      classifiedTerminalCount: sumPeriodCount(
+        periods,
+        'classifiedTerminalCount',
+      ),
+      overallOutcomeEligibleCount: sumPeriodCount(
+        periods,
+        'overallOutcomeEligibleCount',
+      ),
+      platoonEligibleCount: sumPeriodCount(periods, 'platoonEligibleCount'),
+      platoonIneligibleTerminalCount: sumPeriodCount(
+        periods,
+        'platoonIneligibleTerminalCount',
+      ),
+      baserunningOnlyCount: sumPeriodCount(periods, 'baserunningOnlyCount'),
+      unresolvedCount: sumPeriodCount(periods, 'unresolvedCount'),
+      missingResultCount: sumPeriodCount(periods, 'missingResultCount'),
+      contextRequiredCount: sumPeriodCount(periods, 'contextRequiredCount'),
+      unknownResultCount: sumPeriodCount(periods, 'unknownResultCount'),
+      contextContradictionCount: sumPeriodCount(
+        periods,
+        'contextContradictionCount',
+      ),
     }),
     datasetSha256: sha256(JSON.stringify(datasetIdentity)),
   });
