@@ -7,7 +7,7 @@ import test from 'node:test';
 import { buildM8RecencyEvaluationDataset } from '../scripts/m8-recency-evaluation-dataset-utils.mjs';
 import { sha256 } from '../scripts/provider-probe-utils.mjs';
 
-function rawPa(paNumber, result) {
+function rawPa(paNumber, result, overrides = {}) {
   return {
     batter_id: 1000 + paNumber,
     batter_side: 'R',
@@ -31,26 +31,76 @@ function rawPa(paNumber, result) {
     runner_on_first: false,
     runner_on_second: false,
     runner_on_third: false,
+    ...overrides,
   };
 }
 
-function normalizeStub({ plateAppearance, providerGameId, sourceSnapshotSha256 }) {
+function normalizedHand(value) {
+  return value === 'L' || value === 'R' ? value : null;
+}
+
+function classifiedTerminal({
+  plateAppearance,
+  providerGameId,
+  sourceSnapshotSha256,
+}, terminalCategory) {
+  const batterSide = normalizedHand(plateAppearance.batter_side);
+  const pitcherHand = normalizedHand(plateAppearance.pitcher_hand);
+  return {
+    status: 'classified-terminal',
+    terminalPa: {
+      provider: 'balldontlie',
+      providerGameId,
+      providerBatterId: plateAppearance.batter_id,
+      providerPitcherId: plateAppearance.pitcher_id,
+      inning: plateAppearance.inning,
+      halfInning: plateAppearance.half_inning,
+      providerPaNumber: plateAppearance.pa_number,
+      rawBatterSide: plateAppearance.batter_side,
+      batterSide,
+      rawPitcherHand: plateAppearance.pitcher_hand,
+      pitcherHand,
+      rawResult: plateAppearance.result,
+      terminalCategory,
+      sourceSnapshotSha256,
+    },
+    overallOutcomeEligible: true,
+    platoonEligible: batterSide !== null && pitcherHand !== null,
+    baserunningEvents: [],
+  };
+}
+
+function classifyStub(input) {
+  const { plateAppearance, providerGameId, sourceSnapshotSha256 } = input;
   if (plateAppearance.result === 'Single') {
-    return {
-      status: 'normalized',
-      terminalPa: {
-        providerGameId,
-        terminalCategory: '1B',
-        sourceSnapshotSha256,
-      },
-      baserunningEvents: [],
-    };
+    return classifiedTerminal(input, '1B');
   }
   if (plateAppearance.result === 'Fielders Choice') {
     return {
-      status: 'rejected',
+      status: 'unresolved',
       rawResult: plateAppearance.result,
       reason: 'context-required',
+    };
+  }
+  if (plateAppearance.result === 'Future Provider Result') {
+    return {
+      status: 'unresolved',
+      rawResult: plateAppearance.result,
+      reason: 'unknown-result',
+    };
+  }
+  if (plateAppearance.result === 'Contradictory Context') {
+    return {
+      status: 'unresolved',
+      rawResult: plateAppearance.result,
+      reason: 'context-contradiction',
+    };
+  }
+  if (plateAppearance.result === null) {
+    return {
+      status: 'unresolved',
+      rawResult: null,
+      reason: 'missing-result',
     };
   }
   if (plateAppearance.result === 'Caught Stealing 2B') {
@@ -63,11 +113,14 @@ function normalizeStub({ plateAppearance, providerGameId, sourceSnapshotSha256 }
       baserunningEvents: ['CS'],
     };
   }
-  return {
-    status: 'rejected',
-    rawResult: plateAppearance.result,
-    reason: 'unknown-result',
-  };
+  if (plateAppearance.result === 'Malformed Evidence') {
+    return {
+      status: 'unresolved',
+      rawResult: plateAppearance.result,
+      reason: 'malformed-input',
+    };
+  }
+  throw new Error(`unexpected test result: ${plateAppearance.result}`);
 }
 
 async function writeShard(root, date, gameId, rows) {
@@ -213,14 +266,18 @@ async function withTempRoot(run) {
   }
 }
 
-test('builds deterministic fit and validation rows while leaving test outcomes sealed', async () => {
+test('accounts deterministically for every fit-validation evidence state while leaving test sealed', async () => {
   await withTempRoot(async (root) => {
     const partitionPath = await writePartition({
       root,
       fitRows: [
+        rawPa(7, 'Contradictory Context'),
         rawPa(3, 'Caught Stealing 2B'),
         rawPa(1, 'Single'),
         rawPa(2, 'Fielders Choice'),
+        rawPa(4, 'Future Provider Result'),
+        rawPa(5, null),
+        rawPa(6, 'Single', { pitcher_hand: 'S' }),
       ],
       validationRows: [rawPa(1, 'Single')],
       testPlateAppearanceCount: 9,
@@ -229,7 +286,7 @@ test('builds deterministic fit and validation rows while leaving test outcomes s
     const options = {
       partitionManifestPath: partitionPath,
       verifyCaptureDirectory: verificationStub(calls),
-      normalizeTerminalPa: normalizeStub,
+      classifyTerminalPa: classifyStub,
     };
 
     const first = await buildM8RecencyEvaluationDataset(options);
@@ -240,16 +297,32 @@ test('builds deterministic fit and validation rows while leaving test outcomes s
 
     assert.deepEqual(first, second);
     assert.deepEqual(calls, ['2026-03-26', '2026-03-27']);
-    assert.equal(first.totals.includedRowCount, 4);
-    assert.equal(first.totals.normalizedCount, 2);
-    assert.equal(first.totals.contextRequiredCount, 1);
+    assert.equal(first.datasetVersion, 2);
+    assert.equal(first.totals.includedRowCount, 8);
+    assert.equal(first.totals.classifiedTerminalCount, 3);
+    assert.equal(first.totals.overallOutcomeEligibleCount, 3);
+    assert.equal(first.totals.platoonEligibleCount, 2);
+    assert.equal(first.totals.platoonIneligibleTerminalCount, 1);
     assert.equal(first.totals.baserunningOnlyCount, 1);
+    assert.equal(first.totals.unresolvedCount, 4);
+    assert.equal(first.totals.missingResultCount, 1);
+    assert.equal(first.totals.contextRequiredCount, 1);
+    assert.equal(first.totals.unknownResultCount, 1);
+    assert.equal(first.totals.contextContradictionCount, 1);
     assert.equal(first.untouchedTestReservation.rowsIncluded, false);
     assert.equal(first.untouchedTestReservation.plateAppearanceCount, 9);
     assert.deepEqual(
       first.periods.fit.rows.map((row) => row.providerPaNumber),
-      [1, 2, 3],
+      [1, 2, 3, 4, 5, 6, 7],
     );
+    const switchPitcherRow = first.periods.fit.rows.find(
+      (row) => row.providerPaNumber === 6,
+    );
+    assert.equal(switchPitcherRow?.mappingStatus, 'classified-terminal');
+    assert.equal(switchPitcherRow?.includedInOverallOutcomeModel, true);
+    assert.equal(switchPitcherRow?.includedInPlatoonModel, false);
+    assert.equal(switchPitcherRow?.rawPitcherHand, 'S');
+    assert.equal(switchPitcherRow?.normalizedPitcherHand, null);
     assert.match(first.datasetSha256, /^[a-f0-9]{64}$/);
   });
 });
@@ -270,7 +343,7 @@ test('rejects capture-manifest hash drift from the frozen partition', async () =
       buildM8RecencyEvaluationDataset({
         partitionManifestPath: partitionPath,
         verifyCaptureDirectory: verificationStub([]),
-        normalizeTerminalPa: normalizeStub,
+        classifyTerminalPa: classifyStub,
       }),
       /capture-manifest hash drifted/,
     );
@@ -289,18 +362,18 @@ test('rejects duplicate provider game and PA identities', async () => {
       buildM8RecencyEvaluationDataset({
         partitionManifestPath: partitionPath,
         verifyCaptureDirectory: verificationStub([]),
-        normalizeTerminalPa: normalizeStub,
+        classifyTerminalPa: classifyStub,
       }),
       /duplicate plate-appearance row identity/,
     );
   });
 });
 
-test('fails closed on unknown or contradictory terminal mappings', async () => {
+test('fails closed on malformed structural evidence', async () => {
   await withTempRoot(async (root) => {
     const partitionPath = await writePartition({
       root,
-      fitRows: [rawPa(1, 'Future Provider Result')],
+      fitRows: [rawPa(1, 'Malformed Evidence')],
       validationRows: [rawPa(1, 'Single')],
     });
 
@@ -308,9 +381,9 @@ test('fails closed on unknown or contradictory terminal mappings', async () => {
       buildM8RecencyEvaluationDataset({
         partitionManifestPath: partitionPath,
         verifyCaptureDirectory: verificationStub([]),
-        normalizeTerminalPa: normalizeStub,
+        classifyTerminalPa: classifyStub,
       }),
-      /failed closed during normalization: unknown-result/,
+      /contains malformed structural evidence/,
     );
   });
 });
@@ -336,7 +409,7 @@ test('rejects provider-secret exposure in included evidence without reading test
         partitionManifestPath: partitionPath,
         secret,
         verifyCaptureDirectory: verificationStub([]),
-        normalizeTerminalPa: normalizeStub,
+        classifyTerminalPa: classifyStub,
       }),
       /contains the provider secret/,
     );
