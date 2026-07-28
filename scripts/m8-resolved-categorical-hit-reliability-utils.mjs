@@ -546,15 +546,29 @@ export function summarizeHitReliabilityPredictions({
   );
   const fixedWidth = buildFixedWidthHitReliabilityBuckets(predictions);
   const equalCount = buildEqualCountHitReliabilityBuckets(predictions);
+  const fixedExpectedDifference = Math.abs(
+    fixedWidth.expectedHitCount - overall.validationExpectedCount,
+  );
+  const equalCountExpectedDifference = Math.abs(
+    equalCount.expectedHitCount - overall.validationExpectedCount,
+  );
+  const expectedMassTolerance =
+    TOLERANCE *
+    Math.max(
+      1,
+      Math.abs(overall.validationExpectedCount),
+      Math.abs(fixedWidth.expectedHitCount),
+      Math.abs(equalCount.expectedHitCount),
+    );
   if (
     fixedWidth.observedHitCount !== overall.validationObservedCount ||
     equalCount.observedHitCount !== overall.validationObservedCount ||
-    Math.abs(fixedWidth.expectedHitCount - overall.validationExpectedCount) >
-      TOLERANCE ||
-    Math.abs(equalCount.expectedHitCount - overall.validationExpectedCount) >
-      TOLERANCE
+    fixedExpectedDifference > expectedMassTolerance ||
+    equalCountExpectedDifference > expectedMassTolerance
   ) {
-    throw new Error('Hit reliability bucket totals drifted from aggregate metrics.');
+    throw new Error(
+      `Hit reliability bucket totals drifted from aggregate metrics: fixed expected difference ${fixedExpectedDifference}, equal-count expected difference ${equalCountExpectedDifference}, allowed ${expectedMassTolerance}.`,
+    );
   }
   return Object.freeze({
     overall,

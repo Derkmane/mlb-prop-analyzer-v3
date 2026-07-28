@@ -177,3 +177,60 @@ test('rejects drift from the verified source Hit summary', () => {
     /source Hit summary binaryBrier drifted/,
   );
 });
+
+
+test('allows only floating-point-order noise in large bucket mass conservation', () => {
+  let state = 1;
+  const predictions = Object.freeze(
+    Array.from({ length: 14_265 }, (_, index) => {
+      state = (1_664_525 * state + 1_013_904_223) >>> 0;
+      const probability =
+        0.001 + 0.998 * (state / 4_294_967_296);
+
+      return prediction(
+        index,
+        probability,
+        index % 5 === 0 ? 1 : 0,
+      );
+    }),
+  );
+
+  const result = summarizeHitReliabilityPredictions({
+    predictions,
+    sourceHitSummary: sourceSummary(predictions),
+  });
+
+  const fixedDifference = Math.abs(
+    result.fixedWidth.expectedHitCount -
+      result.overall.validationExpectedCount,
+  );
+  const equalCountDifference = Math.abs(
+    result.equalCount.expectedHitCount -
+      result.overall.validationExpectedCount,
+  );
+  const allowedDifference =
+    1e-12 *
+    Math.max(
+      1,
+      Math.abs(result.overall.validationExpectedCount),
+      Math.abs(result.fixedWidth.expectedHitCount),
+      Math.abs(result.equalCount.expectedHitCount),
+    );
+
+  assert.equal(
+    result.overall.validationObservationCount,
+    14_265,
+  );
+  assert.ok(fixedDifference > 1e-12);
+  assert.ok(equalCountDifference > 1e-12);
+  assert.ok(fixedDifference <= allowedDifference);
+  assert.ok(equalCountDifference <= allowedDifference);
+  assert.equal(
+    result.fixedWidth.observedHitCount,
+    result.overall.validationObservedCount,
+  );
+  assert.equal(
+    result.equalCount.observedHitCount,
+    result.overall.validationObservedCount,
+  );
+});
