@@ -9,7 +9,7 @@ export const rawBallDontLiePitchSchema = z
   .object({
     description: z.string().nullable(),
     pitch_call_code: z.string().nullable(),
-    pitch_type: nonemptyStringSchema,
+    pitch_type: z.string().nullable(),
     balls: integerSchema,
     strikes: integerSchema,
   })
@@ -27,7 +27,7 @@ export const rawBallDontLiePlateAppearanceSchema = z
     pitcher_hand: nonemptyStringSchema,
     pitcher_id: integerSchema,
     pitches: z.array(rawBallDontLiePitchSchema),
-    result: nonemptyStringSchema,
+    result: z.string().nullable(),
     runner_on_first: z.boolean(),
     runner_on_second: z.boolean(),
     runner_on_third: z.boolean(),
