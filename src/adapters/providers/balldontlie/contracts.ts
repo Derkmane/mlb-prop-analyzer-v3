@@ -7,8 +7,8 @@ const integerSchema = z.number().int();
 
 export const rawBallDontLiePitchSchema = z
   .object({
-    description: nonemptyStringSchema,
-    pitch_call_code: nonemptyStringSchema,
+    description: z.string().nullable(),
+    pitch_call_code: z.string().nullable(),
     pitch_type: nonemptyStringSchema,
     balls: integerSchema,
     strikes: integerSchema,
