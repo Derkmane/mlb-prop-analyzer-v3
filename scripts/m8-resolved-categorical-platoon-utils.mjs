@@ -1,16 +1,13 @@
 import { readFile } from 'node:fs/promises';
 
-import {
-  poolCategoricalCountsOnce,
-} from './m8-categorical-pooling-utils.mjs';
-import {
-  evaluateResolvedCategoricalModel,
-} from './m8-resolved-categorical-model-evaluation-utils.mjs';
+import { poolCategoricalCountsOnce } from './m8-categorical-pooling-utils.mjs';
+import { evaluateResolvedCategoricalModel } from './m8-resolved-categorical-model-evaluation-utils.mjs';
 import { sha256 } from './provider-probe-utils.mjs';
 
 const TOLERANCE = 1e-12;
 const INCLUDED_PERIODS = Object.freeze(['fit', 'validation']);
 const VALID_HANDS = new Set(['L', 'R']);
+const EXACT_PRIOR_RANK = 1_000_000_000;
 
 const LEAGUE_PLATOON_PRIORS = Object.freeze([
   ...[4, 16, 64, 256, 1024, 4096].map((leagueEquivalentPa) =>
@@ -109,6 +106,14 @@ function assertPositiveInteger(value, label) {
   return integer;
 }
 
+function assertNonNegativeInteger(value, label) {
+  const integer = assertInteger(value, label);
+  if (integer < 0) {
+    throw new RangeError(`${label} must be non-negative.`);
+  }
+  return integer;
+}
+
 function assertNonNegativeFinite(value, label) {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
     throw new RangeError(`${label} must be a non-negative finite number.`);
@@ -131,14 +136,14 @@ function parseJson(text, label) {
   }
 }
 
-function validateCategories(rawCategories, label) {
-  const categories = assertArray(rawCategories, label).map((category, index) =>
-    assertNonEmptyString(category, `${label}[${index}]`),
+function validateStringList(rawValues, label, minimumLength = 1) {
+  const values = assertArray(rawValues, label).map((value, index) =>
+    assertNonEmptyString(value, `${label}[${index}]`),
   );
-  if (categories.length < 2 || new Set(categories).size !== categories.length) {
-    throw new Error(`${label} must contain at least two unique categories.`);
+  if (values.length < minimumLength || new Set(values).size !== values.length) {
+    throw new Error(`${label} must contain at least ${minimumLength} unique values.`);
   }
-  return Object.freeze(categories);
+  return Object.freeze(values);
 }
 
 function validateCandidates(rawCandidates) {
@@ -150,10 +155,9 @@ function validateCandidates(rawCandidates) {
     );
     const platoonCoefficient = assertNonNegativeFinite(
       candidate.platoonCoefficient,
-      `platoon candidates[${index}].platoonCoefficient`,
+      `${candidateId}.platoonCoefficient`,
     );
-    const baseline = platoonCoefficient === 0;
-    if (baseline) {
+    if (platoonCoefficient === 0) {
       if (candidateId !== 'no-platoon') {
         throw new Error('the zero-coefficient candidate must be named no-platoon.');
       }
@@ -171,43 +175,42 @@ function validateCandidates(rawCandidates) {
 
     const leaguePlatoonExactTarget = candidate.leaguePlatoonExactTarget === true;
     const playerSplitExactTarget = candidate.playerSplitExactTarget === true;
-    const leaguePlatoonEquivalentPa = leaguePlatoonExactTarget
-      ? null
-      : assertPositiveFinite(
-          candidate.leaguePlatoonEquivalentPa,
-          `${candidateId}.leaguePlatoonEquivalentPa`,
-        );
-    const playerSplitEquivalentPa = playerSplitExactTarget
-      ? null
-      : assertPositiveFinite(
-          candidate.playerSplitEquivalentPa,
-          `${candidateId}.playerSplitEquivalentPa`,
-        );
     return Object.freeze({
       candidateId,
       leaguePlatoonPriorId: assertNonEmptyString(
         candidate.leaguePlatoonPriorId,
         `${candidateId}.leaguePlatoonPriorId`,
       ),
-      leaguePlatoonEquivalentPa,
+      leaguePlatoonEquivalentPa: leaguePlatoonExactTarget
+        ? null
+        : assertPositiveFinite(
+            candidate.leaguePlatoonEquivalentPa,
+            `${candidateId}.leaguePlatoonEquivalentPa`,
+          ),
       leaguePlatoonExactTarget,
       playerSplitPriorId: assertNonEmptyString(
         candidate.playerSplitPriorId,
         `${candidateId}.playerSplitPriorId`,
       ),
-      playerSplitEquivalentPa,
+      playerSplitEquivalentPa: playerSplitExactTarget
+        ? null
+        : assertPositiveFinite(
+            candidate.playerSplitEquivalentPa,
+            `${candidateId}.playerSplitEquivalentPa`,
+          ),
       playerSplitExactTarget,
       platoonCoefficient,
     });
   });
+
+  if (candidates.length < 2) {
+    throw new Error('platoon evaluation requires a baseline and at least one alternative.');
+  }
   if (new Set(candidates.map((candidate) => candidate.candidateId)).size !== candidates.length) {
     throw new Error('platoon candidateId values must be unique.');
   }
   if (candidates.filter((candidate) => candidate.candidateId === 'no-platoon').length !== 1) {
     throw new Error('platoon candidates must contain exactly one no-platoon baseline.');
-  }
-  if (candidates.length < 2) {
-    throw new Error('platoon evaluation requires a baseline and at least one alternative.');
   }
   return Object.freeze(candidates);
 }
@@ -216,50 +219,31 @@ function emptyCounts(categories) {
   return Object.fromEntries(categories.map((category) => [category, 0]));
 }
 
-function countsByIdentity(observations, identityKey, categories) {
-  const result = new Map();
-  for (const observation of observations) {
-    const identity = observation[identityKey];
-    const counts = result.get(identity) ?? emptyCounts(categories);
-    counts[observation.terminalCategory] += 1;
-    result.set(identity, counts);
-  }
-  return result;
-}
-
-function leagueCounts(observations, categories) {
-  const counts = emptyCounts(categories);
-  for (const observation of observations) {
-    counts[observation.terminalCategory] += 1;
-  }
-  return Object.freeze(counts);
-}
-
-function normalizePositiveWeights(weights, categories, label) {
+function normalizePositiveWeights(rawWeights, categories, label) {
   let total = 0;
-  const normalized = {};
+  const weights = {};
   for (const category of categories) {
-    const value = weights[category];
+    const value = rawWeights[category];
     if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
       throw new Error(`${label}.${category} must be positive and finite.`);
     }
-    normalized[category] = value;
+    weights[category] = value;
     total += value;
   }
   if (!(total > 0) || !Number.isFinite(total)) {
     throw new Error(`${label} has an invalid total.`);
   }
   for (const category of categories) {
-    normalized[category] /= total;
+    weights[category] /= total;
   }
-  const probabilityTotal = Object.values(normalized).reduce(
+  const normalizedTotal = Object.values(weights).reduce(
     (sum, probability) => sum + probability,
     0,
   );
-  if (Math.abs(probabilityTotal - 1) > TOLERANCE) {
+  if (Math.abs(normalizedTotal - 1) > TOLERANCE) {
     throw new Error(`${label} does not sum to 1.`);
   }
-  return Object.freeze(normalized);
+  return Object.freeze(weights);
 }
 
 function distributionFromCounts(counts, categories, label) {
@@ -276,23 +260,42 @@ function distributionFromCounts(counts, categories, label) {
 
 function stableSoftmax(logScores, categories) {
   const maximum = Math.max(...categories.map((category) => logScores[category]));
-  const exponentials = {};
   let denominator = 0;
+  const exponentials = {};
   for (const category of categories) {
     const value = Math.exp(logScores[category] - maximum);
     exponentials[category] = value;
     denominator += value;
   }
   if (!(denominator > 0) || !Number.isFinite(denominator)) {
-    throw new Error('platoon softmax denominator is invalid.');
+    throw new Error('categorical softmax denominator is invalid.');
   }
   return normalizePositiveWeights(
     Object.fromEntries(
       categories.map((category) => [category, exponentials[category] / denominator]),
     ),
     categories,
-    'platoon softmax probabilities',
+    'categorical softmax probabilities',
   );
+}
+
+function countsByIdentity(observations, identityKey, categories) {
+  const counts = new Map();
+  for (const observation of observations) {
+    const identity = observation[identityKey];
+    const current = counts.get(identity) ?? emptyCounts(categories);
+    current[observation.terminalCategory] += 1;
+    counts.set(identity, current);
+  }
+  return counts;
+}
+
+function leagueCounts(observations, categories) {
+  const counts = emptyCounts(categories);
+  for (const observation of observations) {
+    counts[observation.terminalCategory] += 1;
+  }
+  return Object.freeze(counts);
 }
 
 function matchupKey(batterSide, pitcherHand) {
@@ -306,21 +309,37 @@ function splitIdentity(batterId, key) {
   return `${batterId}|${key}`;
 }
 
-function datasetObservation(rawRow, periodId, index, modeledCategorySet) {
+function sourceObservation(rawRow, periodId, index, modeledCategorySet) {
   const label = `periods.${periodId}.rows[${index}]`;
   const row = assertPlainObject(rawRow, label);
   if (row.mappingStatus !== 'classified-terminal') return null;
   if (row.includedInOverallOutcomeModel !== true) {
     throw new Error(`${label} classified terminal row must be overall eligible.`);
   }
+
   const terminalCategory = assertNonEmptyString(
     row.terminalCategory,
     `${label}.terminalCategory`,
   );
   if (!modeledCategorySet.has(terminalCategory)) {
-    throw new Error(`${label} contains a non-modeled category.`);
+    throw new Error(`${label} contains a non-modeled terminal category.`);
   }
-  const observation = {
+
+  const batterSide = VALID_HANDS.has(row.normalizedBatterSide)
+    ? row.normalizedBatterSide
+    : null;
+  const pitcherHand = VALID_HANDS.has(row.normalizedPitcherHand)
+    ? row.normalizedPitcherHand
+    : null;
+  const handednessUsable = batterSide !== null && pitcherHand !== null;
+  const platoonEligible = row.includedInPlatoonModel === true;
+  if (platoonEligible !== handednessUsable) {
+    throw new Error(
+      `${label} platoon eligibility must equal availability of both normalized L/R hands.`,
+    );
+  }
+
+  return Object.freeze({
     observationId: assertNonEmptyString(row.rowId, `${label}.rowId`),
     observedDate: assertNonEmptyString(row.observedDate, `${label}.observedDate`),
     providerBatterId: assertPositiveInteger(
@@ -332,68 +351,69 @@ function datasetObservation(rawRow, periodId, index, modeledCategorySet) {
       `${label}.providerPitcherId`,
     ),
     terminalCategory,
-    platoonEligible: row.includedInPlatoonModel === true,
-    normalizedBatterSide: row.normalizedBatterSide,
-    normalizedPitcherHand: row.normalizedPitcherHand,
-  };
-  if (observation.platoonEligible) {
-    if (
-      !VALID_HANDS.has(observation.normalizedBatterSide) ||
-      !VALID_HANDS.has(observation.normalizedPitcherHand)
-    ) {
-      throw new Error(`${label} platoon-eligible row lacks normalized L/R handedness.`);
-    }
-    observation.matchupKey = matchupKey(
-      observation.normalizedBatterSide,
-      observation.normalizedPitcherHand,
-    );
-  } else {
-    if (
-      observation.normalizedBatterSide !== null ||
-      observation.normalizedPitcherHand !== null
-    ) {
-      throw new Error(`${label} platoon-ineligible row must not retain normalized handedness.`);
-    }
-    observation.matchupKey = null;
-  }
-  return Object.freeze(observation);
+    platoonEligible,
+    normalizedBatterSide: batterSide,
+    normalizedPitcherHand: pitcherHand,
+    matchupKey: platoonEligible ? matchupKey(batterSide, pitcherHand) : null,
+  });
 }
 
 function extractObservations(dataset, fixed) {
-  const modeledCategories = validateCategories(
+  const modeledCategories = validateStringList(
     fixed.canonicalVectorPolicy?.modeledCategories,
     'fixed modeledCategories',
+    2,
   );
   const modeledCategorySet = new Set(modeledCategories);
   const periods = assertPlainObject(dataset.periods, 'dataset periods');
-  const result = {};
+  const extracted = {};
   const seen = new Set();
+
   for (const periodId of INCLUDED_PERIODS) {
     const period = assertPlainObject(periods[periodId], `periods.${periodId}`);
     const rows = assertArray(period.rows, `periods.${periodId}.rows`);
-    const observations = [];
+    const overall = [];
+    const platoon = [];
     for (const [index, row] of rows.entries()) {
-      const observation = datasetObservation(row, periodId, index, modeledCategorySet);
+      const observation = sourceObservation(row, periodId, index, modeledCategorySet);
       if (observation === null) continue;
       if (seen.has(observation.observationId)) {
         throw new Error(`duplicate fit-validation observation ${observation.observationId}.`);
       }
       seen.add(observation.observationId);
-      observations.push(observation);
+      overall.push(observation);
+      if (observation.platoonEligible) platoon.push(observation);
     }
-    if (observations.length !== period.classifiedTerminalCount) {
+    if (
+      overall.length !==
+      assertNonNegativeInteger(
+        period.classifiedTerminalCount,
+        `${periodId}.classifiedTerminalCount`,
+      )
+    ) {
       throw new Error(`${periodId} classified terminal count drifted.`);
     }
-    result[periodId] = Object.freeze(observations);
+    if (
+      platoon.length !==
+      assertNonNegativeInteger(
+        period.platoonEligibleCount,
+        `${periodId}.platoonEligibleCount`,
+      )
+    ) {
+      throw new Error(`${periodId} platoon eligible count drifted.`);
+    }
+    extracted[periodId] = Object.freeze({
+      overall: Object.freeze(overall),
+      platoon: Object.freeze(platoon),
+    });
   }
+
   return Object.freeze({
     modeledCategories,
-    fitOverall: result.fit,
-    validationOverall: result.validation,
-    fitPlatoon: Object.freeze(result.fit.filter((observation) => observation.platoonEligible)),
-    validationPlatoon: Object.freeze(
-      result.validation.filter((observation) => observation.platoonEligible),
-    ),
+    fitOverall: extracted.fit.overall,
+    fitPlatoon: extracted.fit.platoon,
+    validationOverall: extracted.validation.overall,
+    validationPlatoon: extracted.validation.platoon,
   });
 }
 
@@ -425,7 +445,8 @@ function validateFixedArtifact({
   }
   if (
     fixed.coherentStatus !== 'coherent-matchup-evaluated' ||
-    fixed.untouchedTestReservation?.rowsIncluded !== false
+    fixed.untouchedTestReservation?.rowsIncluded !== false ||
+    Object.hasOwn(fixed.untouchedTestReservation ?? {}, 'rows')
   ) {
     throw new Error('fixed evaluation is incomplete or exposes untouched-test rows.');
   }
@@ -485,6 +506,7 @@ function validateWalkForwardArtifact({
   ) {
     throw new Error('walk-forward evaluation must keep untouched-test rows sealed.');
   }
+
   const fixedCandidate = fixed.coherentMatchup?.selection?.selectedCandidate;
   const aggregateCandidate = walkForward.aggregateSelection?.selectedCandidate;
   if (
@@ -500,22 +522,20 @@ function validateWalkForwardArtifact({
 }
 
 function selectedBaseParameters(fixed, walkForward) {
-  const batterPooling = assertPositiveFinite(
-    fixed.poolingBoundary?.batter?.selection?.selectedCandidate?.leagueEquivalentPa,
-    'selected batter pooling strength',
-  );
-  const pitcherPooling = assertPositiveFinite(
-    fixed.poolingBoundary?.pitcherAllowed?.selection?.selectedCandidate
-      ?.leagueEquivalentPa,
-    'selected pitcher pooling strength',
-  );
   const selected = assertPlainObject(
     walkForward.aggregateSelection?.selectedCandidate,
     'walk-forward selected coherent candidate',
   );
   return Object.freeze({
-    batterPooling,
-    pitcherPooling,
+    batterPooling: assertPositiveFinite(
+      fixed.poolingBoundary?.batter?.selection?.selectedCandidate?.leagueEquivalentPa,
+      'selected batter pooling strength',
+    ),
+    pitcherPooling: assertPositiveFinite(
+      fixed.poolingBoundary?.pitcherAllowed?.selection?.selectedCandidate
+        ?.leagueEquivalentPa,
+      'selected pitcher pooling strength',
+    ),
     batterCoefficient: assertNonNegativeFinite(
       selected.batterCoefficient,
       'selected batterCoefficient',
@@ -576,20 +596,18 @@ function countsByMatchup(observations, categories) {
 function countsByBatterSplit(observations, categories) {
   const counts = new Map();
   for (const observation of observations) {
-    const key = splitIdentity(observation.providerBatterId, observation.matchupKey);
-    const current = counts.get(key) ?? emptyCounts(categories);
+    const identity = splitIdentity(
+      observation.providerBatterId,
+      observation.matchupKey,
+    );
+    const current = counts.get(identity) ?? emptyCounts(categories);
     current[observation.terminalCategory] += 1;
-    counts.set(key, current);
+    counts.set(identity, current);
   }
   return counts;
 }
 
-function leagueMatchupTarget({
-  candidate,
-  rawCounts,
-  categories,
-  leagueTarget,
-}) {
+function leagueMatchupTarget({ candidate, rawCounts, categories, leagueTarget }) {
   if (candidate.leaguePlatoonExactTarget) return leagueTarget;
   return poolCategoricalCountsOnce({
     categories,
@@ -615,12 +633,7 @@ function playerLeagueAdjustedTarget({ batterOverall, leagueMatchup, leagueTarget
   );
 }
 
-function playerSplitEstimate({
-  candidate,
-  rawCounts,
-  target,
-  categories,
-}) {
+function playerSplitEstimate({ candidate, rawCounts, target, categories }) {
   if (candidate.playerSplitExactTarget) return target;
   return poolCategoricalCountsOnce({
     categories,
@@ -634,11 +647,12 @@ function playerSplitEstimate({
 }
 
 export function applyPlatoonDeviation({
-  categories,
+  categories: rawCategories,
   batterOverall,
   playerSplit,
   platoonCoefficient,
 }) {
+  const categories = validateStringList(rawCategories, 'categories', 2);
   const coefficient = assertNonNegativeFinite(
     platoonCoefficient,
     'platoonCoefficient',
@@ -683,7 +697,7 @@ function coherentMatchup({
   );
 }
 
-function candidateCaches({
+function buildCandidateCaches({
   candidate,
   validationObservations,
   matchupCounts,
@@ -731,7 +745,7 @@ function candidateCaches({
       );
     }
   }
-  return Object.freeze({ leagueByMatchup, splitByIdentity });
+  return Object.freeze({ splitByIdentity });
 }
 
 function evaluateCandidate({
@@ -753,7 +767,7 @@ function evaluateCandidate({
   const caches =
     candidate.platoonCoefficient === 0
       ? null
-      : candidateCaches({
+      : buildCandidateCaches({
           candidate,
           validationObservations,
           matchupCounts,
@@ -763,6 +777,7 @@ function evaluateCandidate({
           categories,
           leagueTarget,
         });
+
   let categoricalLogLoss = 0;
   let categoricalBrier = 0;
   let hitLogLoss = 0;
@@ -808,6 +823,9 @@ function evaluateCandidate({
       (sum, category) => sum + probabilities[category],
       0,
     );
+    if (!(hitProbability > 0 && hitProbability < 1)) {
+      throw new Error('platoon candidate produced an invalid Hit probability.');
+    }
     const hit = hitSet.has(observation.terminalCategory) ? 1 : 0;
     hitLogLoss +=
       hit === 1 ? -Math.log(hitProbability) : -Math.log(1 - hitProbability);
@@ -832,18 +850,8 @@ function evaluateCandidate({
   });
 }
 
-function candidateComplexity(candidate) {
-  const leaguePrior = candidate.leaguePlatoonExactTarget
-    ? Number.POSITIVE_INFINITY
-    : candidate.leaguePlatoonEquivalentPa;
-  const splitPrior = candidate.playerSplitExactTarget
-    ? Number.POSITIVE_INFINITY
-    : candidate.playerSplitEquivalentPa;
-  return Object.freeze({
-    coefficient: candidate.platoonCoefficient,
-    leaguePrior,
-    splitPrior,
-  });
+function priorRank(exactTarget, finiteValue) {
+  return exactTarget ? EXACT_PRIOR_RANK : finiteValue;
 }
 
 function rankResults(results) {
@@ -851,14 +859,29 @@ function rankResults(results) {
     const lossDifference =
       left.validationCategoricalLogLoss - right.validationCategoricalLogLoss;
     if (Math.abs(lossDifference) > TOLERANCE) return lossDifference;
-    const leftComplexity = candidateComplexity(left.candidate);
-    const rightComplexity = candidateComplexity(right.candidate);
-    return (
-      leftComplexity.coefficient - rightComplexity.coefficient ||
-      rightComplexity.splitPrior - leftComplexity.splitPrior ||
-      rightComplexity.leaguePrior - leftComplexity.leaguePrior ||
-      left.candidate.candidateId.localeCompare(right.candidate.candidateId)
-    );
+    const coefficientDifference =
+      left.candidate.platoonCoefficient - right.candidate.platoonCoefficient;
+    if (coefficientDifference !== 0) return coefficientDifference;
+    const splitDifference =
+      priorRank(
+        right.candidate.playerSplitExactTarget,
+        right.candidate.playerSplitEquivalentPa,
+      ) -
+      priorRank(
+        left.candidate.playerSplitExactTarget,
+        left.candidate.playerSplitEquivalentPa,
+      );
+    if (splitDifference !== 0) return splitDifference;
+    const leagueDifference =
+      priorRank(
+        right.candidate.leaguePlatoonExactTarget,
+        right.candidate.leaguePlatoonEquivalentPa,
+      ) -
+      priorRank(
+        left.candidate.leaguePlatoonExactTarget,
+        left.candidate.leaguePlatoonEquivalentPa,
+      );
+    return leagueDifference || left.candidate.candidateId.localeCompare(right.candidate.candidateId);
   });
 }
 
@@ -896,6 +919,7 @@ function selectCandidate(results) {
 function boundaryFlags(selected, candidates) {
   if (!selected || selected.candidateId === 'no-platoon') {
     return Object.freeze({
+      platoonCoefficientAtTestedMinimum: false,
       platoonCoefficientAtTestedMaximum: false,
       leaguePriorAtFiniteBoundary: false,
       playerSplitPriorAtFiniteBoundary: false,
@@ -912,6 +936,8 @@ function boundaryFlags(selected, candidates) {
     .map((candidate) => candidate.playerSplitEquivalentPa)
     .filter((value) => value !== null);
   return Object.freeze({
+    platoonCoefficientAtTestedMinimum:
+      selected.platoonCoefficient === Math.min(...coefficients),
     platoonCoefficientAtTestedMaximum:
       selected.platoonCoefficient === Math.max(...coefficients),
     leaguePriorAtFiniteBoundary:
@@ -961,11 +987,12 @@ export function evaluateResolvedCategoricalPlatoon({
     walkForwardEvaluationText,
     'walkForwardEvaluationText',
   );
-  const canonicalCategories = validateCategories(
+  const canonicalCategories = validateStringList(
     rawCanonicalCategories,
     'canonicalCategories',
+    2,
   );
-  const hitCategories = validateCategories(rawHitCategories, 'hitCategories');
+  const hitCategories = validateStringList(rawHitCategories, 'hitCategories', 1);
   const canonicalSet = new Set(canonicalCategories);
   for (const category of hitCategories) {
     if (!canonicalSet.has(category)) {
@@ -973,6 +1000,7 @@ export function evaluateResolvedCategoricalPlatoon({
     }
   }
   const candidates = validateCandidates(rawCandidates);
+
   const fixed = validateFixedArtifact({
     dataset,
     datasetText: sourceText,
@@ -988,9 +1016,10 @@ export function evaluateResolvedCategoricalPlatoon({
     fixed,
   });
   const observations = extractObservations(dataset, fixed);
-  if (observations.validationPlatoon.length === 0) {
-    throw new Error('platoon evaluation has no eligible validation observations.');
+  if (observations.fitPlatoon.length === 0 || observations.validationPlatoon.length === 0) {
+    throw new Error('platoon evaluation requires non-empty fit and validation cohorts.');
   }
+
   const baseParameters = selectedBaseParameters(fixed, walkForward);
   const categories = observations.modeledCategories;
   const fitLeagueCounts = leagueCounts(observations.fitOverall, categories);
@@ -1030,6 +1059,7 @@ export function evaluateResolvedCategoricalPlatoon({
       observations.validationPlatoon.map((observation) => observation.observationId),
     ),
   );
+
   const results = Object.freeze(
     candidates.map((candidate) =>
       evaluateCandidate({
@@ -1058,6 +1088,7 @@ export function evaluateResolvedCategoricalPlatoon({
   ) {
     throw new Error('platoon candidates did not use one identical validation cohort.');
   }
+
   const selection = selectCandidate(results);
   const baseline = results.find(
     (result) => result.candidate.candidateId === 'no-platoon',
@@ -1089,6 +1120,7 @@ export function evaluateResolvedCategoricalPlatoon({
         ? null
         : baseline.validationHitBrierScore - selectedResult.validationHitBrierScore,
   });
+
   const identity = {
     activeSeason: fixed.activeSeason,
     sourceDatasetSha256: fixed.sourceDatasetSha256,
