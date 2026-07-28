@@ -89,7 +89,7 @@ if (selected !== null) {
   );
 }
 console.log(
-  `Boundary flags: coefficient-max=${flags.platoonCoefficientAtTestedMaximum}, league-prior-boundary=${flags.leaguePriorAtFiniteBoundary}, split-prior-boundary=${flags.playerSplitPriorAtFiniteBoundary}`,
+  `Boundary flags: coefficient-min=${flags.platoonCoefficientAtTestedMinimum}, coefficient-max=${flags.platoonCoefficientAtTestedMaximum}, league-prior-boundary=${flags.leaguePriorAtFiniteBoundary}, split-prior-boundary=${flags.playerSplitPriorAtFiniteBoundary}`,
 );
 console.log(
   `Structural-zero categories: ${evaluation.structuralZeroCategories.join(', ') || 'none'}`,
