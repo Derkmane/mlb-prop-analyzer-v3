@@ -184,10 +184,7 @@ export function segmentVerifiedM8ContextPlaySequence({ gameId, plays }) {
           active.plays.map((value) =>
             Object.freeze({
               ...value,
-              halfInning:
-                value.inningType === 'top' || value.inningType === 'bottom'
-                  ? value.inningType
-                  : value.inningType,
+              halfInning: value.inningType,
             }),
           ),
         ),
@@ -200,6 +197,16 @@ export function segmentVerifiedM8ContextPlaySequence({ gameId, plays }) {
     throw new Error(`game ${providerGameId} capture ended inside a batter segment.`);
   }
   return Object.freeze(segments);
+}
+
+function datasetIdentity(dataset) {
+  return {
+    activeSeason: dataset.activeSeason,
+    sourcePartitionSha256: dataset.sourcePartitionSha256,
+    sourceEvidenceSetSha256: dataset.sourceEvidenceSetSha256,
+    periods: dataset.periods,
+    untouchedTestReservation: dataset.untouchedTestReservation,
+  };
 }
 
 function captureIdentityFromManifest(manifest) {
@@ -225,13 +232,17 @@ function validateDataset(rawDataset) {
     throw new Error('recency dataset must have datasetVersion 2.');
   }
   const datasetSha256 = assertSha256(dataset.datasetSha256, 'datasetSha256');
+  if (datasetSha256 !== sha256(JSON.stringify(datasetIdentity(dataset)))) {
+    throw new Error('recency dataset internal SHA-256 does not match its identity.');
+  }
   const periods = assertPlainObject(dataset.periods, 'periods');
   const contextRows = [];
   for (const periodId of INCLUDED_PERIODS) {
-    const rows = assertArray(
-      assertPlainObject(periods[periodId], `periods.${periodId}`).rows,
-      `periods.${periodId}.rows`,
-    );
+    const period = assertPlainObject(periods[periodId], `periods.${periodId}`);
+    const rows = assertArray(period.rows, `periods.${periodId}.rows`);
+    if (rows.length !== assertNonNegativeInteger(period.rowCount, `${periodId}.rowCount`)) {
+      throw new Error(`${periodId} rowCount does not match rows.`);
+    }
     for (const row of rows) {
       if (row?.mappingStatus === 'unresolved' && row?.unresolvedReason === 'context-required') {
         contextRows.push(row);
@@ -239,14 +250,20 @@ function validateDataset(rawDataset) {
     }
   }
   const totals = assertPlainObject(dataset.totals, 'totals');
-  if (totals.contextRequiredCount !== contextRows.length) {
+  if (
+    assertNonNegativeInteger(totals.contextRequiredCount, 'totals.contextRequiredCount') !==
+    contextRows.length
+  ) {
     throw new Error('dataset context-required count does not match its rows.');
   }
   const untouchedTestReservation = assertPlainObject(
     dataset.untouchedTestReservation,
     'untouchedTestReservation',
   );
-  if (untouchedTestReservation.rowsIncluded !== false) {
+  if (
+    untouchedTestReservation.rowsIncluded !== false ||
+    Object.hasOwn(untouchedTestReservation, 'rows')
+  ) {
     throw new Error('untouched-test rows must remain excluded from the signature audit.');
   }
   return Object.freeze({
@@ -255,6 +272,31 @@ function validateDataset(rawDataset) {
     contextRows: Object.freeze(contextRows),
     untouchedTestReservation,
   });
+}
+
+function validateSharedTestReservation(datasetReservation, captureReservation) {
+  const dataset = assertPlainObject(datasetReservation, 'dataset test reservation');
+  const capture = assertPlainObject(captureReservation, 'capture test reservation');
+  const shared = {
+    startDate: assertNonEmptyString(dataset.startDate, 'dataset test startDate'),
+    endDate: assertNonEmptyString(dataset.endDate, 'dataset test endDate'),
+    plateAppearanceCount: assertNonNegativeInteger(
+      dataset.plateAppearanceCount,
+      'dataset test plateAppearanceCount',
+    ),
+    rowsIncluded: dataset.rowsIncluded,
+  };
+  if (shared.rowsIncluded !== false || capture.rowsIncluded !== false) {
+    throw new Error('untouched-test rows must remain excluded from dataset and capture.');
+  }
+  if (
+    capture.startDate !== shared.startDate ||
+    capture.endDate !== shared.endDate ||
+    capture.plateAppearanceCount !== shared.plateAppearanceCount
+  ) {
+    throw new Error('capture and dataset untouched-test boundaries differ.');
+  }
+  return Object.freeze(shared);
 }
 
 async function readVerifiedGamePlays({ captureRoot, gameSummary }) {
@@ -281,7 +323,10 @@ async function readVerifiedGamePlays({ captureRoot, gameSummary }) {
     throw new Error(`game ${gameId} manifest identity is invalid.`);
   }
   const pages = assertArray(manifest.pages, `game ${gameId} pages`);
-  if (pages.length !== gameSummary.pageCount || pages.length !== manifest.pageCount) {
+  if (
+    pages.length !== assertPositiveInteger(gameSummary.pageCount, 'game pageCount') ||
+    pages.length !== assertPositiveInteger(manifest.pageCount, 'manifest pageCount')
+  ) {
     throw new Error(`game ${gameId} page count drifted.`);
   }
 
@@ -310,7 +355,7 @@ async function readVerifiedGamePlays({ captureRoot, gameSummary }) {
       ).data,
       `game ${gameId} page ${index + 1} data`,
     );
-    if (data.length !== page.recordCount) {
+    if (data.length !== assertNonNegativeInteger(page.recordCount, 'page recordCount')) {
       throw new Error(`game ${gameId} page ${index + 1} record count drifted.`);
     }
     for (const rawPlay of data) {
@@ -327,7 +372,10 @@ async function readVerifiedGamePlays({ captureRoot, gameSummary }) {
   if (expectedCursor !== null) {
     throw new Error(`game ${gameId} capture ended before pagination completed.`);
   }
-  if (plays.length !== gameSummary.recordCount || plays.length !== manifest.recordCount) {
+  if (
+    plays.length !== assertNonNegativeInteger(gameSummary.recordCount, 'game recordCount') ||
+    plays.length !== assertNonNegativeInteger(manifest.recordCount, 'manifest recordCount')
+  ) {
     throw new Error(`game ${gameId} total play count drifted.`);
   }
   return Object.freeze(plays);
@@ -354,16 +402,16 @@ export async function runM8ContextPlaySignatureAudit({ datasetPath, captureRoot 
   if (captureManifest.sourceDatasetSha256 !== validatedDataset.datasetSha256) {
     throw new Error('context play capture belongs to another recency dataset.');
   }
-  if (captureManifest.contextRowCount !== validatedDataset.contextRows.length) {
+  if (
+    assertNonNegativeInteger(captureManifest.contextRowCount, 'capture contextRowCount') !==
+    validatedDataset.contextRows.length
+  ) {
     throw new Error('context play capture row count drifted from the recency dataset.');
   }
-  if (
-    captureManifest.untouchedTestReservation?.rowsIncluded !== false ||
-    JSON.stringify(captureManifest.untouchedTestReservation) !==
-      JSON.stringify(validatedDataset.untouchedTestReservation)
-  ) {
-    throw new Error('capture and dataset untouched-test reservations differ or expose rows.');
-  }
+  const sharedTestReservation = validateSharedTestReservation(
+    validatedDataset.untouchedTestReservation,
+    captureManifest.untouchedTestReservation,
+  );
   if (
     captureManifest.captureSha256 !==
     sha256(JSON.stringify(captureIdentityFromManifest(captureManifest)))
@@ -372,7 +420,10 @@ export async function runM8ContextPlaySignatureAudit({ datasetPath, captureRoot 
   }
 
   const gameSummaries = assertArray(captureManifest.games, 'capture games');
-  if (gameSummaries.length !== captureManifest.gameCount) {
+  if (
+    gameSummaries.length !==
+    assertPositiveInteger(captureManifest.gameCount, 'capture gameCount')
+  ) {
     throw new Error('context play capture game count drifted.');
   }
   const segmentsByGameId = new Map();
@@ -421,7 +472,7 @@ export async function runM8ContextPlaySignatureAudit({ datasetPath, captureRoot 
     signatureCount: audit.signatureCount,
     signatures: audit.signatures,
     rows: audit.rows,
-    untouchedTestReservation: validatedDataset.untouchedTestReservation,
+    untouchedTestReservation: sharedTestReservation,
     untouchedTestRowsRead: false,
     mappingApplied: false,
   };
