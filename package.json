@@ -9,7 +9,7 @@
   "scripts": {
     "clean": "node scripts/clean.mjs",
     "typecheck": "tsc --noEmit",
-    "check:scripts": "node --check scripts/clean.mjs && node --check scripts/provider-probe-utils.mjs && node --check scripts/provider-capability-utils.mjs && node --check scripts/verify-provider-access.mjs && node --check scripts/capture-provider-capabilities.mjs && node --check scripts/m8-recency-weighting-utils.mjs && node --check scripts/capture-m8-current-season-pa.mjs && node --check scripts/m8-capture-verification-utils.mjs && node --check scripts/verify-m8-current-season-pa.mjs && node --check scripts/m8-sharded-capture-utils.mjs && node --check scripts/capture-m8-current-season-pa-shards.mjs && node --check scripts/m8-partition-manifest-utils.mjs && node --check scripts/build-m8-chronological-partition-manifest.mjs && node --check scripts/m8-recency-evaluation-dataset-utils.mjs && node --check scripts/build-m8-recency-evaluation-dataset.mjs && node --check scripts/m8-hit-benchmark-dataset-utils.mjs && node --check scripts/build-m8-hit-benchmark-dataset.mjs",
+    "check:scripts": "node --check scripts/clean.mjs && node --check scripts/provider-probe-utils.mjs && node --check scripts/provider-capability-utils.mjs && node --check scripts/verify-provider-access.mjs && node --check scripts/capture-provider-capabilities.mjs && node --check scripts/m8-recency-weighting-utils.mjs && node --check scripts/capture-m8-current-season-pa.mjs && node --check scripts/m8-capture-verification-utils.mjs && node --check scripts/verify-m8-current-season-pa.mjs && node --check scripts/m8-sharded-capture-utils.mjs && node --check scripts/capture-m8-current-season-pa-shards.mjs && node --check scripts/m8-partition-manifest-utils.mjs && node --check scripts/build-m8-chronological-partition-manifest.mjs && node --check scripts/m8-recency-evaluation-dataset-utils.mjs && node --check scripts/build-m8-recency-evaluation-dataset.mjs && node --check scripts/m8-hit-benchmark-dataset-utils.mjs && node --check scripts/build-m8-hit-benchmark-dataset.mjs && node --check scripts/m8-hit-recency-evaluation-utils.mjs && node --check scripts/evaluate-m8-hit-recency-candidates.mjs",
     "build": "tsc",
     "architecture": "depcruise --config .dependency-cruiser.cjs src test --exclude '^test/architecture/fixtures/'",
     "test:selected-side": "node --test dist/test/selected-side.test.js",
@@ -22,6 +22,7 @@
     "test:m8-partition-manifest": "node --test test/m8-partition-manifest.test.mjs",
     "test:m8-recency-evaluation-dataset": "node --test test/m8-recency-evaluation-dataset.test.mjs",
     "test:m8-hit-benchmark-dataset": "node --test test/m8-hit-benchmark-dataset.test.mjs",
+    "test:m8-hit-recency-evaluation": "node --test test/m8-hit-recency-evaluation.test.mjs",
     "test": "npm run build && node --test \"dist/test/**/*.test.js\" \"test/**/*.test.mjs\"",
     "verify": "npm run typecheck && npm run check:scripts && npm run architecture && npm test",
     "verify:provider-access": "node scripts/verify-provider-access.mjs",
@@ -31,7 +32,8 @@
     "capture:m8-current-season-pa-shards": "node scripts/capture-m8-current-season-pa-shards.mjs",
     "build:m8-chronological-partition-manifest": "node scripts/build-m8-chronological-partition-manifest.mjs",
     "build:m8-recency-evaluation-dataset": "npm run build && node scripts/build-m8-recency-evaluation-dataset.mjs",
-    "build:m8-hit-benchmark-dataset": "node scripts/build-m8-hit-benchmark-dataset.mjs"
+    "build:m8-hit-benchmark-dataset": "node scripts/build-m8-hit-benchmark-dataset.mjs",
+    "evaluate:m8-hit-recency": "node scripts/evaluate-m8-hit-recency-candidates.mjs"
   },
   "dependencies": {
     "zod": "4.4.3"
