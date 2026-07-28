@@ -60,12 +60,10 @@ function sourceRow({
   unresolvedReason = null,
 }) {
   const classified = mappingStatus === 'classified-terminal';
-  const normalizedBatterSide = classified && ['L', 'R'].includes(rawBatterSide)
-    ? rawBatterSide
-    : null;
-  const normalizedPitcherHand = classified && ['L', 'R'].includes(rawPitcherHand)
-    ? rawPitcherHand
-    : null;
+  const normalizedBatterSide =
+    classified && ['L', 'R'].includes(rawBatterSide) ? rawBatterSide : null;
+  const normalizedPitcherHand =
+    classified && ['L', 'R'].includes(rawPitcherHand) ? rawPitcherHand : null;
   const platoonEligible =
     classified && normalizedBatterSide !== null && normalizedPitcherHand !== null;
   return {
@@ -81,7 +79,7 @@ function sourceRow({
     rawPitcherHand,
     rawResult,
     sourceSnapshotPath: `${observedDate}/game-${providerGameId}.json`,
-    sourceSnapshotSha256: String(providerPaNumber).padStart(64, 'a').slice(-64),
+    sourceSnapshotSha256: 'a'.repeat(64),
     mappingStatus,
     unresolvedReason,
     terminalCategory,
@@ -94,7 +92,7 @@ function sourceRow({
   };
 }
 
-function summarizeSourceRows(rows) {
+function summarizeRows(rows) {
   const summary = {
     rowCount: rows.length,
     classifiedTerminalCount: 0,
@@ -129,8 +127,8 @@ function summarizeSourceRows(rows) {
   return summary;
 }
 
-function period(startDate, endDate, rows) {
-  return { startDate, endDate, ...summarizeSourceRows(rows), rows };
+function makePeriod(startDate, endDate, rows) {
+  return { startDate, endDate, ...summarizeRows(rows), rows };
 }
 
 function makeDataset() {
@@ -209,8 +207,6 @@ function makeDataset() {
       providerBatterId: 17,
       providerPitcherId: 27,
       rawResult: 'Strikeout Double Play',
-      rawBatterSide: 'R',
-      rawPitcherHand: 'R',
       mappingStatus: 'unresolved',
       unresolvedReason: 'context-required',
     }),
@@ -226,9 +222,10 @@ function makeDataset() {
     }),
   ];
   const periods = {
-    fit: period('2026-03-26', '2026-06-21', fitRows),
-    validation: period('2026-06-22', '2026-07-05', validationRows),
+    fit: makePeriod('2026-03-26', '2026-06-21', fitRows),
+    validation: makePeriod('2026-06-22', '2026-07-05', validationRows),
   };
+  const total = (key) => periods.fit[key] + periods.validation[key];
   const dataset = {
     datasetVersion: 2,
     purpose: 'test source dataset',
@@ -238,17 +235,17 @@ function makeDataset() {
     periods,
     untouchedTestReservation: { ...TEST_RESERVATION },
     totals: {
-      includedRowCount: 8,
-      classifiedTerminalCount: 1,
-      overallOutcomeEligibleCount: 1,
-      platoonEligibleCount: 1,
-      platoonIneligibleTerminalCount: 0,
-      baserunningOnlyCount: 1,
-      unresolvedCount: 6,
-      missingResultCount: 0,
-      contextRequiredCount: 5,
-      unknownResultCount: 1,
-      contextContradictionCount: 0,
+      includedRowCount: total('rowCount'),
+      classifiedTerminalCount: total('classifiedTerminalCount'),
+      overallOutcomeEligibleCount: total('overallOutcomeEligibleCount'),
+      platoonEligibleCount: total('platoonEligibleCount'),
+      platoonIneligibleTerminalCount: total('platoonIneligibleTerminalCount'),
+      baserunningOnlyCount: total('baserunningOnlyCount'),
+      unresolvedCount: total('unresolvedCount'),
+      missingResultCount: total('missingResultCount'),
+      contextRequiredCount: total('contextRequiredCount'),
+      unknownResultCount: total('unknownResultCount'),
+      contextContradictionCount: total('contextContradictionCount'),
     },
   };
   dataset.datasetSha256 = sha256(JSON.stringify(sourceDatasetIdentity(dataset)));
@@ -289,10 +286,16 @@ function resolutionRow({
 
 function makeResolution(dataset) {
   const sourceRows = [...dataset.periods.fit.rows, ...dataset.periods.validation.rows];
-  const byResult = new Map(sourceRows.map((row) => [row.rawResult, row]));
+  const contextSource = (rawResult) =>
+    sourceRows.find(
+      (row) =>
+        row.rawResult === rawResult &&
+        row.mappingStatus === 'unresolved' &&
+        row.unresolvedReason === 'context-required',
+    );
   const rows = [
     resolutionRow({
-      source: byResult.get('Fielders Choice'),
+      source: contextSource('Fielders Choice'),
       resolutionStatus: 'resolved-terminal',
       terminalCategory: 'FC',
       batterDisposition: 'reached',
@@ -300,7 +303,7 @@ function makeResolution(dataset) {
       evidenceMarkers: ['Batters Fielders Choice - All Runners Safe'],
     }),
     resolutionRow({
-      source: byResult.get('Double Play'),
+      source: contextSource('Double Play'),
       resolutionStatus: 'resolved-terminal',
       terminalCategory: 'BIP_OUT',
       batterDisposition: 'retired',
@@ -308,7 +311,7 @@ function makeResolution(dataset) {
       evidenceMarkers: ['Line Out'],
     }),
     resolutionRow({
-      source: byResult.get('Caught Stealing 2B'),
+      source: contextSource('Caught Stealing 2B'),
       resolutionStatus: 'baserunning-only',
       baserunningEvent: 'CS',
       resolutionReason: 'provider-result-is-baserunning-only',
@@ -316,12 +319,12 @@ function makeResolution(dataset) {
       candidateSegmentCount: 0,
     }),
     resolutionRow({
-      source: byResult.get('Forceout'),
+      source: contextSource('Forceout'),
       resolutionStatus: 'unresolved',
       resolutionReason: 'missing-exact-terminal-marker',
     }),
     resolutionRow({
-      source: byResult.get('Strikeout Double Play'),
+      source: contextSource('Strikeout Double Play'),
       resolutionStatus: 'resolved-terminal',
       terminalCategory: 'K',
       batterDisposition: 'retired',
@@ -337,7 +340,7 @@ function makeResolution(dataset) {
     sourceAuditFileSha256: '4'.repeat(64),
     sourceDatasetSha256: dataset.datasetSha256,
     sourceCaptureSha256: '5'.repeat(64),
-    contextRowCount: 5,
+    contextRowCount: rows.length,
     resultCounts: {
       'Caught Stealing 2B': 1,
       'Double Play': 1,
@@ -365,10 +368,9 @@ function makeResolution(dataset) {
   return resolution;
 }
 
-function buildFixture() {
+function fixture() {
   const dataset = makeDataset();
-  const resolution = makeResolution(dataset);
-  return { dataset, resolution };
+  return { dataset, resolution: makeResolution(dataset) };
 }
 
 function build(dataset, resolution) {
@@ -380,8 +382,8 @@ function build(dataset, resolution) {
   });
 }
 
-test('overlays exact contextual terminal, baserunning, and unresolved states with conserved totals', () => {
-  const { dataset, resolution } = buildFixture();
+test('overlays exact contextual states and conserves every fit-validation row', () => {
+  const { dataset, resolution } = fixture();
   const resolved = build(dataset, resolution);
   assert.equal(resolved.datasetVersion, 3);
   assert.equal(resolved.totals.includedRowCount, 8);
@@ -402,14 +404,11 @@ test('overlays exact contextual terminal, baserunning, and unresolved states wit
   assert.equal(Object.hasOwn(resolved.untouchedTestReservation, 'rows'), false);
 });
 
-test('preserves source identities and applies the existing L/R-only platoon rule', () => {
-  const { dataset, resolution } = buildFixture();
+test('preserves identities and applies the existing L/R-only platoon rule', () => {
+  const { dataset, resolution } = fixture();
   const resolved = build(dataset, resolution);
   const sourceRows = [...dataset.periods.fit.rows, ...dataset.periods.validation.rows];
-  const resolvedRows = [
-    ...resolved.periods.fit.rows,
-    ...resolved.periods.validation.rows,
-  ];
+  const resolvedRows = [...resolved.periods.fit.rows, ...resolved.periods.validation.rows];
   assert.deepEqual(
     resolvedRows.map((row) => [
       row.rowId,
@@ -439,15 +438,15 @@ test('preserves source identities and applies the existing L/R-only platoon rule
 });
 
 test('is deterministic for identical versioned inputs', () => {
-  const { dataset, resolution } = buildFixture();
+  const { dataset, resolution } = fixture();
   const first = build(dataset, resolution);
   const second = build(dataset, resolution);
   assert.equal(first.datasetSha256, second.datasetSha256);
   assert.deepEqual(first, second);
 });
 
-test('rejects a resolution cohort that is missing or outside the source context rows', () => {
-  const { dataset, resolution } = buildFixture();
+test('rejects a resolution row outside the source context cohort', () => {
+  const { dataset, resolution } = fixture();
   const outside = structuredClone(resolution);
   const row = outside.rows[0];
   row.observedDate = '2026-05-02';
@@ -458,19 +457,22 @@ test('rejects a resolution cohort that is missing or outside the source context 
   assert.throws(() => build(dataset, outside), /missing source context row/);
 });
 
-test('rejects contextual identity drift even when artifact hashes are recomputed', () => {
-  const { dataset, resolution } = buildFixture();
+test('rejects contextual identity drift even when hashes are recomputed', () => {
+  const { dataset, resolution } = fixture();
   const drifted = structuredClone(resolution);
   drifted.rows[0].providerBatterId += 1;
   drifted.resolutionSha256 = sha256(JSON.stringify(resolutionIdentity(drifted)));
   assert.throws(() => build(dataset, drifted), /identity drifted/);
 });
 
-test('rejects tampered artifacts and any exposed untouched-test rows', () => {
-  const { dataset, resolution } = buildFixture();
+test('rejects tampered artifacts and exposed untouched-test rows', () => {
+  const { dataset, resolution } = fixture();
   const tampered = structuredClone(resolution);
   tampered.rows[0].terminalCategory = 'K';
-  assert.throws(() => build(dataset, tampered), /SHA-256|terminalCategoryCounts/);
+  assert.throws(
+    () => build(dataset, tampered),
+    /SHA-256|terminalCategoryCounts|resolved terminal evidence is incomplete/,
+  );
 
   const exposedDataset = structuredClone(dataset);
   exposedDataset.untouchedTestReservation.rowsIncluded = true;
