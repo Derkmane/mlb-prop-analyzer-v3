@@ -12,6 +12,10 @@ const CONTEXTUAL_NON_HIT_RESULTS = new Set([
   'Forceout',
   'Double Play',
   'Triple Play',
+  'Strikeout Double Play',
+]);
+const CONTEXT_REQUIRED_BASERUNNING_RESULTS = new Set([
+  'Caught Stealing 2B',
 ]);
 const EXCLUDED_UNRESOLVED_REASONS = new Set([
   'missing-result',
@@ -244,6 +248,16 @@ function excludedObservation(row, common, label) {
   if (row.mappingStatus !== 'unresolved') {
     throw new Error(`${label} has unsupported mappingStatus: ${row.mappingStatus}.`);
   }
+  if (
+    row.unresolvedReason === 'context-required' &&
+    common.rawResult !== null &&
+    CONTEXT_REQUIRED_BASERUNNING_RESULTS.has(common.rawResult)
+  ) {
+    return Object.freeze({
+      ...common,
+      exclusionReason: 'context-required-baserunning-only',
+    });
+  }
   const reason = assertNonEmptyString(
     row.unresolvedReason,
     `${label}.unresolvedReason`,
@@ -288,7 +302,14 @@ function mapPeriod(periodId, rawPeriod, activeSeason, seenObservationIds) {
       row.mappingStatus === 'unresolved' &&
       row.unresolvedReason === 'context-required'
     ) {
-      observations.push(contextualNonHitObservation(row, common, label));
+      if (
+        common.rawResult !== null &&
+        CONTEXT_REQUIRED_BASERUNNING_RESULTS.has(common.rawResult)
+      ) {
+        exclusions.push(excludedObservation(row, common, label));
+      } else {
+        observations.push(contextualNonHitObservation(row, common, label));
+      }
       continue;
     }
     exclusions.push(excludedObservation(row, common, label));

@@ -310,7 +310,7 @@ test('builds a deterministic Hit/No-Hit benchmark while conserving all source ro
   });
 });
 
-test('maps only the five evidence-backed contextual result labels to binary No Hit without assigning a terminal category', async () => {
+test('maps every evidence-backed contextual terminal result to binary No Hit without assigning a terminal category', async () => {
   await withTempRoot(async (root) => {
     const contextualLabels = [
       'Fielders Choice',
@@ -318,6 +318,7 @@ test('maps only the five evidence-backed contextual result labels to binary No H
       'Forceout',
       'Double Play',
       'Triple Play',
+      'Strikeout Double Play',
     ];
     const sourceDatasetPath = await writeSourceDataset(root, {
       fitRows: contextualLabels.map((result, index) =>
@@ -341,12 +342,45 @@ test('maps only the five evidence-backed contextual result labels to binary No H
     });
 
     const benchmark = await buildM8HitBenchmarkDataset({ sourceDatasetPath });
-    assert.equal(benchmark.periods.fit.contextualNonHitCount, 5);
+    assert.equal(benchmark.periods.fit.contextualNonHitCount, 6);
     assert.ok(
       benchmark.periods.fit.observations.every(
         (observation) =>
           observation.hit === 0 && observation.terminalCategory === null,
       ),
+    );
+  });
+});
+
+test('excludes context-required caught stealing as baserunning-only evidence', async () => {
+  await withTempRoot(async (root) => {
+    const sourceDatasetPath = await writeSourceDataset(root, {
+      fitRows: [
+        unresolvedRow({
+          rowId: '2026-03-26:10:1',
+          observedDate: '2026-03-26',
+          paNumber: 1,
+          result: 'Caught Stealing 2B',
+          reason: 'context-required',
+        }),
+      ],
+      validationRows: [
+        classifiedRow({
+          rowId: '2026-03-27:11:1',
+          observedDate: '2026-03-27',
+          paNumber: 1,
+          result: 'Single',
+          terminalCategory: '1B',
+        }),
+      ],
+    });
+
+    const benchmark = await buildM8HitBenchmarkDataset({ sourceDatasetPath });
+    assert.equal(benchmark.periods.fit.observationCount, 0);
+    assert.equal(benchmark.periods.fit.excludedCount, 1);
+    assert.equal(
+      benchmark.periods.fit.exclusions[0]?.exclusionReason,
+      'context-required-baserunning-only',
     );
   });
 });
