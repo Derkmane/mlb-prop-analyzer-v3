@@ -30,7 +30,7 @@
     "test:m8-context-play-capture": "node --test test/m8-context-play-capture.test.mjs",
     "test:m8-context-play-batch": "node --test test/m8-context-play-batch.test.mjs",
     "test:bdl-adaptive-rate-limit": "node --test test/bdl-adaptive-rate-limit.test.mjs",
-    "test:m8-context-play-signature-audit": "node --test test/m8-context-play-signature-audit.test.mjs",
+    "test:m8-context-play-signature-audit": "node --test test/m8-context-play-signature-audit.test.mjs test/m8-context-play-segment-boundaries.test.mjs",
     "test": "npm run build && node --test \"dist/test/**/*.test.js\" \"test/**/*.test.mjs\"",
     "verify": "npm run typecheck && npm run check:scripts && npm run architecture && npm test",
     "verify:provider-access": "node scripts/verify-provider-access.mjs",
