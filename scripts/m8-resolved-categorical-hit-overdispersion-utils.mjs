@@ -80,6 +80,14 @@ function parseJson(text, label) {
   }
 }
 
+export function preserveValidatedArtifactText(
+  value,
+  label,
+) {
+  assertNonEmptyString(value, label);
+  return value;
+}
+
 function validateStringList(rawValues, label, minimumLength = 1) {
   const values = assertArray(rawValues, label).map((value, index) =>
     assertNonEmptyString(value, `${label}[${index}]`),
@@ -867,29 +875,29 @@ export function evaluateResolvedCategoricalHitOverdispersion({
   const hitCategories = validateStringList(rawHitCategories, 'hitCategories', 1);
   const expectedRareCategory = evaluateResolvedCategoricalRareCategoryReliability({
     dataset,
-    datasetText: assertNonEmptyString(datasetText, 'datasetText'),
+    datasetText: preserveValidatedArtifactText(datasetText, 'datasetText'),
     fixedEvaluation,
-    fixedEvaluationText: assertNonEmptyString(
+    fixedEvaluationText: preserveValidatedArtifactText(
       fixedEvaluationText,
       'fixedEvaluationText',
     ),
     coherentWalkForward,
-    coherentWalkForwardText: assertNonEmptyString(
+    coherentWalkForwardText: preserveValidatedArtifactText(
       coherentWalkForwardText,
       'coherentWalkForwardText',
     ),
     boundaryEvaluation,
-    boundaryEvaluationText: assertNonEmptyString(
+    boundaryEvaluationText: preserveValidatedArtifactText(
       boundaryEvaluationText,
       'boundaryEvaluationText',
     ),
     platoonWalkForward,
-    platoonWalkForwardText: assertNonEmptyString(
+    platoonWalkForwardText: preserveValidatedArtifactText(
       platoonWalkForwardText,
       'platoonWalkForwardText',
     ),
     rareOutcomeUncertainty,
-    rareOutcomeUncertaintyText: assertNonEmptyString(
+    rareOutcomeUncertaintyText: preserveValidatedArtifactText(
       rareOutcomeUncertaintyText,
       'rareOutcomeUncertaintyText',
     ),
@@ -899,7 +907,7 @@ export function evaluateResolvedCategoricalHitOverdispersion({
   const rareCategory = validateRareCategoryReliabilityArtifact(
     rareCategoryReliability,
     expectedRareCategory,
-    assertNonEmptyString(
+    preserveValidatedArtifactText(
       rareCategoryReliabilityText,
       'rareCategoryReliabilityText',
     ),

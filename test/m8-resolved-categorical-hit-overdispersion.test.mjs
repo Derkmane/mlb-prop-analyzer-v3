@@ -3,9 +3,31 @@ import test from 'node:test';
 
 import {
   poissonBinomialDistribution,
+  preserveValidatedArtifactText,
   selectCompleteBatterGameCohort,
   summarizeConditionalHitCountOverdispersion,
 } from '../scripts/m8-resolved-categorical-hit-overdispersion-utils.mjs';
+
+test('validates artifact text without trimming raw bytes', () => {
+  const text = '{"artifact":true}\n';
+
+  assert.equal(
+    preserveValidatedArtifactText(
+      text,
+      'artifactText',
+    ),
+    text,
+  );
+
+  assert.throws(
+    () =>
+      preserveValidatedArtifactText(
+        '  \n\t  ',
+        'artifactText',
+      ),
+    /non-empty string/,
+  );
+});
 
 test('poisson-binomial matches two-trial exact distribution', () => {
   const pmf = poissonBinomialDistribution([0.2, 0.3]);
