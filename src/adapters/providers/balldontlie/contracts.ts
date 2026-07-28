@@ -27,7 +27,7 @@ export const rawBallDontLiePlateAppearanceSchema = z
     pitcher_hand: nonemptyStringSchema,
     pitcher_id: integerSchema,
     pitches: z.array(rawBallDontLiePitchSchema),
-    result: z.string().nullable(),
+    result: nonemptyStringSchema.nullable(),
     runner_on_first: z.boolean(),
     runner_on_second: z.boolean(),
     runner_on_third: z.boolean(),
