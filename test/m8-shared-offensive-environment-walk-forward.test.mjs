@@ -215,12 +215,12 @@ test('later validation outcomes cannot alter earlier fold fits or scores', () =>
   );
 });
 
-test('rejects a source holdout evaluation from another dataset', () => {
-  const dataset = buildDataset();
-  const sourceEvaluation = evaluateSource(dataset);
-  const mismatched = { ...sourceEvaluation, sourceDatasetSha256: '9'.repeat(64) };
+test('rejects a valid source holdout evaluation from another dataset', () => {
+  const original = buildDataset();
+  const otherDataset = buildDataset({ mutateLastValidation: true });
+  const sourceEvaluation = evaluateSource(original);
   assert.throws(
-    () => evaluateWalkForward(dataset, mismatched),
+    () => evaluateWalkForward(otherDataset, sourceEvaluation),
     /source shared-environment evaluation does not match the dataset/,
   );
 });
