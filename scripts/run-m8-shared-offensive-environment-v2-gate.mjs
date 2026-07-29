@@ -88,6 +88,17 @@ await writeJsonAtomic(transitionDatasetPath, transitionDataset);
 const transitionEvaluation = evaluateM8StarterBullpenTransition({
   rawDataset: transitionDataset,
 });
+console.log('=== M8 STARTER-BULLPEN SELECTION DIAGNOSTIC ===');
+console.log(`Fixed-validation selected: ${transitionEvaluation.fixedSelectedCandidateId}`);
+console.log(`Walk-forward selected: ${transitionEvaluation.walkForward.selectedCandidateId}`);
+for (const result of transitionEvaluation.fixedResults) {
+  const walkForwardResult = transitionEvaluation.walkForward.aggregateResults.find(
+    (candidateResult) => candidateResult.candidate.candidateId === result.candidate.candidateId,
+  );
+  console.log(
+    `${result.candidate.candidateId} | fixedLogLoss=${result.metrics.logLoss} | fixedBrier=${result.metrics.multiclassBrier} | walkForwardLogLoss=${walkForwardResult.metrics.logLoss} | walkForwardBrier=${walkForwardResult.metrics.multiclassBrier}`,
+  );
+}
 verifyM8StarterBullpenEvaluation(transitionEvaluation);
 const transitionEvaluationPath = path.join(
   OUTPUT_ROOT,
