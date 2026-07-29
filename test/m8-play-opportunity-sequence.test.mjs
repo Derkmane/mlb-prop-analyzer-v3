@@ -345,3 +345,298 @@ test(
     );
   },
 );
+
+
+test(
+  'ignores a delayed foreign-context row while preserving one complete opportunity',
+  () => {
+    const plays = [
+      play({
+        gameId: 9003,
+        order: 1,
+        type: 'Start Batter/Pitcher',
+        batterId: 771,
+        pitcherId: 1056,
+        inning: 8,
+        inningType: 'Top',
+      }),
+      play({
+        gameId: 9003,
+        order: 2,
+        type: 'Ball',
+        batterId: 771,
+        pitcherId: 1056,
+        inning: 8,
+        inningType: 'Top',
+      }),
+      play({
+        gameId: 9003,
+        order: 3,
+        type: 'Foul Ball',
+        batterId: 771,
+        pitcherId: 1056,
+        inning: 8,
+        inningType: 'Top',
+      }),
+      play({
+        gameId: 9003,
+        order: 4,
+        type: 'Strike Swinging',
+        batterId: 318,
+        pitcherId: 223389,
+        inning: 2,
+        inningType: 'Bottom',
+      }),
+      play({
+        gameId: 9003,
+        order: 5,
+        type: 'Ball',
+        batterId: 771,
+        pitcherId: 1056,
+        inning: 8,
+        inningType: 'Top',
+      }),
+      play({
+        gameId: 9003,
+        order: 6,
+        type: 'Ball',
+        batterId: 771,
+        pitcherId: 1056,
+        inning: 8,
+        inningType: 'Top',
+      }),
+      play({
+        gameId: 9003,
+        order: 7,
+        type: 'Ball',
+        batterId: 771,
+        pitcherId: 1056,
+        inning: 8,
+        inningType: 'Top',
+      }),
+      play({
+        gameId: 9003,
+        order: 8,
+        type: 'Play Result',
+        batterId: 771,
+        pitcherId: 1056,
+        inning: 8,
+        inningType: 'Top',
+        text: 'Vargas walked.',
+      }),
+      play({
+        gameId: 9003,
+        order: 9,
+        type: 'End Batter/Pitcher',
+        batterId: 771,
+        pitcherId: 1056,
+        inning: 8,
+        inningType: 'Top',
+      }),
+    ];
+
+    const result =
+      buildM8PlayOpportunitySequence({
+        gameId: 9003,
+        plays,
+      });
+
+    assert.equal(
+      result.opportunityCount,
+      1,
+    );
+
+    const opportunity =
+      result.opportunities[0];
+
+    assert.equal(
+      opportunity.batterId,
+      771,
+    );
+
+    assert.equal(
+      opportunity.startOrder,
+      1,
+    );
+
+    assert.equal(
+      opportunity.endOrder,
+      9,
+    );
+
+    assert.deepEqual(
+      opportunity.batterResultTexts,
+      ['Vargas walked.'],
+    );
+
+    assert.deepEqual(
+      opportunity.playTypes,
+      [
+        'Start Batter/Pitcher',
+        'Ball',
+        'Foul Ball',
+        'Ball',
+        'Ball',
+        'Ball',
+        'Play Result',
+        'End Batter/Pitcher',
+      ],
+    );
+
+    assert.equal(
+      opportunity.playTypes.includes(
+        'Strike Swinging',
+      ),
+      false,
+    );
+  },
+);
+
+
+test(
+  'defers a premature inning boundary until delayed terminal evidence arrives',
+  () => {
+    const plays = [
+      play({
+        gameId: 9004,
+        order: 1,
+        type: 'Start Batter/Pitcher',
+        batterId: 244,
+        pitcherId: 2142,
+        inning: 5,
+        inningType: 'Bottom',
+      }),
+      play({
+        gameId: 9004,
+        order: 2,
+        type: 'Ball',
+        batterId: 244,
+        pitcherId: 2142,
+        inning: 5,
+        inningType: 'Bottom',
+      }),
+      play({
+        gameId: 9004,
+        order: 3,
+        type: 'Stolen Base',
+        batterId: null,
+        pitcherId: 2142,
+        inning: 5,
+        inningType: 'Bottom',
+        text: 'Runner stole second.',
+      }),
+      play({
+        gameId: 9004,
+        order: 4,
+        type: 'Ball',
+        batterId: 244,
+        pitcherId: 2142,
+        inning: 5,
+        inningType: 'Bottom',
+      }),
+      play({
+        gameId: 9004,
+        order: 5,
+        type: 'End Inning',
+        batterId: null,
+        pitcherId: null,
+        inning: 5,
+        inningType: 'End',
+        text: 'End of the 5th inning',
+      }),
+      play({
+        gameId: 9004,
+        order: 6,
+        type: 'Play Result',
+        batterId: null,
+        pitcherId: 2142,
+        inning: 5,
+        inningType: 'Bottom',
+        text: 'Runner stole second.',
+      }),
+      play({
+        gameId: 9004,
+        order: 7,
+        type: 'Ground Out',
+        batterId: 244,
+        pitcherId: 2142,
+        inning: 5,
+        inningType: 'Bottom',
+      }),
+      play({
+        gameId: 9004,
+        order: 8,
+        type: 'Play Result',
+        batterId: 244,
+        pitcherId: 2142,
+        inning: 5,
+        inningType: 'Bottom',
+        text: 'Garcia grounded out to third.',
+      }),
+      play({
+        gameId: 9004,
+        order: 9,
+        type: 'End Batter/Pitcher',
+        batterId: 244,
+        pitcherId: 2142,
+        inning: 5,
+        inningType: 'Bottom',
+      }),
+    ];
+
+    const result =
+      buildM8PlayOpportunitySequence({
+        gameId: 9004,
+        plays,
+      });
+
+    assert.equal(
+      result.opportunityCount,
+      1,
+    );
+
+    const opportunity =
+      result.opportunities[0];
+
+    assert.equal(
+      opportunity.batterId,
+      244,
+    );
+
+    assert.equal(
+      opportunity.startOrder,
+      1,
+    );
+
+    assert.equal(
+      opportunity.endOrder,
+      9,
+    );
+
+    assert.deepEqual(
+      opportunity.batterResultTexts,
+      ['Garcia grounded out to third.'],
+    );
+
+    assert.deepEqual(
+      opportunity.playTypes,
+      [
+        'Start Batter/Pitcher',
+        'Ball',
+        'Stolen Base',
+        'Ball',
+        'Play Result',
+        'Ground Out',
+        'Play Result',
+        'End Batter/Pitcher',
+      ],
+    );
+
+    assert.equal(
+      opportunity.playTypes.includes(
+        'End Inning',
+      ),
+      false,
+    );
+  },
+);

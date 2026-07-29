@@ -128,10 +128,22 @@ function finalizeSegment(active, endBoundary) {
   });
 }
 
-function isInningBoundary(play, active) {
-  if (INNING_BOUNDARY_TYPES.has(play.type)) return true;
-  if (play.inningType !== 'top' && play.inningType !== 'bottom') return true;
-  return play.inning !== active.inning || play.inningType !== active.halfInning;
+function isExplicitInningBoundary(play) {
+  return INNING_BOUNDARY_TYPES.has(play.type);
+}
+
+function isForeignContextPlay(play, active) {
+  if (
+    play.inningType !== 'top' &&
+    play.inningType !== 'bottom'
+  ) {
+    return true;
+  }
+
+  return (
+    play.inning !== active.inning ||
+    play.inningType !== active.halfInning
+  );
 }
 
 export function segmentVerifiedM8ContextPlaySequence({ gameId, plays }) {
@@ -181,9 +193,33 @@ export function segmentVerifiedM8ContextPlaySequence({ gameId, plays }) {
 
     if (active === null) continue;
 
-    if (isInningBoundary(play, active)) {
-      segments.push(finalizeSegment(active, 'inning-boundary'));
-      active = null;
+    if (isExplicitInningBoundary(play)) {
+      const hasBatterMatchedResult =
+        active.plays.some(
+          (activePlay) =>
+            activePlay.type === PLAY_RESULT_TYPE &&
+            activePlay.batterId === active.batterId,
+        );
+
+      const hasExplicitEnd =
+        active.plays.some(
+          (activePlay) =>
+            activePlay.type === SEGMENT_END_TYPE &&
+            activePlay.batterId === active.batterId,
+        );
+
+      if (
+        hasBatterMatchedResult ||
+        hasExplicitEnd
+      ) {
+        segments.push(finalizeSegment(active, 'inning-boundary'));
+        active = null;
+      }
+
+      continue;
+    }
+
+    if (isForeignContextPlay(play, active)) {
       continue;
     }
 
