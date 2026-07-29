@@ -12,6 +12,13 @@ function assertNonEmptyString(value, label) {
   return value.trim();
 }
 
+function assertFiniteNumber(value, label) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new TypeError(`${label} must be a finite number.`);
+  }
+  return value;
+}
+
 export function selectUniqueArtifactCopy(rawItems, { label, identityField }) {
   const itemLabel = assertNonEmptyString(label, 'label');
   const field = assertNonEmptyString(identityField, 'identityField');
@@ -51,48 +58,90 @@ function identityFor(match, index) {
     evaluation.value,
     `matches[${index}].evaluation.value`,
   );
+  const selectedCandidateId = assertNonEmptyString(
+    evaluationValue.selection?.selectedCandidate?.candidateId,
+    `matches[${index}].evaluation.selectedCandidateId`,
+  );
+  const selectedResult = Array.isArray(evaluationValue.results)
+    ? evaluationValue.results.find(
+        (result) => result?.candidate?.candidateId === selectedCandidateId,
+      )
+    : null;
   return {
     datasetSha256: assertNonEmptyString(
       datasetValue.datasetSha256,
       `matches[${index}].dataset.datasetSha256`,
     ),
+    validationObservationIdsSha256: assertNonEmptyString(
+      evaluationValue.cohorts?.validationObservationIdsSha256,
+      `matches[${index}].evaluation.validationObservationIdsSha256`,
+    ),
     evaluationSha256: assertNonEmptyString(
       evaluationValue.platoonEvaluationSha256,
       `matches[${index}].evaluation.platoonEvaluationSha256`,
     ),
-    selectedCandidateId: assertNonEmptyString(
-      evaluationValue.selection?.selectedCandidate?.candidateId,
-      `matches[${index}].evaluation.selectedCandidateId`,
+    selectedCandidateId,
+    validationCategoricalLogLoss: assertFiniteNumber(
+      evaluationValue.selection?.validationCategoricalLogLoss ??
+        selectedResult?.validationCategoricalLogLoss,
+      `matches[${index}].evaluation.validationCategoricalLogLoss`,
     ),
   };
 }
 
-export function selectUniqueArtifactPair(rawMatches) {
+export function selectBestArtifactPair(rawMatches) {
   if (!Array.isArray(rawMatches) || rawMatches.length === 0) {
     throw new Error('No boundary-approved artifact pairs were found.');
   }
 
-  const groups = new Map();
-  for (const [index, match] of rawMatches.entries()) {
-    const identity = identityFor(match, index);
-    const key = JSON.stringify(identity);
-    const group = groups.get(key) ?? [];
-    group.push(match);
-    groups.set(key, group);
+  const described = rawMatches.map((match, index) => ({
+    match,
+    identity: identityFor(match, index),
+  }));
+  if (new Set(described.map(({ identity }) => identity.datasetSha256)).size !== 1) {
+    throw new Error('Boundary evaluations do not share one dataset.');
+  }
+  if (
+    new Set(
+      described.map(({ identity }) => identity.validationObservationIdsSha256),
+    ).size !== 1
+  ) {
+    throw new Error('Boundary evaluations do not share one validation cohort.');
   }
 
-  if (groups.size !== 1) {
-    throw new Error(
-      `Expected exactly one boundary-approved model identity; found ${groups.size}.`,
+  described.sort((left, right) => {
+    const lossDifference =
+      left.identity.validationCategoricalLogLoss -
+      right.identity.validationCategoricalLogLoss;
+    if (lossDifference !== 0) return lossDifference;
+    return String(left.match.evaluation.path).localeCompare(
+      String(right.match.evaluation.path),
     );
-  }
+  });
 
-  const [duplicates] = groups.values();
-  return duplicates
-    .slice()
-    .sort(
-      (left, right) =>
-        String(left.evaluation.path).localeCompare(String(right.evaluation.path)) ||
-        String(left.dataset.path).localeCompare(String(right.dataset.path)),
-    )[0];
+  const selected = described[0];
+  return Object.freeze({
+    selectedMatch: selected.match,
+    selectedIdentity: Object.freeze({ ...selected.identity }),
+    staleEvaluationPaths: Object.freeze([
+      ...new Set(
+        described.slice(1).map(({ match }) => String(match.evaluation.path)),
+      ),
+    ]),
+    compared: Object.freeze(
+      described.map(({ match, identity }) =>
+        Object.freeze({
+          path: String(match.evaluation.path),
+          selectedCandidateId: identity.selectedCandidateId,
+          validationCategoricalLogLoss:
+            identity.validationCategoricalLogLoss,
+          evaluationSha256: identity.evaluationSha256,
+        }),
+      ),
+    ),
+  });
+}
+
+export function selectUniqueArtifactPair(rawMatches) {
+  return selectBestArtifactPair(rawMatches).selectedMatch;
 }
