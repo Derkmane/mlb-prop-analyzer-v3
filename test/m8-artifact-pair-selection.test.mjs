@@ -2,42 +2,77 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  selectBestArtifactPair,
   selectUniqueArtifactCopy,
   selectUniqueArtifactPair,
 } from '../scripts/m8-artifact-pair-selection-utils.mjs';
 
-function pair({ datasetSha = 'a'.repeat(64), evaluationSha = 'b'.repeat(64), candidateId = 'approved', suffix }) {
+function pair({
+  datasetSha = 'a'.repeat(64),
+  evaluationSha = 'b'.repeat(64),
+  candidateId = 'approved',
+  validationCohortSha = 'c'.repeat(64),
+  validationCategoricalLogLoss = 1,
+  suffix,
+}) {
   return {
     dataset: {
       path: `artifacts/dataset-${suffix}.json`,
       value: { datasetSha256: datasetSha },
     },
     evaluation: {
-      path: `artifacts/evaluation-${suffix}.json`,
+      path: `artifacts/platoon-boundary-${suffix}.json`,
       value: {
         platoonEvaluationSha256: evaluationSha,
-        selection: { selectedCandidate: { candidateId } },
+        cohorts: { validationObservationIdsSha256: validationCohortSha },
+        selection: {
+          selectedCandidate: { candidateId },
+          validationCategoricalLogLoss,
+        },
       },
     },
   };
 }
 
-test('accepts duplicate paths that contain one identical approved artifact identity', () => {
-  const later = pair({ suffix: 'z' });
-  const earlier = pair({ suffix: 'a' });
+test('keeps the boundary evaluation with lower categorical log loss and marks the other stale', () => {
+  const worse = pair({
+    suffix: 'old',
+    evaluationSha: 'd'.repeat(64),
+    candidateId: 'older-model',
+    validationCategoricalLogLoss: 1.25,
+  });
+  const better = pair({
+    suffix: 'new',
+    evaluationSha: 'e'.repeat(64),
+    candidateId: 'better-model',
+    validationCategoricalLogLoss: 1.2,
+  });
 
-  const selected = selectUniqueArtifactPair([later, earlier]);
+  const selection = selectBestArtifactPair([worse, better]);
 
-  assert.equal(selected.evaluation.path, 'artifacts/evaluation-a.json');
+  assert.equal(
+    selection.selectedMatch.evaluation.path,
+    'artifacts/platoon-boundary-new.json',
+  );
+  assert.deepEqual(selection.staleEvaluationPaths, [
+    'artifacts/platoon-boundary-old.json',
+  ]);
+  assert.equal(
+    selectUniqueArtifactPair([worse, better]).evaluation.path,
+    'artifacts/platoon-boundary-new.json',
+  );
 });
 
-test('rejects genuinely different approved model identities', () => {
+test('rejects boundary evaluations from different validation cohorts', () => {
   const first = pair({ suffix: 'a' });
-  const second = pair({ evaluationSha: 'c'.repeat(64), suffix: 'b' });
+  const second = pair({
+    suffix: 'b',
+    validationCohortSha: 'f'.repeat(64),
+  });
 
   assert.throws(
-    () => selectUniqueArtifactPair([first, second]),
-    /exactly one boundary-approved model identity; found 2/,
+    () => selectBestArtifactPair([first, second]),
+    /do not share one validation cohort/,
   );
 });
 
