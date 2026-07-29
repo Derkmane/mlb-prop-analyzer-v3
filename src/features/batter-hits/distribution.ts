@@ -10,6 +10,7 @@ import {
   deriveJointNamedHitterScenarioAssumptions,
 } from '../../game/index.js';
 import type {
+  SharedOutcomeContext,
   StarterRetentionState,
 } from '../../game/index.js';
 import type {
@@ -120,11 +121,7 @@ export function buildSyntheticBatterHitsDistribution(
         );
       }
 
-      const deriveOutcomeAssumption = (context: Parameters<
-        typeof deriveJointHitterScenarioAssumptions<readonly number[]>
-      >[4] extends (context: infer TContext) => readonly number[]
-        ? TContext
-        : never) => {
+      const deriveOutcomeAssumption = (context: SharedOutcomeContext) => {
         if (
           context.offensiveEnvironment.environmentId !==
           syntheticAssumption.offensiveEnvironmentId
