@@ -117,7 +117,7 @@ Every prop must preserve:
 - `P(Win | grades)`
 - model and settlement-rule versions
 
-For Higher, upward distribution shifts may help and downward shifts must hurt. For Lower, downward shifts may help and upward shifts must not help Higher.
+For Higher, upward distribution shifts may help and downward shifts must hurt. For Lower, downward shifts may help and upward shifts must hurt.
 
 No multiplier, hidden booster score, risk score, player reputation, excitement, player-quality label, or side preference may alter ranking outside the approved probability model.
 
