@@ -1,7 +1,7 @@
 # MLB Prop Analyzer — Canonical Math & Statistics Reference
 
-**Version:** 1.4  
-**Status:** Canonical probability mathematics  
+**Version:** 1.5
+**Status:** Canonical probability mathematics
 **Empirical status:** Mathematical framework verified where marked; predictive accuracy not yet validated
 
 ---
@@ -726,7 +726,91 @@ earlier current-season training period
 → untouched latest current-season test period
 ```
 
-Current-season walk-forward evaluation is preferred when practical.
+Current-season walk-forward evaluation is preferred when practical. When an approved candidate-selection rule requires both fixed-window and expanding walk-forward validation, both are required inputs to that rule and neither overrides the other.
+
+### 14.1 Candidate selection and stability for pooled predictive models
+
+Candidate selection uses only active-current-season fitting and validation evidence. The untouched latest-current-season test period may not be read during candidate generation, fitting, selection, comparison, tie-breaking, corroboration, or candidate-set revision.
+
+#### Candidate family
+
+Candidates that differ only in the value of one pooling or regularization hyperparameter belong to one candidate family.
+
+When a named candidate is the mathematical limiting case of that hyperparameter, it is a member of the same family. For the starter-batters-faced model, the league distribution is the infinite-pooling limit of the side-pooled distribution family.
+
+This family relationship does not imply that a finite candidate grid identifies the global optimum over every untested finite hyperparameter value.
+
+#### Candidate-set development, freezing, and revision
+
+The discrete candidate set used for final selection must be explicit, ordered, versioned, and frozen before the untouched test period is evaluated.
+
+Candidate-set revisions informed by fitting or validation evidence are model-development decisions and must be recorded honestly. Within a frozen model version, the candidate set may not be revised. Any revision after freezing requires a model-version increment and a written reason recorded before re-evaluation. It also requires a newly reserved untouched active-current-season test period that was not used to evaluate the prior version; otherwise production validation remains blocked.
+
+Once a candidate set is frozen and its untouched test is evaluated, neither the candidate set nor the selection rule may be changed in response to that untouched-test result within the same model version.
+
+#### Proper-score evaluation
+
+Every candidate is evaluated under both:
+
+- fixed later-period validation; and
+- expanding chronological walk-forward validation.
+
+Each method reports at least:
+
+- multiclass log loss; and
+- multiclass Brier score.
+
+Neither score is an automatic decimal-precision tiebreaker for the other. Candidate admissibility is determined through joint proper-score dominance.
+
+#### Dominance and nondominated sets
+
+Under validation method `m`, candidate `a` dominates candidate `b` when:
+
+```text
+logLoss_m(a) ≤ logLoss_m(b)
+and
+Brier_m(a) ≤ Brier_m(b)
+```
+
+and at least one inequality is strict.
+
+The nondominated set for method `m` contains every candidate that is not dominated by any other candidate under that method.
+
+Nondominance means only that the evaluated proper scores do not unanimously prefer another candidate. It must not be described as statistical equivalence unless a separately approved uncertainty procedure establishes equivalence.
+
+#### Stability across validation designs
+
+Let:
+
+```text
+P_fixed = fixed-validation nondominated set
+P_walk  = walk-forward nondominated set
+A       = P_fixed ∩ P_walk
+```
+
+A stable candidate exists when and only when `A` is non-empty.
+
+Exact agreement between the individual fixed-validation and walk-forward minimum-log-loss candidate identifiers is not required.
+
+When `A` is empty, the component fails closed because the two required validation designs do not support a common nondominated candidate.
+
+#### Deterministic selection from the stable set
+
+When `A` is non-empty, select the candidate in `A` with the greatest pooling strength.
+
+The infinite-pooling league candidate has greater pooling strength than every finite side-pooled candidate.
+
+This direction is a deterministic parsimony rule: among candidates jointly nondominated under both required validation designs, prefer the candidate with the strongest pooling and therefore the least retained subgroup variation.
+
+If two candidates have the same pooling strength, select by ascending canonical candidate identifier.
+
+#### Final fitting and untouched testing
+
+After selection, fit exactly one final model on the combined fit and validation periods using the selected candidate.
+
+Freeze and version that model before reading the untouched test period.
+
+The untouched test is evaluated once as a final report. Its results may determine whether the frozen model passes the production-validation gate, but they may not select another candidate, modify the candidate set, alter the selection rule, or trigger hyperparameter retuning within the same model version.
 
 Current-season box scores can validate the baseball distribution but cannot reconstruct the exact earlier Underdog board. Archive raw Underdog boards prospectively throughout the current season.
 
@@ -1026,6 +1110,15 @@ no validated distribution → no ranked prop
 ---
 
 ## Changelog
+
+### Version 1.5 — 2026-07-29
+
+- Replaced exact fixed-validation and walk-forward candidate-ID agreement with a full pairwise proper-score nondominance rule for pooled predictive models.
+- Defined stability as a non-empty intersection of fixed-validation and expanding walk-forward nondominated sets, followed by deterministic strongest-pooling selection.
+- Classified mathematical limit candidates, including the league starter-batters-faced distribution, as members of the same pooling family without claiming a finite grid identifies the global continuous optimum.
+- Reconciled the general walk-forward preference with component rules that require both fixed-window and walk-forward validation, so neither required design silently overrides the other.
+- Required explicit, ordered, versioned candidate sets; prohibited revisions within a frozen model version; and required a new model version, written pre-evaluation reason, and newly reserved untouched current-season test period for any post-freeze revision.
+- Preserved the untouched-test seal by prohibiting its use in candidate generation, selection, comparison, corroboration, or retuning.
 
 ### Version 1.4 — 2026-07-23
 
