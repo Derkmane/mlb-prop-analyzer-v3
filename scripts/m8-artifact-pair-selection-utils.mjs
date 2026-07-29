@@ -12,6 +12,36 @@ function assertNonEmptyString(value, label) {
   return value.trim();
 }
 
+export function selectUniqueArtifactCopy(rawItems, { label, identityField }) {
+  const itemLabel = assertNonEmptyString(label, 'label');
+  const field = assertNonEmptyString(identityField, 'identityField');
+  if (!Array.isArray(rawItems) || rawItems.length === 0) {
+    throw new Error(`No ${itemLabel} artifacts were found.`);
+  }
+
+  const groups = new Map();
+  for (const [index, rawItem] of rawItems.entries()) {
+    const item = assertObject(rawItem, `${itemLabel}[${index}]`);
+    const value = assertObject(item.value, `${itemLabel}[${index}].value`);
+    const identity = assertNonEmptyString(
+      value[field],
+      `${itemLabel}[${index}].${field}`,
+    );
+    const group = groups.get(identity) ?? [];
+    group.push(item);
+    groups.set(identity, group);
+  }
+
+  if (groups.size !== 1) {
+    throw new Error(`Expected exactly one ${itemLabel} identity; found ${groups.size}.`);
+  }
+
+  const [duplicates] = groups.values();
+  return duplicates
+    .slice()
+    .sort((left, right) => String(left.path).localeCompare(String(right.path)))[0];
+}
+
 function identityFor(match, index) {
   const pair = assertObject(match, `matches[${index}]`);
   const dataset = assertObject(pair.dataset, `matches[${index}].dataset`);
