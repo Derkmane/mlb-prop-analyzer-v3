@@ -1,6 +1,7 @@
 import { access, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 
+import { selectUniqueArtifactCopy } from './m8-artifact-pair-selection-utils.mjs';
 import {
   buildM8SharedOffensiveEnvironmentV2,
   verifyM8SharedOffensiveEnvironmentV2,
@@ -68,15 +69,18 @@ for (const filePath of files) {
   if (isResolvedDataset(item.value)) datasets.push(item);
   if (isSharedV1(item.value)) sharedArtifacts.push(item);
 }
-if (datasets.length !== 1 || sharedArtifacts.length !== 1) {
-  throw new Error(
-    `Expected one resolved categorical dataset and one K=4 shared-environment artifact under ${SEARCH_ROOT}; found datasets=${datasets.length}, shared=${sharedArtifacts.length}.`,
-  );
-}
-const datasetRead = datasets[0];
-const sharedRead = sharedArtifacts[0];
+const datasetRead = selectUniqueArtifactCopy(datasets, {
+  label: 'resolved dataset',
+  identityField: 'datasetSha256',
+});
+const sharedRead = selectUniqueArtifactCopy(sharedArtifacts, {
+  label: 'shared-environment v1',
+  identityField: 'artifactSha256',
+});
 console.log(`Resolved dataset: ${datasetRead.path}`);
+console.log(`Equivalent resolved dataset copies found: ${datasets.length}`);
 console.log(`Shared environment v1: ${sharedRead.path}`);
+console.log(`Equivalent shared environment copies found: ${sharedArtifacts.length}`);
 
 const transitionDataset = buildM8StarterBullpenDataset(datasetRead.value);
 const transitionDatasetPath = path.join(OUTPUT_ROOT, 'starter-bullpen-dataset.json');
