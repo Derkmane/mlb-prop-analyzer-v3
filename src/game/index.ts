@@ -6,6 +6,7 @@ export type {
   HitterPASurvivalState,
   HomeAwayState,
   JointHitterScenarioAssumptions,
+  JointNamedHitterScenarioAssumptions,
   JointPitchingWorkloadPath,
   JointPitchingWorkloadState,
   LineupEntryState,
@@ -15,6 +16,7 @@ export type {
   SharedOffensiveEnvironmentState,
   SharedOutcomeContext,
   SharedScenarioReference,
+  StarterRetentionState,
   StarterScenarioState,
   SurvivalAdjustmentMethod,
   TeamOffenseScenarioState,
@@ -27,6 +29,11 @@ export {
   hitterOpportunityCountDistribution,
 } from './hitter-opportunity.js';
 export type { HitterPASurvivalInput } from './hitter-opportunity.js';
+export {
+  createStarterRetentionState,
+  deriveJointNamedHitterScenarioAssumptions,
+  deriveNamedHitterOpportunityCountDistribution,
+} from './named-hitter-opportunity.js';
 export {
   assertSharedScenarioReference,
   ContradictoryGameScenarioError,
