@@ -35,6 +35,20 @@ function nonEmptyString(value) {
     : null;
 }
 
+function hasCompleteVenueLineage(report) {
+  return (
+    report.declaredGameCount === report.manifestGameCount &&
+    report.uniqueGameCount === report.manifestGameCount &&
+    report.missingCaptureGameCount === 0 &&
+    report.missingVenueGameCount === 0 &&
+    report.identityMismatchGameCount === 0 &&
+    report.unsupportedPeriodGameCount === 0 &&
+    report.untouchedTestRowsIncluded === false &&
+    report.seasonCounts['2026'] === report.manifestGameCount &&
+    report.statusCounts.STATUS_FINAL === report.manifestGameCount
+  );
+}
+
 const manifestPaths = await findNamedFiles('artifacts', 'capture-manifest.json');
 const candidates = [];
 
@@ -158,22 +172,13 @@ for (const report of reports) {
   console.log(JSON.stringify(report, null, 2));
 }
 
-const selected = reports[0];
-if (
-  selected.declaredGameCount !== selected.manifestGameCount ||
-  selected.uniqueGameCount !== selected.manifestGameCount ||
-  selected.missingCaptureGameCount !== 0 ||
-  selected.missingVenueGameCount !== 0 ||
-  selected.identityMismatchGameCount !== 0 ||
-  selected.unsupportedPeriodGameCount !== 0 ||
-  selected.untouchedTestRowsIncluded !== false ||
-  selected.seasonCounts['2026'] !== selected.manifestGameCount ||
-  selected.statusCounts.STATUS_FINAL !== selected.manifestGameCount
-) {
+const eligibleReports = reports.filter(hasCompleteVenueLineage);
+if (eligibleReports.length !== 1) {
   throw new Error(
-    'Selected stats-lineup capture does not provide complete verified 2026 final-game venue lineage.',
+    `Expected exactly one stats-lineup capture with complete verified 2026 final-game venue lineage; found ${eligibleReports.length}.`,
   );
 }
+const [selected] = eligibleReports;
 
 console.log('Selected manifest:', selected.manifestPath);
 console.log('Venue lineage ready for dataset implementation: true');
