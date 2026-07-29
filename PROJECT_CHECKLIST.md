@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 2.0
+**Version:** 2.1
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -276,7 +276,7 @@ Verified by `test/balldontlie-terminal-pa-contracts.test.ts` and `test/balldontl
 - [ ] Park neutralization and application.
 - [ ] Defense-to-batted-ball translation if supported.
 - [ ] Times-through-order effects.
-- [ ] Bullpen transition scenarios.
+- [x] Bullpen transition scenarios — selected `starter-bf-side-pool-1000` from the intersection of the fixed-validation and expanding walk-forward proper-score nondominated sets under `CANONICAL_MATH_SPEC.md` Version 1.5; 9 focused tests, the real-data shared-environment gate, the complete 329-test verification gate, and GitHub Actions verify run 396 passed while production remained disabled and untouched-test rows remained sealed.
 - [x] Shared offensive-environment scenarios.
 - [x] Hitter PA survival by lineup slot and home/away.
 - [x] Define and validate monotonicity handling for fitted hitter PA survival curves — selected curves are monotone by construction, raw and fitted curves are preserved, and no production repair threshold is used.
@@ -368,6 +368,13 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 2.1 — 2026-07-29
+
+- Closed the M8 bullpen-transition-scenarios item after the Version 1.5 proper-score nondominated-intersection rule selected `starter-bf-side-pool-1000`.
+- Recorded the fixed nondominated set `{side-pool-500, side-pool-1000, league}`, the walk-forward nondominated set `{side-pool-1000}`, and the single-candidate stable intersection.
+- Recorded 9 focused passing tests, the passing real-data shared-environment gate, the complete 329-of-329 verification gate, and passing GitHub Actions verify run 396.
+- Preserved production-disabled status and the sealed untouched-test period; no real prop was enabled.
 
 ### Version 2.0 — 2026-07-29
 

@@ -37,6 +37,9 @@ The model exists to find the posted Higher or Lower Batter Hits props with the h
 - Built a shared offensive-environment benchmark that moves opportunity and outcome assumptions together.
 - Selected the `shared-environment-k4` benchmark in both fixed validation and walk-forward evaluation.
 - Preserved one shared game scenario set for lineup, home/away state, offensive environment, opposing starter, bullpen transition, and team batters faced.
+- Built and validated the shared starter-to-bullpen transition distribution from current-season terminal PA order while conserving starter plus bullpen batters faced to total team batters faced.
+- Under `CANONICAL_MATH_SPEC.md` Version 1.5, the fixed-validation nondominated set was `starter-bf-side-pool-500`, `starter-bf-side-pool-1000`, and `starter-bf-league`; the walk-forward nondominated set was only `starter-bf-side-pool-1000`; the stable intersection therefore selected `starter-bf-side-pool-1000`.
+- The fixed-validation candidate log-loss range was `2.8480057054840135` through `2.850462309846479`, a span of `0.0024566043624656095`. The league limit remained on the fixed-validation frontier because its Brier score `0.9266005135161092` was lower than the finite `500` and `1000` candidates despite its worse log loss. This is selection evidence only; it does not establish a nonzero home/away effect or the downstream ranking impact of the component.
 
 ### Projected lineup rule
 
@@ -54,6 +57,7 @@ The model exists to find the posted Higher or Lower Batter Hits props with the h
 - Added Batter Hits overdispersion and half-line tail checks with Higher/Lower symmetry.
 - Added deterministic hashes and tamper checks for datasets and evaluation artifacts.
 - Enforced that untouched-test rows cannot enter fitting or candidate selection.
+- Starter-bullpen selection passed 9 focused tests, the real-data shared-environment gate selected `starter-bf-side-pool-1000`, the complete `npm run verify` gate passed 329 of 329 tests, and GitHub Actions verify run 396 passed on commit `6af41c3`.
 - The production registry remains fail closed: no unvalidated Batter Hits probability can rank a real prop.
 
 ## Explicitly not completed or enabled by this merge
