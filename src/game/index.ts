@@ -10,6 +10,7 @@ export type {
   JointPitchingWorkloadState,
   LineupEntryState,
   LineupSlot,
+  LineupSourceStatus,
   LineupState,
   SharedOffensiveEnvironmentState,
   SharedOutcomeContext,
