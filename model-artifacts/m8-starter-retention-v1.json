@@ -1,0 +1,417 @@
+{
+  "purpose": "Frozen current-season named-starter retention probabilities that convert batting-slot turns into named-hitter plate appearances. This artifact remains disabled until the one-time untouched test passes.",
+  "artifactVersion": 1,
+  "modelVersion": "m8-starter-retention-v1",
+  "status": "frozen-current-season-candidate-awaiting-untouched-test",
+  "productionEnabled": false,
+  "activeSeason": 2026,
+  "sourceDatasetSha256": "2c0d9c20edad3936163938a9655f5cc920d50a4897c0761196fccb24c1a4adbb",
+  "sourceDatasetFileSha256": "ea1da998fb60ed4ffa4c19cdad5a718ed0dc3c91e44d4ad5f787e12b5571dc18",
+  "sourceEvaluationSha256": "1ed93f7910fcc13238c8e308458d46e3a7dfe2b23394e954411992fc5ae1e9dd",
+  "sourceEvaluationFileSha256": "15dc7b4f04d361bf3712dd886f46ee32c7cfc9a68c41502cc5f842763ade448d",
+  "fitWindow": {
+    "startDate": "2026-03-27",
+    "endDate": "2026-06-21",
+    "observationCount": 17289
+  },
+  "validationWindow": {
+    "startDate": "2026-06-22",
+    "endDate": "2026-07-05",
+    "observationCount": 2979
+  },
+  "selectedCandidate": {
+    "candidateId": "retention-slot-pool-50",
+    "kind": "retention",
+    "grouping": "slot",
+    "leagueEquivalentRisk": 50
+  },
+  "turnMaximum": 7,
+  "conditionalRetentionByGroup": {
+    "slot:1": [
+      1,
+      0.9960217704823138,
+      0.9924783777644217,
+      0.947066171973015,
+      0.9562362149828875,
+      0.8570961145194272,
+      1
+    ],
+    "slot:2": [
+      1,
+      0.9964561753476483,
+      0.9920457367976543,
+      0.9560846030205872,
+      0.9509404594620127,
+      0.8125153374233128,
+      1
+    ],
+    "slot:3": [
+      1,
+      0.9955873656169794,
+      0.9876757941596068,
+      0.9568184242000042,
+      0.9508527835686704,
+      0.7506077092256048,
+      1
+    ],
+    "slot:4": [
+      1,
+      0.9981937948089863,
+      0.9842266841661527,
+      0.9428850369939022,
+      0.9418185721404546,
+      0.8205164788129548,
+      1
+    ],
+    "slot:5": [
+      1,
+      0.9973249850783172,
+      0.9724533624624647,
+      0.9364645434469568,
+      0.9514404440767104,
+      0.8550613496932515,
+      1
+    ],
+    "slot:6": [
+      1,
+      0.9960217704823138,
+      0.9458146184970864,
+      0.9280204136492562,
+      0.9365272720782465,
+      0.868194018404908,
+      1
+    ],
+    "slot:7": [
+      1,
+      0.9964561753476483,
+      0.9340684046267738,
+      0.9195342040896097,
+      0.945646183191473,
+      0.8594069529652352,
+      1
+    ],
+    "slot:8": [
+      1,
+      0.9994970094049898,
+      0.9008052673680221,
+      0.8917747519318742,
+      0.9162378424575088,
+      0.8520073189107739,
+      1
+    ],
+    "slot:9": [
+      1,
+      0.9960217704823138,
+      0.8860675622389094,
+      0.8626201482966906,
+      0.9455864787386526,
+      0.849364592462752,
+      1
+    ]
+  },
+  "validationEvidence": {
+    "selected": {
+      "overall": {
+        "observationCount": 2979,
+        "logLoss": 0.46831348674470386,
+        "multiclassBrier": 0.22544934916334583,
+        "predictedMeanPlateAppearances": 3.9966467668132224,
+        "observedMeanPlateAppearances": 4.0026854649211145
+      },
+      "bySlot": {
+        "1": {
+          "observationCount": 331,
+          "logLoss": 0.39394802061025336,
+          "multiclassBrier": 0.17565157860101516,
+          "predictedMeanPlateAppearances": 4.481530870226172,
+          "observedMeanPlateAppearances": 4.492447129909365
+        },
+        "2": {
+          "observationCount": 331,
+          "logLoss": 0.34241532294546867,
+          "multiclassBrier": 0.14677565157588318,
+          "predictedMeanPlateAppearances": 4.39291026741174,
+          "observedMeanPlateAppearances": 4.404833836858006
+        },
+        "3": {
+          "observationCount": 331,
+          "logLoss": 0.3257914734473857,
+          "multiclassBrier": 0.14470056648349447,
+          "predictedMeanPlateAppearances": 4.2803471960528725,
+          "observedMeanPlateAppearances": 4.302114803625377
+        },
+        "4": {
+          "observationCount": 331,
+          "logLoss": 0.44146789098050543,
+          "multiclassBrier": 0.19409743447410777,
+          "predictedMeanPlateAppearances": 4.183677144263695,
+          "observedMeanPlateAppearances": 4.16012084592145
+        },
+        "5": {
+          "observationCount": 331,
+          "logLoss": 0.4783043218457042,
+          "multiclassBrier": 0.23429149323231008,
+          "predictedMeanPlateAppearances": 4.0521656337342575,
+          "observedMeanPlateAppearances": 4.033232628398792
+        },
+        "6": {
+          "observationCount": 331,
+          "logLoss": 0.5245871204911364,
+          "multiclassBrier": 0.25001542721312575,
+          "predictedMeanPlateAppearances": 3.8587797629688017,
+          "observedMeanPlateAppearances": 3.8429003021148036
+        },
+        "7": {
+          "observationCount": 331,
+          "logLoss": 0.500507368867435,
+          "multiclassBrier": 0.24157965870505324,
+          "predictedMeanPlateAppearances": 3.7138670032038275,
+          "observedMeanPlateAppearances": 3.731117824773414
+        },
+        "8": {
+          "observationCount": 331,
+          "logLoss": 0.5914471520217651,
+          "multiclassBrier": 0.313372908354297,
+          "predictedMeanPlateAppearances": 3.572383826185627,
+          "observedMeanPlateAppearances": 3.5770392749244713
+        },
+        "9": {
+          "observationCount": 331,
+          "logLoss": 0.6163527094927493,
+          "multiclassBrier": 0.32855942383083925,
+          "predictedMeanPlateAppearances": 3.4341591972721286,
+          "observedMeanPlateAppearances": 3.4803625377643503
+        }
+      },
+      "bySide": {
+        "away": {
+          "observationCount": 1449,
+          "logLoss": 0.46050843574247363,
+          "multiclassBrier": 0.21904598245908632,
+          "predictedMeanPlateAppearances": 4.068244363704582,
+          "observedMeanPlateAppearances": 4.0938578329882676
+        },
+        "home": {
+          "observationCount": 1530,
+          "logLoss": 0.4757053291644862,
+          "multiclassBrier": 0.2315137141009134,
+          "predictedMeanPlateAppearances": 3.92883963093375,
+          "observedMeanPlateAppearances": 3.9163398692810456
+        }
+      },
+      "bySubstitution": {
+        "substituted": {
+          "observationCount": 376,
+          "logLoss": 2.825765678498057,
+          "multiclassBrier": 1.6087482876389718,
+          "predictedMeanPlateAppearances": 3.9963040908023237,
+          "observedMeanPlateAppearances": 2.773936170212766
+        },
+        "notSubstituted": {
+          "observationCount": 2603,
+          "logLoss": 0.12778255163166669,
+          "multiclassBrier": 0.02563359777385993,
+          "predictedMeanPlateAppearances": 3.996696265921982,
+          "observedMeanPlateAppearances": 4.180176719170189
+        }
+      },
+      "survivalReliability": {
+        "1": {
+          "observationCount": 2979,
+          "meanPredictedSurvival": 1,
+          "observedSurvivalRate": 1
+        },
+        "2": {
+          "observationCount": 2979,
+          "meanPredictedSurvival": 0.9969923072474185,
+          "observedSurvivalRate": 0.9959718026183283
+        },
+        "3": {
+          "observationCount": 2979,
+          "meanPredictedSurvival": 0.951819074667093,
+          "observedSurvivalRate": 0.9533400469956361
+        },
+        "4": {
+          "observationCount": 2979,
+          "meanPredictedSurvival": 0.7825274419784655,
+          "observedSurvivalRate": 0.7848271231957032
+        },
+        "5": {
+          "observationCount": 2979,
+          "meanPredictedSurvival": 0.25177223183218483,
+          "observedSurvivalRate": 0.25545485062101375
+        },
+        "6": {
+          "observationCount": 2979,
+          "meanPredictedSurvival": 0.013535711088110313,
+          "observedSurvivalRate": 0.013091641490433032
+        },
+        "7": {
+          "observationCount": 2979,
+          "meanPredictedSurvival": 0,
+          "observedSurvivalRate": 0
+        }
+      },
+      "observationIdsSha256": "234e1ba86562cd0ee968202026763a4726c7e5c369ce5c96b42d80577ea89fa8"
+    },
+    "noRetentionBaseline": {
+      "overall": {
+        "observationCount": 2979,
+        "logLoss": 87.18751208114449,
+        "multiclassBrier": 0.25243370258476,
+        "predictedMeanPlateAppearances": 4.1856327626720375,
+        "observedMeanPlateAppearances": 4.0026854649211145
+      },
+      "bySlot": {
+        "1": {
+          "observationCount": 331,
+          "logLoss": 66.78192414725935,
+          "multiclassBrier": 0.1933534743202417,
+          "predictedMeanPlateAppearances": 4.634441087613293,
+          "observedMeanPlateAppearances": 4.492447129909365
+        },
+        "2": {
+          "observationCount": 331,
+          "logLoss": 54.2603133696482,
+          "multiclassBrier": 0.15709969788519637,
+          "predictedMeanPlateAppearances": 4.522658610271903,
+          "observedMeanPlateAppearances": 4.404833836858006
+        },
+        "3": {
+          "observationCount": 331,
+          "logLoss": 54.2603133696482,
+          "multiclassBrier": 0.15709969788519637,
+          "predictedMeanPlateAppearances": 4.413897280966768,
+          "observedMeanPlateAppearances": 4.302114803625377
+        },
+        "4": {
+          "observationCount": 331,
+          "logLoss": 73.04272953606493,
+          "multiclassBrier": 0.21148036253776434,
+          "predictedMeanPlateAppearances": 4.317220543806647,
+          "observedMeanPlateAppearances": 4.16012084592145
+        },
+        "5": {
+          "observationCount": 331,
+          "logLoss": 89.73821057287978,
+          "multiclassBrier": 0.2598187311178248,
+          "predictedMeanPlateAppearances": 4.205438066465256,
+          "observedMeanPlateAppearances": 4.033232628398792
+        },
+        "6": {
+          "observationCount": 331,
+          "logLoss": 95.99901596168536,
+          "multiclassBrier": 0.27794561933534745,
+          "predictedMeanPlateAppearances": 4.063444108761329,
+          "observedMeanPlateAppearances": 3.8429003021148036
+        },
+        "7": {
+          "observationCount": 331,
+          "logLoss": 91.82514570248165,
+          "multiclassBrier": 0.26586102719033233,
+          "predictedMeanPlateAppearances": 3.9274924471299095,
+          "observedMeanPlateAppearances": 3.731117824773414
+        },
+        "8": {
+          "observationCount": 331,
+          "logLoss": 127.30304290571321,
+          "multiclassBrier": 0.3685800604229607,
+          "predictedMeanPlateAppearances": 3.8489425981873113,
+          "observedMeanPlateAppearances": 3.5770392749244713
+        },
+        "9": {
+          "observationCount": 331,
+          "logLoss": 131.47691316491694,
+          "multiclassBrier": 0.3806646525679758,
+          "predictedMeanPlateAppearances": 3.7371601208459215,
+          "observedMeanPlateAppearances": 3.4803625377643503
+        }
+      },
+      "bySide": {
+        "away": {
+          "observationCount": 1449,
+          "logLoss": 83.4269961229724,
+          "multiclassBrier": 0.24154589371980675,
+          "predictedMeanPlateAppearances": 4.270531400966184,
+          "observedMeanPlateAppearances": 4.0938578329882676
+        },
+        "home": {
+          "observationCount": 1530,
+          "logLoss": 90.74894190035332,
+          "multiclassBrier": 0.2627450980392157,
+          "predictedMeanPlateAppearances": 4.105228758169934,
+          "observedMeanPlateAppearances": 3.9163398692810456
+        }
+      },
+      "bySubstitution": {
+        "substituted": {
+          "observationCount": 376,
+          "logLoss": 690.7755278982166,
+          "multiclassBrier": 2,
+          "predictedMeanPlateAppearances": 4.223404255319149,
+          "observedMeanPlateAppearances": 2.773936170212766
+        },
+        "notSubstituted": {
+          "observationCount": 2603,
+          "logLoss": 0,
+          "multiclassBrier": 0,
+          "predictedMeanPlateAppearances": 4.180176719170189,
+          "observedMeanPlateAppearances": 4.180176719170189
+        }
+      },
+      "survivalReliability": {
+        "1": {
+          "observationCount": 2979,
+          "meanPredictedSurvival": 1,
+          "observedSurvivalRate": 1
+        },
+        "2": {
+          "observationCount": 2979,
+          "meanPredictedSurvival": 1,
+          "observedSurvivalRate": 0.9959718026183283
+        },
+        "3": {
+          "observationCount": 2979,
+          "meanPredictedSurvival": 1,
+          "observedSurvivalRate": 0.9533400469956361
+        },
+        "4": {
+          "observationCount": 2979,
+          "meanPredictedSurvival": 0.8768042967438738,
+          "observedSurvivalRate": 0.7848271231957032
+        },
+        "5": {
+          "observationCount": 2979,
+          "meanPredictedSurvival": 0.29036589459550183,
+          "observedSurvivalRate": 0.25545485062101375
+        },
+        "6": {
+          "observationCount": 2979,
+          "meanPredictedSurvival": 0.018462571332661968,
+          "observedSurvivalRate": 0.013091641490433032
+        },
+        "7": {
+          "observationCount": 2979,
+          "meanPredictedSurvival": 0,
+          "observedSurvivalRate": 0
+        }
+      },
+      "observationIdsSha256": "234e1ba86562cd0ee968202026763a4726c7e5c369ce5c96b42d80577ea89fa8"
+    },
+    "fixedSelectedCandidateId": "retention-slot-pool-50",
+    "walkForwardSelectedCandidateId": "retention-slot-pool-50",
+    "walkForwardFoldCount": 14,
+    "selectionAgreement": true,
+    "selectedBeatsNoRetention": true
+  },
+  "untouchedTestReservation": {
+    "startDate": "2026-07-06",
+    "endDate": "2026-07-25",
+    "shardCount": 20,
+    "gameCount": 225,
+    "plateAppearanceCount": 16830,
+    "rowsIncluded": false,
+    "allowedUse": "final-evaluation-only-after-candidate-selection"
+  },
+  "artifactSha256": "f55a0ce1c2a3104ffdc7aa2b1a7b097ae0d580eb3df3c1d2a79b548413dca136"
+}
