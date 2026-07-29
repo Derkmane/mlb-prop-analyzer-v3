@@ -29,7 +29,13 @@ function lineupTeam(side, teamId, players) {
   };
 }
 
-function gameCapture({ gameId, date, periodId, invalidHome = false }) {
+function gameCapture({
+  gameId,
+  date,
+  periodId,
+  invalidHome = false,
+  unmatchedActiveTeamName = false,
+}) {
   const awayPlayers = Array.from(
     { length: 9 },
     (_, index) => gameId * 100 + index + 1,
@@ -40,10 +46,15 @@ function gameCapture({ gameId, date, periodId, invalidHome = false }) {
   );
   const awayTeamId = gameId * 10 + 1;
   const homeTeamId = gameId * 10 + 2;
-  const makeRows = (teamId, players, invalid) =>
+  const awayTeamName = `Team ${awayTeamId}`;
+  const homeTeamName = `Team ${homeTeamId}`;
+  const makeRows = (teamName, players, invalid) =>
     players.map((playerId, index) => ({
       game_id: gameId,
-      team: { id: teamId },
+      team_name:
+        unmatchedActiveTeamName && teamName === awayTeamName && index === 0
+          ? 'Unexpected Team'
+          : teamName,
       player: { id: playerId },
       plate_appearances: invalid && index === 0 ? null : index < 3 ? 4 : 3,
       at_bats: index < 3 ? 4 : 3,
@@ -72,8 +83,14 @@ function gameCapture({ gameId, date, periodId, invalidHome = false }) {
           status: 'STATUS_FINAL',
           season: 2026,
           season_type: 'regular',
-          away_team: { id: awayTeamId, display_name: `Team ${awayTeamId}` },
-          home_team: { id: homeTeamId, display_name: `Team ${homeTeamId}` },
+          away_team: {
+            id: awayTeamId,
+            display_name: awayTeamName,
+          },
+          home_team: {
+            id: homeTeamId,
+            display_name: homeTeamName,
+          },
         },
       },
     },
@@ -81,8 +98,8 @@ function gameCapture({ gameId, date, periodId, invalidHome = false }) {
       {
         body: {
           data: [
-            ...makeRows(awayTeamId, awayPlayers, false),
-            ...makeRows(homeTeamId, homePlayers, invalidHome),
+            ...makeRows(awayTeamName, awayPlayers, false),
+            ...makeRows(homeTeamName, homePlayers, invalidHome),
           ],
         },
       },
@@ -121,7 +138,7 @@ function manifest(captures) {
   };
 }
 
-test('builds paired team-game rows from direct PA and hit evidence', () => {
+test('builds paired team-game rows from captured team_name, direct PA, and hit evidence', () => {
   const captures = [
     gameCapture({ gameId: 1, date: '2026-06-01', periodId: 'fit' }),
     gameCapture({ gameId: 2, date: '2026-06-22', periodId: 'validation' }),
@@ -137,6 +154,10 @@ test('builds paired team-game rows from direct PA and hit evidence', () => {
   assert.equal(dataset.periods.fit.rows[0].teamPlateAppearances, 30);
   assert.equal(dataset.periods.fit.rows[0].teamHits, 3);
   assert.equal(dataset.periods.fit.rows[0].gamePlateAppearances, 60);
+  assert.equal(
+    dataset.exclusionPolicy.statsTeamJoin,
+    'exact-stats.team_name-to-game-team.display_name',
+  );
   assert.equal(dataset.exclusionPolicy.componentArithmeticFallback, 'prohibited');
   verifyM8TeamOffensiveEnvironmentDataset(dataset);
 });
@@ -161,6 +182,28 @@ test('excludes both sides when one team has incomplete direct PA evidence', () =
   assert.equal(dataset.totals.excludedTeamGameCount, 2);
   assert.equal(dataset.excludedGames[0].gameId, 2);
   assert.match(dataset.excludedGames[0].reasons.join(','), /home:/);
+});
+
+test('excludes the entire game when an active stats row has an unmatched team_name', () => {
+  const captures = [
+    gameCapture({ gameId: 1, date: '2026-06-01', periodId: 'fit' }),
+    gameCapture({
+      gameId: 2,
+      date: '2026-06-22',
+      periodId: 'validation',
+      unmatchedActiveTeamName: true,
+    }),
+    gameCapture({ gameId: 3, date: '2026-06-23', periodId: 'validation' }),
+  ];
+  const dataset = buildM8TeamOffensiveEnvironmentDataset({
+    captureManifest: manifest(captures),
+    captures,
+  });
+  assert.equal(dataset.totals.includedGameCount, 2);
+  assert.equal(dataset.totals.excludedGameCount, 1);
+  assert.deepEqual(dataset.excludedGames[0].reasons, [
+    'unmatched-active-stats-team-name',
+  ]);
 });
 
 test('is deterministic for identical ordered evidence', () => {
