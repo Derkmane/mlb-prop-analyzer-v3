@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 1.9
+**Version:** 2.0
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -262,14 +262,14 @@ Verified by `test/balldontlie-terminal-pa-contracts.test.ts` and `test/balldontl
 
 ### Categorical hitter model
 
-- [ ] Define current-season recency weighting.
-- [ ] Define one approved pooling path per parameter.
-- [ ] Prohibit double shrinkage.
-- [ ] Fit current-season batter effects.
-- [ ] Fit current-season pitcher-allowed effects.
-- [ ] Fit current-season platoon effects.
-- [ ] Fit coherent terminal categorical probabilities.
-- [ ] Handle rare outcomes and uncertainty.
+- [x] Define current-season recency weighting — uniform current-season weighting won fixed validation and expanding walk-forward comparisons.
+- [x] Define one approved pooling path per parameter.
+- [x] Prohibit double shrinkage.
+- [x] Fit current-season batter effects.
+- [x] Fit current-season pitcher-allowed effects.
+- [x] Fit and evaluate current-season platoon effects.
+- [x] Fit coherent terminal categorical probabilities.
+- [x] Handle rare outcomes and report uncertainty without prior-season supplementation.
 
 ### Context and opportunity
 
@@ -278,30 +278,34 @@ Verified by `test/balldontlie-terminal-pa-contracts.test.ts` and `test/balldontl
 - [ ] Times-through-order effects.
 - [ ] Bullpen transition scenarios.
 - [x] Shared offensive-environment scenarios.
-- [ ] Hitter PA survival by lineup slot and home/away.
-- [ ] Define and validate monotonicity handling for fitted hitter PA survival curves; prefer monotone-by-construction computation, preserve raw and adjusted curves, and prohibit any production repair threshold without current-season evidence.
+- [x] Hitter PA survival by lineup slot and home/away.
+- [x] Define and validate monotonicity handling for fitted hitter PA survival curves — selected curves are monotone by construction, raw and fitted curves are preserved, and no production repair threshold is used.
 - [ ] Eligibility and participation probability.
 - [x] Opportunity/outcome dependence benchmark.
+- [x] Treat projected and confirmed versions of an otherwise identical lineup identically in model assumptions and opportunity distributions.
 
 ### Validation and calibration
 
-- [ ] Earlier current-season fit period.
-- [ ] Later validation period.
-- [ ] Untouched latest test period.
-- [ ] Walk-forward evaluation where practical.
-- [ ] Reliability curves.
-- [ ] Brier score.
-- [ ] Log loss.
-- [ ] Probability-bucket counts and uncertainty.
-- [ ] Altline-tail checks.
-- [ ] Overdispersion checks.
-- [ ] Frozen, versioned runtime model artifacts.
-- [ ] Runtime app does not import fitting code.
+- [x] Earlier current-season fit period.
+- [x] Later validation period.
+- [x] Reserve and seal an untouched latest current-season test period during candidate selection.
+- [ ] Run the final untouched-test evaluation after the complete runtime candidate is frozen.
+- [x] Walk-forward evaluation where practical.
+- [x] Reliability curves.
+- [x] Brier score.
+- [x] Log loss.
+- [x] Probability-bucket counts and uncertainty.
+- [x] Validation-period half-line and altline-tail checks.
+- [x] Overdispersion checks.
+- [ ] Frozen, versioned complete runtime model artifacts.
+- [x] Runtime application code does not import the offline fitting scripts.
 
 ### M8 exit gate
 
-- [ ] Batter Hits is empirically validated or explicitly remains not yet production-validated.
-- [ ] No placeholder coefficient can reach production ranking.
+- [x] Batter Hits explicitly remains not yet production-validated; the completed fitting and validation evidence may merge without enabling real-prop ranking.
+- [x] No placeholder or unvalidated coefficient can reach production ranking.
+
+M8 merge status is documented in `docs/modeling/m8-merge-status-v1.md`. Open production gates above remain blockers for M9 and may not be silently treated as completed.
 
 ---
 
@@ -364,6 +368,14 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 2.0 — 2026-07-29
+
+- Recorded the completed M8 current-season fitting and validation evidence for recency weighting, single-pass pooling, batter effects, pitcher-allowed effects, platoon evaluation, coherent categorical probabilities, rare-outcome uncertainty, PA survival, reliability, scoring metrics, tail checks, and overdispersion checks.
+- Recorded the projected-lineup equivalence rule and focused regression: projected-versus-confirmed status alone cannot alter model assumptions or opportunity distributions.
+- Recorded the sealed untouched-test period and separated its reservation from the still-open final untouched-test evaluation.
+- Closed the M8 merge gate as explicitly not yet production-validated while preserving fail-closed protection against real-prop ranking.
+- Kept final runtime artifacts, eligibility, remaining context effects, and M9 production integration open.
 
 ### Version 1.9 — 2026-07-29
 
