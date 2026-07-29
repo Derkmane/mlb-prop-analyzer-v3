@@ -1,6 +1,6 @@
 # MLB Prop Analyzer — Project Rules
 
-**Version:** 2.1  
+**Version:** 2.2  
 **Status:** Canonical project rules  
 **Applies to:** MLB Prop Analyzer V3  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
@@ -117,7 +117,7 @@ Every prop must preserve:
 - `P(Win | grades)`
 - model and settlement-rule versions
 
-For Higher, upward distribution shifts may help and downward shifts must hurt. For Lower, downward shifts may help and upward shifts must hurt.
+For Higher, upward distribution shifts may help and downward shifts must hurt. For Lower, downward shifts may help and upward shifts must not help Higher.
 
 No multiplier, hidden booster score, risk score, player reputation, excitement, player-quality label, or side preference may alter ranking outside the approved probability model.
 
@@ -145,6 +145,21 @@ Rules:
 - the user builds their own entries
 
 A market and a category are different objects. Batter Hits is a market feature. High Probability Altline Props is a category selector.
+
+### Projected lineup treatment — LOCKED
+
+Before an official confirmed lineup is available, the app must use its current approved projection of the starting players and batting order as the active lineup assumption.
+
+Rules:
+
+- a projected starter is treated as starting for model construction until confirmed information replaces the projection
+- a projected batting order is treated as the active batting order until the official lineup posts
+- projected status by itself may not reduce the modeled statistic distribution, `P(Win)`, `P(Win | grades)`, eligibility, category access, ranking position, or confidence
+- projected status by itself may not increase `P(Void)` or apply a start-probability multiplier, uncertainty discount, hidden penalty, or side-independent risk score
+- the projected and confirmed versions of an otherwise identical lineup must produce identical model distributions and probabilities; only source metadata may differ
+- when the official lineup becomes available, it atomically replaces the projection and the affected predictions are recomputed from the confirmed players and batting order
+- projected starters and batting order must come from an approved, versioned, current-season evidence path; the projection method must be validated separately, but projection status is not a probability penalty
+- a player who is neither projected nor confirmed to start may not be treated as a starting hitter merely because an offer exists
 
 ---
 
@@ -712,6 +727,13 @@ There is no separate Project Knowledge deliverable.
 ---
 
 ## Changelog
+
+### Version 2.2 — 2026-07-29
+
+- Locked projected starters and projected batting order as the active lineup assumption until the official lineup posts.
+- Prohibited any probability, eligibility, void, confidence, category, ranking, or hidden-score penalty solely because a lineup is projected rather than confirmed.
+- Required identical projected-versus-confirmed lineup inputs to produce identical distributions and probabilities, with only source metadata allowed to differ.
+- Required official lineups to atomically replace projections and trigger recomputation.
 
 ### Version 2.1 — 2026-07-26
 
