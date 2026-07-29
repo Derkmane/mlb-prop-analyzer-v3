@@ -687,8 +687,8 @@ disabled-market rejection, invalid probability rejection,
 forbidden-import rejection, started-game exclusion, or a planned red
 test before implementation.
 
-An expected protective failure is a successful test outcome and does
-not count toward repeated-failure escalation.
+An expected protective failure is a successful test outcome and does not
+count toward repeated-failure escalation.
 
 ### Diagnostic finding
 
@@ -819,8 +819,8 @@ Do not mix:
 -   UI redesign and model work
 
 A file move commit contains only file moves and import-path updates. No
-cleanup, renaming, refactoring, or logic improvement may be hidden inside
-it.
+cleanup, renaming, refactoring, or logic improvement may be hidden
+inside it.
 
 ------------------------------------------------------------------------
 
