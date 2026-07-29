@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 1.8
+**Version:** 1.9
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -277,11 +277,11 @@ Verified by `test/balldontlie-terminal-pa-contracts.test.ts` and `test/balldontl
 - [ ] Defense-to-batted-ball translation if supported.
 - [ ] Times-through-order effects.
 - [ ] Bullpen transition scenarios.
-- [ ] Shared offensive-environment scenarios.
+- [x] Shared offensive-environment scenarios.
 - [ ] Hitter PA survival by lineup slot and home/away.
 - [ ] Define and validate monotonicity handling for fitted hitter PA survival curves; prefer monotone-by-construction computation, preserve raw and adjusted curves, and prohibit any production repair threshold without current-season evidence.
 - [ ] Eligibility and participation probability.
-- [ ] Opportunity/outcome dependence benchmark.
+- [x] Opportunity/outcome dependence benchmark.
 
 ### Validation and calibration
 
@@ -364,6 +364,12 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 1.9 — 2026-07-29
+
+- Recorded benchmark artifact `a606b98c25d35ff5711b88eae089d6745003ad4c04a527cbb21418c7f4661b52` for `shared-environment-k4`, selected independently by the 189-game holdout and 14-fold expanding-window walk-forward evaluation.
+- Recorded a 3.24611015062674% walk-forward relative joint-log-loss improvement versus the K=1 independence baseline, with all 189 validation games scored exactly once and no untouched-test rows accessed.
+- Closed only the M8 shared offensive-environment-scenarios and opportunity/outcome-dependence-benchmark items. The scenario count remains nonpermanent, benchmark-only, and not production-enabled; runtime integration, tail checks, calibration, untouched testing, and production gates remain open.
 
 ### Version 1.8 — 2026-07-23
 
