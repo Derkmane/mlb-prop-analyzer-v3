@@ -72,18 +72,32 @@ function verifyUntouchedReservation(value, label) {
 }
 
 const captureRoot = requireEnvironmentValue('M8_STATS_LINEUP_CAPTURE_DIR');
+const resolvedDatasetPath = requireEnvironmentValue(
+  'M8_RESOLVED_CATEGORICAL_DATASET_PATH',
+);
 const outputPath = requireEnvironmentValue(
   'M8_TEAM_OFFENSIVE_ENVIRONMENT_DATASET_OUTPUT_PATH',
 );
 const manifestPath = path.join(captureRoot, 'capture-manifest.json');
 const manifest = (await readJson(manifestPath, 'stats-lineup capture manifest')).value;
+const resolvedDatasetFile = await readJson(
+  resolvedDatasetPath,
+  'resolved categorical dataset',
+);
 
 verifyUntouchedReservation(
   manifest.untouchedTestReservation,
   'stats-lineup capture manifest',
 );
+verifyUntouchedReservation(
+  resolvedDatasetFile.value.untouchedTestReservation,
+  'resolved categorical dataset',
+);
 if (manifest.manifestSha256 !== sha256(JSON.stringify(manifestIdentity(manifest)))) {
   throw new Error('stats-lineup capture manifest SHA-256 is invalid.');
+}
+if (resolvedDatasetFile.value.datasetSha256 !== manifest.sourceResolvedDatasetSha256) {
+  throw new Error('resolved categorical dataset does not match the capture manifest.');
 }
 
 const captures = [];
@@ -120,6 +134,8 @@ for (const [index, manifestGame] of manifest.games.entries()) {
 const dataset = buildM8TeamOffensiveEnvironmentDataset({
   captureManifest: manifest,
   captures,
+  resolvedDataset: resolvedDatasetFile.value,
+  sourceResolvedDatasetFileSha256: sha256(resolvedDatasetFile.text),
 });
 await writeJsonAtomic(outputPath, dataset);
 const written = (
@@ -143,8 +159,15 @@ console.log(
   `Included team plate appearances: ${dataset.totals.totalIncludedPlateAppearances}`,
 );
 console.log(`Included team hits: ${dataset.totals.totalIncludedHits}`);
+console.log(`Included team runs: ${dataset.totals.totalIncludedRuns}`);
+console.log(
+  `Ignored baserunning-only rows for pitcher discovery: ${dataset.totals.ignoredBaserunningRowCount}`,
+);
+console.log(`Exclusion reasons: ${JSON.stringify(dataset.exclusionReasonCounts)}`);
 console.log(`Dataset SHA-256: ${dataset.datasetSha256}`);
 console.log(`Output: ${outputPath}`);
+console.log('Lineup requirement used: false');
+console.log('stats.team_name used as primary join: false');
 console.log('Component arithmetic fallback used: false');
 console.log('Both team sides required: true');
 console.log('Untouched-test rows accessed: false');
