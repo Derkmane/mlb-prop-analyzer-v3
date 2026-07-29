@@ -1,6 +1,7 @@
 import { access, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 
+import { selectUniqueArtifactCopy } from './m8-artifact-pair-selection-utils.mjs';
 import {
   buildM8FrozenBatterHitsCandidate,
   verifyM8FrozenBatterHitsCandidate,
@@ -68,12 +69,10 @@ for (const filePath of files) {
   const item = await readJson(filePath);
   if (isResolvedDataset(item.value)) resolvedDatasets.push(item);
 }
-if (resolvedDatasets.length !== 1) {
-  throw new Error(
-    `Expected exactly one resolved categorical fit-validation dataset under ${SEARCH_ROOT}; found ${resolvedDatasets.length}.`,
-  );
-}
-const resolved = resolvedDatasets[0];
+const resolved = selectUniqueArtifactCopy(resolvedDatasets, {
+  label: 'resolved dataset',
+  identityField: 'datasetSha256',
+});
 const transitionDataset = buildM8StarterBullpenDataset(resolved.value);
 const fitBullpenRows = transitionDataset.periods.fit.rows.flatMap((row) =>
   row.bullpenRows
@@ -107,6 +106,7 @@ if (persisted.value.artifactSha256 !== candidate.artifactSha256) {
 
 console.log('=== M8 COMPLETE BATTER HITS CANDIDATE FROZEN ===');
 console.log(`Resolved fit-validation dataset: ${resolved.path}`);
+console.log(`Equivalent resolved dataset copies found: ${resolvedDatasets.length}`);
 console.log(`Shared environment: ${SHARED_PATH}`);
 console.log(`Starter retention: ${RETENTION_PATH}`);
 console.log(`Terminal outcome: ${TERMINAL_PATH}`);
