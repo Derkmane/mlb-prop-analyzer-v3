@@ -60,9 +60,10 @@ export interface JointPitchingWorkloadState {
 export type SurvivalAdjustmentMethod = 'none' | 'weighted-isotonic';
 
 /**
- * Opportunity survival for one batting-order slot. Player identity is carried
- * separately by the lineup so future substitutions do not break team-PA
- * conservation.
+ * Opportunity survival for one batting-order slot. This is the number of
+ * times the slot comes to the plate, not automatically the number of plate
+ * appearances credited to the named starter occupying the slot pregame.
+ * Named-player opportunity is derived separately through starter retention.
  *
  * M6 accepts only already-monotone raw curves. The adjusted field is preserved
  * as a separate versioned contract but must equal the raw curve until an
@@ -76,6 +77,23 @@ export interface HitterPASurvivalState {
   readonly adjustedSurvival: readonly number[];
   readonly adjustmentMethod: SurvivalAdjustmentMethod;
   readonly adjustmentVersion: string;
+}
+
+/**
+ * Conditional probability that the named starter still occupies the batting
+ * slot for each successive slot turn. Index zero is the first turn and must be
+ * exactly 1 because this state is conditional on the player being the active
+ * projected or confirmed starter. Pregame eligibility is a separate layer.
+ */
+export interface StarterRetentionState {
+  readonly scenarioSetId: string;
+  readonly scenarioSetVersion: string;
+  readonly gameId: string;
+  readonly scenarioId: string;
+  readonly teamId: string;
+  readonly lineupSlot: LineupSlot;
+  readonly version: string;
+  readonly conditionalRetention: readonly number[];
 }
 
 export interface TeamOffenseScenarioState {
@@ -122,6 +140,11 @@ export interface SharedOutcomeContext {
   readonly jointPitchingWorkload: JointPitchingWorkloadState;
 }
 
+/**
+ * Shared slot-level assumptions. opportunityCountDistribution is the batting
+ * slot's turn distribution and must not be labeled as the named starter's PA
+ * distribution without applying StarterRetentionState.
+ */
 export interface JointHitterScenarioAssumptions<TOutcomeAssumption> {
   readonly scenarioSetId: string;
   readonly scenarioSetVersion: string;
@@ -131,6 +154,21 @@ export interface JointHitterScenarioAssumptions<TOutcomeAssumption> {
   readonly playerId: string;
   readonly lineupSlot: LineupSlot;
   readonly offensiveEnvironmentId: string;
+  readonly opportunityCountDistribution: ProbabilityMassFunction;
+  readonly outcomeAssumption: TOutcomeAssumption;
+}
+
+export interface JointNamedHitterScenarioAssumptions<TOutcomeAssumption> {
+  readonly scenarioSetId: string;
+  readonly scenarioSetVersion: string;
+  readonly gameId: string;
+  readonly scenarioId: string;
+  readonly teamId: string;
+  readonly playerId: string;
+  readonly lineupSlot: LineupSlot;
+  readonly offensiveEnvironmentId: string;
+  readonly starterRetentionVersion: string;
+  readonly slotOpportunityCountDistribution: ProbabilityMassFunction;
   readonly opportunityCountDistribution: ProbabilityMassFunction;
   readonly outcomeAssumption: TOutcomeAssumption;
 }
