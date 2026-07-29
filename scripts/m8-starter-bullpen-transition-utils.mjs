@@ -7,7 +7,7 @@ const TOLERANCE = 1e-12;
 
 export const DEFAULT_M8_STARTER_BULLPEN_CANDIDATES = Object.freeze([
   Object.freeze({ candidateId: 'starter-bf-league', grouping: 'league', leagueEquivalentGames: 0 }),
-  ...[10, 25, 50, 100].map((leagueEquivalentGames) =>
+  ...[10, 25, 50, 100, 250, 500, 1000].map((leagueEquivalentGames) =>
     Object.freeze({
       candidateId: `starter-bf-side-pool-${leagueEquivalentGames}`,
       grouping: 'side',
