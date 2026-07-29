@@ -146,10 +146,12 @@ export function buildM8SharedOffensiveEnvironmentV2({
       SIDES.map((side) => [side, validatePmf(transition.finalModel.bySide[side], `${side} starter BF PMF`)]),
     ),
   );
-  const fixedSelected = transition.fixedResults.find(
-    (result) => result.candidate.candidateId === transition.fixedSelectedCandidateId,
+  const selectedFixedResult = transition.fixedResults.find(
+    (result) => result.candidate.candidateId === transition.selectedCandidateId,
   );
-  if (!fixedSelected) throw new Error('starter-bullpen selected fixed result is missing.');
+  if (!selectedFixedResult) {
+    throw new Error('starter-bullpen selected candidate fixed result is missing.');
+  }
   const identity = {
     artifactVersion: 2,
     modelVersion: 'm8-shared-offensive-environment-v2',
@@ -173,10 +175,16 @@ export function buildM8SharedOffensiveEnvironmentV2({
     }),
     validationEvidence: Object.freeze({
       sharedEnvironment: shared.validationEvidence,
-      starterBullpenFixed: fixedSelected.metrics,
-      starterBullpenWalkForwardSelectedCandidateId: transition.walkForward.selectedCandidateId,
+      starterBullpenSelectedFixedMetrics: selectedFixedResult.metrics,
+      starterBullpenFixedMinimumLogLossCandidateId: transition.fixedSelectedCandidateId,
+      starterBullpenWalkForwardMinimumLogLossCandidateId: transition.walkForward.selectedCandidateId,
+      starterBullpenFixedNondominatedCandidateIds: transition.fixedNondominatedCandidateIds,
+      starterBullpenWalkForwardNondominatedCandidateIds:
+        transition.walkForwardNondominatedCandidateIds,
+      starterBullpenAdmissibleCandidateIds: transition.admissibleCandidateIds,
+      starterBullpenSelectedCandidateId: transition.selectedCandidateId,
       starterBullpenWalkForwardFoldCount: transition.walkForward.foldCount,
-      selectionAgreement: transition.selectionAgreement,
+      starterBullpenStableSelection: transition.stableSelection,
     }),
     untouchedTestReservation: Object.freeze({ ...shared.untouchedTestReservation, rowsIncluded: false }),
   };

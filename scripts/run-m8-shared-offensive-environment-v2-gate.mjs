@@ -89,8 +89,12 @@ const transitionEvaluation = evaluateM8StarterBullpenTransition({
   rawDataset: transitionDataset,
 });
 console.log('=== M8 STARTER-BULLPEN SELECTION DIAGNOSTIC ===');
-console.log(`Fixed-validation selected: ${transitionEvaluation.fixedSelectedCandidateId}`);
-console.log(`Walk-forward selected: ${transitionEvaluation.walkForward.selectedCandidateId}`);
+console.log(`Fixed minimum-log-loss candidate: ${transitionEvaluation.fixedSelectedCandidateId}`);
+console.log(`Walk-forward minimum-log-loss candidate: ${transitionEvaluation.walkForward.selectedCandidateId}`);
+console.log(`Fixed nondominated: ${transitionEvaluation.fixedNondominatedCandidateIds.join(', ')}`);
+console.log(`Walk-forward nondominated: ${transitionEvaluation.walkForwardNondominatedCandidateIds.join(', ')}`);
+console.log(`Admissible candidates: ${transitionEvaluation.admissibleCandidateIds.join(', ')}`);
+console.log(`Selected stable candidate: ${transitionEvaluation.selectedCandidateId}`);
 for (const result of transitionEvaluation.fixedResults) {
   const walkForwardResult = transitionEvaluation.walkForward.aggregateResults.find(
     (candidateResult) => candidateResult.candidate.candidateId === result.candidate.candidateId,
@@ -124,12 +128,12 @@ if (persisted.value.artifactSha256 !== artifact.artifactSha256) {
 
 const selected = transitionEvaluation.fixedResults.find(
   (result) =>
-    result.candidate.candidateId === transitionEvaluation.fixedSelectedCandidateId,
+    result.candidate.candidateId === transitionEvaluation.selectedCandidateId,
 );
 console.log('=== M8 SHARED OFFENSIVE ENVIRONMENT V2 REAL-DATA GATE PASSED ===');
 console.log(`Included team games: ${transitionDataset.totals.includedTeamGameCount}`);
 console.log(`Excluded team games: ${transitionDataset.totals.excludedTeamGameCount}`);
-console.log(`Selected starter workload: ${transitionEvaluation.fixedSelectedCandidateId}`);
+console.log(`Selected starter workload: ${transitionEvaluation.selectedCandidateId}`);
 console.log(`Walk-forward selected: ${transitionEvaluation.walkForward.selectedCandidateId}`);
 console.log(`Walk-forward folds: ${transitionEvaluation.walkForward.foldCount}`);
 console.log(`Validation log loss: ${selected.metrics.logLoss}`);

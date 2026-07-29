@@ -5,8 +5,9 @@ const SIDES = Object.freeze(['away', 'home']);
 const PROBABILITY_FLOOR = 1e-300;
 const TOLERANCE = 1e-12;
 
+export const M8_STARTER_BULLPEN_CANDIDATE_SET_VERSION = 'm8-starter-bf-pooling-v2';
+
 export const DEFAULT_M8_STARTER_BULLPEN_CANDIDATES = Object.freeze([
-  Object.freeze({ candidateId: 'starter-bf-league', grouping: 'league', leagueEquivalentGames: 0 }),
   ...[10, 25, 50, 100, 250, 500, 1000].map((leagueEquivalentGames) =>
     Object.freeze({
       candidateId: `starter-bf-side-pool-${leagueEquivalentGames}`,
@@ -14,6 +15,7 @@ export const DEFAULT_M8_STARTER_BULLPEN_CANDIDATES = Object.freeze([
       leagueEquivalentGames,
     }),
   ),
+  Object.freeze({ candidateId: 'starter-bf-league', grouping: 'league', leagueEquivalentGames: 0 }),
 ]);
 
 function object(value, label) {
@@ -275,6 +277,94 @@ function rank(results) {
   );
 }
 
+function poolingStrength(candidate) {
+  const value = object(candidate, 'starter-bullpen candidate');
+  const grouping = string(value.grouping, 'starter-bullpen candidate grouping');
+  if (grouping === 'league') return Number.POSITIVE_INFINITY;
+  if (grouping === 'side') {
+    return positiveInteger(value.leagueEquivalentGames, 'starter-bullpen league-equivalent games');
+  }
+  throw new Error(`unsupported starter-bullpen candidate grouping ${grouping}.`);
+}
+
+function validatedCandidateResults(rawResults, label) {
+  const seen = new Set();
+  return array(rawResults, label).map((rawResult) => {
+    const result = object(rawResult, `${label} result`);
+    const candidate = object(result.candidate, `${label} candidate`);
+    const candidateId = string(candidate.candidateId, `${label} candidate id`);
+    if (seen.has(candidateId)) throw new Error(`${label} contains duplicate candidate ${candidateId}.`);
+    seen.add(candidateId);
+    const resultMetrics = object(result.metrics, `${label} metrics`);
+    if (!Number.isFinite(resultMetrics.logLoss) || !Number.isFinite(resultMetrics.multiclassBrier)) {
+      throw new Error(`${label} candidate ${candidateId} has invalid proper-score metrics.`);
+    }
+    return result;
+  });
+}
+
+function dominates(left, right) {
+  const noWorse =
+    left.metrics.logLoss <= right.metrics.logLoss &&
+    left.metrics.multiclassBrier <= right.metrics.multiclassBrier;
+  const strictlyBetter =
+    left.metrics.logLoss < right.metrics.logLoss ||
+    left.metrics.multiclassBrier < right.metrics.multiclassBrier;
+  return noWorse && strictlyBetter;
+}
+
+export function computeM8StarterBullpenNondominatedCandidateIds(rawResults) {
+  const results = validatedCandidateResults(rawResults, 'starter-bullpen candidate results');
+  return Object.freeze(
+    results
+      .filter(
+        (candidateResult, candidateIndex) =>
+          !results.some(
+            (otherResult, otherIndex) =>
+              otherIndex !== candidateIndex && dominates(otherResult, candidateResult),
+          ),
+      )
+      .map((result) => result.candidate.candidateId),
+  );
+}
+
+export function selectM8StarterBullpenCandidate({ fixedResults, walkForwardResults }) {
+  const fixed = validatedCandidateResults(fixedResults, 'fixed starter-bullpen results');
+  const walkForward = validatedCandidateResults(
+    walkForwardResults,
+    'walk-forward starter-bullpen results',
+  );
+  const fixedById = new Map(fixed.map((result) => [result.candidate.candidateId, result]));
+  const walkIds = new Set(walkForward.map((result) => result.candidate.candidateId));
+  if (fixedById.size !== walkIds.size || [...fixedById.keys()].some((id) => !walkIds.has(id))) {
+    throw new Error('fixed and walk-forward starter-bullpen candidate sets differ.');
+  }
+  const fixedNondominatedCandidateIds = computeM8StarterBullpenNondominatedCandidateIds(fixed);
+  const walkForwardNondominatedCandidateIds =
+    computeM8StarterBullpenNondominatedCandidateIds(walkForward);
+  const walkForwardNondominated = new Set(walkForwardNondominatedCandidateIds);
+  const admissibleCandidateIds = Object.freeze(
+    fixedNondominatedCandidateIds.filter((candidateId) =>
+      walkForwardNondominated.has(candidateId),
+    ),
+  );
+  const selectedCandidateId =
+    [...admissibleCandidateIds].sort((leftId, rightId) => {
+      const leftStrength = poolingStrength(fixedById.get(leftId).candidate);
+      const rightStrength = poolingStrength(fixedById.get(rightId).candidate);
+      if (leftStrength !== rightStrength) return leftStrength > rightStrength ? -1 : 1;
+      return leftId.localeCompare(rightId);
+    })[0] ?? null;
+  return Object.freeze({
+    fixedNondominatedCandidateIds,
+    walkForwardNondominatedCandidateIds,
+    admissibleCandidateIds,
+    stable: selectedCandidateId !== null,
+    reason: selectedCandidateId === null ? 'EMPTY_ADMISSIBLE_SET' : null,
+    selectedCandidateId,
+  });
+}
+
 function walkForward(fitRows, validationRows, candidates, maximum) {
   const dates = [...new Set(validationRows.map((row) => row.observedDate))].sort();
   const accumulators = new Map(
@@ -339,6 +429,8 @@ function walkForward(fitRows, validationRows, candidates, maximum) {
 function evaluationIdentity(value) {
   return {
     evaluationVersion: value.evaluationVersion,
+    candidateSetVersion: value.candidateSetVersion,
+    mathSpecVersion: value.mathSpecVersion,
     status: value.status,
     activeSeason: value.activeSeason,
     sourceDatasetSha256: value.sourceDatasetSha256,
@@ -349,7 +441,12 @@ function evaluationIdentity(value) {
     fixedResults: value.fixedResults,
     fixedSelectedCandidateId: value.fixedSelectedCandidateId,
     walkForward: value.walkForward,
-    selectionAgreement: value.selectionAgreement,
+    fixedNondominatedCandidateIds: value.fixedNondominatedCandidateIds,
+    walkForwardNondominatedCandidateIds: value.walkForwardNondominatedCandidateIds,
+    admissibleCandidateIds: value.admissibleCandidateIds,
+    stableSelection: value.stableSelection,
+    selectionReason: value.selectionReason,
+    selectedCandidateId: value.selectedCandidateId,
     finalModel: value.finalModel,
     untouchedTestReservation: value.untouchedTestReservation,
   };
@@ -378,14 +475,30 @@ export function evaluateM8StarterBullpenTransition({ rawDataset, candidates = DE
   });
   const fixedSelectedCandidateId = rank(fixedResults)[0].candidate.candidateId;
   const walkForwardResult = walkForward(fitRows, validationRows, candidates, maximum);
-  const selectionAgreement = fixedSelectedCandidateId === walkForwardResult.selectedCandidateId;
-  const selectedCandidate = candidates.find((candidate) => candidate.candidateId === fixedSelectedCandidateId);
-  const finalModel = selectionAgreement
-    ? fitCandidate([...fitRows, ...validationRows], selectedCandidate, maximum)
-    : null;
+  const selection = selectM8StarterBullpenCandidate({
+    fixedResults,
+    walkForwardResults: walkForwardResult.aggregateResults,
+  });
+  const selectedCandidate =
+    selection.selectedCandidateId === null
+      ? null
+      : candidates.find(
+          (candidate) => candidate.candidateId === selection.selectedCandidateId,
+        );
+  if (selection.selectedCandidateId !== null && selectedCandidate === undefined) {
+    throw new Error('selected starter-bullpen candidate is missing from the candidate set.');
+  }
+  const finalModel =
+    selectedCandidate === null
+      ? null
+      : fitCandidate([...fitRows, ...validationRows], selectedCandidate, maximum);
   const identity = {
-    evaluationVersion: 1,
-    status: selectionAgreement ? 'starter-bullpen-candidate-selected' : 'starter-bullpen-selection-disagrees',
+    evaluationVersion: 2,
+    candidateSetVersion: M8_STARTER_BULLPEN_CANDIDATE_SET_VERSION,
+    mathSpecVersion: '1.5',
+    status: selection.stable
+      ? 'starter-bullpen-candidate-selected'
+      : 'starter-bullpen-no-common-nondominated-candidate',
     activeSeason: dataset.activeSeason,
     sourceDatasetSha256: dataset.datasetSha256,
     fitWindow: Object.freeze({ startDate: dataset.periods.fit.startDate, endDate: dataset.periods.fit.endDate, observationCount: fitRows.length }),
@@ -395,7 +508,12 @@ export function evaluateM8StarterBullpenTransition({ rawDataset, candidates = DE
     fixedResults: Object.freeze(fixedResults),
     fixedSelectedCandidateId,
     walkForward: walkForwardResult,
-    selectionAgreement,
+    fixedNondominatedCandidateIds: selection.fixedNondominatedCandidateIds,
+    walkForwardNondominatedCandidateIds: selection.walkForwardNondominatedCandidateIds,
+    admissibleCandidateIds: selection.admissibleCandidateIds,
+    stableSelection: selection.stable,
+    selectionReason: selection.reason,
+    selectedCandidateId: selection.selectedCandidateId,
     finalModel,
     untouchedTestReservation: dataset.untouchedTestReservation,
   };
@@ -408,8 +526,36 @@ export function evaluateM8StarterBullpenTransition({ rawDataset, candidates = DE
 
 export function verifyM8StarterBullpenEvaluation(rawEvaluation) {
   const evaluation = object(rawEvaluation, 'starter-bullpen evaluation');
-  if (evaluation.evaluationVersion !== 1 || evaluation.selectionAgreement !== true || evaluation.finalModel === null) {
-    throw new Error('starter-bullpen evaluation did not select one stable model.');
+  if (
+    evaluation.evaluationVersion !== 2 ||
+    evaluation.candidateSetVersion !== M8_STARTER_BULLPEN_CANDIDATE_SET_VERSION ||
+    evaluation.mathSpecVersion !== '1.5' ||
+    evaluation.stableSelection !== true ||
+    evaluation.selectedCandidateId === null ||
+    evaluation.finalModel === null
+  ) {
+    throw new Error(
+      `starter-bullpen evaluation did not select one stable model: ${evaluation.selectionReason ?? 'INVALID_SELECTION'}`,
+    );
+  }
+  const recomputed = selectM8StarterBullpenCandidate({
+    fixedResults: evaluation.fixedResults,
+    walkForwardResults: evaluation.walkForward?.aggregateResults,
+  });
+  for (const field of [
+    'fixedNondominatedCandidateIds',
+    'walkForwardNondominatedCandidateIds',
+    'admissibleCandidateIds',
+  ]) {
+    if (JSON.stringify(evaluation[field]) !== JSON.stringify(recomputed[field])) {
+      throw new Error(`starter-bullpen ${field} is inconsistent with the proper-score results.`);
+    }
+  }
+  if (
+    recomputed.selectedCandidateId !== evaluation.selectedCandidateId ||
+    evaluation.finalModel.candidate?.candidateId !== evaluation.selectedCandidateId
+  ) {
+    throw new Error('starter-bullpen selected candidate is inconsistent with the final model.');
   }
   if (evaluation.untouchedTestReservation?.rowsIncluded !== false) {
     throw new Error('starter-bullpen evaluation exposes untouched-test rows.');
