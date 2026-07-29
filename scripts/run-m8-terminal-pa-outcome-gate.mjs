@@ -1,7 +1,7 @@
-import { access, readFile, readdir } from 'node:fs/promises';
+import { access, readFile, readdir, unlink } from 'node:fs/promises';
 import path from 'node:path';
 
-import { selectUniqueArtifactPair } from './m8-artifact-pair-selection-utils.mjs';
+import { selectBestArtifactPair } from './m8-artifact-pair-selection-utils.mjs';
 import {
   buildM8TerminalPaOutcomeArtifact,
   verifyM8TerminalPaOutcomeArtifact,
@@ -52,6 +52,22 @@ function isPlatoonEvaluation(value) {
   );
 }
 
+function assertSafeStaleBoundaryPath(filePath) {
+  const root = path.resolve(SEARCH_ROOT);
+  const resolved = path.resolve(filePath);
+  const relative = path.relative(root, resolved);
+  const normalized = resolved.toLowerCase();
+  if (
+    relative.startsWith('..') ||
+    path.isAbsolute(relative) ||
+    !normalized.includes('platoon') ||
+    !normalized.includes('boundary') ||
+    !normalized.endsWith('.json')
+  ) {
+    throw new Error(`Refusing to delete unexpected stale boundary path: ${filePath}`);
+  }
+}
+
 await access(SEARCH_ROOT);
 const files = await walk(SEARCH_ROOT);
 const datasets = [];
@@ -74,10 +90,23 @@ const boundaryMatches = matches.filter((match) => {
   return normalized.includes('platoon') && normalized.includes('boundary');
 });
 const selectedMatches = boundaryMatches.length > 0 ? boundaryMatches : matches;
-const match = selectUniqueArtifactPair(selectedMatches);
+const selection = selectBestArtifactPair(selectedMatches);
+const match = selection.selectedMatch;
+
+console.log('Compared boundary evaluations:');
+for (const candidate of selection.compared) {
+  console.log(
+    `- ${candidate.path} | ${candidate.selectedCandidateId} | categorical log loss ${candidate.validationCategoricalLogLoss}`,
+  );
+}
+console.log(`Keeping boundary evaluation: ${match.evaluation.path}`);
+for (const stalePath of selection.staleEvaluationPaths) {
+  assertSafeStaleBoundaryPath(stalePath);
+  await unlink(stalePath);
+  console.log(`Deleted stale boundary evaluation: ${stalePath}`);
+}
+
 console.log(`Resolved dataset: ${match.dataset.path}`);
-console.log(`Boundary-approved platoon evaluation: ${match.evaluation.path}`);
-console.log(`Equivalent approved copies found: ${selectedMatches.length}`);
 const artifact = buildM8TerminalPaOutcomeArtifact({
   rawDataset: match.dataset.value,
   datasetFileSha256: sha256(match.dataset.text),
