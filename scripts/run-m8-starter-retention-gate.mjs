@@ -13,7 +13,11 @@ import {
   evaluateM8StarterRetention,
   verifyM8StarterRetentionEvaluation,
 } from './m8-starter-retention-evaluation-utils.mjs';
-import { sha256, writeJsonAtomic } from './provider-probe-utils.mjs';
+import {
+  sha256,
+  writeJsonAtomic,
+  writeTextAtomic,
+} from './provider-probe-utils.mjs';
 
 const SEARCH_ROOT = process.env.M8_ARTIFACT_SEARCH_ROOT?.trim() || 'artifacts';
 const OUTPUT_ROOT =
@@ -195,9 +199,13 @@ const dataset = buildM8StarterRetentionDataset({
   sourceResolvedDatasetFileSha256: sha256(evidence.dataset.text),
 });
 const datasetPath = path.join(OUTPUT_ROOT, 'starter-retention-dataset.json');
-await writeJsonAtomic(datasetPath, dataset);
+const datasetText = JSON.stringify(dataset, null, 2);
+await writeTextAtomic(datasetPath, datasetText);
 const persistedDataset = await readJson(datasetPath);
 verifyM8StarterRetentionDataset(persistedDataset.value);
+if (persistedDataset.text !== datasetText) {
+  throw new Error('persisted starter retention dataset bytes changed after atomic write.');
+}
 
 const evaluation = evaluateM8StarterRetention({
   rawDataset: persistedDataset.value,
