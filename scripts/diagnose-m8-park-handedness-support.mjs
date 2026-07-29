@@ -88,11 +88,21 @@ if (dataset.datasetSha256 !== lineage.sourceResolvedDatasetSha256) {
 }
 
 const lineageByGameId = new Map();
-for (const [index, rawGame] of assertArray(lineage.games, 'lineage.games').entries()) {
-  const game = assertObject(rawGame, `lineage.games[${index}]`);
-  const gameId = assertPositiveInteger(game.gameId, `lineage.games[${index}].gameId`);
-  if (lineageByGameId.has(gameId)) throw new Error(`duplicate lineage game ${gameId}.`);
-  lineageByGameId.set(gameId, game);
+for (const periodId of PERIODS) {
+  const period = assertObject(lineage.periods?.[periodId], `lineage.periods.${periodId}`);
+  const rows = assertArray(period.rows, `lineage.periods.${periodId}.rows`);
+  for (const [index, rawGame] of rows.entries()) {
+    const game = assertObject(rawGame, `lineage.periods.${periodId}.rows[${index}]`);
+    const gameId = assertPositiveInteger(
+      game.providerGameId,
+      `lineage.periods.${periodId}.rows[${index}].providerGameId`,
+    );
+    if (game.periodId !== periodId) {
+      throw new Error(`lineage game ${gameId} period identity drifted.`);
+    }
+    if (lineageByGameId.has(gameId)) throw new Error(`duplicate lineage game ${gameId}.`);
+    lineageByGameId.set(gameId, game);
+  }
 }
 
 const categories = new Set();
