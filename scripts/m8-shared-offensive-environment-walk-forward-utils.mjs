@@ -78,8 +78,17 @@ function sortedRows(rows) {
     );
 }
 
-function periodFromRows(rows) {
-  const ordered = sortedRows(rows);
+function rowForPeriod(row, periodId) {
+  if (row.periodId === periodId) return row;
+  return Object.freeze({
+    ...row,
+    rowId: `${periodId}:${row.observedDate}:${row.gameId}:${row.side}:${row.teamId}`,
+    periodId,
+  });
+}
+
+function periodFromRows(rows, periodId) {
+  const ordered = sortedRows(rows.map((row) => rowForPeriod(row, periodId)));
   return Object.freeze({
     startDate: ordered[0]?.observedDate ?? null,
     endDate: ordered.at(-1)?.observedDate ?? null,
@@ -118,8 +127,8 @@ function foldTotals(rows) {
 
 function buildFoldDataset(source, fitRows, validationRows) {
   const periods = Object.freeze({
-    fit: periodFromRows(fitRows),
-    validation: periodFromRows(validationRows),
+    fit: periodFromRows(fitRows, 'fit'),
+    validation: periodFromRows(validationRows, 'validation'),
   });
   if (periods.fit.rowCount === 0 || periods.validation.rowCount === 0) {
     throw new Error('walk-forward fit and validation periods must both contain rows.');
