@@ -67,9 +67,11 @@ function playerIdOf(row) {
   return Number.isSafeInteger(value) && value > 0 ? value : null;
 }
 
-function teamIdOf(row) {
-  const value = row?.team?.id;
-  return Number.isSafeInteger(value) && value > 0 ? value : null;
+function teamNameOf(row) {
+  const value = row?.team_name;
+  return typeof value === 'string' && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function hasBattingActivity(row) {
@@ -131,8 +133,12 @@ function gameStatsRows(capture, gameId) {
 
 function teamEvidence({ gameId, side, team, teamSummary, statsRows }) {
   const teamId = assertPositiveInteger(team?.id, `game ${gameId} ${side} teamId`);
+  const teamName = assertNonEmptyString(
+    team?.display_name,
+    `game ${gameId} ${side} team display_name`,
+  );
   const opponentSide = side === 'home' ? 'away' : 'home';
-  const teamRows = statsRows.filter((row) => teamIdOf(row) === teamId);
+  const teamRows = statsRows.filter((row) => teamNameOf(row) === teamName);
   const activeRows = teamRows.filter(hasBattingActivity);
   const reasons = [];
 
@@ -173,7 +179,7 @@ function teamEvidence({ gameId, side, team, teamSummary, statsRows }) {
       side,
       opponentSide,
       teamId,
-      teamName: team?.display_name ?? null,
+      teamName,
       reasons: Object.freeze(uniqueReasons),
     });
   }
@@ -192,7 +198,7 @@ function teamEvidence({ gameId, side, team, teamSummary, statsRows }) {
       side,
       opponentSide,
       teamId,
-      teamName: team?.display_name ?? null,
+      teamName,
       reasons: Object.freeze(['non-positive-team-pa-total']),
     });
   }
@@ -204,7 +210,7 @@ function teamEvidence({ gameId, side, team, teamSummary, statsRows }) {
     side,
     opponentSide,
     teamId,
-    teamName: team?.display_name ?? null,
+    teamName,
     reasons: Object.freeze([]),
     activePlayerCount: activeRows.length,
     totalPlateAppearances,
@@ -329,6 +335,25 @@ export function buildM8TeamOffensiveEnvironmentDataset({
       throw new Error(`game ${gameId} snapshot identity mismatch.`);
     }
     const statsRows = gameStatsRows(capture, gameId);
+    const expectedTeamNames = new Set([
+      assertNonEmptyString(game.away_team?.display_name, `game ${gameId} away display_name`),
+      assertNonEmptyString(game.home_team?.display_name, `game ${gameId} home display_name`),
+    ]);
+    const unmatchedActiveRows = statsRows.filter(
+      (row) => hasBattingActivity(row) && !expectedTeamNames.has(teamNameOf(row)),
+    );
+    if (unmatchedActiveRows.length > 0) {
+      totals.excludedGameCount += 1;
+      totals.excludedTeamGameCount += 2;
+      excludedGames.push({
+        gameId,
+        observedDate,
+        periodId,
+        reasons: Object.freeze(['unmatched-active-stats-team-name']),
+        teams: Object.freeze([]),
+      });
+      continue;
+    }
     const teamSummaryBySide = new Map(teams.map((team) => [team.side, team]));
     const evidence = SIDES.map((side) => {
       const team = side === 'home' ? game.home_team : game.away_team;
@@ -458,6 +483,7 @@ export function buildM8TeamOffensiveEnvironmentDataset({
       incompleteDirectTeamPaEvidence: 'exclude-entire-game',
       incompleteTeamHitEvidence: 'exclude-entire-game',
       directPlateAppearances: 'authoritative-stats.plate_appearances',
+      statsTeamJoin: 'exact-stats.team_name-to-game-team.display_name',
       componentArithmeticFallback: 'prohibited',
       pairedTeamGameRequirement: 'both-sides-or-neither',
     }),
