@@ -4,6 +4,8 @@ export type TeamSide = 'home' | 'away';
 
 export type LineupSlot = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
+export type LineupSourceStatus = 'projected' | 'confirmed';
+
 export interface HomeAwayState {
   readonly homeTeamId: string;
   readonly awayTeamId: string;
@@ -17,6 +19,12 @@ export interface LineupEntryState {
 export interface LineupState {
   readonly teamId: string;
   readonly side: TeamSide;
+  /**
+   * Source metadata only. Projected and confirmed versions of an otherwise
+   * identical lineup must produce identical model distributions and
+   * probabilities. Confirmation status is never a probability input.
+   */
+  readonly sourceStatus?: LineupSourceStatus;
   readonly entries: readonly LineupEntryState[];
 }
 
