@@ -68,14 +68,19 @@ for (const dataset of datasets) {
     }
   }
 }
-if (matches.length !== 1) {
+const boundaryMatches = matches.filter((match) => {
+  const normalized = match.evaluation.path.toLowerCase();
+  return normalized.includes('platoon') && normalized.includes('boundary');
+});
+const selectedMatches = boundaryMatches.length > 0 ? boundaryMatches : matches;
+if (selectedMatches.length !== 1) {
   throw new Error(
-    `Expected exactly one resolved categorical dataset and selected platoon evaluation pair under ${SEARCH_ROOT}; found ${matches.length}.`,
+    `Expected exactly one boundary-approved resolved categorical dataset and platoon evaluation pair under ${SEARCH_ROOT}; boundary matches=${boundaryMatches.length}, all matches=${matches.length}.`,
   );
 }
-const match = matches[0];
+const match = selectedMatches[0];
 console.log(`Resolved dataset: ${match.dataset.path}`);
-console.log(`Platoon evaluation: ${match.evaluation.path}`);
+console.log(`Boundary-approved platoon evaluation: ${match.evaluation.path}`);
 const artifact = buildM8TerminalPaOutcomeArtifact({
   rawDataset: match.dataset.value,
   datasetFileSha256: sha256(match.dataset.text),
