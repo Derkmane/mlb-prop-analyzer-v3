@@ -7,6 +7,7 @@ import type {
   GameScenarioSet,
   JointNamedHitterScenarioAssumptions,
   LineupSlot,
+  SharedOutcomeContext,
   StarterRetentionState,
 } from './contracts.js';
 import { deriveJointHitterScenarioAssumptions } from './scenario-set.js';
@@ -149,9 +150,9 @@ export function deriveJointNamedHitterScenarioAssumptions<TOutcomeAssumption>(
   teamId: string,
   playerId: string,
   rawRetention: StarterRetentionState,
-  deriveOutcomeAssumption: Parameters<
-    typeof deriveJointHitterScenarioAssumptions<TOutcomeAssumption>
-  >[4],
+  deriveOutcomeAssumption: (
+    context: SharedOutcomeContext,
+  ) => TOutcomeAssumption,
 ): JointNamedHitterScenarioAssumptions<TOutcomeAssumption> {
   const slotAssumptions = deriveJointHitterScenarioAssumptions(
     scenarioSet,
