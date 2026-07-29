@@ -1,6 +1,6 @@
 # BALLDONTLIE MLB — Observed Quirks and Verification Ledger
 
-**Version:** 1.4  
+**Version:** 1.5  
 **Status:** Active provider-verification ledger  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -377,6 +377,38 @@ The production `Catcher Interference` mapping and unknown-interference-spelling 
 
 ---
 
+## Q9 — Pitch description and pitch-call-code metadata may be null
+
+### V3 current-season evidence
+
+```text
+Verified on: 2026-07-27
+Endpoint: GET /mlb/v1/plate_appearances
+Request parameter: game_id=5057771
+Requested game date: 2026-03-26
+Captured row identity: game_id=5057771, pa_number=1
+Exact terminal result: result="Strikeout"
+Exact nullable fields: pitches[].description=null, pitches[].pitch_call_code=null
+Preserved non-null pitch type: pitches[].pitch_type="Sinker"
+Local verified shard: artifacts/m8-current-season-pa/shards-2026/2026-03-26
+Protecting test: test/balldontlie-nullable-pitch-metadata.test.ts
+```
+
+### Verified conclusion
+
+BALLDONTLIE may return `null` for pitch-level descriptive metadata even when the plate-appearance identity and terminal `result` are complete. The raw pitch contract therefore accepts `string | null` for only `description` and `pitch_call_code`. Required plate-appearance identity, handedness, terminal result, pitch type, ball count, and strike count remain strict.
+
+A nullable pitch description or pitch-call code may not be used to guess a terminal result. Direct verified terminal labels such as `Strikeout` continue to map from the required PA `result` field; context-dependent compound labels still fail closed when their required context is absent.
+
+### Protecting-test status
+
+The focused regression test preserves the observed nullable values, proves the exact row maps to canonical `K`, and proves an empty required terminal result still fails validation.
+
+**V3 evidence:** current-season captured shard and exact row inspected  
+**Verification status:** observed nullable pitch metadata accepted; terminal-result strictness retained
+
+---
+
 ## Confirmed access-capture metadata
 
 ```text
@@ -421,6 +453,12 @@ Notes:
 ---
 
 ## Changelog
+
+### Version 1.5 — 2026-07-27
+
+- Recorded current-season plate-appearance evidence that `pitches[].description` and `pitches[].pitch_call_code` may be `null`.
+- Limited the contract change to those two descriptive pitch fields while preserving strict required PA identity, result, pitch type, and count fields.
+- Added the focused nullable-pitch regression test and retained fail-closed terminal-result behavior.
 
 ### Version 1.4 — 2026-07-23
 

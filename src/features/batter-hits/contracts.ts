@@ -11,6 +11,7 @@ import type { SelectedSide } from '../../domain/selected-side.js';
 import type {
   GameScenarioSet,
   SharedScenarioReference,
+  StarterRetentionState,
 } from '../../game/index.js';
 import {
   BATTER_HITS_FEATURE_DATA_FIELD,
@@ -40,6 +41,13 @@ export interface SyntheticBatterHitsOffer {
 export interface SyntheticBatterHitsScenarioAssumption {
   readonly scenarioId: string;
   readonly offensiveEnvironmentId: string;
+  /**
+   * Optional only for the explicitly synthetic M7 path. When omitted, the
+   * synthetic builder creates a test-only all-ones retention curve so existing
+   * architecture fixtures keep their original behavior. A real model may not
+   * omit starter retention.
+   */
+  readonly starterRetention?: StarterRetentionState;
   readonly perOpportunityHitProbabilities: readonly number[];
 }
 
@@ -70,6 +78,8 @@ export interface SyntheticBatterHitsScenarioDistribution {
   readonly scenarioId: string;
   readonly weight: number;
   readonly offensiveEnvironmentId: string;
+  readonly starterRetentionVersion: string;
+  readonly slotOpportunityCountDistribution: ProbabilityMassFunction;
   readonly opportunityCountDistribution: ProbabilityMassFunction;
   readonly perOpportunityHitProbabilities: readonly number[];
   readonly hitDistribution: ProbabilityMassFunction;

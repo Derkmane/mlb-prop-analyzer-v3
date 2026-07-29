@@ -52,6 +52,10 @@ function summarizeBody(body) {
 function selectedResponseHeaders(headers) {
   const selectedNames = [
     'content-type',
+    'retry-after',
+    'x-ratelimit-limit',
+    'x-ratelimit-remaining',
+    'x-ratelimit-reset',
     'x-requests-last',
     'x-requests-remaining',
     'x-requests-used',

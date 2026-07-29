@@ -5,7 +5,13 @@ import {
 } from '../../core/index.js';
 import {
   assertSharedScenarioReference,
+  createStarterRetentionState,
   deriveJointHitterScenarioAssumptions,
+  deriveJointNamedHitterScenarioAssumptions,
+} from '../../game/index.js';
+import type {
+  SharedOutcomeContext,
+  StarterRetentionState,
 } from '../../game/index.js';
 import type {
   SyntheticBatterHitsDistribution,
@@ -51,6 +57,36 @@ function indexScenarioAssumptions(
   return byScenarioId;
 }
 
+function effectiveMaximumCount(probabilities: readonly number[]): number {
+  let maximum = probabilities.length - 1;
+  while (maximum > 0 && probabilities[maximum] === 0) maximum -= 1;
+  return maximum;
+}
+
+function syntheticAllOnesRetention(
+  input: SyntheticBatterHitsDistributionInput,
+  scenarioId: string,
+  lineupSlot: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9,
+  slotProbabilities: readonly number[],
+): StarterRetentionState {
+  const maximumCount = effectiveMaximumCount(slotProbabilities);
+  if (maximumCount < 1) {
+    throw new RangeError(
+      'synthetic Batter Hits requires positive batting-slot opportunity support',
+    );
+  }
+  return createStarterRetentionState({
+    scenarioSetId: input.scenarioSet.scenarioSetId,
+    scenarioSetVersion: input.scenarioSet.version,
+    gameId: input.scenarioSet.gameId,
+    scenarioId,
+    teamId: input.teamId,
+    lineupSlot,
+    version: 'synthetic-test-only-no-substitution-v1',
+    conditionalRetention: Array<number>(maximumCount).fill(1),
+  });
+}
+
 export function buildSyntheticBatterHitsDistribution(
   input: SyntheticBatterHitsDistributionInput,
 ): SyntheticBatterHitsDistribution {
@@ -85,25 +121,43 @@ export function buildSyntheticBatterHitsDistribution(
         );
       }
 
-      const jointAssumptions = deriveJointHitterScenarioAssumptions(
+      const deriveOutcomeAssumption = (context: SharedOutcomeContext) => {
+        if (
+          context.offensiveEnvironment.environmentId !==
+          syntheticAssumption.offensiveEnvironmentId
+        ) {
+          throw new RangeError(
+            `synthetic hit assumption for ${scenario.scenarioId} must reference its shared offensive environment`,
+          );
+        }
+        return validateUnitIntervalVector(
+          syntheticAssumption.perOpportunityHitProbabilities,
+          `synthetic per-opportunity hit probabilities for ${scenario.scenarioId}`,
+        );
+      };
+
+      const slotAssumptions = deriveJointHitterScenarioAssumptions(
         input.scenarioSet,
         scenario.scenarioId,
         input.teamId,
         input.playerId,
-        (context) => {
-          if (
-            context.offensiveEnvironment.environmentId !==
-            syntheticAssumption.offensiveEnvironmentId
-          ) {
-            throw new RangeError(
-              `synthetic hit assumption for ${scenario.scenarioId} must reference its shared offensive environment`,
-            );
-          }
-          return validateUnitIntervalVector(
-            syntheticAssumption.perOpportunityHitProbabilities,
-            `synthetic per-opportunity hit probabilities for ${scenario.scenarioId}`,
-          );
-        },
+        deriveOutcomeAssumption,
+      );
+      const retention =
+        syntheticAssumption.starterRetention ??
+        syntheticAllOnesRetention(
+          input,
+          scenario.scenarioId,
+          slotAssumptions.lineupSlot,
+          slotAssumptions.opportunityCountDistribution.probabilities,
+        );
+      const jointAssumptions = deriveJointNamedHitterScenarioAssumptions(
+        input.scenarioSet,
+        scenario.scenarioId,
+        input.teamId,
+        input.playerId,
+        retention,
+        deriveOutcomeAssumption,
       );
 
       const perOpportunityHitProbabilities =
@@ -117,6 +171,9 @@ export function buildSyntheticBatterHitsDistribution(
         scenarioId: scenario.scenarioId,
         weight: scenario.weight,
         offensiveEnvironmentId: jointAssumptions.offensiveEnvironmentId,
+        starterRetentionVersion: jointAssumptions.starterRetentionVersion,
+        slotOpportunityCountDistribution:
+          jointAssumptions.slotOpportunityCountDistribution,
         opportunityCountDistribution:
           jointAssumptions.opportunityCountDistribution,
         perOpportunityHitProbabilities,

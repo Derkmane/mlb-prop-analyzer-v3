@@ -1,0 +1,173 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+
+import {
+  sha256,
+  writeJsonAtomic,
+} from './provider-probe-utils.mjs';
+import {
+  buildM8TeamOffensiveEnvironmentDataset,
+  verifyM8TeamOffensiveEnvironmentDataset,
+} from './m8-team-offensive-environment-dataset-utils.mjs';
+
+function requireEnvironmentValue(name) {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+async function readJson(filePath, label = filePath) {
+  let text;
+  try {
+    text = await readFile(filePath, 'utf8');
+  } catch (error) {
+    throw new Error(
+      `${label} could not be read: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+  try {
+    return { text, value: JSON.parse(text) };
+  } catch {
+    throw new Error(`${label} is not valid JSON.`);
+  }
+}
+
+function manifestIdentity(value) {
+  return {
+    manifestVersion: value.manifestVersion,
+    provider: value.provider,
+    sourcePlanSha256: value.sourcePlanSha256,
+    sourceResolvedDatasetSha256: value.sourceResolvedDatasetSha256,
+    sourceRowCount: value.sourceRowCount,
+    gameCount: value.gameCount,
+    includedPeriods: value.includedPeriods,
+    untouchedTestReservation: value.untouchedTestReservation,
+    totals: value.totals,
+    games: value.games,
+  };
+}
+
+function captureIdentity(value) {
+  return {
+    captureVersion: value.captureVersion,
+    provider: value.provider,
+    sourcePlanSha256: value.sourcePlanSha256,
+    plannedGame: value.plannedGame,
+    gameSnapshot: value.gameSnapshot,
+    statsPages: value.statsPages,
+    lineupPages: value.lineupPages,
+    summary: value.summary,
+    untouchedTestReservation: value.untouchedTestReservation,
+  };
+}
+
+function verifyUntouchedReservation(value, label) {
+  if (value?.rowsIncluded !== false || Object.hasOwn(value ?? {}, 'rows')) {
+    throw new Error(`${label} exposes untouched-test rows.`);
+  }
+}
+
+const captureRoot = requireEnvironmentValue('M8_STATS_LINEUP_CAPTURE_DIR');
+const resolvedDatasetPath = requireEnvironmentValue(
+  'M8_RESOLVED_CATEGORICAL_DATASET_PATH',
+);
+const outputPath = requireEnvironmentValue(
+  'M8_TEAM_OFFENSIVE_ENVIRONMENT_DATASET_OUTPUT_PATH',
+);
+const manifestPath = path.join(captureRoot, 'capture-manifest.json');
+const manifest = (await readJson(manifestPath, 'stats-lineup capture manifest')).value;
+const resolvedDatasetFile = await readJson(
+  resolvedDatasetPath,
+  'resolved categorical dataset',
+);
+
+verifyUntouchedReservation(
+  manifest.untouchedTestReservation,
+  'stats-lineup capture manifest',
+);
+verifyUntouchedReservation(
+  resolvedDatasetFile.value.untouchedTestReservation,
+  'resolved categorical dataset',
+);
+if (manifest.manifestSha256 !== sha256(JSON.stringify(manifestIdentity(manifest)))) {
+  throw new Error('stats-lineup capture manifest SHA-256 is invalid.');
+}
+if (resolvedDatasetFile.value.datasetSha256 !== manifest.sourceResolvedDatasetSha256) {
+  throw new Error('resolved categorical dataset does not match the capture manifest.');
+}
+
+const captures = [];
+for (const [index, manifestGame] of manifest.games.entries()) {
+  const gameId = manifestGame.gameId;
+  const capturePath = path.join(
+    captureRoot,
+    'games',
+    String(gameId),
+    'capture.json',
+  );
+  const capture = (
+    await readJson(capturePath, `stats-lineup capture game ${gameId}`)
+  ).value;
+  verifyUntouchedReservation(
+    capture.untouchedTestReservation,
+    `stats-lineup capture game ${gameId}`,
+  );
+  if (
+    capture.sourcePlanSha256 !== manifest.sourcePlanSha256 ||
+    capture.plannedGame?.gameId !== gameId
+  ) {
+    throw new Error(`stats-lineup capture identity mismatch for game ${gameId}.`);
+  }
+  if (capture.captureSha256 !== sha256(JSON.stringify(captureIdentity(capture)))) {
+    throw new Error(`stats-lineup capture SHA-256 mismatch for game ${gameId}.`);
+  }
+  captures.push(capture);
+  if ((index + 1) % 200 === 0 || index + 1 === manifest.gameCount) {
+    console.log(`Verified captures: ${index + 1}/${manifest.gameCount}`);
+  }
+}
+
+const dataset = buildM8TeamOffensiveEnvironmentDataset({
+  captureManifest: manifest,
+  captures,
+  resolvedDataset: resolvedDatasetFile.value,
+  sourceResolvedDatasetFileSha256: sha256(resolvedDatasetFile.text),
+});
+await writeJsonAtomic(outputPath, dataset);
+const written = (
+  await readJson(outputPath, 'written team offensive-environment dataset')
+).value;
+verifyM8TeamOffensiveEnvironmentDataset(written);
+if (written.datasetSha256 !== dataset.datasetSha256) {
+  throw new Error('written team offensive-environment dataset identity changed.');
+}
+
+console.log('=== M8 TEAM OFFENSIVE-ENVIRONMENT DATASET COMPLETE ===');
+console.log(`Active season: ${dataset.activeSeason}`);
+console.log(`Captured games: ${dataset.totals.capturedGameCount}`);
+console.log(`Included paired games: ${dataset.totals.includedGameCount}`);
+console.log(`Excluded games: ${dataset.totals.excludedGameCount}`);
+console.log(`Included team-game rows: ${dataset.totals.includedTeamGameCount}`);
+console.log(`Excluded team-game rows: ${dataset.totals.excludedTeamGameCount}`);
+console.log(`Fit team-game rows: ${dataset.periods.fit.rowCount}`);
+console.log(`Validation team-game rows: ${dataset.periods.validation.rowCount}`);
+console.log(
+  `Included team plate appearances: ${dataset.totals.totalIncludedPlateAppearances}`,
+);
+console.log(`Included team hits: ${dataset.totals.totalIncludedHits}`);
+console.log(`Included team runs: ${dataset.totals.totalIncludedRuns}`);
+console.log(
+  `Ignored baserunning-only rows for pitcher discovery: ${dataset.totals.ignoredBaserunningRowCount}`,
+);
+console.log(`Exclusion reasons: ${JSON.stringify(dataset.exclusionReasonCounts)}`);
+console.log(`Dataset SHA-256: ${dataset.datasetSha256}`);
+console.log(`Output: ${outputPath}`);
+console.log('Lineup requirement used: false');
+console.log('stats.team_name used as primary join: false');
+console.log('Component arithmetic fallback used: false');
+console.log('Both team sides required: true');
+console.log('Untouched-test rows accessed: false');

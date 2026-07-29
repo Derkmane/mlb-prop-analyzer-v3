@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 1.8
+**Version:** 2.1
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -262,46 +262,50 @@ Verified by `test/balldontlie-terminal-pa-contracts.test.ts` and `test/balldontl
 
 ### Categorical hitter model
 
-- [ ] Define current-season recency weighting.
-- [ ] Define one approved pooling path per parameter.
-- [ ] Prohibit double shrinkage.
-- [ ] Fit current-season batter effects.
-- [ ] Fit current-season pitcher-allowed effects.
-- [ ] Fit current-season platoon effects.
-- [ ] Fit coherent terminal categorical probabilities.
-- [ ] Handle rare outcomes and uncertainty.
+- [x] Define current-season recency weighting — uniform current-season weighting won fixed validation and expanding walk-forward comparisons.
+- [x] Define one approved pooling path per parameter.
+- [x] Prohibit double shrinkage.
+- [x] Fit current-season batter effects.
+- [x] Fit current-season pitcher-allowed effects.
+- [x] Fit and evaluate current-season platoon effects.
+- [x] Fit coherent terminal categorical probabilities.
+- [x] Handle rare outcomes and report uncertainty without prior-season supplementation.
 
 ### Context and opportunity
 
 - [ ] Park neutralization and application.
 - [ ] Defense-to-batted-ball translation if supported.
 - [ ] Times-through-order effects.
-- [ ] Bullpen transition scenarios.
-- [ ] Shared offensive-environment scenarios.
-- [ ] Hitter PA survival by lineup slot and home/away.
-- [ ] Define and validate monotonicity handling for fitted hitter PA survival curves; prefer monotone-by-construction computation, preserve raw and adjusted curves, and prohibit any production repair threshold without current-season evidence.
+- [x] Bullpen transition scenarios — selected `starter-bf-side-pool-1000` from the intersection of the fixed-validation and expanding walk-forward proper-score nondominated sets under `CANONICAL_MATH_SPEC.md` Version 1.5; 9 focused tests, the real-data shared-environment gate, the complete 329-test verification gate, and GitHub Actions verify run 396 passed while production remained disabled and untouched-test rows remained sealed.
+- [x] Shared offensive-environment scenarios.
+- [x] Hitter PA survival by lineup slot and home/away.
+- [x] Define and validate monotonicity handling for fitted hitter PA survival curves — selected curves are monotone by construction, raw and fitted curves are preserved, and no production repair threshold is used.
 - [ ] Eligibility and participation probability.
-- [ ] Opportunity/outcome dependence benchmark.
+- [x] Opportunity/outcome dependence benchmark.
+- [x] Treat projected and confirmed versions of an otherwise identical lineup identically in model assumptions and opportunity distributions.
 
 ### Validation and calibration
 
-- [ ] Earlier current-season fit period.
-- [ ] Later validation period.
-- [ ] Untouched latest test period.
-- [ ] Walk-forward evaluation where practical.
-- [ ] Reliability curves.
-- [ ] Brier score.
-- [ ] Log loss.
-- [ ] Probability-bucket counts and uncertainty.
-- [ ] Altline-tail checks.
-- [ ] Overdispersion checks.
-- [ ] Frozen, versioned runtime model artifacts.
-- [ ] Runtime app does not import fitting code.
+- [x] Earlier current-season fit period.
+- [x] Later validation period.
+- [x] Reserve and seal an untouched latest current-season test period during candidate selection.
+- [ ] Run the final untouched-test evaluation after the complete runtime candidate is frozen.
+- [x] Walk-forward evaluation where practical.
+- [x] Reliability curves.
+- [x] Brier score.
+- [x] Log loss.
+- [x] Probability-bucket counts and uncertainty.
+- [x] Validation-period half-line and altline-tail checks.
+- [x] Overdispersion checks.
+- [ ] Frozen, versioned complete runtime model artifacts.
+- [x] Runtime application code does not import the offline fitting scripts.
 
 ### M8 exit gate
 
-- [ ] Batter Hits is empirically validated or explicitly remains not yet production-validated.
-- [ ] No placeholder coefficient can reach production ranking.
+- [x] Batter Hits explicitly remains not yet production-validated; the completed fitting and validation evidence may merge without enabling real-prop ranking.
+- [x] No placeholder or unvalidated coefficient can reach production ranking.
+
+M8 merge status is documented in `docs/modeling/m8-merge-status-v1.md`. Open production gates above remain blockers for M9 and may not be silently treated as completed.
 
 ---
 
@@ -364,6 +368,27 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 2.1 — 2026-07-29
+
+- Closed the M8 bullpen-transition-scenarios item after the Version 1.5 proper-score nondominated-intersection rule selected `starter-bf-side-pool-1000`.
+- Recorded the fixed nondominated set `{side-pool-500, side-pool-1000, league}`, the walk-forward nondominated set `{side-pool-1000}`, and the single-candidate stable intersection.
+- Recorded 9 focused passing tests, the passing real-data shared-environment gate, the complete 329-of-329 verification gate, and passing GitHub Actions verify run 396.
+- Preserved production-disabled status and the sealed untouched-test period; no real prop was enabled.
+
+### Version 2.0 — 2026-07-29
+
+- Recorded the completed M8 current-season fitting and validation evidence for recency weighting, single-pass pooling, batter effects, pitcher-allowed effects, platoon evaluation, coherent categorical probabilities, rare-outcome uncertainty, PA survival, reliability, scoring metrics, tail checks, and overdispersion checks.
+- Recorded the projected-lineup equivalence rule and focused regression: projected-versus-confirmed status alone cannot alter model assumptions or opportunity distributions.
+- Recorded the sealed untouched-test period and separated its reservation from the still-open final untouched-test evaluation.
+- Closed the M8 merge gate as explicitly not yet production-validated while preserving fail-closed protection against real-prop ranking.
+- Kept final runtime artifacts, eligibility, remaining context effects, and M9 production integration open.
+
+### Version 1.9 — 2026-07-29
+
+- Recorded benchmark artifact `a606b98c25d35ff5711b88eae089d6745003ad4c04a527cbb21418c7f4661b52` for `shared-environment-k4`, selected independently by the 189-game holdout and 14-fold expanding-window walk-forward evaluation.
+- Recorded a 3.24611015062674% walk-forward relative joint-log-loss improvement versus the K=1 independence baseline, with all 189 validation games scored exactly once and no untouched-test rows accessed.
+- Closed only the M8 shared offensive-environment-scenarios and opportunity/outcome-dependence-benchmark items. The scenario count remains nonpermanent, benchmark-only, and not production-enabled; runtime integration, tail checks, calibration, untouched testing, and production gates remain open.
 
 ### Version 1.8 — 2026-07-23
 
