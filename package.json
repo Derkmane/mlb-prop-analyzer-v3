@@ -13,6 +13,7 @@
     "check:m8-pa-survival-baseline-artifact": "node --check scripts/m8-pa-survival-baseline-artifact-utils.mjs && node --check scripts/build-m8-pa-survival-baseline-artifact.mjs",
     "check:m8-team-offensive-environment-dataset": "node --check scripts/m8-team-offensive-environment-dataset-utils.mjs && node --check scripts/build-m8-team-offensive-environment-dataset.mjs",
     "check:m8-shared-offensive-environment": "node --check scripts/m8-shared-offensive-environment-utils.mjs && node --check scripts/evaluate-m8-shared-offensive-environment.mjs",
+    "check:m8-shared-offensive-environment-walk-forward": "node --check scripts/m8-shared-offensive-environment-walk-forward-utils.mjs && node --check scripts/evaluate-m8-shared-offensive-environment-walk-forward.mjs",
     "build": "tsc",
     "architecture": "depcruise --config .dependency-cruiser.cjs src test --exclude '^test/architecture/fixtures/'",
     "test:selected-side": "node --test dist/test/selected-side.test.js",
@@ -52,8 +53,9 @@
     "test:m8-pa-survival-baseline-artifact": "node --test test/m8-pa-survival-baseline-artifact.test.mjs",
     "test:m8-team-offensive-environment-dataset": "node --test test/m8-team-offensive-environment-dataset.test.mjs",
     "test:m8-shared-offensive-environment": "node --test test/m8-shared-offensive-environment.test.mjs",
+    "test:m8-shared-offensive-environment-walk-forward": "node --test test/m8-shared-offensive-environment-walk-forward.test.mjs",
     "test": "npm run build && node --test \"dist/test/**/*.test.js\" \"test/**/*.test.mjs\"",
-    "verify": "npm run typecheck && npm run check:scripts && npm run check:m8-pa-survival-baseline-artifact && npm run check:m8-team-offensive-environment-dataset && npm run check:m8-shared-offensive-environment && npm run architecture && npm test",
+    "verify": "npm run typecheck && npm run check:scripts && npm run check:m8-pa-survival-baseline-artifact && npm run check:m8-team-offensive-environment-dataset && npm run check:m8-shared-offensive-environment && npm run check:m8-shared-offensive-environment-walk-forward && npm run architecture && npm test",
     "verify:provider-access": "node scripts/verify-provider-access.mjs",
     "capture:provider-capabilities": "node scripts/capture-provider-capabilities.mjs",
     "capture:m8-current-season-pa": "node scripts/capture-m8-current-season-pa.mjs",
@@ -89,7 +91,8 @@
     "evaluate:m8-pa-survival-walk-forward": "node scripts/evaluate-m8-pa-survival-walk-forward.mjs",
     "build:m8-pa-survival-baseline-artifact": "node scripts/build-m8-pa-survival-baseline-artifact.mjs",
     "build:m8-team-offensive-environment-dataset": "node scripts/build-m8-team-offensive-environment-dataset.mjs",
-    "evaluate:m8-shared-offensive-environment": "node scripts/evaluate-m8-shared-offensive-environment.mjs"
+    "evaluate:m8-shared-offensive-environment": "node scripts/evaluate-m8-shared-offensive-environment.mjs",
+    "evaluate:m8-shared-offensive-environment-walk-forward": "node scripts/evaluate-m8-shared-offensive-environment-walk-forward.mjs"
   },
   "dependencies": {
     "zod": "4.4.3"
