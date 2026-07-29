@@ -1,6 +1,7 @@
 import { access, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 
+import { selectUniqueArtifactPair } from './m8-artifact-pair-selection-utils.mjs';
 import {
   buildM8TerminalPaOutcomeArtifact,
   verifyM8TerminalPaOutcomeArtifact,
@@ -73,14 +74,10 @@ const boundaryMatches = matches.filter((match) => {
   return normalized.includes('platoon') && normalized.includes('boundary');
 });
 const selectedMatches = boundaryMatches.length > 0 ? boundaryMatches : matches;
-if (selectedMatches.length !== 1) {
-  throw new Error(
-    `Expected exactly one boundary-approved resolved categorical dataset and platoon evaluation pair under ${SEARCH_ROOT}; boundary matches=${boundaryMatches.length}, all matches=${matches.length}.`,
-  );
-}
-const match = selectedMatches[0];
+const match = selectUniqueArtifactPair(selectedMatches);
 console.log(`Resolved dataset: ${match.dataset.path}`);
 console.log(`Boundary-approved platoon evaluation: ${match.evaluation.path}`);
+console.log(`Equivalent approved copies found: ${selectedMatches.length}`);
 const artifact = buildM8TerminalPaOutcomeArtifact({
   rawDataset: match.dataset.value,
   datasetFileSha256: sha256(match.dataset.text),
