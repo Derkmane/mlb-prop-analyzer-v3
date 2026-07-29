@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { selectUniqueArtifactPair } from '../scripts/m8-artifact-pair-selection-utils.mjs';
+import {
+  selectUniqueArtifactCopy,
+  selectUniqueArtifactPair,
+} from '../scripts/m8-artifact-pair-selection-utils.mjs';
 
 function pair({ datasetSha = 'a'.repeat(64), evaluationSha = 'b'.repeat(64), candidateId = 'approved', suffix }) {
   return {
@@ -35,5 +38,31 @@ test('rejects genuinely different approved model identities', () => {
   assert.throws(
     () => selectUniqueArtifactPair([first, second]),
     /exactly one boundary-approved model identity; found 2/,
+  );
+});
+
+test('accepts duplicate files that contain one identical artifact hash', () => {
+  const selected = selectUniqueArtifactCopy(
+    [
+      { path: 'artifacts/z.json', value: { artifactSha256: 'd'.repeat(64) } },
+      { path: 'artifacts/a.json', value: { artifactSha256: 'd'.repeat(64) } },
+    ],
+    { label: 'shared-environment', identityField: 'artifactSha256' },
+  );
+
+  assert.equal(selected.path, 'artifacts/a.json');
+});
+
+test('rejects duplicate-looking files with different internal identities', () => {
+  assert.throws(
+    () =>
+      selectUniqueArtifactCopy(
+        [
+          { path: 'artifacts/a.json', value: { datasetSha256: 'e'.repeat(64) } },
+          { path: 'artifacts/b.json', value: { datasetSha256: 'f'.repeat(64) } },
+        ],
+        { label: 'resolved dataset', identityField: 'datasetSha256' },
+      ),
+    /exactly one resolved dataset identity; found 2/,
   );
 });
