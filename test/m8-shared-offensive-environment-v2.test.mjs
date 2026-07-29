@@ -145,7 +145,11 @@ test('adds a conserved starter-to-bullpen distribution to every shared scenario'
   });
   verifyM8SharedOffensiveEnvironmentV2(artifact);
   assert.equal(artifact.scenarioCount, 4);
-  assert.equal(artifact.validationEvidence.selectionAgreement, true);
+  assert.equal(artifact.validationEvidence.starterBullpenStableSelection, true);
+  assert.equal(
+    artifact.validationEvidence.starterBullpenSelectedCandidateId,
+    transition.selectedCandidateId,
+  );
   for (const side of ['away', 'home']) {
     assert.ok(
       Math.abs(
