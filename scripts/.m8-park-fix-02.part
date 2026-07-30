@@ -1,0 +1,85 @@
+ge.venue,`,
+  'preserve platoon eligibility',
+);
+utility = utility.replaceAll('VALID_HANDS.has(batterSide)', 'isSupportedHand(batterSide)');
+utility = utility.replaceAll('VALID_HANDS.has(pitcherHand)', 'isSupportedHand(pitcherHand)');
+
+const diagnostics = String.raw`
+function percentage(rate) {
+  return rate * 100;
+}
+
+function availabilitySummary(observations, periodId) {
+  const observationCount = observations.length;
+  const nullPitcherHandCount = observations.filter(
+    (observation) => observation.pitcherHand === null,
+  ).length;
+  const nullPitcherHandRate = nullPitcherHandCount / observationCount;
+  const venueMap = new Map();
+  const cellMap = new Map();
+  for (const observation of observations) {
+    const venue = venueMap.get(observation.venue) ?? { observationCount: 0, nullPitcherHandCount: 0 };
+    venue.observationCount += 1;
+    if (observation.pitcherHand === null) venue.nullPitcherHandCount += 1;
+    venueMap.set(observation.venue, venue);
+    const cell = cellMap.get(observation.cellKey) ?? { observationCount: 0, nullPitcherHandCount: 0 };
+    cell.observationCount += 1;
+    if (observation.pitcherHand === null) cell.nullPitcherHandCount += 1;
+    cellMap.set(observation.cellKey, cell);
+  }
+  const byVenue = Object.freeze(
+    [...venueMap.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([venue, counts]) => {
+      const rate = counts.nullPitcherHandCount / counts.observationCount;
+      return Object.freeze({
+        venue,
+        observationCount: counts.observationCount,
+        nullPitcherHandCount: counts.nullPitcherHandCount,
+        nullPitcherHandRate: rate,
+        nullPitcherHandPercentage: percentage(rate),
+      });
+    }),
+  );
+  const thresholdRate = nullPitcherHandRate * 2;
+  const exceedingVenueHandCells = Object.freeze(
+    nullPitcherHandRate === 0
+      ? []
+      : [...cellMap.entries()]
+          .map(([cellKey, counts]) => {
+            const rate = counts.nullPitcherHandCount / counts.observationCount;
+            return {
+              periodId,
+              cellKey,
+              observationCount: counts.observationCount,
+              nullPitcherHandCount: counts.nullPitcherHandCount,
+              nullPitcherHandRate: rate,
+              nullPitcherHandPercentage: percentage(rate),
+              thresholdRate,
+              thresholdPercentage: percentage(thresholdRate),
+            };
+          })
+          .filter((cell) => cell.nullPitcherHandRate > thresholdRate + TOLERANCE)
+          .sort((left, right) => left.cellKey.localeCompare(right.cellKey))
+          .map((cell) => Object.freeze(cell)),
+  );
+  return Object.freeze({
+    periodId,
+    observationCount,
+    nullPitcherHandCount,
+    nullPitcherHandRate,
+    nullPitcherHandPercentage: percentage(nullPitcherHandRate),
+    byVenue,
+    venueHandCellCount: cellMap.size,
+    clusteringThresholdMultiplier: 2,
+    clusteringThresholdRate: thresholdRate,
+    clusteringThresholdPercentage: percentage(thresholdRate),
+    exceedingVenueHandCellCount: exceedingVenueHandCells.length,
+    exceedingVenueHandCells,
+  });
+}
+
+export function buildPitcherHandAvailabilityDiagnostics(observations) {
+  const fit = availabilitySummary(array(observations.fit, 'fit observations'), 'fit');
+  const validation = availabilitySummary(array(observations.validation, 'validation observations'), 'validation');
+  const affected = Object.freeze(
+    [...fit.exceedingVenueHandCells, ...validation.exceedingVenueHandCells].sort(
+      (left, right) =>
