@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 2.7
+**Version:** 2.8
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -318,7 +318,7 @@ M8 current-season fitting and runtime-freeze work is closed. The one-time untouc
 - [x] Exclude started games — fixture-backed BALLDONTLIE game-state normalization and the shared pregame eligibility gate require the matched current-season regular-season game to remain `STATUS_SCHEDULED` and require the evaluation time to be strictly before both preserved provider start timestamps; final, unknown, missing, duplicate, or start-time-reached states fail closed. Four focused tests passed and GitHub Actions verify run 408 passed 341 of 341 tests while side and line remained unchanged and production ranking remained disabled.
 - [x] Preserve exact selected side and line — exhaustive fixture-backed regression matched all 34 uniquely linked baseline and alternate offers through both normalized and pregame composition boundaries; raw `Over` remained `Over` and mapped only to `higher`, raw `Under` remained `Under` and mapped only to `lower`, and every numeric provider point survived exactly as the posted line. Final-game exclusion retained the same immutable offer identities. Two focused tests passed and GitHub Actions verify run 413 passed 343 of 343 tests while production ranking remained disabled.
 - [x] Produce `P(Win)`, `P(Loss)`, `P(Void)`, and `P(Win | grades)` — the exact frozen complete Batter Hits candidate, SHA-256 `728895ca850c5481cd1f17944e38464f16396becc3622146a1384bba19ce5cde`, now builds deterministic scenario-conditioned nested opportunity-count and Poisson-binomial Hits distributions and settles exact Higher/Lower sides and posted lines through the generic core settlement path. Baseline and alternate examples conserve probability mass, mismatched runtime identity and production authorization fail closed, 3 focused tests passed, and GitHub Actions verify run 417 passed 346 of 346 tests while production ranking remained disabled and untouched-test rows remained sealed.
-- [ ] Verify baseline and alternate offers use the same statistic distribution.
+- [x] Verify baseline and alternate offers use the same statistic distribution — the committed board contains verified baseline and alternate Batter Hits offers but no same-player pair, so one explicit test-only invariant held normalized player, game, team, lineup, opposing starter, shared scenarios, and frozen model artifacts fixed while substituting only provider-observed alternate offer attributes. The complete runtime distribution and candidate statistic distribution remained exactly identical; selected side, posted line, price, multiplier, and settlement probabilities were allowed to differ. One focused test passed and GitHub Actions verify run 420 passed 347 of 347 tests while production ranking remained disabled and untouched-test rows remained sealed.
 - [ ] Enable only after all acceptance gates pass.
 - [ ] Begin prospective board archiving and grading.
 
@@ -370,6 +370,14 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 2.8 — 2026-07-30
+
+- Added a fixture-backed test-only invariant proving baseline and alternate Batter Hits offer attributes do not create different baseball distributions.
+- Recorded that the committed board contains real baseline and alternate offers but no same-player pair, avoiding any unsupported provider claim.
+- Held player, game, team, lineup, opposing starter, shared scenarios, and frozen model artifacts fixed while substituting only a provider-observed alternate offer attribute set.
+- Verified exact equality of the complete runtime and candidate statistic distributions while allowing side, line, price, multiplier, and settlement probabilities to differ.
+- Recorded 1-of-1 focused passing test and GitHub Actions verify run 420 with 347-of-347 tests passing; production ranking remains disabled and untouched-test rows remain sealed.
 
 ### Version 2.7 — 2026-07-30
 
