@@ -1,2 +1,2 @@
 /** Public boundary for the adapters layer. */
-export {};
+export * from './model-artifacts/batter-hits-runtime-artifact-file.js';
