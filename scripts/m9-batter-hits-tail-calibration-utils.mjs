@@ -1,8 +1,20 @@
 import { sha256 } from './provider-probe-utils.mjs';
 
 export const CALIBRATION_TOLERANCE = 1e-12;
+export const IDENTITY_MONOTONE_TAIL_CALIBRATION = Object.freeze({
+  slope: 1,
+  intercept: 0,
+});
+
 const PROBABILITY_FLOOR = 1e-300;
 const LOGIT_EPSILON = 1e-15;
+const ETA_LOWER_BOUND = -2;
+const ETA_UPPER_BOUND = 2;
+const INTERCEPT_LOWER_BOUND = -40;
+const INTERCEPT_UPPER_BOUND = 40;
+const GOLDEN_SECTION_ITERATIONS = 96;
+const INTERCEPT_BISECTION_ITERATIONS = 180;
+const GOLDEN_SECTION_RATIO = (Math.sqrt(5) - 1) / 2;
 
 function assertArray(value, label) {
   if (!Array.isArray(value)) throw new TypeError(`${label} must be an array.`);
@@ -21,6 +33,14 @@ function assertNonNegativeInteger(value, label) {
     throw new RangeError(`${label} must be a non-negative integer.`);
   }
   return value;
+}
+
+function assertUnitInterval(value, label) {
+  const numeric = assertFinite(value, label);
+  if (numeric < 0 || numeric > 1) {
+    throw new RangeError(`${label} must be in [0,1].`);
+  }
+  return numeric;
 }
 
 function canonicalProbability(value, label) {
@@ -58,8 +78,32 @@ function logistic(value) {
 }
 
 function logit(value) {
-  const bounded = Math.min(1 - LOGIT_EPSILON, Math.max(LOGIT_EPSILON, value));
+  const bounded = Math.min(
+    1 - LOGIT_EPSILON,
+    Math.max(LOGIT_EPSILON, value),
+  );
   return Math.log(bounded / (1 - bounded));
+}
+
+function normalizeCalibration(rawCalibration) {
+  if (rawCalibration === undefined) {
+    return IDENTITY_MONOTONE_TAIL_CALIBRATION;
+  }
+  if (rawCalibration === null || typeof rawCalibration !== 'object') {
+    throw new TypeError('tail calibration must be an object.');
+  }
+  const slope = assertFinite(rawCalibration.slope, 'calibration slope');
+  const intercept = assertFinite(
+    rawCalibration.intercept,
+    'calibration intercept',
+  );
+  if (!(slope > 0)) {
+    throw new RangeError('calibration slope must be greater than zero.');
+  }
+  if (slope === 1 && intercept === 0) {
+    return IDENTITY_MONOTONE_TAIL_CALIBRATION;
+  }
+  return Object.freeze({ slope, intercept });
 }
 
 export function hitsTailProbabilities(rawPmf) {
@@ -73,33 +117,65 @@ export function hitsTailProbabilities(rawPmf) {
   return Object.freeze(tails);
 }
 
-export function calibrateTailProbability(rawProbability, delta) {
-  const probability = canonicalProbability(rawProbability, 'raw tail probability');
-  const shift = assertFinite(delta, 'calibration delta');
-  if (probability === 0 || probability === 1 || shift === 0) return probability;
-  return canonicalProbability(logistic(logit(probability) + shift), 'calibrated tail probability');
+export function calibrateTailProbability(
+  rawProbability,
+  rawCalibration = IDENTITY_MONOTONE_TAIL_CALIBRATION,
+) {
+  const probability = canonicalProbability(
+    rawProbability,
+    'raw tail probability',
+  );
+  const calibration = normalizeCalibration(rawCalibration);
+  if (
+    probability === 0 ||
+    probability === 1 ||
+    calibration === IDENTITY_MONOTONE_TAIL_CALIBRATION
+  ) {
+    return probability;
+  }
+  return canonicalProbability(
+    logistic(
+      calibration.slope * logit(probability) + calibration.intercept,
+    ),
+    'calibrated tail probability',
+  );
 }
 
-export function calibrateHitsDistribution(rawPmf, delta) {
+export function calibrateHitsDistribution(
+  rawPmf,
+  rawCalibration = IDENTITY_MONOTONE_TAIL_CALIBRATION,
+) {
   const pmf = normalizePmf(rawPmf);
-  if (pmf.length === 1) return pmf;
+  const calibration = normalizeCalibration(rawCalibration);
+  if (
+    pmf.length === 1 ||
+    calibration === IDENTITY_MONOTONE_TAIL_CALIBRATION
+  ) {
+    return pmf;
+  }
+
   const rawTails = hitsTailProbabilities(pmf);
   const calibratedTails = rawTails.map((probability) =>
-    calibrateTailProbability(probability, delta),
+    calibrateTailProbability(probability, calibration),
   );
+
   for (let index = 1; index < calibratedTails.length; index += 1) {
     const previous = calibratedTails[index - 1];
     const current = calibratedTails[index];
     if (previous + CALIBRATION_TOLERANCE < current) {
-      throw new Error('calibrated Hits tails must remain monotone non-increasing.');
+      throw new Error(
+        'calibrated Hits tails must remain monotone non-increasing.',
+      );
     }
   }
+
   const output = Array(pmf.length).fill(0);
   output[0] = 1 - calibratedTails[0];
   for (let hits = 1; hits < pmf.length - 1; hits += 1) {
     output[hits] = calibratedTails[hits - 1] - calibratedTails[hits];
   }
   output[pmf.length - 1] = calibratedTails.at(-1);
+
   const stabilized = output.map((value, index) => {
     if (value < -CALIBRATION_TOLERANCE) {
       throw new Error(`calibrated Hits PMF[${index}] is materially negative.`);
@@ -108,7 +184,9 @@ export function calibrateHitsDistribution(rawPmf, delta) {
   });
   const total = stabilized.reduce((sum, value) => sum + value, 0);
   if (!(total > 0) || Math.abs(total - 1) > CALIBRATION_TOLERANCE) {
-    throw new Error(`calibrated Hits PMF must sum to one; received ${total}.`);
+    throw new Error(
+      `calibrated Hits PMF must sum to one; received ${total}.`,
+    );
   }
   return Object.freeze(stabilized.map((value) => value / total));
 }
@@ -129,12 +207,18 @@ function thresholdExamples(rawPredictions, thresholds) {
     const tails = hitsTailProbabilities(pmf);
     for (const threshold of thresholds) {
       if (!Number.isSafeInteger(threshold) || threshold <= 0) {
-        throw new RangeError('calibration thresholds must be positive integers.');
+        throw new RangeError(
+          'calibration thresholds must be positive integers.',
+        );
       }
       const rawProbability = tails[threshold - 1] ?? 0;
       examples.push(
         Object.freeze({
           rawProbability,
+          rawLogit:
+            rawProbability > 0 && rawProbability < 1
+              ? logit(rawProbability)
+              : null,
           outcome: actualHits >= threshold ? 1 : 0,
         }),
       );
@@ -143,51 +227,157 @@ function thresholdExamples(rawPredictions, thresholds) {
   return Object.freeze(examples);
 }
 
-export function fitSharedTailLogitIntercept(
+function informativeThresholdExamples(rawPredictions, thresholds) {
+  const examples = thresholdExamples(rawPredictions, thresholds);
+  const informative = examples.filter(
+    (example) => example.rawLogit !== null,
+  );
+  if (informative.length === 0) {
+    throw new Error(
+      'calibration fitting has no informative tail probabilities.',
+    );
+  }
+  return Object.freeze({ examples, informative });
+}
+
+function solveInterceptForSlope(informative, slope) {
+  const derivative = (intercept) =>
+    informative.reduce(
+      (sum, example) =>
+        sum + logistic(slope * example.rawLogit + intercept) - example.outcome,
+      0,
+    );
+
+  let lower = INTERCEPT_LOWER_BOUND;
+  let upper = INTERCEPT_UPPER_BOUND;
+  const lowerDerivative = derivative(lower);
+  const upperDerivative = derivative(upper);
+
+  if (lowerDerivative >= 0) return lower;
+  if (upperDerivative <= 0) return upper;
+
+  for (let iteration = 0; iteration < INTERCEPT_BISECTION_ITERATIONS; iteration += 1) {
+    const midpoint = (lower + upper) / 2;
+    if (derivative(midpoint) > 0) upper = midpoint;
+    else lower = midpoint;
+  }
+  return (lower + upper) / 2;
+}
+
+function thresholdBinaryLogLoss(informative, calibration) {
+  let total = 0;
+  for (const example of informative) {
+    const probability = logistic(
+      calibration.slope * example.rawLogit + calibration.intercept,
+    );
+    total +=
+      example.outcome === 1
+        ? -Math.log(Math.max(probability, PROBABILITY_FLOOR))
+        : -Math.log(Math.max(1 - probability, PROBABILITY_FLOOR));
+  }
+  return total / informative.length;
+}
+
+function fittedCalibrationAtEta(informative, eta) {
+  const slope = Math.exp(eta);
+  const intercept = solveInterceptForSlope(informative, slope);
+  const calibration = Object.freeze({ slope, intercept });
+  return Object.freeze({
+    eta,
+    slope,
+    intercept,
+    objective: thresholdBinaryLogLoss(informative, calibration),
+  });
+}
+
+export function fitMonotoneTailLogitAffine(
   rawPredictions,
   thresholds = Object.freeze([1, 2, 3]),
 ) {
-  const examples = thresholdExamples(rawPredictions, thresholds);
-  const informative = examples.filter(
-    (example) => example.rawProbability > 0 && example.rawProbability < 1,
+  const { examples, informative } = informativeThresholdExamples(
+    rawPredictions,
+    thresholds,
   );
-  if (informative.length === 0) {
-    throw new Error('calibration fitting has no informative tail probabilities.');
-  }
-  const derivative = (delta) =>
-    informative.reduce(
-      (sum, example) =>
-        sum +
-        calibrateTailProbability(example.rawProbability, delta) -
-        example.outcome,
-      0,
-    );
-  let lower = -40;
-  let upper = 40;
-  const lowerDerivative = derivative(lower);
-  const upperDerivative = derivative(upper);
-  let delta;
-  if (lowerDerivative >= 0) delta = lower;
-  else if (upperDerivative <= 0) delta = upper;
-  else {
-    for (let iteration = 0; iteration < 200; iteration += 1) {
-      const midpoint = (lower + upper) / 2;
-      if (derivative(midpoint) > 0) upper = midpoint;
-      else lower = midpoint;
+
+  let lower = ETA_LOWER_BOUND;
+  let upper = ETA_UPPER_BOUND;
+  let leftEta = upper - GOLDEN_SECTION_RATIO * (upper - lower);
+  let rightEta = lower + GOLDEN_SECTION_RATIO * (upper - lower);
+  let left = fittedCalibrationAtEta(informative, leftEta);
+  let right = fittedCalibrationAtEta(informative, rightEta);
+
+  for (let iteration = 0; iteration < GOLDEN_SECTION_ITERATIONS; iteration += 1) {
+    if (left.objective <= right.objective) {
+      upper = rightEta;
+      rightEta = leftEta;
+      right = left;
+      leftEta = upper - GOLDEN_SECTION_RATIO * (upper - lower);
+      left = fittedCalibrationAtEta(informative, leftEta);
+    } else {
+      lower = leftEta;
+      leftEta = rightEta;
+      left = right;
+      rightEta = lower + GOLDEN_SECTION_RATIO * (upper - lower);
+      right = fittedCalibrationAtEta(informative, rightEta);
     }
-    delta = (lower + upper) / 2;
   }
+
+  const midpointEta = (lower + upper) / 2;
+  const candidates = [
+    fittedCalibrationAtEta(informative, ETA_LOWER_BOUND),
+    fittedCalibrationAtEta(informative, ETA_UPPER_BOUND),
+    fittedCalibrationAtEta(informative, midpointEta),
+    fittedCalibrationAtEta(informative, 0),
+  ].sort(
+    (first, second) =>
+      first.objective - second.objective || first.eta - second.eta,
+  );
+  const selected = candidates[0];
+  const identityObjective = thresholdBinaryLogLoss(
+    informative,
+    IDENTITY_MONOTONE_TAIL_CALIBRATION,
+  );
+
   const identity = {
-    method: 'shared-logit-intercept-v1',
+    method: 'monotone-logit-affine-v2',
     thresholds: Object.freeze([...thresholds]),
     predictionCount: rawPredictions.length,
     thresholdExampleCount: examples.length,
     informativeExampleCount: informative.length,
-    delta,
+    slope: selected.slope,
+    intercept: selected.intercept,
+    eta: selected.eta,
+    objective: selected.objective,
+    identityObjective,
+    optimization: Object.freeze({
+      etaLowerBound: ETA_LOWER_BOUND,
+      etaUpperBound: ETA_UPPER_BOUND,
+      interceptLowerBound: INTERCEPT_LOWER_BOUND,
+      interceptUpperBound: INTERCEPT_UPPER_BOUND,
+      goldenSectionIterations: GOLDEN_SECTION_ITERATIONS,
+      interceptBisectionIterations: INTERCEPT_BISECTION_ITERATIONS,
+    }),
   };
   return Object.freeze({
     ...identity,
     fitSha256: sha256(JSON.stringify(identity)),
+  });
+}
+
+export function shrinkMonotoneTailCalibration(fit, lambda) {
+  if (fit === null || typeof fit !== 'object') {
+    throw new TypeError('monotone calibration fit must be an object.');
+  }
+  const weight = assertUnitInterval(lambda, 'calibration shrinkage multiplier');
+  const fitted = normalizeCalibration({
+    slope: fit.slope,
+    intercept: fit.intercept,
+  });
+  if (weight === 0) return IDENTITY_MONOTONE_TAIL_CALIBRATION;
+  if (weight === 1) return fitted;
+  return normalizeCalibration({
+    slope: 1 + weight * (fitted.slope - 1),
+    intercept: weight * fitted.intercept,
   });
 }
 
@@ -206,11 +396,14 @@ function createAccumulator() {
 
 function addScore(accumulator, pmf, actualHits) {
   accumulator.observationCount += 1;
-  accumulator.logLoss += -Math.log(Math.max(pmf[actualHits] ?? 0, PROBABILITY_FLOOR));
+  accumulator.logLoss += -Math.log(
+    Math.max(pmf[actualHits] ?? 0, PROBABILITY_FLOOR),
+  );
   accumulator.observedHits += actualHits;
   for (let hits = 0; hits < pmf.length; hits += 1) {
     const mass = pmf[hits] ?? 0;
-    accumulator.multiclassBrier += (mass - (hits === actualHits ? 1 : 0)) ** 2;
+    accumulator.multiclassBrier +=
+      (mass - (hits === actualHits ? 1 : 0)) ** 2;
     accumulator.predictedHits += hits * mass;
   }
   const tails = hitsTailProbabilities(pmf);
@@ -225,9 +418,13 @@ function addScore(accumulator, pmf, actualHits) {
   }
 }
 
-export function evaluateCalibratedHitsPredictions(rawPredictions, delta) {
+export function evaluateCalibratedHitsPredictions(
+  rawPredictions,
+  rawCalibration = IDENTITY_MONOTONE_TAIL_CALIBRATION,
+) {
   const predictions = assertArray(rawPredictions, 'evaluation predictions');
   if (predictions.length === 0) throw new Error('evaluation requires predictions.');
+  const calibration = normalizeCalibration(rawCalibration);
   const accumulator = createAccumulator();
   const calibratedPredictionIds = [];
   for (const [index, prediction] of predictions.entries()) {
@@ -235,9 +432,14 @@ export function evaluateCalibratedHitsPredictions(rawPredictions, delta) {
       prediction.actualHits,
       `prediction[${index}].actualHits`,
     );
-    const calibratedPmf = calibrateHitsDistribution(prediction.pmf, delta);
+    const calibratedPmf = calibrateHitsDistribution(
+      prediction.pmf,
+      calibration,
+    );
     addScore(accumulator, calibratedPmf, actualHits);
-    calibratedPredictionIds.push(prediction.observationId ?? `prediction-${index}`);
+    calibratedPredictionIds.push(
+      prediction.observationId ?? `prediction-${index}`,
+    );
   }
   const count = accumulator.observationCount;
   const metrics = Object.freeze({
@@ -263,12 +465,14 @@ export function nondominatedCandidateIds(results) {
     const dominated = candidates.some((other) => {
       if (other.candidateId === candidate.candidateId) return false;
       const noWorseLogLoss =
-        other.metrics.logLoss <= candidate.metrics.logLoss + CALIBRATION_TOLERANCE;
+        other.metrics.logLoss <=
+        candidate.metrics.logLoss + CALIBRATION_TOLERANCE;
       const noWorseBrier =
         other.metrics.multiclassBrier <=
         candidate.metrics.multiclassBrier + CALIBRATION_TOLERANCE;
       const strictlyBetter =
-        other.metrics.logLoss < candidate.metrics.logLoss - CALIBRATION_TOLERANCE ||
+        other.metrics.logLoss <
+          candidate.metrics.logLoss - CALIBRATION_TOLERANCE ||
         other.metrics.multiclassBrier <
           candidate.metrics.multiclassBrier - CALIBRATION_TOLERANCE;
       return noWorseLogLoss && noWorseBrier && strictlyBetter;
@@ -278,16 +482,25 @@ export function nondominatedCandidateIds(results) {
   return Object.freeze(ids.sort());
 }
 
-export function lineBriersNoWorse(candidateMetrics, benchmarkMetrics) {
-  return Object.freeze({
-    higher05:
-      candidateMetrics.higher05Brier <=
-      benchmarkMetrics.higher05Brier + CALIBRATION_TOLERANCE,
-    higher15:
-      candidateMetrics.higher15Brier <=
-      benchmarkMetrics.higher15Brier + CALIBRATION_TOLERANCE,
-    higher25:
-      candidateMetrics.higher25Brier <=
-      benchmarkMetrics.higher25Brier + CALIBRATION_TOLERANCE,
-  });
+export function stableNondominatedCandidateIds(
+  fixedCandidateIds,
+  walkForwardCandidateIds,
+  excludedCandidateIds = Object.freeze([]),
+) {
+  const fixed = new Set(assertArray(fixedCandidateIds, 'fixed candidate IDs'));
+  const walkForward = new Set(
+    assertArray(walkForwardCandidateIds, 'walk-forward candidate IDs'),
+  );
+  const excluded = new Set(
+    assertArray(excludedCandidateIds, 'excluded candidate IDs'),
+  );
+  return Object.freeze(
+    [...fixed]
+      .filter((candidateId) =>
+        typeof candidateId === 'string' &&
+        walkForward.has(candidateId) &&
+        !excluded.has(candidateId),
+      )
+      .sort(),
+  );
 }
