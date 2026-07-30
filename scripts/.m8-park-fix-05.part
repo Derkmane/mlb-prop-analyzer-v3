@@ -1,0 +1,78 @@
+',
+  playerSplitEquivalentPa: 8,
+  playerSplitExactTarget: false,
+  platoonCoefficient: 0.75,
+});
+
+function periodWithRows(source, rows) {
+  return Object.freeze({
+    ...source,
+    rowCount: rows.length,
+    classifiedTerminalCount: rows.length,
+    platoonEligibleCount: rows.filter((row) => row.includedInPlatoonModel === true).length,
+    rows: Object.freeze(rows),
+  });
+}
+
+function rewritePitcherHandFixture({ mapRow, selectedPlatoon = NO_PLATOON, useNonzeroBaseline = false }) {
+  const original = fixtures();
+  let index = 0;
+  const fitRows = original.dataset.periods.fit.rows.map((item) => mapRow(item, 'fit', index++));
+  const validationRows = original.dataset.periods.validation.rows.map((item) => mapRow(item, 'validation', index++));
+  const dataset = {
+    ...original.dataset,
+    periods: Object.freeze({
+      fit: periodWithRows(original.dataset.periods.fit, fitRows),
+      validation: periodWithRows(original.dataset.periods.validation, validationRows),
+    }),
+  };
+  dataset.datasetSha256 = sha256(JSON.stringify(datasetIdentity(dataset)));
+  const evaluation = {
+    ...original.evaluation,
+    sourceDatasetSha256: dataset.datasetSha256,
+    baseParameters: Object.freeze({
+      ...original.evaluation.baseParameters,
+      batterCoefficient: useNonzeroBaseline ? 1 : 0,
+      pitcherAllowedCoefficient: useNonzeroBaseline ? 1 : 0,
+      selectedCandidateId: useNonzeroBaseline ? 'synthetic-batter-pitcher-baseline' : 'league-only-baseline',
+    }),
+    candidates: Object.freeze([selectedPlatoon]),
+    selection: Object.freeze({ selectedCandidate: selectedPlatoon }),
+  };
+  evaluation.platoonEvaluationSha256 = sha256(JSON.stringify(platoonIdentity(evaluation)));
+  const lineage = { ...original.lineage, sourceResolvedDatasetSha256: dataset.datasetSha256 };
+  lineage.lineageSha256 = sha256(JSON.stringify(lineageIdentity(lineage)));
+  return { dataset, evaluation, lineage };
+}
+
+test('retains null and string-null pitcher hands, skips only platoon, and still applies park', () => {
+  const fixture = rewritePitcherHandFixture({
+    mapRow: (item, _periodId, index) => Object.freeze({
+      ...item,
+      includedInPlatoonModel: false,
+      normalizedPitcherHand: index % 2 === 0 ? null : 'null',
+    }),
+    selectedPlatoon: TEST_PLATOON,
+    useNonzeroBaseline: true,
+  });
+  const input = {
+    rawDataset: fixture.dataset,
+    datasetFileSha256: HASH_A,
+    rawVenueLineage: fixture.lineage,
+    venueLineageFileSha256: HASH_B,
+    rawPlatoonEvaluation: fixture.evaluation,
+    platoonEvaluationFileSha256: HASH_C,
+    candidates: PARK_CANDIDATES,
+  };
+  const result = evaluateM8ParkEffect(input);
+  verifyM8ParkEffectEvaluation(result);
+  assert.equal(result.cohorts.fitObservationCount, fixture.dataset.periods.fit.rows.length);
+  assert.equal(result.cohorts.validationObservationCount, fixture.dataset.periods.validation.rows.length);
+  assert.equal(result.cohorts.pitcherHandAvailability.fit.nullPitcherHandCount, fixture.dataset.periods.fit.rows.length);
+  assert.equal(result.cohorts.pitcherHandAvailability.validation.nullPitcherHandCount, fixture.dataset.periods.validation.rows.length);
+  assert.deepEqual(result.cohorts.pitcherHandAvailability.fit.byVenue.map((item) => item.venue), ['Park A', 'Park B']);
+  assert.equal(result.cohorts.pitcherHandAvailability.exceedingVenueHandCellCount, 0);
+  const artifact = buildM8TerminalPaOutcomeArtifact({
+    rawDataset: fixture.dataset,
+    datasetFileSha256: HASH_A,
+    rawPlatoonEvaluation: fixture.evalua
