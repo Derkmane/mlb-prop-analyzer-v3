@@ -1,0 +1,106 @@
+{
+  "purpose": "Frozen complete M8 Batter Hits candidate assembled before the untouched test from shared game, workload, named-hitter retention, and terminal PA artifacts.",
+  "artifactVersion": 1,
+  "modelVersion": "m8-batter-hits-complete-candidate-v1",
+  "status": "frozen-complete-current-season-candidate-before-untouched-test",
+  "productionEnabled": false,
+  "activeSeason": 2026,
+  "sourceSharedEnvironmentArtifactSha256": "b7e1936b2e8cd1b1f5553281f946fc8d3b4f68f056f6b60bbd6f868f6c1453e7",
+  "sourceStarterRetentionArtifactSha256": "f55a0ce1c2a3104ffdc7aa2b1a7b097ae0d580eb3df3c1d2a79b548413dca136",
+  "sourceTerminalOutcomeArtifactSha256": "244ab1bfdaacc08e5f805d4837eb833c79e07264cdb7512273348044c6f1b10a",
+  "environmentEffectPolicy": {
+    "coefficient": 1,
+    "selectionMethod": "predeclared full application of the already-selected shared offensive environment; not retuned on validation or test rows",
+    "noEnvironmentBenchmarkCoefficient": 0,
+    "testUse": "acceptance-comparison-only-never-candidate-selection"
+  },
+  "bullpenModel": {
+    "modelVersion": "m8-generic-bullpen-outcome-v1",
+    "countsByHand": {
+      "L": {
+        "K": 2314,
+        "UBB": 931,
+        "IBB": 14,
+        "HBP": 144,
+        "1B": 1409,
+        "2B": 400,
+        "3B": 43,
+        "HR": 251,
+        "ROE": 63,
+        "FC": 252,
+        "SF": 74,
+        "SH": 73,
+        "BIP_OUT": 4232,
+        "CATCHER_INTERFERENCE": 2
+      },
+      "R": {
+        "K": 5474,
+        "UBB": 2342,
+        "IBB": 41,
+        "HBP": 287,
+        "1B": 3382,
+        "2B": 996,
+        "3B": 77,
+        "HR": 722,
+        "ROE": 165,
+        "FC": 540,
+        "SF": 196,
+        "SH": 96,
+        "BIP_OUT": 10181,
+        "CATCHER_INTERFERENCE": 17
+      }
+    },
+    "handCounts": {
+      "L": 10202,
+      "R": 24516
+    },
+    "handWeights": {
+      "L": 0.29385333256523993,
+      "R": 0.7061466674347601
+    },
+    "byHand": {
+      "L": {
+        "K": 0.22668845138633975,
+        "UBB": 0.09116933387407912,
+        "IBB": 0.001357473336632681,
+        "HBP": 0.01404897440234665,
+        "1B": 0.13818636161466225,
+        "2B": 0.039264320426829195,
+        "3B": 0.004198867665939286,
+        "HR": 0.024749525800828148,
+        "ROE": 0.006167634969774984,
+        "FC": 0.02463369188683883,
+        "SF": 0.007247880035791849,
+        "SH": 0.007065558299982127,
+        "BIP_OUT": 0.41501671662491646,
+        "CATCHER_INTERFERENCE": 0.00020520967503869644
+      },
+      "R": {
+        "K": 0.22326448508793562,
+        "UBB": 0.09544844556980137,
+        "IBB": 0.0016630250344947756,
+        "HBP": 0.011703704759395335,
+        "1B": 0.13798453777515493,
+        "2B": 0.040635647627312275,
+        "3B": 0.003145154127659981,
+        "HR": 0.029461914291339448,
+        "ROE": 0.0067213437152392535,
+        "FC": 0.02202563982530924,
+        "SF": 0.007984754134277053,
+        "SH": 0.00391133572990526,
+        "BIP_OUT": 0.4153578565502735,
+        "CATCHER_INTERFERENCE": 0.0006921557719019332
+      }
+    }
+  },
+  "untouchedTestReservation": {
+    "startDate": "2026-07-06",
+    "endDate": "2026-07-25",
+    "shardCount": 20,
+    "gameCount": 225,
+    "plateAppearanceCount": 16830,
+    "rowsIncluded": false,
+    "allowedUse": "final-evaluation-only-after-candidate-selection"
+  },
+  "artifactSha256": "728895ca850c5481cd1f17944e38464f16396becc3622146a1384bba19ce5cde"
+}
