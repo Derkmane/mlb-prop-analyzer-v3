@@ -2,3 +2,4 @@
 export * from './planned-market-catalog.js';
 export * from './registries.js';
 export * from './batter-hits-runtime.js';
+export * from './batter-hits-board.js';
