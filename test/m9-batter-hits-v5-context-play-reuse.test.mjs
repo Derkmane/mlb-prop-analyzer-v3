@@ -49,7 +49,6 @@ function collectedGame(gameId) {
     ],
     meta: {
       per_page: 100,
-      next_cursor: null,
     },
   };
   return {
