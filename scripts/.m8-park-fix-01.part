@@ -1,0 +1,62 @@
+import { execFileSync, spawnSync } from 'node:child_process';
+import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+
+const BRANCH = 'agent/m8-park-venue-lineage';
+const SELF = 'scripts/apply-m8-park-missing-pitcher-hand-fix.mjs';
+const UTILITY = 'scripts/m8-park-effect-evaluation-utils.mjs';
+const RUNNER = 'scripts/evaluate-m8-park-effect.mjs';
+const TEST = 'test/m8-park-effect-evaluation.test.mjs';
+const PARTS = Object.freeze([
+  'scripts/.m8-park-fix-01.part',
+  'scripts/.m8-park-fix-02.part',
+  'scripts/.m8-park-fix-03.part',
+  'scripts/.m8-park-fix-04.part',
+  'scripts/.m8-park-fix-05.part',
+  'scripts/.m8-park-fix-06.part',
+]);
+const EXPECTED = new Map([
+  [UTILITY, 'f8d4aaf9613ad277c456a26bc7b60b6774252c29'],
+  [RUNNER, '45493231fa0d6e7c42698c208bdd0daeb24cc944'],
+  [TEST, 'f26c90331e582b1885a4ca99c0dcedcb541b7148'],
+]);
+
+function run(command, args) {
+  return execFileSync(command, args, { encoding: 'utf8' }).trim();
+}
+function replaceOnce(text, needle, replacement, label) {
+  const first = text.indexOf(needle);
+  if (first < 0 || text.indexOf(needle, first + needle.length) >= 0) {
+    throw new Error(`${label}: expected exactly one match.`);
+  }
+  return text.slice(0, first) + replacement + text.slice(first + needle.length);
+}
+function appendOnce(text, marker, addition, label) {
+  if (text.includes(marker)) throw new Error(`${label}: marker already exists.`);
+  return `${text.trimEnd()}\n\n${addition.trim()}\n`;
+}
+
+if (run('git', ['branch', '--show-current']) !== BRANCH) throw new Error(`Expected branch ${BRANCH}.`);
+const status = run('git', ['status', '--porcelain']);
+if (status !== '') throw new Error(`Working tree must be clean:\n${status}`);
+for (const [file, blob] of EXPECTED) {
+  const actual = run('git', ['hash-object', file]);
+  if (actual !== blob) throw new Error(`${file}: expected blob ${blob}, found ${actual}.`);
+}
+
+let utility = readFileSync(UTILITY, 'utf8');
+utility = replaceOnce(
+  utility,
+  `function datasetIdentity(dataset) {`,
+  `function isSupportedHand(value) {\n  return value === 'L' || value === 'R';\n}\n\nfunction normalizeOptionalPitcherHand(value) {\n  return isSupportedHand(value) ? value : null;\n}\n\nfunction datasetIdentity(dataset) {`,
+  'insert hand helpers',
+);
+utility = replaceOnce(
+  utility,
+  `  const batterHand = string(row.normalizedBatterSide, \`\${observationId}.normalizedBatterSide\`);\n  if (!VALID_HANDS.has(batterHand)) {\n    throw new Error(\`\${observationId} lacks supported L/R batter handedness.\`);\n  }\n  const pitcherHand = string(row.normalizedPitcherHand, \`\${observationId}.normalizedPitcherHand\`);\n  if (!VALID_HANDS.has(pitcherHand)) {\n    throw new Error(\`\${observationId} lacks supported L/R pitcher handedness.\`);\n  }`,
+  `  const batterHand = string(row.normalizedBatterSide, \`\${observationId}.normalizedBatterSide\`);\n  if (!isSupportedHand(batterHand)) {\n    throw new Error(\`\${observationId} lacks supported L/R batter handedness.\`);\n  }\n  const pitcherHand = normalizeOptionalPitcherHand(row.normalizedPitcherHand);\n  const platoonEligible = row.includedInPlatoonModel === true;\n  if (platoonEligible !== isSupportedHand(pitcherHand)) {\n    throw new Error(\n      \`\${observationId} platoon eligibility must equal exact L/R pitcher-hand availability.\`,\n    );\n  }`,
+  'replace source hand contract',
+);
+utility = replaceOnce(
+  utility,
+  `    pitcherHand,\n    venue: lineage.venue,`,
+  `    pitcherHand,\n    platoonEligible,\n    venue: linea
