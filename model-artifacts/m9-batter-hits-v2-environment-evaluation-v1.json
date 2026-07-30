@@ -1,0 +1,522 @@
+{
+  "evaluationVersion": 1,
+  "purpose": "V2 development-only environment coefficient evaluation recorded after the immutable V1 test and before any V2 untouched-period access.",
+  "priorModelVersion": "m8-batter-hits-complete-candidate-v1",
+  "priorModelArtifactSha256": "728895ca850c5481cd1f17944e38464f16396becc3622146a1384bba19ce5cde",
+  "priorUntouchedEvaluationSha256": "7bc151aceb0c683cbba56d1f7887f1f35436d27ff22d696ecff95851020036c1",
+  "sourcePartitionSha256": "974ac2ae041a596179cc58c3b17fbe9de43968d98d376febf477d0b301691dbe",
+  "developmentWindow": {
+    "startDate": "2026-07-06",
+    "endDate": "2026-07-25",
+    "observationCount": 3645
+  },
+  "fixedValidationWindow": {
+    "startDate": "2026-07-16",
+    "endDate": "2026-07-25",
+    "observationCount": 2043
+  },
+  "candidateSet": [
+    {
+      "candidateId": "environment-000",
+      "coefficient": 0
+    },
+    {
+      "candidateId": "environment-025",
+      "coefficient": 0.25
+    },
+    {
+      "candidateId": "environment-050",
+      "coefficient": 0.5
+    },
+    {
+      "candidateId": "environment-075",
+      "coefficient": 0.75
+    },
+    {
+      "candidateId": "environment-100",
+      "coefficient": 1
+    }
+  ],
+  "folds": [
+    {
+      "foldId": "2026-07-06--2026-07-10",
+      "startDate": "2026-07-06",
+      "endDate": "2026-07-10"
+    },
+    {
+      "foldId": "2026-07-11--2026-07-15",
+      "startDate": "2026-07-11",
+      "endDate": "2026-07-15"
+    },
+    {
+      "foldId": "2026-07-16--2026-07-20",
+      "startDate": "2026-07-16",
+      "endDate": "2026-07-20"
+    },
+    {
+      "foldId": "2026-07-21--2026-07-25",
+      "startDate": "2026-07-21",
+      "endDate": "2026-07-25"
+    }
+  ],
+  "results": [
+    {
+      "candidateId": "environment-000",
+      "coefficient": 0,
+      "fixedValidation": {
+        "observationCount": 2043,
+        "logLoss": 1.204569068614838,
+        "multiclassBrier": 0.6615209020245608,
+        "higher05Brier": 0.23759953094960903,
+        "higher15Brier": 0.1701123580545881,
+        "higher25Brier": 0.04433231197218426,
+        "observedMeanHits": 0.8776309348996574,
+        "predictedMeanHits": 0.8746258955390168
+      },
+      "foldResults": [
+        {
+          "foldId": "2026-07-06--2026-07-10",
+          "startDate": "2026-07-06",
+          "endDate": "2026-07-10",
+          "metrics": {
+            "observationCount": 1008,
+            "logLoss": 1.2161330345937822,
+            "multiclassBrier": 0.6645878806149291,
+            "higher05Brier": 0.23458976295278441,
+            "higher15Brier": 0.1748933693301468,
+            "higher25Brier": 0.043461263955552505,
+            "observedMeanHits": 0.8988095238095238,
+            "predictedMeanHits": 0.8760604371255098
+          }
+        },
+        {
+          "foldId": "2026-07-11--2026-07-15",
+          "startDate": "2026-07-11",
+          "endDate": "2026-07-15",
+          "metrics": {
+            "observationCount": 594,
+            "logLoss": 1.1223283359565719,
+            "multiclassBrier": 0.6390565034950452,
+            "higher05Brier": 0.24136154870357066,
+            "higher15Brier": 0.15269982054981818,
+            "higher25Brier": 0.025235072852758493,
+            "observedMeanHits": 0.7895622895622896,
+            "predictedMeanHits": 0.8776083943317311
+          }
+        },
+        {
+          "foldId": "2026-07-16--2026-07-20",
+          "startDate": "2026-07-16",
+          "endDate": "2026-07-20",
+          "metrics": {
+            "observationCount": 864,
+            "logLoss": 1.2192962635347147,
+            "multiclassBrier": 0.6642035232118536,
+            "higher05Brier": 0.23587980189010163,
+            "higher15Brier": 0.17301534443501818,
+            "higher25Brier": 0.046515505681036656,
+            "observedMeanHits": 0.8958333333333334,
+            "predictedMeanHits": 0.8741805648645553
+          }
+        },
+        {
+          "foldId": "2026-07-21--2026-07-25",
+          "startDate": "2026-07-21",
+          "endDate": "2026-07-25",
+          "metrics": {
+            "observationCount": 1179,
+            "logLoss": 1.1937766204292732,
+            "multiclassBrier": 0.6595550116888322,
+            "higher05Brier": 0.23885979041306518,
+            "higher15Brier": 0.16798497872236504,
+            "higher25Brier": 0.04273241429241472,
+            "observedMeanHits": 0.8642917726887193,
+            "predictedMeanHits": 0.8749522447355643
+          }
+        }
+      ],
+      "foldAggregate": {
+        "observationCount": 3645,
+        "logLoss": 1.1943648114153207,
+        "multiclassBrier": 0.6587081891830138,
+        "higher05Brier": 0.23738026960668765,
+        "higher15Brier": 0.16859691555470585,
+        "higher25Brier": 0.040979286886394614,
+        "observedMeanHits": 0.8691358024691358,
+        "predictedMeanHits": 0.8755086451143429
+      },
+      "fixedValidationNoWorseThanBenchmark": true,
+      "foldAggregateNoWorseThanBenchmark": true,
+      "admissible": true
+    },
+    {
+      "candidateId": "environment-025",
+      "coefficient": 0.25,
+      "fixedValidation": {
+        "observationCount": 2043,
+        "logLoss": 1.2038914623236925,
+        "multiclassBrier": 0.6613685378770038,
+        "higher05Brier": 0.23754866099324504,
+        "higher15Brier": 0.170102181761599,
+        "higher25Brier": 0.044323829101392674,
+        "observedMeanHits": 0.8776309348996574,
+        "predictedMeanHits": 0.87542317563839
+      },
+      "foldResults": [
+        {
+          "foldId": "2026-07-06--2026-07-10",
+          "startDate": "2026-07-06",
+          "endDate": "2026-07-10",
+          "metrics": {
+            "observationCount": 1008,
+            "logLoss": 1.2154575497019555,
+            "multiclassBrier": 0.6645195152343698,
+            "higher05Brier": 0.23457733371664027,
+            "higher15Brier": 0.1748725424341614,
+            "higher25Brier": 0.04346448843310365,
+            "observedMeanHits": 0.8988095238095238,
+            "predictedMeanHits": 0.876836476731183
+          }
+        },
+        {
+          "foldId": "2026-07-11--2026-07-15",
+          "startDate": "2026-07-11",
+          "endDate": "2026-07-15",
+          "metrics": {
+            "observationCount": 594,
+            "logLoss": 1.1227031494000606,
+            "multiclassBrier": 0.6389760105619348,
+            "higher05Brier": 0.24127334446491264,
+            "higher15Brier": 0.15273102516662732,
+            "higher25Brier": 0.025283287214753897,
+            "observedMeanHits": 0.7895622895622896,
+            "predictedMeanHits": 0.8784030426598998
+          }
+        },
+        {
+          "foldId": "2026-07-16--2026-07-20",
+          "startDate": "2026-07-16",
+          "endDate": "2026-07-20",
+          "metrics": {
+            "observationCount": 864,
+            "logLoss": 1.2185155894671607,
+            "multiclassBrier": 0.6640997007081914,
+            "higher05Brier": 0.2358499854643647,
+            "higher15Brier": 0.17300159626058578,
+            "higher25Brier": 0.04650761725494478,
+            "observedMeanHits": 0.8958333333333334,
+            "predictedMeanHits": 0.8749776103475949
+          }
+        },
+        {
+          "foldId": "2026-07-21--2026-07-25",
+          "startDate": "2026-07-21",
+          "endDate": "2026-07-25",
+          "metrics": {
+            "observationCount": 1179,
+            "logLoss": 1.1931745447223712,
+            "multiclassBrier": 0.6593670750388867,
+            "higher05Brier": 0.23879349191517257,
+            "higher15Brier": 0.1679774199913494,
+            "higher25Brier": 0.04272349579802617,
+            "observedMeanHits": 0.8642917726887193,
+            "predictedMeanHits": 0.8757496967675136
+          }
+        }
+      ],
+      "foldAggregate": {
+        "observationCount": 3645,
+        "logLoss": 1.19385929722099,
+        "multiclassBrier": 0.6585907666701628,
+        "higher05Brier": 0.23733394606522054,
+        "higher15Brier": 0.16859053746544805,
+        "higher25Brier": 0.04098328115233954,
+        "observedMeanHits": 0.8691358024691358,
+        "predictedMeanHits": 0.8762996224181719
+      },
+      "fixedValidationNoWorseThanBenchmark": true,
+      "foldAggregateNoWorseThanBenchmark": false,
+      "admissible": false
+    },
+    {
+      "candidateId": "environment-050",
+      "coefficient": 0.5,
+      "fixedValidation": {
+        "observationCount": 2043,
+        "logLoss": 1.203133893053902,
+        "multiclassBrier": 0.6611947797863834,
+        "higher05Brier": 0.2374975383443874,
+        "higher15Brier": 0.17008681564659267,
+        "higher25Brier": 0.04431638936243576,
+        "observedMeanHits": 0.8776309348996574,
+        "predictedMeanHits": 0.8775375136043344
+      },
+      "foldResults": [
+        {
+          "foldId": "2026-07-06--2026-07-10",
+          "startDate": "2026-07-06",
+          "endDate": "2026-07-10",
+          "metrics": {
+            "observationCount": 1008,
+            "logLoss": 1.2147757777298709,
+            "multiclassBrier": 0.6644401882275986,
+            "higher05Brier": 0.23456562600755332,
+            "higher15Brier": 0.17483809898520214,
+            "higher25Brier": 0.043472673728555476,
+            "observedMeanHits": 0.8988095238095238,
+            "predictedMeanHits": 0.8789143417381957
+          }
+        },
+        {
+          "foldId": "2026-07-11--2026-07-15",
+          "startDate": "2026-07-11",
+          "endDate": "2026-07-15",
+          "metrics": {
+            "observationCount": 594,
+            "logLoss": 1.123366209937248,
+            "multiclassBrier": 0.638931058332935,
+            "higher05Brier": 0.24118259641164075,
+            "higher15Brier": 0.1528093362377213,
+            "higher25Brier": 0.025359772224851723,
+            "observedMeanHits": 0.7895622895622896,
+            "predictedMeanHits": 0.8805102219538701
+          }
+        },
+        {
+          "foldId": "2026-07-16--2026-07-20",
+          "startDate": "2026-07-16",
+          "endDate": "2026-07-20",
+          "metrics": {
+            "observationCount": 864,
+            "logLoss": 1.2176232234313116,
+            "multiclassBrier": 0.6639852001814939,
+            "higher05Brier": 0.23582114679505906,
+            "higher15Brier": 0.17297778620438914,
+            "higher25Brier": 0.04650132313312151,
+            "observedMeanHits": 0.8958333333333334,
+            "predictedMeanHits": 0.8770874677508969
+          }
+        },
+        {
+          "foldId": "2026-07-21--2026-07-25",
+          "startDate": "2026-07-21",
+          "endDate": "2026-07-25",
+          "metrics": {
+            "observationCount": 1179,
+            "logLoss": 1.192515757815492,
+            "multiclassBrier": 0.6591498915579111,
+            "higher05Brier": 0.2387260390217579,
+            "higher15Brier": 0.16796824180271114,
+            "higher25Brier": 0.04271521652284928,
+            "observedMeanHits": 0.8642917726887193,
+            "predictedMeanHits": 0.87786731819922
+          }
+        }
+      ],
+      "foldAggregate": {
+        "observationCount": 3645,
+        "logLoss": 1.1933541992218255,
+        "multiclassBrier": 0.6584641134394411,
+        "higher05Brier": 0.23728726587701254,
+        "higher15Brier": 0.16858516155508313,
+        "higher25Brier": 0.04099383903632433,
+        "observedMeanHits": 0.8691358024691358,
+        "predictedMeanHits": 0.8784027074365877
+      },
+      "fixedValidationNoWorseThanBenchmark": true,
+      "foldAggregateNoWorseThanBenchmark": false,
+      "admissible": false
+    },
+    {
+      "candidateId": "environment-075",
+      "coefficient": 0.75,
+      "fixedValidation": {
+        "observationCount": 2043,
+        "logLoss": 1.2024071915273526,
+        "multiclassBrier": 0.6610215894629028,
+        "higher05Brier": 0.2374476502633929,
+        "higher15Brier": 0.1700734669703089,
+        "higher25Brier": 0.04431555196662795,
+        "observedMeanHits": 0.8776309348996574,
+        "predictedMeanHits": 0.8809603102301174
+      },
+      "foldResults": [
+        {
+          "foldId": "2026-07-06--2026-07-10",
+          "startDate": "2026-07-06",
+          "endDate": "2026-07-10",
+          "metrics": {
+            "observationCount": 1008,
+            "logLoss": 1.2141743291631235,
+            "multiclassBrier": 0.6643707843657486,
+            "higher05Brier": 0.23455596083073868,
+            "higher15Brier": 0.1747973159306459,
+            "higher25Brier": 0.04349096019191614,
+            "observedMeanHits": 0.8988095238095238,
+            "predictedMeanHits": 0.8822854844411424
+          }
+        },
+        {
+          "foldId": "2026-07-11--2026-07-15",
+          "startDate": "2026-07-11",
+          "endDate": "2026-07-15",
+          "metrics": {
+            "observationCount": 594,
+            "logLoss": 1.1243663153334176,
+            "multiclassBrier": 0.6389391542638427,
+            "higher05Brier": 0.2410900973675261,
+            "higher15Brier": 0.15294018547682597,
+            "higher25Brier": 0.02546977885614651,
+            "observedMeanHits": 0.7895622895622896,
+            "predictedMeanHits": 0.8839212051854559
+          }
+        },
+        {
+          "foldId": "2026-07-16--2026-07-20",
+          "startDate": "2026-07-16",
+          "endDate": "2026-07-20",
+          "metrics": {
+            "observationCount": 864,
+            "logLoss": 1.2167367563914415,
+            "multiclassBrier": 0.6638814905290992,
+            "higher05Brier": 0.23579480563940405,
+            "higher15Brier": 0.17295115157409827,
+            "higher25Brier": 0.04650204015829171,
+            "observedMeanHits": 0.8958333333333334,
+            "predictedMeanHits": 0.8805016361836009
+          }
+        },
+        {
+          "foldId": "2026-07-21--2026-07-25",
+          "startDate": "2026-07-21",
+          "endDate": "2026-07-25",
+          "metrics": {
+            "observationCount": 1179,
+            "logLoss": 1.1919061363597785,
+            "multiclassBrier": 0.6589257841014265,
+            "higher05Brier": 0.23865889517868194,
+            "higher15Brier": 0.16796462939806686,
+            "higher25Brier": 0.04271324000937813,
+            "observedMeanHits": 0.8642917726887193,
+            "predictedMeanHits": 0.8812964377756427
+          }
+        }
+      ],
+      "foldAggregate": {
+        "observationCount": 3645,
+        "logLoss": 1.1929435411234195,
+        "multiclassBrier": 0.6583491675023617,
+        "higher05Brier": 0.237241557158246,
+        "higher15Brier": 0.16858772500731622,
+        "higher25Brier": 0.04101635368499954,
+        "observedMeanHits": 0.8691358024691358,
+        "predictedMeanHits": 0.8818092943750163
+      },
+      "fixedValidationNoWorseThanBenchmark": true,
+      "foldAggregateNoWorseThanBenchmark": false,
+      "admissible": false
+    },
+    {
+      "candidateId": "environment-100",
+      "coefficient": 1,
+      "fixedValidation": {
+        "observationCount": 2043,
+        "logLoss": 1.201832442772979,
+        "multiclassBrier": 0.6608761698853204,
+        "higher05Brier": 0.23740055930360215,
+        "higher15Brier": 0.170072380094809,
+        "higher25Brier": 0.044328654771780725,
+        "observedMeanHits": 0.8776309348996574,
+        "predictedMeanHits": 0.8856772429178013
+      },
+      "foldResults": [
+        {
+          "foldId": "2026-07-06--2026-07-10",
+          "startDate": "2026-07-06",
+          "endDate": "2026-07-10",
+          "metrics": {
+            "observationCount": 1008,
+            "logLoss": 1.2137535378660316,
+            "multiclassBrier": 0.6643374637244395,
+            "higher05Brier": 0.23454979811269028,
+            "higher15Brier": 0.17476047517134902,
+            "higher25Brier": 0.04352625423042936,
+            "observedMeanHits": 0.8988095238095238,
+            "predictedMeanHits": 0.8869357400842113
+          }
+        },
+        {
+          "foldId": "2026-07-11--2026-07-15",
+          "startDate": "2026-07-11",
+          "endDate": "2026-07-15",
+          "metrics": {
+            "observationCount": 594,
+            "logLoss": 1.125763060280149,
+            "multiclassBrier": 0.6390224705763332,
+            "higher05Brier": 0.24099674053340786,
+            "higher15Brier": 0.15313149037195636,
+            "higher25Brier": 0.025620282122357913,
+            "observedMeanHits": 0.7895622895622896,
+            "predictedMeanHits": 0.8886215682052051
+          }
+        },
+        {
+          "foldId": "2026-07-16--2026-07-20",
+          "startDate": "2026-07-16",
+          "endDate": "2026-07-20",
+          "metrics": {
+            "observationCount": 864,
+            "logLoss": 1.2159843808194142,
+            "multiclassBrier": 0.6638152253749822,
+            "higher05Brier": 0.23577256925689308,
+            "higher15Brier": 0.17293198283869796,
+            "higher25Brier": 0.0465169429167914,
+            "observedMeanHits": 0.8958333333333334,
+            "predictedMeanHits": 0.8852059099643135
+          }
+        },
+        {
+          "foldId": "2026-07-21--2026-07-25",
+          "startDate": "2026-07-21",
+          "endDate": "2026-07-25",
+          "metrics": {
+            "observationCount": 1179,
+            "logLoss": 1.191461556876351,
+            "multiclassBrier": 0.6587223582287789,
+            "higher05Brier": 0.23859359017752604,
+            "higher15Brier": 0.16797679335119595,
+            "higher25Brier": 0.042725023764750125,
+            "observedMeanHits": 0.8642917726887193,
+            "predictedMeanHits": 0.8860226472195938
+          }
+        }
+      ],
+      "foldAggregate": {
+        "observationCount": 3645,
+        "logLoss": 1.1927326487134589,
+        "multiclassBrier": 0.6582720236028207,
+        "higher05Brier": 0.23719824500183675,
+        "higher15Brier": 0.1686081033710168,
+        "higher25Brier": 0.04105798451130357,
+        "observedMeanHits": 0.8691358024691358,
+        "predictedMeanHits": 0.886505087736588
+      },
+      "fixedValidationNoWorseThanBenchmark": true,
+      "foldAggregateNoWorseThanBenchmark": false,
+      "admissible": false
+    }
+  ],
+  "selectedCandidate": {
+    "candidateId": "environment-000",
+    "coefficient": 0
+  },
+  "newUntouchedReservation": {
+    "startDate": "2026-07-26",
+    "endDate": "2026-07-31",
+    "rowsAccessed": false,
+    "minimumIncludedStarterObservations": 900,
+    "minimumActualHitsAbove25": 35
+  },
+  "observationIdsSha256": "66f95edd6f6e7757fa0af5862e2a3f2a647892a776c6abb3f836f97795cfd041",
+  "evaluationSha256": "870caefe9a6c1b2b41e2a436010aba043b6e462e0ef75900efefe6ba1cdd9aca"
+}
