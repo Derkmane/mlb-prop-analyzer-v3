@@ -150,15 +150,15 @@ function expectedOffers(): ExpectedOfferIdentity[] {
 
       assert.ok(outcome.name === 'Over' || outcome.name === 'Under');
 
-      return [
-        {
-          providerMarketKey: market.key,
-          providerPlayerId: identity.providerPlayerId,
-          rawSide: outcome.name,
-          selectedSide: outcome.name === 'Over' ? 'higher' : 'lower',
-          line: outcome.point,
-        },
-      ];
+      const expectedOffer: ExpectedOfferIdentity = {
+        providerMarketKey: market.key,
+        providerPlayerId: identity.providerPlayerId,
+        rawSide: outcome.name,
+        selectedSide: outcome.name === 'Over' ? 'higher' : 'lower',
+        line: outcome.point,
+      };
+
+      return [expectedOffer];
     });
   });
 }
