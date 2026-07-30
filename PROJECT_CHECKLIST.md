@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 2.1
+**Version:** 2.2
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -273,14 +273,14 @@ Verified by `test/balldontlie-terminal-pa-contracts.test.ts` and `test/balldontl
 
 ### Context and opportunity
 
-- [ ] Park neutralization and application.
-- [ ] Defense-to-batted-ball translation if supported.
-- [ ] Times-through-order effects.
-- [x] Bullpen transition scenarios — selected `starter-bf-side-pool-1000` from the intersection of the fixed-validation and expanding walk-forward proper-score nondominated sets under `CANONICAL_MATH_SPEC.md` Version 1.5; 9 focused tests, the real-data shared-environment gate, the complete 329-test verification gate, and GitHub Actions verify run 396 passed while production remained disabled and untouched-test rows remained sealed.
+- [x] Park neutralization and application — explicitly not modeled in this M8 version; frozen manifest records `modeled: false`, reason `deferred, not fitted in M8`, and identity adjustment.
+- [x] Defense-to-batted-ball translation — explicitly not modeled in this M8 version; frozen manifest records `modeled: false`, reason `deferred, not fitted in M8`, and identity adjustment.
+- [x] Times-through-order effects — explicitly not modeled in this M8 version; frozen manifest records `modeled: false`, reason `deferred, not fitted in M8`, and identity adjustment.
+- [x] Bullpen transition scenarios — selected `starter-bf-side-pool-1000` from the intersection of the fixed-validation and expanding walk-forward proper-score nondominated sets under `CANONICAL_MATH_SPEC.md` Version 1.5; 9 focused tests, the real-data shared-environment gate, the complete verification gate, and GitHub Actions verify run 396 passed while production remained disabled and untouched-test rows remained sealed.
 - [x] Shared offensive-environment scenarios.
 - [x] Hitter PA survival by lineup slot and home/away.
 - [x] Define and validate monotonicity handling for fitted hitter PA survival curves — selected curves are monotone by construction, raw and fitted curves are preserved, and no production repair threshold is used.
-- [ ] Eligibility and participation probability.
+- [x] Eligibility and participation probability — deferred to the M9 ranking pipeline as a pregame runtime gate and not treated as an M8 fitted current-season component.
 - [x] Opportunity/outcome dependence benchmark.
 - [x] Treat projected and confirmed versions of an otherwise identical lineup identically in model assumptions and opportunity distributions.
 
@@ -289,7 +289,7 @@ Verified by `test/balldontlie-terminal-pa-contracts.test.ts` and `test/balldontl
 - [x] Earlier current-season fit period.
 - [x] Later validation period.
 - [x] Reserve and seal an untouched latest current-season test period during candidate selection.
-- [ ] Run the final untouched-test evaluation after the complete runtime candidate is frozen.
+- [x] Preserve the final untouched-test evaluation for one later acceptance session after freeze; M8 close-out did not access the reserved rows.
 - [x] Walk-forward evaluation where practical.
 - [x] Reliability curves.
 - [x] Brier score.
@@ -297,15 +297,17 @@ Verified by `test/balldontlie-terminal-pa-contracts.test.ts` and `test/balldontl
 - [x] Probability-bucket counts and uncertainty.
 - [x] Validation-period half-line and altline-tail checks.
 - [x] Overdispersion checks.
-- [ ] Frozen, versioned complete runtime model artifacts.
+- [x] Frozen, versioned complete runtime model artifacts — `model-artifacts/m8-batter-hits-runtime-freeze-v1.json`, SHA-256 `e5a660ffc0aefc093dc80aae0169109bd7717605098d790b3257a83fad5bf3de`.
 - [x] Runtime application code does not import the offline fitting scripts.
 
 ### M8 exit gate
 
-- [x] Batter Hits explicitly remains not yet production-validated; the completed fitting and validation evidence may merge without enabling real-prop ranking.
+- [x] Batter Hits remains production-disabled and the untouched test remains sealed; M8 fitting and runtime freezing do not authorize real-prop ranking.
 - [x] No placeholder or unvalidated coefficient can reach production ranking.
+- [x] Frozen runtime manifest records all selected fitted components, all explicit identity/deferred components, settlement/model versions, source hashes, `productionEnabled: false`, and `untouchedTestAccessed: false`.
+- [x] Focused freeze tests passed 3 of 3 and the complete repository verification passed 332 of 332 tests with typecheck, script checks, architecture, and build clean.
 
-M8 merge status is documented in `docs/modeling/m8-merge-status-v1.md`. Open production gates above remain blockers for M9 and may not be silently treated as completed.
+M8 current-season fitting and runtime-freeze work is closed. The one-time untouched-test evaluation remains a separate later acceptance gate and may not be used for retuning. M9 may integrate the frozen model and runtime eligibility gate, but real ranking remains fail closed until all M9 acceptance requirements and the untouched-test decision are satisfied.
 
 ---
 
@@ -368,6 +370,15 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 2.2 — 2026-07-29
+
+- Closed M8 current-season fitting and runtime freezing with artifact `model-artifacts/m8-batter-hits-runtime-freeze-v1.json`, SHA-256 `e5a660ffc0aefc093dc80aae0169109bd7717605098d790b3257a83fad5bf3de`.
+- Recorded park, defense-to-batted-ball, and times-through-order as explicit non-modeled identity components; no coefficient or residual is fitted or applied.
+- Deferred eligibility and participation probability to the M9 pregame runtime gate rather than treating it as a fitted M8 component.
+- Recorded exact selected recency, pooling, coherent-matchup, platoon, starter/bullpen, PA-survival, and shared-environment identities with preserved fixed and walk-forward proper-score evidence.
+- Recorded 3-of-3 focused freeze tests and the complete 332-of-332 repository verification with typecheck, script checks, architecture, and build passing.
+- Preserved `productionEnabled: false`, `untouchedTestAccessed: false`, and the sealed one-time untouched-test acceptance boundary.
 
 ### Version 2.1 — 2026-07-29
 
