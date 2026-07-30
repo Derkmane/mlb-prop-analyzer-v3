@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 2.2
+**Version:** 2.3
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -313,7 +313,7 @@ M8 current-season fitting and runtime-freeze work is closed. The one-time untouc
 
 ## M9 — Real Batter Hits ranking
 
-- [ ] Connect real frozen model artifacts.
+- [x] Connect real frozen model artifacts — exact `m8-batter-hits-runtime-freeze-v1` artifact connected through the feature, adapter, and composition public boundaries with SHA-256 `e5a660ffc0aefc093dc80aae0169109bd7717605098d790b3257a83fad5bf3de`; build and 2 focused tests passed, GitHub Actions verify run 402 passed 334 of 334 tests, production ranking remains disabled, and untouched-test rows remain sealed.
 - [ ] Connect real normalized current board offers.
 - [ ] Exclude started games.
 - [ ] Preserve exact selected side and line.
@@ -370,6 +370,13 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 2.3 — 2026-07-30
+
+- Connected the exact frozen Batter Hits runtime artifact through the existing feature, adapter, and composition public boundaries.
+- Added strict artifact version, SHA-256, selected-candidate, deferred-component, production-disabled, and untouched-test-seal validation.
+- Verified that artifact tampering fails closed before composition and that Batter Hits still cannot produce or rank a real prediction.
+- Recorded 2-of-2 focused passing tests and GitHub Actions verify run 402 with 334-of-334 tests passing, plus clean typecheck, script checks, architecture, and build.
 
 ### Version 2.2 — 2026-07-29
 
