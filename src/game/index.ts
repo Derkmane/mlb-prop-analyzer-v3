@@ -35,6 +35,21 @@ export {
   deriveNamedHitterOpportunityCountDistribution,
 } from './named-hitter-opportunity.js';
 export {
+  GAME_LIFECYCLE_STATUSES,
+  InvalidPregameTimestampError,
+  PREGAME_GAME_INELIGIBILITY_REASONS,
+  evaluatePregameGameEligibility,
+} from './pregame-eligibility.js';
+export type {
+  EligiblePregameGameDecision,
+  GameLifecycleStatus,
+  IneligiblePregameGameDecision,
+  PregameGameEligibilityDecision,
+  PregameGameEligibilityInput,
+  PregameGameIneligibilityReason,
+  PregameGameState,
+} from './pregame-eligibility.js';
+export {
   assertSharedScenarioReference,
   ContradictoryGameScenarioError,
   createGameScenarioSet,
