@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 2.4
+**Version:** 2.5
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -315,7 +315,7 @@ M8 current-season fitting and runtime-freeze work is closed. The one-time untouc
 
 - [x] Connect real frozen model artifacts — exact `m8-batter-hits-runtime-freeze-v1` artifact connected through the feature, adapter, and composition public boundaries with SHA-256 `e5a660ffc0aefc093dc80aae0169109bd7717605098d790b3257a83fad5bf3de`; build and 2 focused tests passed, GitHub Actions verify run 402 passed 334 of 334 tests, production ranking remains disabled, and untouched-test rows remain sealed.
 - [x] Connect real normalized current board offers — committed fixture-backed The Odds API contracts and normalization preserve exact event, Underdog bookmaker, baseline/alternate market, uniquely linked BALLDONTLIE player, Higher/Lower side, posted line, price, multiplier, market timestamp, and source snapshot identity; 34 offers normalized, both unresolved James Jarvis offers failed closed, 3 focused tests passed, and GitHub Actions verify run 405 passed 337 of 337 tests while probability generation and production ranking remained disabled.
-- [ ] Exclude started games.
+- [x] Exclude started games — fixture-backed BALLDONTLIE game-state normalization and the shared pregame eligibility gate require the matched current-season regular-season game to remain `STATUS_SCHEDULED` and require the evaluation time to be strictly before both preserved provider start timestamps; final, unknown, missing, duplicate, or start-time-reached states fail closed. Four focused tests passed and GitHub Actions verify run 408 passed 341 of 341 tests while side and line remained unchanged and production ranking remained disabled.
 - [ ] Preserve exact selected side and line.
 - [ ] Produce `P(Win)`, `P(Loss)`, `P(Void)`, and `P(Win | grades)`.
 - [ ] Verify baseline and alternate offers use the same statistic distribution.
@@ -370,6 +370,14 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 2.5 — 2026-07-30
+
+- Added the shared pregame game-eligibility gate and fixture-backed BALLDONTLIE game-state normalization.
+- Required a uniquely matched current-season regular-season game with exact scheduled status and an evaluation time strictly before both preserved provider start timestamps.
+- Verified that final, unknown, missing, duplicate, and start-time-reached game states fail closed before probability generation or ranking.
+- Preserved exact normalized offer identity, selected Higher/Lower side, and posted line for every surviving offer.
+- Recorded 4-of-4 focused passing tests and GitHub Actions verify run 408 with 341-of-341 tests passing; production ranking remains disabled.
 
 ### Version 2.4 — 2026-07-30
 
