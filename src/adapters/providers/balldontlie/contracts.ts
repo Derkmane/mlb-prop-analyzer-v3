@@ -4,6 +4,45 @@ import { TERMINAL_PA_CATEGORIES } from '../../../domain/terminal-pa.js';
 
 const nonemptyStringSchema = z.string().min(1);
 const integerSchema = z.number().int();
+const positiveIntegerSchema = integerSchema.positive();
+const timestampSchema = z.string().datetime({ offset: true });
+
+export const rawBallDontLieTeamSchema = z
+  .object({
+    id: positiveIntegerSchema,
+    display_name: nonemptyStringSchema,
+  })
+  .passthrough();
+
+export const rawBallDontLieGameSchema = z
+  .object({
+    id: positiveIntegerSchema,
+    home_team_name: nonemptyStringSchema,
+    away_team_name: nonemptyStringSchema,
+    home_team: rawBallDontLieTeamSchema,
+    away_team: rawBallDontLieTeamSchema,
+    season: integerSchema,
+    postseason: z.boolean(),
+    season_type: nonemptyStringSchema,
+    date: timestampSchema,
+    status: nonemptyStringSchema,
+  })
+  .passthrough();
+
+export const rawBallDontLiePaginationMetaSchema = z
+  .object({
+    next_cursor: integerSchema.optional(),
+    per_page: integerSchema,
+    prev_cursor: integerSchema.optional(),
+  })
+  .passthrough();
+
+export const rawBallDontLieGamesResponseSchema = z
+  .object({
+    data: z.array(rawBallDontLieGameSchema),
+    meta: rawBallDontLiePaginationMetaSchema,
+  })
+  .passthrough();
 
 export const rawBallDontLiePitchSchema = z
   .object({
@@ -54,14 +93,6 @@ export const rawBallDontLiePlaySchema = z
   })
   .passthrough();
 
-export const rawBallDontLiePaginationMetaSchema = z
-  .object({
-    next_cursor: integerSchema.optional(),
-    per_page: integerSchema,
-    prev_cursor: integerSchema.optional(),
-  })
-  .passthrough();
-
 export const rawBallDontLiePlaysResponseSchema = z
   .object({
     data: z.array(rawBallDontLiePlaySchema),
@@ -86,6 +117,11 @@ export const normalizedTerminalPaSchema = z
   })
   .strict();
 
+export type RawBallDontLieTeam = z.infer<typeof rawBallDontLieTeamSchema>;
+export type RawBallDontLieGame = z.infer<typeof rawBallDontLieGameSchema>;
+export type RawBallDontLieGamesResponse = z.infer<
+  typeof rawBallDontLieGamesResponseSchema
+>;
 export type RawBallDontLiePitch = z.infer<typeof rawBallDontLiePitchSchema>;
 export type RawBallDontLiePlateAppearance = z.infer<
   typeof rawBallDontLiePlateAppearanceSchema
