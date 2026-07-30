@@ -1,7 +1,6 @@
 import {
   normalizeBallDontLieGamesSnapshot,
   normalizeOddsApiBatterHitsBoard,
-  type NormalizeBallDontLieGamesInput,
   type NormalizedBallDontLieGameState,
   type NormalizedOddsApiBatterHitsBoard,
   type OddsApiBatterHitsBoardInput,
@@ -41,8 +40,10 @@ export interface ExcludedPregameBatterHitsOffer {
 }
 
 export interface ConnectPregameBatterHitsBoardInput
-  extends OddsApiBatterHitsBoardInput,
-    NormalizeBallDontLieGamesInput {
+  extends OddsApiBatterHitsBoardInput {
+  readonly rawGamesSnapshot: unknown;
+  readonly gameSourceCapturedAt: string;
+  readonly gameSourceSnapshotSha256: string;
   readonly asOf: string;
 }
 
@@ -102,7 +103,11 @@ export function connectPregameBatterHitsBoard(
   input: ConnectPregameBatterHitsBoardInput,
 ): PregameNormalizedBatterHitsBoard {
   const board = normalizeOddsApiBatterHitsBoard(input);
-  const gameSnapshot = normalizeBallDontLieGamesSnapshot(input);
+  const gameSnapshot = normalizeBallDontLieGamesSnapshot({
+    rawGamesSnapshot: input.rawGamesSnapshot,
+    sourceCapturedAt: input.gameSourceCapturedAt,
+    sourceSnapshotSha256: input.gameSourceSnapshotSha256,
+  });
   const gamesById = indexGames(gameSnapshot.games);
   const rejectedGamesById = indexRejectedGames(gameSnapshot.rejectedGames);
   const offers: NormalizedBatterHitsBoardOffer[] = [];
