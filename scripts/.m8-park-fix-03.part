@@ -1,0 +1,59 @@
+ => left.periodId.localeCompare(right.periodId) || left.cellKey.localeCompare(right.cellKey),
+    ),
+  );
+  return Object.freeze({
+    normalization: 'normalizedPitcherHand is retained only when exactly L or R; every other value, including the string null, becomes the null literal',
+    platoonGate: 'platoon deviation is applied only when batter side and pitcher hand are each exactly L or R',
+    fit,
+    validation,
+    exceedingVenueHandCellCount: affected.length,
+    exceedingVenueHandCells: affected,
+  });
+}
+
+export class M8ParkPitcherHandClusteringError extends Error {
+  constructor(diagnostics) {
+    const affected = diagnostics.exceedingVenueHandCells
+      .map((cell) => \`${cell.periodId}:${cell.cellKey}=${cell.nullPitcherHandPercentage.toFixed(6)}% (threshold ${cell.thresholdPercentage.toFixed(6)}%)\`)
+      .join(', ');
+    super(\`park candidate fitting stopped because ${diagnostics.exceedingVenueHandCellCount} venue|batterHand cell(s) exceed twice the period null-pitcher-hand rate: ${affected}\`);
+    this.name = 'M8ParkPitcherHandClusteringError';
+    this.code = 'M8_PARK_NULL_PITCHER_HAND_CLUSTERING';
+    this.pitcherHandAvailability = diagnostics;
+  }
+}
+
+function assertNoPitcherHandClustering(diagnostics) {
+  if (diagnostics.exceedingVenueHandCellCount > 0) {
+    throw new M8ParkPitcherHandClusteringError(diagnostics);
+  }
+}
+`;
+utility = replaceOnce(utility, '\nfunction derivedDataset(template, observations) {', `\n${diagnostics}\nfunction derivedDataset(template, observations) {`, 'insert diagnostics');
+utility = replaceOnce(
+  utility,
+  `  const observations = extractObservations(dataset, categories, venue.byGameId);\n\n  const fixedValidation = evaluateSplit({`,
+  `  const observations = extractObservations(dataset, categories, venue.byGameId);\n  const pitcherHandAvailability = buildPitcherHandAvailabilityDiagnostics(observations);\n  assertNoPitcherHandClustering(pitcherHandAvailability);\n\n  const fixedValidation = evaluateSplit({`,
+  'gate before fitting',
+);
+utility = replaceOnce(
+  utility,
+  `      noParkLimit: 'infinite pooling',`,
+  `      noParkLimit: 'infinite pooling',\n      missingPitcherHandContract:\n        'overall-model rows remain included; non-L/R pitcher-hand values normalize to null; only platoon deviation is skipped while batter, pitcher-allowed, and venue-hand park layers remain active',`,
+  'document contract',
+);
+utility = replaceOnce(
+  utility,
+  `      validationVenueHandCellCount: new Set(\n        observations.validation.map((observation) => observation.cellKey),\n      ).size,\n    }),`,
+  `      validationVenueHandCellCount: new Set(\n        observations.validation.map((observation) => observation.cellKey),\n      ).size,\n      pitcherHandAvailability,\n    }),`,
+  'persist diagnostics',
+);
+utility = replaceOnce(
+  utility,
+  `  validateCandidates(evaluation.candidates);\n  if (evaluation.evaluationSha256 !== sha256(JSON.stringify(evaluationIdentity(evaluation)))) {`,
+  `  validateCandidates(evaluation.candidates);\n  const availability = object(\n    evaluation.cohorts?.pitcherHandAvailability,\n    'park effect pitcherHandAvailability',\n  );\n  if (availability.exceedingVenueHandCellCount !== 0) {\n    throw new Error('persisted park effect evaluation contains a prohibited pitcher-hand cluster.');\n  }\n  if (evaluation.evaluationSha256 !== sha256(JSON.stringify(evaluationIdentity(evaluation)))) {`,
+  'verify diagnostics',
+);
+writeFileSync(UTILITY, utility);
+
+let runner = readF
