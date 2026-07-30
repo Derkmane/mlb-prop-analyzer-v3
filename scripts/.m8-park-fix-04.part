@@ -1,0 +1,64 @@
+ileSync(RUNNER, 'utf8');
+runner = replaceOnce(
+  runner,
+  `  evaluateM8ParkEffect,\n  verifyM8ParkEffectEvaluation,`,
+  `  evaluateM8ParkEffect,\n  M8ParkPitcherHandClusteringError,\n  verifyM8ParkEffectEvaluation,`,
+  'import clustering error',
+);
+const printer = String.raw`
+function formatPercentage(value) {
+  return \`${value.toFixed(6)}%\`;
+}
+
+function printPeriodPitcherHandAvailability(period) {
+  console.log(
+    \`${period.periodId} null pitcher hand: ${period.nullPitcherHandCount}/${period.observationCount} (${formatPercentage(period.nullPitcherHandPercentage)})\`,
+  );
+  console.log(\`${period.periodId} null pitcher hand by venue:\`);
+  for (const venue of period.byVenue) {
+    console.log(
+      \`- ${venue.venue}: ${venue.nullPitcherHandCount}/${venue.observationCount} (${formatPercentage(venue.nullPitcherHandPercentage)})\`,
+    );
+  }
+  console.log(
+    \`${period.periodId} venue|batterHand cells above twice overall rate: ${period.exceedingVenueHandCellCount}\`,
+  );
+  for (const cell of period.exceedingVenueHandCells) {
+    console.log(
+      \`- ${cell.cellKey}: ${cell.nullPitcherHandCount}/${cell.observationCount} (${formatPercentage(cell.nullPitcherHandPercentage)}; threshold ${formatPercentage(cell.thresholdPercentage)})\`,
+    );
+  }
+}
+
+function printPitcherHandAvailability(diagnostics) {
+  console.log('=== M8 PARK PITCHER-HAND AVAILABILITY ===');
+  printPeriodPitcherHandAvailability(diagnostics.fit);
+  printPeriodPitcherHandAvailability(diagnostics.validation);
+  console.log(
+    \`Total venue|batterHand cells above twice period overall rate: ${diagnostics.exceedingVenueHandCellCount}\`,
+  );
+}
+`;
+runner = replaceOnce(runner, '\nawait access(SEARCH_ROOT);', `\n${printer}\nawait access(SEARCH_ROOT);`, 'insert output helpers');
+runner = replaceOnce(
+  runner,
+  `const evaluation = evaluateM8ParkEffect({\n  rawDataset: match.dataset.value,\n  datasetFileSha256: sha256(match.dataset.text),\n  rawVenueLineage: venueLineage.value,\n  venueLineageFileSha256: sha256(venueLineage.text),\n  rawPlatoonEvaluation: match.evaluation.value,\n  platoonEvaluationFileSha256: sha256(match.evaluation.text),\n});`,
+  `let evaluation;\ntry {\n  evaluation = evaluateM8ParkEffect({\n    rawDataset: match.dataset.value,\n    datasetFileSha256: sha256(match.dataset.text),\n    rawVenueLineage: venueLineage.value,\n    venueLineageFileSha256: sha256(venueLineage.text),\n    rawPlatoonEvaluation: match.evaluation.value,\n    platoonEvaluationFileSha256: sha256(match.evaluation.text),\n  });\n} catch (error) {\n  if (error instanceof M8ParkPitcherHandClusteringError) {\n    printPitcherHandAvailability(error.pitcherHandAvailability);\n    console.log('Park candidate fitted: false');\n    console.log('Production enabled: false');\n    console.log('Untouched-test rows accessed: false');\n  }\n  throw error;\n}`,
+  'wrap real evaluation',
+);
+runner = replaceOnce(
+  runner,
+  `console.log(\`Fit observations: \${evaluation.cohorts.fitObservationCount}\`);`,
+  `printPitcherHandAvailability(evaluation.cohorts.pitcherHandAvailability);\nconsole.log(\`Fit observations: \${evaluation.cohorts.fitObservationCount}\`);`,
+  'print diagnostics',
+);
+writeFileSync(RUNNER, runner);
+
+let testText = readFileSync(TEST, 'utf8');
+const regression = String.raw`
+const TEST_PLATOON = Object.freeze({
+  candidateId: 'test-platoon',
+  leaguePlatoonPriorId: 'league-exact',
+  leaguePlatoonEquivalentPa: null,
+  leaguePlatoonExactTarget: true,
+  playerSplitPriorId: 'split-pa-8
