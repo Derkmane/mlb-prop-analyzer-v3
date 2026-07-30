@@ -118,7 +118,68 @@ test('builds a deterministic verified fit-validation-test evidence manifest', as
   });
 });
 
-test('rejects overlaps, gaps, and dates outside the active season', () => {
+test('records an explicit validation-to-test exclusion gap without reading excluded shards', async () => {
+  await withTemporaryDirectory(async (root) => {
+    const windows = Object.freeze({
+      fitStartDate: '2026-07-14',
+      fitEndDate: '2026-07-15',
+      validationStartDate: '2026-07-16',
+      validationEndDate: '2026-07-25',
+      testStartDate: '2026-07-30',
+      testEndDate: '2026-07-30',
+    });
+
+    const includedDates = [
+      '2026-07-14',
+      '2026-07-15',
+      '2026-07-16',
+      '2026-07-17',
+      '2026-07-18',
+      '2026-07-19',
+      '2026-07-20',
+      '2026-07-21',
+      '2026-07-22',
+      '2026-07-23',
+      '2026-07-24',
+      '2026-07-25',
+      '2026-07-30',
+    ];
+
+    for (const date of includedDates) {
+      await writeShard(root, date, {
+        games: 1,
+        plateAppearances: 10,
+      });
+    }
+
+    const manifest = await buildM8ChronologicalPartitionManifest({
+      shardCollectionRoot: root,
+      activeSeason: ACTIVE_SEASON,
+      windows,
+      verify: verifyingFromManifest(),
+    });
+
+    assert.deepEqual(manifest.excludedGap, {
+      startDate: '2026-07-26',
+      endDate: '2026-07-29',
+      allowedUse: 'excluded-from-fitting-validation-and-untouched-testing',
+      dateCount: 4,
+      dates: [
+        '2026-07-26',
+        '2026-07-27',
+        '2026-07-28',
+        '2026-07-29',
+      ],
+    });
+    assert.equal(manifest.totals.shardCount, 13);
+    assert.equal(
+      manifest.selectionBoundary.excludedGapUsedByModelOrEvaluation,
+      false,
+    );
+  });
+});
+
+test('rejects overlaps, fit-validation gaps, and dates outside the active season', () => {
   assert.throws(
     () =>
       validateM8PartitionWindows({

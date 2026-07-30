@@ -38,6 +38,12 @@ function nextUtcDate(value) {
   return date.toISOString().slice(0, 10);
 }
 
+function previousUtcDate(value) {
+  const date = parseUtcIsoDate(value);
+  date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
 function portablePath(value) {
   return value.split(path.sep).join('/');
 }
@@ -66,13 +72,30 @@ export function validateM8PartitionWindows({
       'fit and validation periods must be adjacent with no omitted dates.',
     );
   }
-  if (nextUtcDate(windows.validationEndDate) !== windows.testStartDate) {
-    throw new RangeError(
-      'validation and untouched test periods must be adjacent with no omitted dates.',
-    );
+  return windows;
+}
+
+function excludedGapDefinition({ activeSeason, windows }) {
+  const startDate = nextUtcDate(windows.validationEndDate);
+
+  if (startDate === windows.testStartDate) {
+    return null;
   }
 
-  return windows;
+  const endDate = previousUtcDate(windows.testStartDate);
+  const dates = enumerateCurrentSeasonDates({
+    startDate,
+    endDate,
+    activeSeason,
+  });
+
+  return Object.freeze({
+    startDate,
+    endDate,
+    allowedUse: 'excluded-from-fitting-validation-and-untouched-testing',
+    dateCount: dates.length,
+    dates: Object.freeze(dates),
+  });
 }
 
 function periodDefinitions(windows) {
@@ -208,6 +231,10 @@ export async function buildM8ChronologicalPartitionManifest({
     activeSeason,
     ...assertPlainObject(windows, 'windows'),
   });
+  const excludedGap = excludedGapDefinition({
+    activeSeason,
+    windows: validatedWindows,
+  });
   const definitions = periodDefinitions(validatedWindows);
   const periods = {};
   const seenDates = new Set();
@@ -257,6 +284,7 @@ export async function buildM8ChronologicalPartitionManifest({
   const evidenceIdentity = {
     activeSeason,
     windows: validatedWindows,
+    excludedGap,
     periodShardIdentities: Object.fromEntries(
       PERIOD_ORDER.map((id) => [id, periods[id].shards]),
     ),
@@ -271,11 +299,13 @@ export async function buildM8ChronologicalPartitionManifest({
     sourceStartDate: validatedWindows.fitStartDate,
     sourceEndDate: validatedWindows.testEndDate,
     windows: validatedWindows,
+    excludedGap,
     selectionBoundary: Object.freeze({
       fittingUses: Object.freeze(['fit']),
       candidateSelectionUses: Object.freeze(['validation']),
       untouchedTestUses: Object.freeze(['final-evaluation-only']),
       testMetricsForbiddenDuringCandidateSelection: true,
+      excludedGapUsedByModelOrEvaluation: false,
     }),
     periods: Object.freeze(periods),
     totals: Object.freeze({
