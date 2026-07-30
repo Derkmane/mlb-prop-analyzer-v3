@@ -1,6 +1,6 @@
 # M9 Batter Hits V4 monotone-calibration replacement
 
-**Recorded before V4 fitting, selection, or July 26–31 outcome evaluation:** 2026-07-30  
+**Recorded before V4 fitting, selection, or July 30–August 4 outcome evaluation:** 2026-07-30  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`  
 **Base candidate:** `m8-batter-hits-complete-candidate-v1`  
 **Base artifact SHA-256:** `728895ca850c5481cd1f17944e38464f16396becc3622146a1384bba19ce5cde`  
@@ -8,7 +8,7 @@
 
 ## Structural reassessment
 
-Two focused correction families have now been evaluated without touching the newly reserved July 26–31 outcomes.
+Two focused correction families were evaluated without including July 26–29 outcomes in their scores or fits.
 
 1. Changing only the shared-environment coefficient could not stably calibrate every posted Batter Hits line range.
 2. A one-parameter shared logit-intercept tail calibrator produced a canonical stable proper-score candidate (`calibration-shrink-075`) but slightly worsened the 1.5-line Brier score while improving the complete distribution and the 0.5 and 2.5 lines.
@@ -17,15 +17,23 @@ The second result proves that one constant log-odds shift is too rigid. It does 
 
 The V3 shared-intercept family and its literal per-line decimal veto are rejected. They are historical evidence only and are not active production inputs.
 
+## Untouched-seal correction
+
+The V3 evaluator located its chronological partition manifest by opening and parsing every JSON file under `artifacts/`. After the July 26–29 shards had been captured, that search traversed those raw snapshot files even though no July 26–29 observation was included in fitting, validation metrics, candidate selection, or output.
+
+`CANONICAL_MATH_SPEC.md` Version 1.5 prohibits the untouched period from being read during candidate generation. Therefore July 26–29 is not eligible to serve as an untouched acceptance period. The V4 implementation must remove broad JSON-content discovery and open exactly one filename-matched chronological partition manifest before opening only the shard paths declared by that manifest.
+
+July 26–29 remains preserved, immutable evidence but is not used by V4 fitting, validation, selection, or untouched acceptance.
+
 ## Frozen chronology
 
 - calibration development start: 2026-03-26
 - final calibration fit end: 2026-07-25
 - fixed later validation: 2026-07-16 through 2026-07-25
 - expanding walk-forward validation: the same three folds used by V3
-- newly assigned untouched period for V4: 2026-07-26 through 2026-07-31
+- newly reserved untouched period for V4: 2026-07-30 through 2026-08-04
 
-V3 froze no calibrated candidate and did not grade, inspect, score, fit, select, or evaluate any July 26–31 outcome. Those dates therefore remain untouched and are newly assigned to V4. Captured shard files may be hash-verified prospectively, but outcome rows remain prohibited until one V4 candidate is frozen and hashed.
+No July 30–August 4 raw outcome may be graded, inspected, scored, fitted, used for candidate selection, used for tie-breaking, or used to freeze the V4 calibration artifact. Raw shards for those dates may be captured and hash-verified only after the V4 candidate is frozen.
 
 ## Unchanged baseball distribution
 
@@ -120,7 +128,7 @@ Candidate admissibility follows `CANONICAL_MATH_SPEC.md` Version 1.5 exactly:
 
 Line-specific Brier scores remain mandatory diagnostics and acceptance evidence. They do not create a second candidate-admissibility rule or override the canonical proper-score nondominated intersection through differences far below sampling uncertainty.
 
-If the nonidentity stable intersection is empty, V4 is rejected without opening July 26–31 outcomes. Do not revise V4 after that result.
+If the nonidentity stable intersection is empty, V4 is rejected without opening July 30–August 4 outcomes. Do not revise V4 after that result.
 
 ## Final fitting and freeze
 
@@ -132,10 +140,10 @@ After selection, refit `(a_hat, b_hat)` once on every eligible development obser
 - base candidate and component artifact identities
 - source observation identity
 - fixed and walk-forward evidence
-- July 26–31 untouched reservation
+- July 30–August 4 untouched reservation
 - `productionEnabled: false`
 
-Only this frozen candidate may enter the one-time July 26–31 acceptance evaluation.
+Only this frozen candidate may enter the one-time July 30–August 4 acceptance evaluation.
 
 ## Product objective
 
