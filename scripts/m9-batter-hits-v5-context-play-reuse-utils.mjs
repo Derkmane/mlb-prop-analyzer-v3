@@ -288,7 +288,6 @@ export async function prepareM9BatterHitsV5ContextPlayReuse({
         sourceDirectory,
         targetDirectory,
       });
-      linkedGameCount += 1;
     } else {
       const targetVerified = await verifyM8ContextPlayGameCapture({
         gameDirectory: targetDirectory,
@@ -307,7 +306,11 @@ export async function prepareM9BatterHitsV5ContextPlayReuse({
       if (existing.isSymbolicLink()) {
         linkTarget = portablePath(await readlink(targetDirectory));
       }
+    }
+    if (linkTarget === null) {
       existingVerifiedGameCount += 1;
+    } else {
+      linkedGameCount += 1;
     }
 
     reusedGames.push(
