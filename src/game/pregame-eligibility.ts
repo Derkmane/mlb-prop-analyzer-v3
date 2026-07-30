@@ -44,9 +44,12 @@ export class InvalidPregameTimestampError extends Error {
   }
 }
 
+const EXPLICIT_TIMESTAMP_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/;
+
 function timestampMillis(value: string, label: string): number {
   const parsed = Date.parse(value);
-  if (!Number.isFinite(parsed)) {
+  if (!EXPLICIT_TIMESTAMP_PATTERN.test(value) || !Number.isFinite(parsed)) {
     throw new InvalidPregameTimestampError(label, value);
   }
   return parsed;
