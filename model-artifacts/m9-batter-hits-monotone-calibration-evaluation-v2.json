@@ -1,0 +1,807 @@
+{
+  "evaluationVersion": 2,
+  "purpose": "Current-season selection of one shared monotone logit-affine calibration for coherent Batter Hits tail probabilities.",
+  "activeSeason": 2026,
+  "baseCandidateVersion": "m8-batter-hits-complete-candidate-v1",
+  "baseCandidateSha256": "728895ca850c5481cd1f17944e38464f16396becc3622146a1384bba19ce5cde",
+  "priorUntouchedEvaluationSha256": "7bc151aceb0c683cbba56d1f7887f1f35436d27ff22d696ecff95851020036c1",
+  "priorCalibrationEvaluationSha256": "dfa07a44520689e42e43ad367f83e03eb78c0a08f9f8000d884d090008d068d5",
+  "sourcePartitionPath": "artifacts/m8-current-season-pa/m8-chronological-partition-v1.json",
+  "sourcePartitionSha256": "974ac2ae041a596179cc58c3b17fbe9de43968d98d376febf477d0b301691dbe",
+  "sourceEvidenceSetSha256": "ef3223c1d3b04058d4d0b718165df35ceb0de6196aef14f11ad0bf07de2f1a23",
+  "sourceComponentArtifactSha256s": {
+    "sharedEnvironment": "b7e1936b2e8cd1b1f5553281f946fc8d3b4f68f056f6b60bbd6f868f6c1453e7",
+    "starterRetention": "f55a0ce1c2a3104ffdc7aa2b1a7b097ae0d580eb3df3c1d2a79b548413dca136",
+    "terminalOutcome": "244ab1bfdaacc08e5f805d4837eb833c79e07264cdb7512273348044c6f1b10a"
+  },
+  "developmentWindow": {
+    "startDate": "2026-03-26",
+    "endDate": "2026-07-25",
+    "gameCount": 1571,
+    "rawPlateAppearanceCount": 118819,
+    "includedStarterObservationCount": 25245,
+    "exclusionReasonCounts": {
+      "fewer-than-nine-terminal-plate-appearances": 2,
+      "simultaneous-multi-slot-phase-shift": 116,
+      "terminal-row-context-required": 110,
+      "terminal-row-missing-result": 3,
+      "terminal-row-unknown-result": 106
+    }
+  },
+  "fixedValidationDesign": {
+    "fitStartDate": "2026-03-26",
+    "fitEndDate": "2026-07-15",
+    "validationStartDate": "2026-07-16",
+    "validationEndDate": "2026-07-25",
+    "fitObservationCount": 23202,
+    "validationObservationCount": 2043
+  },
+  "walkForwardDesign": [
+    {
+      "foldId": "fit-through-2026-06-21__validate-2026-06-22--2026-07-05",
+      "fitStartDate": "2026-03-26",
+      "fitEndDate": "2026-06-21",
+      "validationStartDate": "2026-06-22",
+      "validationEndDate": "2026-07-05"
+    },
+    {
+      "foldId": "fit-through-2026-07-05__validate-2026-07-06--2026-07-15",
+      "fitStartDate": "2026-03-26",
+      "fitEndDate": "2026-07-05",
+      "validationStartDate": "2026-07-06",
+      "validationEndDate": "2026-07-15"
+    },
+    {
+      "foldId": "fit-through-2026-07-15__validate-2026-07-16--2026-07-25",
+      "fitStartDate": "2026-03-26",
+      "fitEndDate": "2026-07-15",
+      "validationStartDate": "2026-07-16",
+      "validationEndDate": "2026-07-25"
+    }
+  ],
+  "candidateSet": [
+    {
+      "candidateId": "monotone-calibration-000",
+      "lambda": 0,
+      "selectable": false
+    },
+    {
+      "candidateId": "monotone-calibration-025",
+      "lambda": 0.25,
+      "selectable": true
+    },
+    {
+      "candidateId": "monotone-calibration-050",
+      "lambda": 0.5,
+      "selectable": true
+    },
+    {
+      "candidateId": "monotone-calibration-075",
+      "lambda": 0.75,
+      "selectable": true
+    },
+    {
+      "candidateId": "monotone-calibration-100",
+      "lambda": 1,
+      "selectable": true
+    }
+  ],
+  "fixedUnshrunkFit": {
+    "method": "monotone-logit-affine-v2",
+    "thresholds": [
+      1,
+      2,
+      3
+    ],
+    "predictionCount": 23202,
+    "thresholdExampleCount": 69606,
+    "informativeExampleCount": 69606,
+    "slope": 1.0383704337961885,
+    "intercept": -0.01940514063372223,
+    "eta": 0.037652593715823565,
+    "objective": 0.4455065903998437,
+    "identityObjective": 0.44575815955405124,
+    "optimization": {
+      "etaLowerBound": -2,
+      "etaUpperBound": 2,
+      "interceptLowerBound": -40,
+      "interceptUpperBound": 40,
+      "goldenSectionIterations": 96,
+      "interceptBisectionIterations": 180
+    },
+    "fitSha256": "368bb82165abdcf1f3d6ac8554f6f2a1aa935e04d68000fc8066a8e76d64abfe"
+  },
+  "walkForwardUnshrunkFits": [
+    {
+      "foldId": "fit-through-2026-06-21__validate-2026-06-22--2026-07-05",
+      "fitStartDate": "2026-03-26",
+      "fitEndDate": "2026-06-21",
+      "validationStartDate": "2026-06-22",
+      "validationEndDate": "2026-07-05",
+      "fit": {
+        "method": "monotone-logit-affine-v2",
+        "thresholds": [
+          1,
+          2,
+          3
+        ],
+        "predictionCount": 18486,
+        "thresholdExampleCount": 55458,
+        "informativeExampleCount": 55458,
+        "slope": 1.0385878394515518,
+        "intercept": -0.02054612460269295,
+        "eta": 0.0378619437629165,
+        "objective": 0.44516172722281205,
+        "identityObjective": 0.4454219779207809,
+        "optimization": {
+          "etaLowerBound": -2,
+          "etaUpperBound": 2,
+          "interceptLowerBound": -40,
+          "interceptUpperBound": 40,
+          "goldenSectionIterations": 96,
+          "interceptBisectionIterations": 180
+        },
+        "fitSha256": "bc37404b2df2a82b7ef542cb514d9575d4c9c00244aebace9c8caec87dee2fe1"
+      },
+      "fitObservationCount": 18486,
+      "validationObservationCount": 3114
+    },
+    {
+      "foldId": "fit-through-2026-07-05__validate-2026-07-06--2026-07-15",
+      "fitStartDate": "2026-03-26",
+      "fitEndDate": "2026-07-05",
+      "validationStartDate": "2026-07-06",
+      "validationEndDate": "2026-07-15",
+      "fit": {
+        "method": "monotone-logit-affine-v2",
+        "thresholds": [
+          1,
+          2,
+          3
+        ],
+        "predictionCount": 21600,
+        "thresholdExampleCount": 64800,
+        "informativeExampleCount": 64800,
+        "slope": 1.0398345156394948,
+        "intercept": -0.01648747454297983,
+        "eta": 0.03906158091500932,
+        "objective": 0.44530509231286297,
+        "identityObjective": 0.44555550829725754,
+        "optimization": {
+          "etaLowerBound": -2,
+          "etaUpperBound": 2,
+          "interceptLowerBound": -40,
+          "interceptUpperBound": 40,
+          "goldenSectionIterations": 96,
+          "interceptBisectionIterations": 180
+        },
+        "fitSha256": "ebfe0cc7efbb81598b9d3e080ccea38b4e6ce6da030094ca1bc0f8e33fe80c41"
+      },
+      "fitObservationCount": 21600,
+      "validationObservationCount": 1602
+    },
+    {
+      "foldId": "fit-through-2026-07-15__validate-2026-07-16--2026-07-25",
+      "fitStartDate": "2026-03-26",
+      "fitEndDate": "2026-07-15",
+      "validationStartDate": "2026-07-16",
+      "validationEndDate": "2026-07-25",
+      "fit": {
+        "method": "monotone-logit-affine-v2",
+        "thresholds": [
+          1,
+          2,
+          3
+        ],
+        "predictionCount": 23202,
+        "thresholdExampleCount": 69606,
+        "informativeExampleCount": 69606,
+        "slope": 1.0383704337961885,
+        "intercept": -0.01940514063372223,
+        "eta": 0.037652593715823565,
+        "objective": 0.4455065903998437,
+        "identityObjective": 0.44575815955405124,
+        "optimization": {
+          "etaLowerBound": -2,
+          "etaUpperBound": 2,
+          "interceptLowerBound": -40,
+          "interceptUpperBound": 40,
+          "goldenSectionIterations": 96,
+          "interceptBisectionIterations": 180
+        },
+        "fitSha256": "368bb82165abdcf1f3d6ac8554f6f2a1aa935e04d68000fc8066a8e76d64abfe"
+      },
+      "fitObservationCount": 23202,
+      "validationObservationCount": 2043
+    }
+  ],
+  "results": [
+    {
+      "candidateId": "monotone-calibration-000",
+      "lambda": 0,
+      "benchmarkOnly": true,
+      "fixed": {
+        "candidateId": "monotone-calibration-000",
+        "lambda": 0,
+        "selectable": false,
+        "calibration": {
+          "slope": 1,
+          "intercept": 0
+        },
+        "metrics": {
+          "observationCount": 2043,
+          "logLoss": 1.201832442772979,
+          "multiclassBrier": 0.6608761698853204,
+          "higher05Brier": 0.23740055930360215,
+          "higher15Brier": 0.170072380094809,
+          "higher25Brier": 0.04432865477178072,
+          "observedMeanHits": 0.8776309348996574,
+          "predictedMeanHits": 0.8856772429178013
+        },
+        "observationIdsSha256": "75c81536e5e98158bb5764104338e93c72fb1764a1e056fc42ed1d710dbff58c"
+      },
+      "walkForward": {
+        "candidateId": "monotone-calibration-000",
+        "lambda": 0,
+        "selectable": false,
+        "foldResults": [
+          {
+            "foldId": "fit-through-2026-06-21__validate-2026-06-22--2026-07-05",
+            "calibration": {
+              "slope": 1,
+              "intercept": 0
+            },
+            "metrics": {
+              "observationCount": 3114,
+              "logLoss": 1.1697101621022232,
+              "multiclassBrier": 0.6534717590539002,
+              "higher05Brier": 0.23247794773814734,
+              "higher15Brier": 0.16450651448034537,
+              "higher25Brier": 0.04143509869247617,
+              "observedMeanHits": 0.8754014129736674,
+              "predictedMeanHits": 0.8851125142314651
+            },
+            "observationIdsSha256": "a8b7f4f52d00d2496155cd4ef110751589790708e3f21f71b47e0942326be5a7"
+          },
+          {
+            "foldId": "fit-through-2026-07-05__validate-2026-07-06--2026-07-15",
+            "calibration": {
+              "slope": 1,
+              "intercept": 0
+            },
+            "metrics": {
+              "observationCount": 1602,
+              "logLoss": 1.1811278551656479,
+              "multiclassBrier": 0.6549510055908724,
+              "higher05Brier": 0.236940237437226,
+              "higher15Brier": 0.16674073923449562,
+              "higher25Brier": 0.036886961201593925,
+              "observedMeanHits": 0.8583021223470662,
+              "predictedMeanHits": 0.887560822421213
+            },
+            "observationIdsSha256": "e9737a085ac34804e63cb0e5539f250414d3825f3b87df716f9ff8f7802cfffc"
+          },
+          {
+            "foldId": "fit-through-2026-07-15__validate-2026-07-16--2026-07-25",
+            "calibration": {
+              "slope": 1,
+              "intercept": 0
+            },
+            "metrics": {
+              "observationCount": 2043,
+              "logLoss": 1.201832442772979,
+              "multiclassBrier": 0.6608761698853204,
+              "higher05Brier": 0.23740055930360215,
+              "higher15Brier": 0.170072380094809,
+              "higher25Brier": 0.04432865477178072,
+              "observedMeanHits": 0.8776309348996574,
+              "predictedMeanHits": 0.8856772429178013
+            },
+            "observationIdsSha256": "75c81536e5e98158bb5764104338e93c72fb1764a1e056fc42ed1d710dbff58c"
+          }
+        ],
+        "metrics": {
+          "observationCount": 6759,
+          "logLoss": 1.1821257507540912,
+          "multiclassBrier": 0.6560604503219543,
+          "higher05Brier": 0.23502351417196146,
+          "higher15Brier": 0.1667184232695888,
+          "higher25Brier": 0.04123172819530581,
+          "observedMeanHits": 0.8720224885338068,
+          "predictedMeanHits": 0.88586350260639
+        },
+        "observationIdsSha256": "984d732a6a919198726764f8716668a56cca4b53d1ff369fe64b7c1516e7cdb4"
+      },
+      "fixedLineBrierDeltasFromIdentity": {
+        "higher05": 0,
+        "higher15": 0,
+        "higher25": 0
+      },
+      "walkForwardLineBrierDeltasFromIdentity": {
+        "higher05": 0,
+        "higher15": 0,
+        "higher25": 0
+      },
+      "inFixedNondominatedSet": true,
+      "inWalkForwardNondominatedSet": false,
+      "inStableSet": false,
+      "selectable": false
+    },
+    {
+      "candidateId": "monotone-calibration-025",
+      "lambda": 0.25,
+      "benchmarkOnly": false,
+      "fixed": {
+        "candidateId": "monotone-calibration-025",
+        "lambda": 0.25,
+        "selectable": true,
+        "calibration": {
+          "slope": 1.0095926084490472,
+          "intercept": -0.004851285158430557
+        },
+        "metrics": {
+          "observationCount": 2043,
+          "logLoss": 1.202041437638496,
+          "multiclassBrier": 0.6609327437242883,
+          "higher05Brier": 0.23739946675013548,
+          "higher15Brier": 0.17008240951402417,
+          "higher25Brier": 0.044320436241443946,
+          "observedMeanHits": 0.8776309348996574,
+          "predictedMeanHits": 0.8809143396752497
+        },
+        "observationIdsSha256": "75c81536e5e98158bb5764104338e93c72fb1764a1e056fc42ed1d710dbff58c"
+      },
+      "walkForward": {
+        "candidateId": "monotone-calibration-025",
+        "lambda": 0.25,
+        "selectable": true,
+        "foldResults": [
+          {
+            "foldId": "fit-through-2026-06-21__validate-2026-06-22--2026-07-05",
+            "calibration": {
+              "slope": 1.0096469598628879,
+              "intercept": -0.0051365311506732375
+            },
+            "metrics": {
+              "observationCount": 3114,
+              "logLoss": 1.1694410990283124,
+              "multiclassBrier": 0.6534381480767403,
+              "higher05Brier": 0.2324520686959762,
+              "higher15Brier": 0.16449939601146243,
+              "higher25Brier": 0.04143089028671643,
+              "observedMeanHits": 0.8754014129736674,
+              "predictedMeanHits": 0.8802106416709911
+            },
+            "observationIdsSha256": "a8b7f4f52d00d2496155cd4ef110751589790708e3f21f71b47e0942326be5a7"
+          },
+          {
+            "foldId": "fit-through-2026-07-05__validate-2026-07-06--2026-07-15",
+            "calibration": {
+              "slope": 1.0099586289098736,
+              "intercept": -0.004121868635744957
+            },
+            "metrics": {
+              "observationCount": 1602,
+              "logLoss": 1.1810112151899756,
+              "multiclassBrier": 0.6549427240859874,
+              "higher05Brier": 0.23693883069232755,
+              "higher15Brier": 0.16670490739903543,
+              "higher25Brier": 0.03685031995038991,
+              "observedMeanHits": 0.8583021223470662,
+              "predictedMeanHits": 0.8830383614946188
+            },
+            "observationIdsSha256": "e9737a085ac34804e63cb0e5539f250414d3825f3b87df716f9ff8f7802cfffc"
+          },
+          {
+            "foldId": "fit-through-2026-07-15__validate-2026-07-16--2026-07-25",
+            "calibration": {
+              "slope": 1.0095926084490472,
+              "intercept": -0.004851285158430557
+            },
+            "metrics": {
+              "observationCount": 2043,
+              "logLoss": 1.202041437638496,
+              "multiclassBrier": 0.6609327437242883,
+              "higher05Brier": 0.23739946675013548,
+              "higher15Brier": 0.17008240951402417,
+              "higher25Brier": 0.044320436241443946,
+              "observedMeanHits": 0.8776309348996574,
+              "predictedMeanHits": 0.8809143396752497
+            },
+            "observationIdsSha256": "75c81536e5e98158bb5764104338e93c72fb1764a1e056fc42ed1d710dbff58c"
+          }
+        ],
+        "metrics": {
+          "observationCount": 6759,
+          "logLoss": 1.1820373141298917,
+          "multiclassBrier": 0.6560601024597448,
+          "higher05Brier": 0.23501092754237288,
+          "higher15Brier": 0.16670968241901166,
+          "higher25Brier": 0.04121862052886961,
+          "observedMeanHits": 0.8720224885338068,
+          "predictedMeanHits": 0.881093562543927
+        },
+        "observationIdsSha256": "984d732a6a919198726764f8716668a56cca4b53d1ff369fe64b7c1516e7cdb4"
+      },
+      "fixedLineBrierDeltasFromIdentity": {
+        "higher05": -0.000001092553466669477,
+        "higher15": 0.000010029419215185076,
+        "higher25": -0.000008218530336771834
+      },
+      "walkForwardLineBrierDeltasFromIdentity": {
+        "higher05": -0.000012586629588584586,
+        "higher15": -0.000008740850577143577,
+        "higher25": -0.000013107666436196208
+      },
+      "inFixedNondominatedSet": false,
+      "inWalkForwardNondominatedSet": true,
+      "inStableSet": false,
+      "selectable": false
+    },
+    {
+      "candidateId": "monotone-calibration-050",
+      "lambda": 0.5,
+      "benchmarkOnly": false,
+      "fixed": {
+        "candidateId": "monotone-calibration-050",
+        "lambda": 0.5,
+        "selectable": true,
+        "calibration": {
+          "slope": 1.0191852168980944,
+          "intercept": -0.009702570316861114
+        },
+        "metrics": {
+          "observationCount": 2043,
+          "logLoss": 1.2023305128105468,
+          "multiclassBrier": 0.6610110329056375,
+          "higher05Brier": 0.2373989022801543,
+          "higher15Brier": 0.17010799567278392,
+          "higher25Brier": 0.04431671376402415,
+          "observedMeanHits": 0.8776309348996574,
+          "predictedMeanHits": 0.8762405176221866
+        },
+        "observationIdsSha256": "75c81536e5e98158bb5764104338e93c72fb1764a1e056fc42ed1d710dbff58c"
+      },
+      "walkForward": {
+        "candidateId": "monotone-calibration-050",
+        "lambda": 0.5,
+        "selectable": true,
+        "foldResults": [
+          {
+            "foldId": "fit-through-2026-06-21__validate-2026-06-22--2026-07-05",
+            "calibration": {
+              "slope": 1.0192939197257758,
+              "intercept": -0.010273062301346475
+            },
+            "metrics": {
+              "observationCount": 3114,
+              "logLoss": 1.1692559969412981,
+              "multiclassBrier": 0.6534282718637204,
+              "higher05Brier": 0.23242677488949937,
+              "higher15Brier": 0.16450934248083576,
+              "higher25Brier": 0.04143139692270826,
+              "observedMeanHits": 0.8754014129736674,
+              "predictedMeanHits": 0.8754004341527428
+            },
+            "observationIdsSha256": "a8b7f4f52d00d2496155cd4ef110751589790708e3f21f71b47e0942326be5a7"
+          },
+          {
+            "foldId": "fit-through-2026-07-05__validate-2026-07-06--2026-07-15",
+            "calibration": {
+              "slope": 1.0199172578197473,
+              "intercept": -0.008243737271489915
+            },
+            "metrics": {
+              "observationCount": 1602,
+              "logLoss": 1.1809772415638076,
+              "multiclassBrier": 0.6549581046207518,
+              "higher05Brier": 0.2369379414421849,
+              "higher15Brier": 0.16668439467300405,
+              "higher25Brier": 0.03681904635798233,
+              "observedMeanHits": 0.8583021223470662,
+              "predictedMeanHits": 0.8786057138789339
+            },
+            "observationIdsSha256": "e9737a085ac34804e63cb0e5539f250414d3825f3b87df716f9ff8f7802cfffc"
+          },
+          {
+            "foldId": "fit-through-2026-07-15__validate-2026-07-16--2026-07-25",
+            "calibration": {
+              "slope": 1.0191852168980944,
+              "intercept": -0.009702570316861114
+            },
+            "metrics": {
+              "observationCount": 2043,
+              "logLoss": 1.2023305128105468,
+              "multiclassBrier": 0.6610110329056375,
+              "higher05Brier": 0.2373989022801543,
+              "higher15Brier": 0.17010799567278392,
+              "higher25Brier": 0.04431671376402415,
+              "observedMeanHits": 0.8776309348996574,
+              "predictedMeanHits": 0.8762405176221866
+            },
+            "observationIdsSha256": "75c81536e5e98158bb5764104338e93c72fb1764a1e056fc42ed1d710dbff58c"
+          }
+        ],
+        "metrics": {
+          "observationCount": 6759,
+          "logLoss": 1.1820313586525146,
+          "multiclassBrier": 0.6560828617269162,
+          "higher05Brier": 0.2349988928176706,
+          "higher15Brier": 0.1667171368413919,
+          "higher25Brier": 0.04121031639335751,
+          "observedMeanHits": 0.8720224885338068,
+          "predictedMeanHits": 0.876414067626532
+        },
+        "observationIdsSha256": "984d732a6a919198726764f8716668a56cca4b53d1ff369fe64b7c1516e7cdb4"
+      },
+      "fixedLineBrierDeltasFromIdentity": {
+        "higher05": -0.0000016570234478430201,
+        "higher15": 0.00003561557797493453,
+        "higher25": -0.000011941007756567645
+      },
+      "walkForwardLineBrierDeltasFromIdentity": {
+        "higher05": -0.000024621354290849107,
+        "higher15": -0.0000012864281969116043,
+        "higher25": -0.000021411801948298392
+      },
+      "inFixedNondominatedSet": false,
+      "inWalkForwardNondominatedSet": true,
+      "inStableSet": false,
+      "selectable": false
+    },
+    {
+      "candidateId": "monotone-calibration-075",
+      "lambda": 0.75,
+      "benchmarkOnly": false,
+      "fixed": {
+        "candidateId": "monotone-calibration-075",
+        "lambda": 0.75,
+        "selectable": true,
+        "calibration": {
+          "slope": 1.0287778253471414,
+          "intercept": -0.014553855475291672
+        },
+        "metrics": {
+          "observationCount": 2043,
+          "logLoss": 1.2026980740577309,
+          "multiclassBrier": 0.661110495928552,
+          "higher05Brier": 0.23739886557213255,
+          "higher15Brier": 0.17014866968016187,
+          "higher25Brier": 0.04431711713977676,
+          "observedMeanHits": 0.8776309348996574,
+          "predictedMeanHits": 0.8716536059373751
+        },
+        "observationIdsSha256": "75c81536e5e98158bb5764104338e93c72fb1764a1e056fc42ed1d710dbff58c"
+      },
+      "walkForward": {
+        "candidateId": "monotone-calibration-075",
+        "lambda": 0.75,
+        "selectable": true,
+        "foldResults": [
+          {
+            "foldId": "fit-through-2026-06-21__validate-2026-06-22--2026-07-05",
+            "calibration": {
+              "slope": 1.0289408795886639,
+              "intercept": -0.015409593452019713
+            },
+            "metrics": {
+              "observationCount": 3114,
+              "logLoss": 1.1691531896531908,
+              "multiclassBrier": 0.6534415452484275,
+              "higher05Brier": 0.23240206635119165,
+              "higher15Brier": 0.16453584411579536,
+              "higher25Brier": 0.04143622425363963,
+              "observedMeanHits": 0.8754014129736674,
+              "predictedMeanHits": 0.870679646291508
+            },
+            "observationIdsSha256": "a8b7f4f52d00d2496155cd4ef110751589790708e3f21f71b47e0942326be5a7"
+          },
+          {
+            "foldId": "fit-through-2026-07-05__validate-2026-07-06--2026-07-15",
+            "calibration": {
+              "slope": 1.0298758867296212,
+              "intercept": -0.012365605907234872
+            },
+            "metrics": {
+              "observationCount": 1602,
+              "logLoss": 1.181024237965376,
+              "multiclassBrier": 0.6549965868868239,
+              "higher05Brier": 0.23693756843359468,
+              "higher15Brier": 0.16667875407838242,
+              "higher25Brier": 0.03679273952790127,
+              "observedMeanHits": 0.8583021223470662,
+              "predictedMeanHits": 0.8742606059180278
+            },
+            "observationIdsSha256": "e9737a085ac34804e63cb0e5539f250414d3825f3b87df716f9ff8f7802cfffc"
+          },
+          {
+            "foldId": "fit-through-2026-07-15__validate-2026-07-16--2026-07-25",
+            "calibration": {
+              "slope": 1.0287778253471414,
+              "intercept": -0.014553855475291672
+            },
+            "metrics": {
+              "observationCount": 2043,
+              "logLoss": 1.2026980740577309,
+              "multiclassBrier": 0.661110495928552,
+              "higher05Brier": 0.23739886557213255,
+              "higher15Brier": 0.17014866968016187,
+              "higher25Brier": 0.04431711713977676,
+              "observedMeanHits": 0.8776309348996574,
+              "predictedMeanHits": 0.8716536059373751
+            },
+            "observationIdsSha256": "75c81536e5e98158bb5764104338e93c72fb1764a1e056fc42ed1d710dbff58c"
+          }
+        ],
+        "metrics": {
+          "observationCount": 6759,
+          "logLoss": 1.1821062327416085,
+          "multiclassBrier": 0.6561281620473864,
+          "higher05Brier": 0.23498740961859724,
+          "higher15Brier": 0.1667403040045459,
+          "higher25Brier": 0.04120642718835561,
+          "observedMeanHits": 0.8720224885338068,
+          "predictedMeanHits": 0.8718227883063235
+        },
+        "observationIdsSha256": "984d732a6a919198726764f8716668a56cca4b53d1ff369fe64b7c1516e7cdb4"
+      },
+      "fixedLineBrierDeltasFromIdentity": {
+        "higher05": -0.000001693731469604165,
+        "higher15": 0.00007628958535288444,
+        "higher25": -0.000011537632003955078
+      },
+      "walkForwardLineBrierDeltasFromIdentity": {
+        "higher05": -0.00003610455336422458,
+        "higher15": 0.00002188073495709708,
+        "higher25": -0.00002530100695019577
+      },
+      "inFixedNondominatedSet": false,
+      "inWalkForwardNondominatedSet": false,
+      "inStableSet": false,
+      "selectable": false
+    },
+    {
+      "candidateId": "monotone-calibration-100",
+      "lambda": 1,
+      "benchmarkOnly": false,
+      "fixed": {
+        "candidateId": "monotone-calibration-100",
+        "lambda": 1,
+        "selectable": true,
+        "calibration": {
+          "slope": 1.0383704337961885,
+          "intercept": -0.01940514063372223
+        },
+        "metrics": {
+          "observationCount": 2043,
+          "logLoss": 1.2031425663636153,
+          "multiclassBrier": 0.6612305965744596,
+          "higher05Brier": 0.23739935629456177,
+          "higher15Brier": 0.1702039688025071,
+          "higher25Brier": 0.044321299401074286,
+          "observedMeanHits": 0.8776309348996574,
+          "predictedMeanHits": 0.8671515036828316
+        },
+        "observationIdsSha256": "75c81536e5e98158bb5764104338e93c72fb1764a1e056fc42ed1d710dbff58c"
+      },
+      "walkForward": {
+        "candidateId": "monotone-calibration-100",
+        "lambda": 1,
+        "selectable": true,
+        "foldResults": [
+          {
+            "foldId": "fit-through-2026-06-21__validate-2026-06-22--2026-07-05",
+            "calibration": {
+              "slope": 1.0385878394515518,
+              "intercept": -0.02054612460269295
+            },
+            "metrics": {
+              "observationCount": 3114,
+              "logLoss": 1.1691310515038702,
+              "multiclassBrier": 0.653477388490664,
+              "higher05Brier": 0.23237794310045773,
+              "higher15Brier": 0.16457839761139798,
+              "higher25Brier": 0.0414450028363408,
+              "observedMeanHits": 0.8754014129736674,
+              "predictedMeanHits": 0.8660461052719388
+            },
+            "observationIdsSha256": "a8b7f4f52d00d2496155cd4ef110751589790708e3f21f71b47e0942326be5a7"
+          },
+          {
+            "foldId": "fit-through-2026-07-05__validate-2026-07-06--2026-07-15",
+            "calibration": {
+              "slope": 1.0398345156394948,
+              "intercept": -0.01648747454297983
+            },
+            "metrics": {
+              "observationCount": 1602,
+              "logLoss": 1.1811505516796312,
+              "multiclassBrier": 0.6550576164316677,
+              "higher05Brier": 0.23693771040800204,
+              "higher15Brier": 0.16668754444979048,
+              "higher25Brier": 0.036771023127589834,
+              "observedMeanHits": 0.8583021223470662,
+              "predictedMeanHits": 0.8700008402065436
+            },
+            "observationIdsSha256": "e9737a085ac34804e63cb0e5539f250414d3825f3b87df716f9ff8f7802cfffc"
+          },
+          {
+            "foldId": "fit-through-2026-07-15__validate-2026-07-16--2026-07-25",
+            "calibration": {
+              "slope": 1.0383704337961885,
+              "intercept": -0.01940514063372223
+            },
+            "metrics": {
+              "observationCount": 2043,
+              "logLoss": 1.2031425663636153,
+              "multiclassBrier": 0.6612305965744596,
+              "higher05Brier": 0.23739935629456177,
+              "higher15Brier": 0.1702039688025071,
+              "higher25Brier": 0.044321299401074286,
+              "observedMeanHits": 0.8776309348996574,
+              "predictedMeanHits": 0.8671515036828316
+            },
+            "observationIdsSha256": "75c81536e5e98158bb5764104338e93c72fb1764a1e056fc42ed1d710dbff58c"
+          }
+        ],
+        "metrics": {
+          "observationCount": 6759,
+          "logLoss": 1.1822603256775703,
+          "multiclassBrier": 0.6561954428295662,
+          "higher05Brier": 0.23497647755558992,
+          "higher15Brier": 0.16677870759490696,
+          "higher25Brier": 0.04120658863132993,
+          "observedMeanHits": 0.8720224885338068,
+          "predictedMeanHits": 0.8673175676655908
+        },
+        "observationIdsSha256": "984d732a6a919198726764f8716668a56cca4b53d1ff369fe64b7c1516e7cdb4"
+      },
+      "fixedLineBrierDeltasFromIdentity": {
+        "higher05": -0.0000012030090403847282,
+        "higher15": 0.00013158870769811037,
+        "higher25": -0.0000073553707064313856
+      },
+      "walkForwardLineBrierDeltasFromIdentity": {
+        "higher05": -0.00004703661637153744,
+        "higher15": 0.000060284325318155085,
+        "higher25": -0.000025139563975880297
+      },
+      "inFixedNondominatedSet": false,
+      "inWalkForwardNondominatedSet": false,
+      "inStableSet": false,
+      "selectable": false
+    }
+  ],
+  "fixedNondominatedCandidateIds": [
+    "monotone-calibration-000"
+  ],
+  "walkForwardNondominatedCandidateIds": [
+    "monotone-calibration-025",
+    "monotone-calibration-050"
+  ],
+  "stableCandidateIds": [],
+  "selectableCandidateIds": [],
+  "selectedCandidate": null,
+  "observationCounts": {
+    "development": 25245,
+    "fixedFit": 23202,
+    "fixedValidation": 2043,
+    "walkForwardValidation": 6759
+  },
+  "observationIdsSha256": "dcca7627f5709efed233db16fd27a8ad786a27d621caaf0a981eaa460622cc9a",
+  "untouchedTestReservation": {
+    "startDate": "2026-07-30",
+    "endDate": "2026-08-04",
+    "rowsIncluded": false,
+    "priorIneligibleCapturedDates": [
+      "2026-07-26",
+      "2026-07-27",
+      "2026-07-28",
+      "2026-07-29"
+    ],
+    "allowedUse": "one-time-final-evaluation-after-monotone-calibrated-candidate-freeze",
+    "minimumIncludedStarterObservations": 900,
+    "minimumActualHitsAbove25": 35
+  },
+  "evaluationSha256": "b67893780d14e282ca53afb5e681190794cba37c155864668ce3e182df831841"
+}
