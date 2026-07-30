@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 2.6
+**Version:** 2.7
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -317,7 +317,7 @@ M8 current-season fitting and runtime-freeze work is closed. The one-time untouc
 - [x] Connect real normalized current board offers — committed fixture-backed The Odds API contracts and normalization preserve exact event, Underdog bookmaker, baseline/alternate market, uniquely linked BALLDONTLIE player, Higher/Lower side, posted line, price, multiplier, market timestamp, and source snapshot identity; 34 offers normalized, both unresolved James Jarvis offers failed closed, 3 focused tests passed, and GitHub Actions verify run 405 passed 337 of 337 tests while probability generation and production ranking remained disabled.
 - [x] Exclude started games — fixture-backed BALLDONTLIE game-state normalization and the shared pregame eligibility gate require the matched current-season regular-season game to remain `STATUS_SCHEDULED` and require the evaluation time to be strictly before both preserved provider start timestamps; final, unknown, missing, duplicate, or start-time-reached states fail closed. Four focused tests passed and GitHub Actions verify run 408 passed 341 of 341 tests while side and line remained unchanged and production ranking remained disabled.
 - [x] Preserve exact selected side and line — exhaustive fixture-backed regression matched all 34 uniquely linked baseline and alternate offers through both normalized and pregame composition boundaries; raw `Over` remained `Over` and mapped only to `higher`, raw `Under` remained `Under` and mapped only to `lower`, and every numeric provider point survived exactly as the posted line. Final-game exclusion retained the same immutable offer identities. Two focused tests passed and GitHub Actions verify run 413 passed 343 of 343 tests while production ranking remained disabled.
-- [ ] Produce `P(Win)`, `P(Loss)`, `P(Void)`, and `P(Win | grades)`.
+- [x] Produce `P(Win)`, `P(Loss)`, `P(Void)`, and `P(Win | grades)` — the exact frozen complete Batter Hits candidate, SHA-256 `728895ca850c5481cd1f17944e38464f16396becc3622146a1384bba19ce5cde`, now builds deterministic scenario-conditioned nested opportunity-count and Poisson-binomial Hits distributions and settles exact Higher/Lower sides and posted lines through the generic core settlement path. Baseline and alternate examples conserve probability mass, mismatched runtime identity and production authorization fail closed, 3 focused tests passed, and GitHub Actions verify run 417 passed 346 of 346 tests while production ranking remained disabled and untouched-test rows remained sealed.
 - [ ] Verify baseline and alternate offers use the same statistic distribution.
 - [ ] Enable only after all acceptance gates pass.
 - [ ] Begin prospective board archiving and grading.
@@ -370,6 +370,14 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 2.7 — 2026-07-30
+
+- Restored and verified the already-frozen complete Batter Hits candidate artifact with SHA-256 `728895ca850c5481cd1f17944e38464f16396becc3622146a1384bba19ce5cde`.
+- Connected confirmed fixture-backed lineup, batting-slot, handedness, and opposing-starter inputs to the frozen runtime artifacts.
+- Built deterministic scenario-conditioned nested opportunity-count and exact Poisson-binomial Batter Hits distributions.
+- Produced side-aware `P(Win)`, `P(Loss)`, `P(Void)`, and `P(Win | grades)` through generic core settlement while preserving exact side and line.
+- Recorded 3-of-3 focused passing tests and GitHub Actions verify run 417 with 346-of-346 tests passing; production ranking remains disabled and untouched-test rows remain sealed.
 
 ### Version 2.6 — 2026-07-30
 
