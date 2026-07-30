@@ -48,18 +48,29 @@ function nonNegativeInteger(value, label) {
 }
 
 function probability(value, label) {
-  if (!Number.isFinite(value) || value < 0 || value > 1) {
+  if (!Number.isFinite(value)) {
+    throw new RangeError(`${label} must be finite.`);
+  }
+  if (value < -TOLERANCE || value > 1 + TOLERANCE) {
     throw new RangeError(`${label} must be in [0,1].`);
   }
+  if (value < 0) return 0;
+  if (value > 1) return 1;
   return value;
 }
 
 function normalizeVector(values, label) {
-  const total = values.reduce((sum, value) => sum + value, 0);
-  if (!(total > 0) || values.some((value) => !Number.isFinite(value) || value < 0)) {
+  const stabilized = values.map((value) => {
+    if (!Number.isFinite(value) || value < -TOLERANCE) {
+      throw new Error(`${label} contains invalid probability mass.`);
+    }
+    return value < 0 ? 0 : value;
+  });
+  const total = stabilized.reduce((sum, value) => sum + value, 0);
+  if (!(total > 0)) {
     throw new Error(`${label} contains invalid probability mass.`);
   }
-  const normalized = values.map((value) => value / total);
+  const normalized = stabilized.map((value) => value / total);
   if (Math.abs(normalized.reduce((sum, value) => sum + value, 0) - 1) > TOLERANCE) {
     throw new Error(`${label} does not sum to one.`);
   }
@@ -147,7 +158,8 @@ function slotCountPmf(teamPaPmf, lineupSlot, maximumTurns) {
 function survivalFromPmf(pmf) {
   const survival = [];
   for (let count = 1; count < pmf.length; count += 1) {
-    survival.push(pmf.slice(count).reduce((sum, value) => sum + value, 0));
+    const total = pmf.slice(count).reduce((sum, value) => sum + value, 0);
+    survival.push(probability(total, `batting-slot survival ${count}`));
   }
   return survival;
 }

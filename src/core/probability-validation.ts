@@ -13,10 +13,15 @@ export function validateProbability(
     throw new RangeError(`${label} must be finite`);
   }
 
-  if (value < 0 || value > 1) {
+  if (
+    value < -PROBABILITY_TOLERANCE ||
+    value > 1 + PROBABILITY_TOLERANCE
+  ) {
     throw new RangeError(`${label} must be between 0 and 1 inclusive`);
   }
 
+  if (value < 0) return 0;
+  if (value > 1) return 1;
   return value;
 }
 
