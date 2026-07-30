@@ -1,0 +1,65 @@
+{
+  "purpose": "Immutable one-time untouched current-season Batter Hits acceptance report for the candidate frozen before test access.",
+  "evaluationVersion": 1,
+  "status": "untouched-test-failed",
+  "productionEnabled": false,
+  "modelVersion": "m8-batter-hits-complete-candidate-v1",
+  "modelArtifactSha256": "728895ca850c5481cd1f17944e38464f16396becc3622146a1384bba19ce5cde",
+  "sourcePartitionSha256": "974ac2ae041a596179cc58c3b17fbe9de43968d98d376febf477d0b301691dbe",
+  "sourceEvidenceSetSha256": "ef3223c1d3b04058d4d0b718165df35ceb0de6196aef14f11ad0bf07de2f1a23",
+  "testWindow": {
+    "startDate": "2026-07-06",
+    "endDate": "2026-07-25",
+    "observationCount": 3645
+  },
+  "evidenceCounts": {
+    "shardCount": 20,
+    "gameCount": 225,
+    "candidateSideCount": 450,
+    "includedStarterObservationCount": 3645,
+    "includedTeamSideCount": 405,
+    "excludedTeamSideCount": 45,
+    "rawPlateAppearanceCount": 16830,
+    "terminalPlateAppearanceCount": 16787,
+    "ignoredBaserunningRowCount": 19
+  },
+  "exclusionReasonCounts": {
+    "fewer-than-nine-terminal-plate-appearances": 2,
+    "simultaneous-multi-slot-phase-shift": 20,
+    "terminal-row-context-required": 6,
+    "terminal-row-unknown-result": 17
+  },
+  "selected": {
+    "observationCount": 3645,
+    "logLoss": 1.1927326487134589,
+    "multiclassBrier": 0.6582720236028207,
+    "higher05Brier": 0.23719824500183675,
+    "higher15Brier": 0.1686081033710168,
+    "higher25Brier": 0.04105798451130357,
+    "observedMeanHits": 0.8691358024691358,
+    "predictedMeanHits": 0.886505087736588
+  },
+  "noEnvironmentBenchmark": {
+    "observationCount": 3645,
+    "logLoss": 1.1943648114153207,
+    "multiclassBrier": 0.6587081891830138,
+    "higher05Brier": 0.23738026960668765,
+    "higher15Brier": 0.16859691555470585,
+    "higher25Brier": 0.040979286886394614,
+    "observedMeanHits": 0.8691358024691358,
+    "predictedMeanHits": 0.8755086451143429
+  },
+  "acceptance": {
+    "candidateFrozenBeforeTest": true,
+    "environmentImprovesLogLoss": true,
+    "environmentDoesNotWorsenMulticlassBrier": true,
+    "lineBrierPasses": {
+      "higher05": true,
+      "higher15": false,
+      "higher25": false
+    },
+    "allRequiredGatesPass": false
+  },
+  "observationIdsSha256": "66f95edd6f6e7757fa0af5862e2a3f2a647892a776c6abb3f836f97795cfd041",
+  "evaluationSha256": "7bc151aceb0c683cbba56d1f7887f1f35436d27ff22d696ecff95851020036c1"
+}
