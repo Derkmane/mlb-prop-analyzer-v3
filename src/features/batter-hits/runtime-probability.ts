@@ -6,6 +6,7 @@ import {
   validateProbability,
   validateProbabilityMassFunction,
   validateProbabilityVector,
+  validateUnitIntervalVector,
 } from '../../core/index.js';
 import type { PredictionCandidate } from '../../domain/prediction-candidate.js';
 import type { ProbabilityMassFunction } from '../../domain/probability.js';
@@ -371,9 +372,15 @@ function normalizeCategoryVector(
   const total = values.reduce((sum, value) => sum + value, 0);
   const normalized = values.map((value) => value / total);
   validateProbabilityVector(normalized, label);
-  return Object.freeze(
-    Object.fromEntries(categories.map((category, index) => [category, normalized[index]])),
-  );
+  const result: Record<string, number> = {};
+  categories.forEach((category, index) => {
+    const value = normalized[index];
+    if (value === undefined) {
+      throw new RangeError(`${label} is missing normalized category ${category}.`);
+    }
+    result[category] = value;
+  });
+  return Object.freeze(result);
 }
 
 function stableSoftmax(
@@ -643,7 +650,7 @@ export function buildFrozenBatterHitsRuntimeDistribution(
   if (retention === undefined || retention.length === 0) {
     throw new Error(`starter retention is missing lineup slot ${observation.lineupSlot}.`);
   }
-  validateProbabilityVector(retention, 'conditional named-hitter retention');
+  validateUnitIntervalVector(retention, 'conditional named-hitter retention');
   if (Math.abs((retention[0] ?? Number.NaN) - 1) > TOLERANCE) {
     throw new Error('conditional named-hitter retention must start at one.');
   }
@@ -681,6 +688,12 @@ export function buildFrozenBatterHitsRuntimeDistribution(
       teamPaDistribution,
       observation.lineupSlot,
     ).slice(0, retention.length);
+    if (slotSurvival.length === 0) {
+      throw new Error(
+        `scenario ${scenario.scenarioIndex} has no reachable batting turns for lineup slot ${observation.lineupSlot}.`,
+      );
+    }
+    const scenarioRetention = retention.slice(0, slotSurvival.length);
     const slotState = createHitterPASurvivalState({
       lineupSlot: observation.lineupSlot,
       rawSurvival: slotSurvival,
@@ -694,7 +707,7 @@ export function buildFrozenBatterHitsRuntimeDistribution(
       teamId: String(observation.providerTeamId),
       lineupSlot: observation.lineupSlot,
       version: artifacts.starterRetention.modelVersion,
-      conditionalRetention: retention,
+      conditionalRetention: scenarioRetention,
     });
     const opportunityCountDistribution =
       deriveNamedHitterOpportunityCountDistribution(

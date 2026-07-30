@@ -200,11 +200,11 @@ function observationFor(
 }
 
 function offerPair(
+  board: ReturnType<typeof pregameBoard>,
   playerName: string,
   offerType: 'baseline' | 'alternate',
   line: number,
 ): readonly [NormalizedBatterHitsBoardOffer, NormalizedBatterHitsBoardOffer] {
-  const board = pregameBoard();
   const higher = board.offers.find(
     (offer) =>
       offer.playerName === playerName &&
@@ -256,7 +256,12 @@ function assertProbabilityOutput(
 
 test('confirmed baseline Higher and Lower produce conserved side-aware probabilities from one frozen distribution', async () => {
   const board = pregameBoard();
-  const [higherOffer, lowerOffer] = offerPair('Gavin Sheets', 'baseline', 0.5);
+  const [higherOffer, lowerOffer] = offerPair(
+    board,
+    'Gavin Sheets',
+    'baseline',
+    0.5,
+  );
   const observation = observationFor(higherOffer);
   const higher = await connectFrozenBatterHitsProbabilityOutput({
     pregameBoard: board,
@@ -295,7 +300,12 @@ test('confirmed baseline Higher and Lower produce conserved side-aware probabili
 
 test('confirmed alternate Higher and Lower preserve exact 1.5 line and produce probability fields', async () => {
   const board = pregameBoard();
-  const [higherOffer, lowerOffer] = offerPair('Matt Olson', 'alternate', 1.5);
+  const [higherOffer, lowerOffer] = offerPair(
+    board,
+    'Matt Olson',
+    'alternate',
+    1.5,
+  );
   const higherBoardOffer = board.offers.find(
     (offer) =>
       offer.playerName === higherOffer.playerName &&
