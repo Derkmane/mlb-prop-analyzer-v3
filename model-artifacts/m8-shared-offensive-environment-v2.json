@@ -1,0 +1,259 @@
+{
+  "purpose": "Frozen current-season shared offensive scenarios with side-specific opposing-starter batters-faced distributions and an explicit bullpen transition.",
+  "artifactVersion": 2,
+  "modelVersion": "m8-shared-offensive-environment-v2",
+  "status": "frozen-current-season-candidate-awaiting-downstream-untouched-test",
+  "productionEnabled": false,
+  "activeSeason": 2026,
+  "sourceSharedEnvironmentArtifactSha256": "a606b98c25d35ff5711b88eae089d6745003ad4c04a527cbb21418c7f4661b52",
+  "sourceSharedEnvironmentArtifactFileSha256": "1282c18024571680d492cc841f6a712aa71ef54672befc139540d54a9a84af92",
+  "sourceStarterBullpenDatasetSha256": "97c1336cc838c673ef5a46e2c21451fbf16dbbff47faead8a9b58aae819c4552",
+  "sourceStarterBullpenEvaluationSha256": "a6a832a671112654f62253459dc6e09c696eaf42153e237b5bc3b57a6bde82dc",
+  "sourceStarterBullpenEvaluationFileSha256": "73945ac54b29358348bf91bf6de41c908f1f98801acc1d89900c297a658204ed",
+  "fitWindow": {
+    "startDate": "2026-03-26",
+    "endDate": "2026-06-21",
+    "observationCount": 2154
+  },
+  "validationWindow": {
+    "startDate": "2026-06-22",
+    "endDate": "2026-07-05",
+    "observationCount": 355
+  },
+  "scenarioCount": 4,
+  "scenarios": [
+    {
+      "scenarioIndex": 0,
+      "weight": 0.24951168916211106,
+      "expectedTotalPa": 67.98113252572445,
+      "expectedTotalHits": 11.6305951051797,
+      "away": {
+        "meanPa": 34.566535318423334,
+        "sigmaPa": 2.389730464212517,
+        "hitProbability": 0.1602462210925408,
+        "expectedHits": 5.539156661039186
+      },
+      "home": {
+        "meanPa": 33.414597207301114,
+        "sigmaPa": 2.4382722451456895,
+        "hitProbability": 0.18229872430751698,
+        "expectedHits": 6.091438444140513
+      }
+    },
+    {
+      "scenarioIndex": 1,
+      "weight": 0.24972399528825284,
+      "expectedTotalPa": 74.60469431232363,
+      "expectedTotalHits": 16.514299015221233,
+      "away": {
+        "meanPa": 35.7865108145207,
+        "sigmaPa": 2.7258436901673755,
+        "hitProbability": 0.17795592932320883,
+        "expectedHits": 6.3684217892330945
+      },
+      "home": {
+        "meanPa": 38.818183497802934,
+        "sigmaPa": 2.9281204630948636,
+        "hitProbability": 0.26136919123385527,
+        "expectedHits": 10.14587722598814
+      }
+    },
+    {
+      "scenarioIndex": 2,
+      "weight": 0.359174319373263,
+      "expectedTotalPa": 77.29528278633111,
+      "expectedTotalHits": 17.004620777754045,
+      "away": {
+        "meanPa": 41.05009665899847,
+        "sigmaPa": 2.835814892496847,
+        "hitProbability": 0.24711229475768057,
+        "expectedHits": 10.143983585429709
+      },
+      "home": {
+        "meanPa": 36.24518612733265,
+        "sigmaPa": 3.0953577737400657,
+        "hitProbability": 0.1892840932923421,
+        "expectedHits": 6.860637192324337
+      }
+    },
+    {
+      "scenarioIndex": 3,
+      "weight": 0.1415899961763731,
+      "expectedTotalPa": 87.38845379050505,
+      "expectedTotalHits": 22.640673336400823,
+      "away": {
+        "meanPa": 45.0244971344357,
+        "sigmaPa": 4.863439790481954,
+        "hitProbability": 0.26561651066647307,
+        "expectedHits": 11.959249823361425
+      },
+      "home": {
+        "meanPa": 42.36395665606936,
+        "sigmaPa": 5.064572878810028,
+        "hitProbability": 0.25213470025371437,
+        "expectedHits": 10.681423513039396
+      }
+    }
+  ],
+  "starterBullpenTransition": {
+    "selectedCandidate": {
+      "candidateId": "starter-bf-side-pool-1000",
+      "grouping": "side",
+      "leagueEquivalentGames": 1000
+    },
+    "supportMaximum": 34,
+    "bySide": {
+      "away": [
+        0,
+        0,
+        0.0006199313676438581,
+        0.007346071871758125,
+        0.012568936226746832,
+        0.006902809460410607,
+        0.005396353270071713,
+        0.00681288496165577,
+        0.003186401295760793,
+        0.006106209136470408,
+        0.00734925191297146,
+        0.004159670575997331,
+        0.003716408164649814,
+        0.004689677444886352,
+        0.004246415033538835,
+        0.008939272519638521,
+        0.00991254179987506,
+        0.017438462669142858,
+        0.038326740047884354,
+        0.05257880142126642,
+        0.07514384386421648,
+        0.09363278014749737,
+        0.1176334345293115,
+        0.1212630982364198,
+        0.12037657341372476,
+        0.09151911275436797,
+        0.07409337025007844,
+        0.05700506545231493,
+        0.02540446590854484,
+        0.0100892107561714,
+        0.007079478416706947,
+        0.003186401295760793,
+        0.0020364630592279143,
+        0.0006199313676438581,
+        0.0006199313676438581
+      ],
+      "home": [
+        0,
+        0,
+        0.0001769042012448041,
+        0.007799706232883413,
+        0.01214181985243713,
+        0.008243558873806626,
+        0.008954359954408249,
+        0.009928925199065875,
+        0.003190644173651287,
+        0.007445897830393806,
+        0.003808216740196898,
+        0.004609062059232126,
+        0.0050529147001553395,
+        0.006471332585736179,
+        0.0069151852266593926,
+        0.009395028319709058,
+        0.010813446205289895,
+        0.015242419787654811,
+        0.036602363758556196,
+        0.04865413937255972,
+        0.07790701809040051,
+        0.10884844740912299,
+        0.11512695441550233,
+        0.1178737459482304,
+        0.11876145123007682,
+        0.09341638631773375,
+        0.06220800855933287,
+        0.052198591948700614,
+        0.023219030221783028,
+        0.011434203047457913,
+        0.008864315715974645,
+        0.003190644173651287,
+        0.00115146944590243,
+        0.0001769042012448041,
+        0.0001769042012448041
+      ]
+    },
+    "scenarioDependence": "not-selected; one side-specific current-season distribution is shared across scenarios"
+  },
+  "validationEvidence": {
+    "sharedEnvironment": {
+      "holdout": {
+        "selected": {
+          "gameCount": 189,
+          "jointLogLoss": 10.32538847048714,
+          "paLogLoss": 5.851337349467947,
+          "hitConditionalLogLoss": 4.474051121019192
+        },
+        "independenceBaseline": {
+          "gameCount": 189,
+          "jointLogLoss": 10.671600042816834,
+          "paLogLoss": 5.905191430226349,
+          "hitConditionalLogLoss": 4.766408612590485
+        },
+        "absoluteJointLogLossImprovement": 0.346211572329695,
+        "relativeJointLogLossImprovement": 0.032442330197966295
+      },
+      "walkForward": {
+        "foldCount": 14,
+        "validationGameCount": 189,
+        "selected": {
+          "gameCount": 189,
+          "jointLogLoss": 10.326900762225064,
+          "paLogLoss": 5.847399594355452,
+          "hitConditionalLogLoss": 4.479501167869611
+        },
+        "independenceBaseline": {
+          "gameCount": 189,
+          "jointLogLoss": 10.673370112872995,
+          "paLogLoss": 5.9063464697566355,
+          "hitConditionalLogLoss": 4.7670236431163575
+        },
+        "absoluteJointLogLossImprovement": 0.34646935064793105,
+        "relativeJointLogLossImprovement": 0.0324611015062674,
+        "selectedFoldWins": 7,
+        "selectedMeanFoldRank": 1.7142857142857142,
+        "sourceSelectionAgreement": true,
+        "allValidationGamesScoredExactlyOnce": true
+      }
+    },
+    "starterBullpenSelectedFixedMetrics": {
+      "observationCount": 355,
+      "logLoss": 2.848105162546217,
+      "multiclassBrier": 0.926614844041183,
+      "predictedMeanBattersFaced": 21.638409831446367,
+      "observedMeanBattersFaced": 21.55211267605634,
+      "observationIdsSha256": "3b4dcb841424d840e34a8d91f75290953c15a2ca5ec1990507c87a324627ec48"
+    },
+    "starterBullpenFixedMinimumLogLossCandidateId": "starter-bf-side-pool-500",
+    "starterBullpenWalkForwardMinimumLogLossCandidateId": "starter-bf-side-pool-1000",
+    "starterBullpenFixedNondominatedCandidateIds": [
+      "starter-bf-side-pool-500",
+      "starter-bf-side-pool-1000",
+      "starter-bf-league"
+    ],
+    "starterBullpenWalkForwardNondominatedCandidateIds": [
+      "starter-bf-side-pool-1000"
+    ],
+    "starterBullpenAdmissibleCandidateIds": [
+      "starter-bf-side-pool-1000"
+    ],
+    "starterBullpenSelectedCandidateId": "starter-bf-side-pool-1000",
+    "starterBullpenWalkForwardFoldCount": 14,
+    "starterBullpenStableSelection": true
+  },
+  "untouchedTestReservation": {
+    "startDate": "2026-07-06",
+    "endDate": "2026-07-25",
+    "shardCount": 20,
+    "gameCount": 225,
+    "plateAppearanceCount": 16830,
+    "rowsIncluded": false,
+    "allowedUse": "final-evaluation-only-after-candidate-selection"
+  },
+  "artifactSha256": "b7e1936b2e8cd1b1f5553281f946fc8d3b4f68f056f6b60bbd6f868f6c1453e7"
+}
