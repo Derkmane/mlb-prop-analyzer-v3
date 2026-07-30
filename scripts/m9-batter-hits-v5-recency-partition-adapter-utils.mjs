@@ -146,6 +146,8 @@ function adapterIdentity(value) {
     shardCollectionRoot: value.shardCollectionRoot,
     periods: value.periods,
     untouchedTestReservation: value.untouchedTestReservation,
+    evidenceSetSha256: value.evidenceSetSha256,
+    compatibilityManifest: value.compatibilityManifest,
   };
 }
 
@@ -190,21 +192,10 @@ export function buildM9BatterHitsV5RecencyPartitionAdapter({
     plateAppearanceCount: 0,
     rowsIncluded: false,
   });
-  const identity = {
-    adapterVersion: 1,
-    modelVersion: 'm9-batter-hits-v5-recency-partition-adapter-v1',
-    productionEnabled: false,
-    activeSeason: ACTIVE_SEASON,
-    sourceM8EvidenceSetSha256: source.evidenceSetSha256,
-    sourceV5PartitionSha256: v5.partitionSha256,
-    shardCollectionRoot: source.shardCollectionRoot,
-    periods,
-    untouchedTestReservation,
-  };
   const evidenceSetSha256 = sha256(
     JSON.stringify({
-      sourceM8EvidenceSetSha256: identity.sourceM8EvidenceSetSha256,
-      sourceV5PartitionSha256: identity.sourceV5PartitionSha256,
+      sourceM8EvidenceSetSha256: source.evidenceSetSha256,
+      sourceV5PartitionSha256: v5.partitionSha256,
       periods,
       untouchedTestReservation,
     }),
@@ -233,11 +224,22 @@ export function buildM9BatterHitsV5RecencyPartitionAdapter({
       }),
     }),
   });
+  const identity = {
+    adapterVersion: 1,
+    modelVersion: 'm9-batter-hits-v5-recency-partition-adapter-v1',
+    productionEnabled: false,
+    activeSeason: ACTIVE_SEASON,
+    sourceM8EvidenceSetSha256: source.evidenceSetSha256,
+    sourceV5PartitionSha256: v5.partitionSha256,
+    shardCollectionRoot: source.shardCollectionRoot,
+    periods,
+    untouchedTestReservation,
+    evidenceSetSha256,
+    compatibilityManifest,
+  };
 
   return Object.freeze({
     ...identity,
-    evidenceSetSha256,
-    compatibilityManifest,
     adapterSha256: sha256(JSON.stringify(adapterIdentity(identity))),
   });
 }
@@ -251,12 +253,29 @@ export function verifyM9BatterHitsV5RecencyPartitionAdapter(rawAdapter) {
   ) {
     throw new Error('unsupported V5 recency partition adapter contract.');
   }
+  const compatibility = object(
+    adapter.compatibilityManifest,
+    'V5 compatibility manifest',
+  );
   if (
     adapter.untouchedTestReservation?.rowsIncluded !== false ||
-    adapter.compatibilityManifest?.periods?.test?.shardCount !== 0 ||
-    adapter.compatibilityManifest?.periods?.test?.shards?.length !== 0
+    compatibility.periods?.test?.shardCount !== 0 ||
+    compatibility.periods?.test?.gameCount !== 0 ||
+    compatibility.periods?.test?.plateAppearanceCount !== 0 ||
+    compatibility.periods?.test?.shards?.length !== 0
   ) {
     throw new Error('V5 recency adapter exposes untouched-test evidence.');
+  }
+  if (
+    compatibility.evidenceSetSha256 !== adapter.evidenceSetSha256 ||
+    JSON.stringify(compatibility.periods?.fit) !== JSON.stringify(adapter.periods?.fit) ||
+    JSON.stringify(compatibility.periods?.validation) !==
+      JSON.stringify(adapter.periods?.validation) ||
+    compatibility.periods?.test?.startDate !==
+      adapter.untouchedTestReservation.startDate ||
+    compatibility.periods?.test?.endDate !== adapter.untouchedTestReservation.endDate
+  ) {
+    throw new Error('V5 compatibility manifest drifted from the adapter identity.');
   }
   const developmentShards = [
     ...array(adapter.periods?.fit?.shards, 'adapter fit shards'),
