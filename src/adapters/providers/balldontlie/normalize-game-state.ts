@@ -90,6 +90,12 @@ function lifecycleStatus(
   return undefined;
 }
 
+function verifiedRawStatus(
+  lifecycle: GameLifecycleStatus,
+): 'STATUS_SCHEDULED' | 'STATUS_FINAL' {
+  return lifecycle === 'scheduled' ? 'STATUS_SCHEDULED' : 'STATUS_FINAL';
+}
+
 function reject(
   game: RawBallDontLieGame,
   reason: BallDontLieGameRejectionReason,
@@ -167,7 +173,7 @@ export function normalizeBallDontLieGamesSnapshot(
         awayTeamId: game.away_team.id,
         homeTeamName: game.home_team_name,
         awayTeamName: game.away_team_name,
-        rawStatus: game.status,
+        rawStatus: verifiedRawStatus(normalizedLifecycleStatus),
         sourceCapturedAt: sourceMetadata.data.sourceCapturedAt,
         sourceSnapshotSha256: sourceMetadata.data.sourceSnapshotSha256,
       }),
