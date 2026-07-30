@@ -1,0 +1,74 @@
+tion,
+    platoonEvaluationFileSha256: HASH_B,
+  });
+  const sourceRow = fixture.dataset.periods.fit.rows[0];
+  const baseInput = {
+    artifact,
+    batterId: sourceRow.providerBatterId,
+    pitcherId: sourceRow.providerPitcherId,
+    batterSide: sourceRow.normalizedBatterSide,
+  };
+  const nullBaseline = terminalPaOutcomeProbabilitiesFromVerifiedArtifact({ ...baseInput, pitcherHand: null });
+  const stringNullBaseline = terminalPaOutcomeProbabilitiesFromVerifiedArtifact({ ...baseInput, pitcherHand: 'null' });
+  assert.deepEqual(nullBaseline, stringNullBaseline);
+  assert.deepEqual(nullBaseline, terminalPaOutcomeProbabilities({ ...baseInput, pitcherHand: null }));
+  assert.notDeepEqual(nullBaseline, artifact.leagueTarget);
+  const cellKey = 'Park A|L';
+  const residuals = fitParkResiduals({
+    cellStatistics: new Map([[cellKey, {
+      observationCount: 4,
+      observedCounts: { '1B': 4, BIP_OUT: 0 },
+      expectedMass: { '1B': nullBaseline['1B'] * 4, BIP_OUT: nullBaseline.BIP_OUT * 4 },
+    }]]),
+    categories: CATEGORIES,
+    candidate: PARK_CANDIDATES[0],
+  });
+  const adjusted = applyParkResidual({
+    baseProbabilities: nullBaseline,
+    residualFactors: residuals.get(cellKey),
+    categories: CATEGORIES,
+  });
+  assert.ok(adjusted['1B'] > nullBaseline['1B']);
+  assert.ok(Math.abs(adjusted['1B'] + adjusted.BIP_OUT - 1) < 1e-12);
+  assert.equal(result.untouchedTestReservation.rowsIncluded, false);
+});
+
+test('fails closed before fitting when null pitcher hand clusters by venue-hand cell', () => {
+  const fixture = rewritePitcherHandFixture({
+    mapRow: (item, periodId, index) =>
+      periodId === 'fit' && index === 0
+        ? Object.freeze({ ...item, includedInPlatoonModel: false, normalizedPitcherHand: null })
+        : item,
+  });
+  assert.throws(
+    () => evaluateM8ParkEffect({
+      rawDataset: fixture.dataset,
+      datasetFileSha256: HASH_A,
+      rawVenueLineage: fixture.lineage,
+      venueLineageFileSha256: HASH_B,
+      rawPlatoonEvaluation: fixture.evaluation,
+      platoonEvaluationFileSha256: HASH_C,
+      candidates: PARK_CANDIDATES,
+    }),
+    (error) => {
+      assert.equal(error.name, 'M8ParkPitcherHandClusteringError');
+      assert.equal(error.code, 'M8_PARK_NULL_PITCHER_HAND_CLUSTERING');
+      assert.ok(error.pitcherHandAvailability.exceedingVenueHandCellCount > 0);
+      assert.ok(error.pitcherHandAvailability.exceedingVenueHandCells.some(
+        (cell) => cell.periodId === 'fit' && cell.cellKey === 'Park A|L',
+      ));
+      return true;
+    },
+  );
+});
+`;
+testText = appendOnce(testText, 'retains null and string-null pitcher hands', regression, 'append regressions');
+writeFileSync(TEST, testText);
+
+const focused = spawnSync(process.execPath, ['--test', TEST, 'test/m8-park-effect-script-syntax.test.mjs'], { stdio: 'inherit' });
+if (focused.status !== 0) throw new Error(`Focused tests failed with status ${focused.status}; no commit or push performed.`);
+unlinkSync(SELF);
+for (const part of PARTS) unlinkSync(part);
+execFileSync('git', ['add', '--', UTILITY, RUNNER, TEST, SELF, ...PARTS], { stdio: 'inherit' });
+execFileSync('git', ['commit', '-m', 'Fix missing pitcher hand park contract'], { stdio: 'inherit' });
+execFileSync('git', ['push', 'origin', BRANCH], { stdio: 'inherit' });
