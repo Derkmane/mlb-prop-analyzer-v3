@@ -88,6 +88,12 @@ interface ExpectedOfferIdentity {
   readonly line: number;
 }
 
+function isTargetMarketKey(
+  value: string,
+): value is ExpectedOfferIdentity['providerMarketKey'] {
+  return value === 'batter_hits' || value === 'batter_hits_alternate';
+}
+
 function readJson(filePath: string): unknown {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
@@ -136,29 +142,26 @@ function expectedOffers(): ExpectedOfferIdentity[] {
   );
   assert.ok(underdog);
 
-  return underdog.markets.flatMap((market) => {
-    if (
-      market.key !== 'batter_hits' &&
-      market.key !== 'batter_hits_alternate'
-    ) {
-      return [];
-    }
+  return underdog.markets.flatMap((market): ExpectedOfferIdentity[] => {
+    if (!isTargetMarketKey(market.key)) return [];
 
-    return market.outcomes.flatMap((outcome) => {
+    const providerMarketKey = market.key;
+
+    return market.outcomes.flatMap((outcome): ExpectedOfferIdentity[] => {
       const identity = identitiesByOfferName.get(outcome.description);
       if (identity === undefined) return [];
 
       assert.ok(outcome.name === 'Over' || outcome.name === 'Under');
 
-      const expectedOffer: ExpectedOfferIdentity = {
-        providerMarketKey: market.key,
-        providerPlayerId: identity.providerPlayerId,
-        rawSide: outcome.name,
-        selectedSide: outcome.name === 'Over' ? 'higher' : 'lower',
-        line: outcome.point,
-      };
-
-      return [expectedOffer];
+      return [
+        {
+          providerMarketKey,
+          providerPlayerId: identity.providerPlayerId,
+          rawSide: outcome.name,
+          selectedSide: outcome.name === 'Over' ? 'higher' : 'lower',
+          line: outcome.point,
+        },
+      ];
     });
   });
 }
