@@ -1,20 +1,26 @@
 export {
   normalizedTerminalPaSchema,
+  rawBallDontLieGameSchema,
+  rawBallDontLieGamesResponseSchema,
   rawBallDontLiePaginationMetaSchema,
   rawBallDontLiePitchSchema,
   rawBallDontLiePlateAppearanceSchema,
   rawBallDontLiePlateAppearancesResponseSchema,
   rawBallDontLiePlaySchema,
   rawBallDontLiePlaysResponseSchema,
+  rawBallDontLieTeamSchema,
 } from './contracts.js';
 
 export type {
   NormalizedTerminalPA,
+  RawBallDontLieGame,
+  RawBallDontLieGamesResponse,
   RawBallDontLiePitch,
   RawBallDontLiePlateAppearance,
   RawBallDontLiePlateAppearancesResponse,
   RawBallDontLiePlay,
   RawBallDontLiePlaysResponse,
+  RawBallDontLieTeam,
 } from './contracts.js';
 
 export {
@@ -34,6 +40,22 @@ export type {
   BallDontLieTerminalPaUnresolvedReason,
   BallDontLieUnresolvedTerminalPaResult,
 } from './classify-terminal-pa.js';
+
+export {
+  BALLDONTLIE_GAME_REJECTION_REASONS,
+  BALLDONTLIE_GAME_STATE_ERROR_CODES,
+  BallDontLieGameStateError,
+  normalizeBallDontLieGamesSnapshot,
+} from './normalize-game-state.js';
+
+export type {
+  BallDontLieGameRejectionReason,
+  BallDontLieGameStateErrorCode,
+  NormalizeBallDontLieGamesInput,
+  NormalizedBallDontLieGameState,
+  NormalizedBallDontLieGamesSnapshot,
+  RejectedBallDontLieGameState,
+} from './normalize-game-state.js';
 
 export {
   BALLDONTLIE_TERMINAL_PA_REJECTION_REASONS,
