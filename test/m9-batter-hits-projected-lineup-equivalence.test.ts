@@ -180,7 +180,7 @@ function observationFor(
 function lineupStatusFromCandidate(
   result: Awaited<ReturnType<typeof connectFrozenBatterHitsProbabilityOutput>>,
 ): unknown {
-  return result.candidate.featureData.values.batterHits?.lineupStatus;
+  return result.candidate.featureData.values.batterHits?.['lineupStatus'];
 }
 
 test('projected and confirmed versions of one active lineup produce identical final probabilities', async () => {
