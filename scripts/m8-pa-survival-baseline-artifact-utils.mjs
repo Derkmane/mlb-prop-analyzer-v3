@@ -3,9 +3,7 @@ import { createHash } from 'node:crypto';
 import { verifyM8PaSurvivalDataset } from './m8-pa-survival-dataset-utils.mjs';
 import { m8PaSurvivalToCountPmf } from './m8-pa-survival-evaluation-utils.mjs';
 
-const EXPECTED_CANDIDATE_ID = 'slot-home-away-pool-50';
 const EXPECTED_GROUPING = 'slot-home-away';
-const EXPECTED_POOLING_STRENGTH = 50;
 const SIDES = Object.freeze(['away', 'home']);
 const SLOTS = Object.freeze([1, 2, 3, 4, 5, 6, 7, 8, 9]);
 const TOLERANCE = 1e-12;
@@ -118,16 +116,25 @@ function validateSurvival(rawSurvival, label, expectedLength, pmf) {
   return Object.freeze(survival);
 }
 
-function validateSelectedModel(rawModel, countSupport) {
+function validateSelectedModel(
+  rawModel,
+  countSupport,
+  expectedCandidateId,
+  expectedPoolingStrength,
+) {
   const model = assertObject(rawModel, 'evaluation.selectedModel');
-  if (model.candidateId !== EXPECTED_CANDIDATE_ID) {
-    throw new Error('holdout selected model is not the approved PA-survival baseline.');
+  if (model.candidateId !== expectedCandidateId) {
+    throw new Error(
+      'holdout selected model candidate does not match the agreed selection.',
+    );
   }
   if (model.grouping !== EXPECTED_GROUPING) {
     throw new Error('holdout selected model grouping drifted.');
   }
-  if (model.leagueEquivalentObservations !== EXPECTED_POOLING_STRENGTH) {
-    throw new Error('holdout selected model pooling strength drifted.');
+  if (model.leagueEquivalentObservations !== expectedPoolingStrength) {
+    throw new Error(
+      'holdout selected model pooling strength does not match its candidate.',
+    );
   }
   if (
     model.rawCurvesMonotoneByConstruction !== true ||
@@ -276,12 +283,44 @@ export function buildM8PaSurvivalBaselineArtifact({
       throw new Error(`${label} source dataset file SHA-256 drifted.`);
     }
   }
+  const selectedCandidateId = assertNonEmptyString(
+    evaluation.selectedCandidateId,
+    'evaluation.selectedCandidateId',
+  );
+
   if (
-    evaluation.selectedCandidateId !== EXPECTED_CANDIDATE_ID ||
-    walkForward.sourceHoldoutSelectedCandidateId !== EXPECTED_CANDIDATE_ID ||
-    walkForward.selectedCandidateId !== EXPECTED_CANDIDATE_ID
+    walkForward.sourceHoldoutSelectedCandidateId !== selectedCandidateId ||
+    walkForward.selectedCandidateId !== selectedCandidateId
   ) {
-    throw new Error('holdout and walk-forward selection do not agree on pool-50.');
+    throw new Error(
+      'holdout and walk-forward selection do not agree.',
+    );
+  }
+
+  const selectedModel = assertObject(
+    evaluation.selectedModel,
+    'evaluation.selectedModel',
+  );
+  const selectedGrouping = assertNonEmptyString(
+    selectedModel.grouping,
+    'evaluation.selectedModel.grouping',
+  );
+  const selectedPoolingStrength = assertPositiveInteger(
+    selectedModel.leagueEquivalentObservations,
+    'evaluation.selectedModel.leagueEquivalentObservations',
+  );
+
+  if (selectedGrouping !== EXPECTED_GROUPING) {
+    throw new Error('holdout selected model grouping drifted.');
+  }
+
+  if (
+    selectedCandidateId !==
+    `${selectedGrouping}-pool-${selectedPoolingStrength}`
+  ) {
+    throw new Error(
+      'selected candidate identity does not match its grouping and pooling strength.',
+    );
   }
   if (walkForward.sourceHoldoutEvaluationSha256 !== evaluationSha256) {
     throw new Error('walk-forward does not reference the supplied holdout evaluation.');
@@ -297,7 +336,12 @@ export function buildM8PaSurvivalBaselineArtifact({
   validateUntouchedReservation(walkForward.untouchedTestReservation);
 
   const countSupport = assertObject(evaluation.countSupport, 'evaluation.countSupport');
-  const groups = validateSelectedModel(evaluation.selectedModel, countSupport);
+  const groups = validateSelectedModel(
+    selectedModel,
+    countSupport,
+    selectedCandidateId,
+    selectedPoolingStrength,
+  );
   const validationObservationCount = assertPositiveInteger(
     evaluation.validationObservationCount,
     'evaluation.validationObservationCount',
@@ -308,14 +352,14 @@ export function buildM8PaSurvivalBaselineArtifact({
   const aggregateSelected = assertArray(
     walkForward.aggregateResults,
     'walkForward.aggregateResults',
-  ).find((result) => result.candidateId === EXPECTED_CANDIDATE_ID);
+  ).find((result) => result.candidateId === selectedCandidateId);
   if (aggregateSelected === undefined) {
     throw new Error('walk-forward aggregate result is missing the selected candidate.');
   }
   const holdoutSelected = assertArray(
     evaluation.candidateSummaries,
     'evaluation.candidateSummaries',
-  ).find((result) => result.candidateId === EXPECTED_CANDIDATE_ID);
+  ).find((result) => result.candidateId === selectedCandidateId);
   if (holdoutSelected === undefined) {
     throw new Error('holdout evaluation is missing the selected candidate summary.');
   }
@@ -348,9 +392,9 @@ export function buildM8PaSurvivalBaselineArtifact({
     sourceWalkForwardFileSha256: walkForwardFileSha256,
     fitWindow: evaluation.fitWindow,
     validationWindow: evaluation.validationWindow,
-    selectedCandidateId: EXPECTED_CANDIDATE_ID,
-    grouping: EXPECTED_GROUPING,
-    leagueEquivalentObservations: EXPECTED_POOLING_STRENGTH,
+    selectedCandidateId,
+    grouping: selectedGrouping,
+    leagueEquivalentObservations: selectedPoolingStrength,
     countSupport: Object.freeze({
       minimum: assertNonNegativeInteger(countSupport.minimum, 'countSupport.minimum'),
       maximum: assertPositiveInteger(countSupport.maximum, 'countSupport.maximum'),

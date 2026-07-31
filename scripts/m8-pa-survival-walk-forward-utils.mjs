@@ -84,13 +84,41 @@ function validateRows(rawPeriod, periodId, activeSeason, seenRowIds) {
     if (row.periodId !== periodId) {
       throw new Error(`${rowId} periodId does not match ${periodId}.`);
     }
-    return Object.freeze({ ...row, rowId, observedDate, periodId });
+    const gameId = assertPositiveInteger(
+      row.gameId,
+      `${rowId}.gameId`,
+    );
+    const side = assertNonEmptyString(
+      row.side,
+      `${rowId}.side`,
+    );
+    const lineupSlot = assertPositiveInteger(
+      row.lineupSlot,
+      `${rowId}.lineupSlot`,
+    );
+    const playerId = assertPositiveInteger(
+      row.playerId,
+      `${rowId}.playerId`,
+    );
+    return Object.freeze({
+      ...row,
+      rowId,
+      observedDate,
+      periodId,
+      gameId,
+      side,
+      lineupSlot,
+      playerId,
+    });
   });
 
   const ordered = validated.slice().sort(
     (left, right) =>
       left.observedDate.localeCompare(right.observedDate) ||
-      left.rowId.localeCompare(right.rowId),
+      left.gameId - right.gameId ||
+      left.side.localeCompare(right.side) ||
+      left.lineupSlot - right.lineupSlot ||
+      left.playerId - right.playerId,
   );
   if (validated.some((row, index) => row.rowId !== ordered[index].rowId)) {
     throw new Error(`${periodId} rows must be chronologically ordered.`);

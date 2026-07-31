@@ -481,7 +481,17 @@ export function evaluateM8StarterRetention({
   candidates: rawCandidates = DEFAULT_M8_STARTER_RETENTION_CANDIDATES,
 }) {
   const dataset = verifyM8StarterRetentionDataset(rawDataset);
-  const sourceText = assertNonEmptyString(datasetText, 'datasetText');
+
+  if (
+    typeof datasetText !== 'string' ||
+    datasetText.trim().length === 0
+  ) {
+    throw new TypeError(
+      'datasetText must be a non-empty string.',
+    );
+  }
+
+  const sourceText = datasetText;
   const candidates = validateCandidates(rawCandidates);
   const fitRows = periodRows(dataset, 'fit');
   const validationRows = periodRows(dataset, 'validation');

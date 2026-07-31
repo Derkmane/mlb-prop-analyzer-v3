@@ -129,6 +129,34 @@ function makeSources() {
   };
 }
 
+function usePoolingStrength(source, poolingStrength) {
+  const candidateId =
+    `slot-home-away-pool-${poolingStrength}`;
+
+  source.evaluation.selectedCandidateId = candidateId;
+  source.evaluation.candidateSummaries[0].candidateId =
+    candidateId;
+  source.evaluation.selectedModel.candidateId =
+    candidateId;
+  source.evaluation.selectedModel.leagueEquivalentObservations =
+    poolingStrength;
+
+  source.walkForward.sourceHoldoutSelectedCandidateId =
+    candidateId;
+  source.walkForward.selectedCandidateId = candidateId;
+  source.walkForward.aggregateResults[0].candidateId =
+    candidateId;
+
+  source.evaluationFileSha256 = sha256(
+    JSON.stringify(source.evaluation),
+  );
+  source.walkForwardFileSha256 = sha256(
+    JSON.stringify(source.walkForward),
+  );
+
+  return source;
+}
+
 test('freezes the agreed 18-group PA-survival baseline deterministically', () => {
   const source = makeSources();
   const first = buildM8PaSurvivalBaselineArtifact({
@@ -155,6 +183,29 @@ test('freezes the agreed 18-group PA-survival baseline deterministically', () =>
   assert.equal(verifyM8PaSurvivalBaselineArtifact(first), first);
 });
 
+test('freezes matching V5 pool-25 selection', () => {
+  const source = usePoolingStrength(makeSources(), 25);
+
+  const artifact = buildM8PaSurvivalBaselineArtifact({
+    rawDataset: source.dataset,
+    datasetFileSha256: source.datasetFileSha256,
+    rawEvaluation: source.evaluation,
+    evaluationFileSha256: source.evaluationFileSha256,
+    rawWalkForward: source.walkForward,
+    walkForwardFileSha256: source.walkForwardFileSha256,
+  });
+
+  assert.equal(
+    artifact.selectedCandidateId,
+    'slot-home-away-pool-25',
+  );
+  assert.equal(artifact.leagueEquivalentObservations, 25);
+  assert.equal(
+    verifyM8PaSurvivalBaselineArtifact(artifact),
+    artifact,
+  );
+});
+
 test('rejects disagreement between holdout and walk-forward selection', () => {
   const source = makeSources();
   source.walkForward.selectedCandidateId = 'slot-home-away-pool-25';
@@ -168,7 +219,7 @@ test('rejects disagreement between holdout and walk-forward selection', () => {
         rawWalkForward: source.walkForward,
         walkForwardFileSha256: source.walkForwardFileSha256,
       }),
-    /do not agree on pool-50/,
+    /do not agree/,
   );
 });
 
