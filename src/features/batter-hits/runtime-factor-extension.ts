@@ -91,47 +91,48 @@ function verifyFactor(
 ): BatterHitsFactorDescriptor {
   const factor = asRecord(value, `factor ${key}`);
   assertExact(
-    factor.applicationStage,
+    factor['applicationStage'],
     'statistic-distribution-before-settlement',
     `factor ${key}.applicationStage`,
   );
   assertExact(
-    factor.selectedSideInputForbidden,
+    factor['selectedSideInputForbidden'],
     true,
     `factor ${key}.selectedSideInputForbidden`,
   );
   assertExact(
-    factor.currentSeasonOnly,
+    factor['currentSeasonOnly'],
     true,
     `factor ${key}.currentSeasonOnly`,
   );
 
-  if (factor.status === 'identity') {
-    assertExact(factor.coefficient, 0, `factor ${key}.coefficient`);
-    assertExact(factor.modelVersion, 'identity', `factor ${key}.modelVersion`);
-    assertExact(factor.artifactSha256, null, `factor ${key}.artifactSha256`);
+  if (factor['status'] === 'identity') {
+    assertExact(factor['coefficient'], 0, `factor ${key}.coefficient`);
+    assertExact(factor['modelVersion'], 'identity', `factor ${key}.modelVersion`);
+    assertExact(factor['artifactSha256'], null, `factor ${key}.artifactSha256`);
     assertExact(
-      factor.validationStatus,
+      factor['validationStatus'],
       'deferred',
       `factor ${key}.validationStatus`,
     );
     return factor as unknown as IdentityBatterHitsFactor;
   }
 
-  if (factor.status === 'fitted') {
+  if (factor['status'] === 'fitted') {
+    const coefficient = factor['coefficient'];
     if (
-      typeof factor.coefficient !== 'number' ||
-      !Number.isFinite(factor.coefficient) ||
-      factor.coefficient === 0
+      typeof coefficient !== 'number' ||
+      !Number.isFinite(coefficient) ||
+      coefficient === 0
     ) {
       throw new RangeError(
         `factor ${key}.coefficient must be one finite non-zero fitted value.`,
       );
     }
-    assertNonEmptyString(factor.modelVersion, `factor ${key}.modelVersion`);
-    assertSha256(factor.artifactSha256, `factor ${key}.artifactSha256`);
+    assertNonEmptyString(factor['modelVersion'], `factor ${key}.modelVersion`);
+    assertSha256(factor['artifactSha256'], `factor ${key}.artifactSha256`);
     assertExact(
-      factor.validationStatus,
+      factor['validationStatus'],
       'production-validation-passed',
       `factor ${key}.validationStatus`,
     );
@@ -146,38 +147,38 @@ export function verifyBatterHitsFactorExtensionArtifactV1(
 ): BatterHitsFactorExtensionArtifactV1 {
   const artifact = asRecord(value, 'Batter Hits factor extension artifact');
   assertExact(
-    artifact.artifactVersion,
+    artifact['artifactVersion'],
     BATTER_HITS_FACTOR_EXTENSION_ARTIFACT_VERSION,
     'factor extension artifactVersion',
   );
   assertExact(
-    artifact.modelVersion,
+    artifact['modelVersion'],
     BATTER_HITS_FACTOR_EXTENSION_MODEL_VERSION,
     'factor extension modelVersion',
   );
   assertExact(
-    artifact.productionEnabled,
+    artifact['productionEnabled'],
     false,
     'factor extension productionEnabled',
   );
-  assertExact(artifact.activeSeason, 2026, 'factor extension activeSeason');
+  assertExact(artifact['activeSeason'], 2026, 'factor extension activeSeason');
   assertExact(
-    artifact.sourceCompleteCandidateArtifactSha256,
+    artifact['sourceCompleteCandidateArtifactSha256'],
     BATTER_HITS_COMPLETE_CANDIDATE_SHA256,
     'factor extension source complete-candidate SHA-256',
   );
   const reservation = asRecord(
-    artifact.untouchedTestReservation,
+    artifact['untouchedTestReservation'],
     'factor extension untouchedTestReservation',
   );
   assertExact(
-    reservation.rowsIncluded,
+    reservation['rowsIncluded'],
     false,
     'factor extension untouchedTestReservation.rowsIncluded',
   );
-  assertSha256(artifact.artifactSha256, 'factor extension artifactSha256');
+  assertSha256(artifact['artifactSha256'], 'factor extension artifactSha256');
 
-  const factors = asRecord(artifact.factors, 'factor extension factors');
+  const factors = asRecord(artifact['factors'], 'factor extension factors');
   const keys = Object.keys(factors).sort();
   const expectedKeys = [...BATTER_HITS_FACTOR_KEYS].sort();
   if (JSON.stringify(keys) !== JSON.stringify(expectedKeys)) {
