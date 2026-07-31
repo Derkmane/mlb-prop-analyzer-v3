@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 2.8
+**Version:** 2.9
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -320,7 +320,7 @@ M8 current-season fitting and runtime-freeze work is closed. The one-time untouc
 - [x] Produce `P(Win)`, `P(Loss)`, `P(Void)`, and `P(Win | grades)` — the exact frozen complete Batter Hits candidate, SHA-256 `728895ca850c5481cd1f17944e38464f16396becc3622146a1384bba19ce5cde`, now builds deterministic scenario-conditioned nested opportunity-count and Poisson-binomial Hits distributions and settles exact Higher/Lower sides and posted lines through the generic core settlement path. Baseline and alternate examples conserve probability mass, mismatched runtime identity and production authorization fail closed, 3 focused tests passed, and GitHub Actions verify run 417 passed 346 of 346 tests while production ranking remained disabled and untouched-test rows remained sealed.
 - [x] Verify baseline and alternate offers use the same statistic distribution — the committed board contains verified baseline and alternate Batter Hits offers but no same-player pair, so one explicit test-only invariant held normalized player, game, team, lineup, opposing starter, shared scenarios, and frozen model artifacts fixed while substituting only provider-observed alternate offer attributes. The complete runtime distribution and candidate statistic distribution remained exactly identical; selected side, posted line, price, multiplier, and settlement probabilities were allowed to differ. One focused test passed and GitHub Actions verify run 420 passed 347 of 347 tests while production ranking remained disabled and untouched-test rows remained sealed.
 - [ ] Enable only after all acceptance gates pass.
-- [ ] Begin prospective board archiving and grading.
+- [x] Begin prospective board archiving and grading — the live July 31, 2026 Underdog Batter Hits board was captured through the connected frozen M8 runtime into one immutable 30-row archive at `artifacts/board-archives/batter-hits/2026-07-31.json`, archive SHA-256 `ae8803b5625662e483f1b6f52e715f55a671a3c9d777ae7ec1aa65fda1bedc8c`. Exact player, game, market, side, line, probabilities, complete distributions, model versions, settlement version, and provider snapshot hashes were preserved. The official-Hits grader uses exact provider game and player IDs, settles Higher/Lower including integer-line voids, refuses to persist incomplete grading, and reported 30 pending, 0 unresolved rows while the game was not final. Archive and grading tests passed 10 of 10; the integrated focused gate passed 24 of 24 and the complete repository verification passed 360 of 360. Production ranking remained disabled and untouched-test rows remained sealed.
 
 ---
 
@@ -370,6 +370,15 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 2.9 — 2026-07-31
+
+- Began prospective live Underdog Batter Hits board archiving through the connected frozen M8 runtime.
+- Preserved one immutable 30-row July 31 archive with SHA-256 `ae8803b5625662e483f1b6f52e715f55a671a3c9d777ae7ec1aa65fda1bedc8c`.
+- Added official BALLDONTLIE final-game Hits grading using exact archived game and player identities and exact Higher/Lower settlement.
+- Verified that incomplete games remain pending and do not create a permanent grade sidecar; the initial live run reported 30 pending and 0 unresolved rows.
+- Recorded 10-of-10 archive/grading tests, 24-of-24 integrated focused tests, and 360-of-360 complete repository tests passing.
+- Preserved the connected M8 model, production-disabled status, and sealed untouched-test boundary.
 
 ### Version 2.8 — 2026-07-30
 
