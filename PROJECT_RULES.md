@@ -1,6 +1,6 @@
 # MLB Prop Analyzer --- Project Rules
 
-**Version:** 2.3\
+**Version:** 2.4\
 **Status:** Canonical project rules\
 **Applies to:** MLB Prop Analyzer V3\
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
@@ -728,7 +728,7 @@ environment boundary honestly.
 
 ------------------------------------------------------------------------
 
-## 22. Repeated-failure escalation --- LOCKED
+## 22. Repeated-failure structural reassessment and continued resolution --- LOCKED
 
 Mandatory structural reassessment is triggered when either occurs:
 
@@ -744,12 +744,26 @@ failures do not count.
 
 After the trigger:
 
--   stop editing the affected file or component
--   do not make a third implementation attempt
--   report what each attempt proved
--   report any remaining read-only diagnostic findings
--   reassess assumptions, boundaries, responsibilities, and dependencies
--   propose one structural direction
+-   stop blind, incremental, or assumption-driven patching of the
+    affected file or component
+-   do not repeat the same implementation approach or make another
+    unexamined patch
+-   continue working on the same unresolved issue
+-   report what each failed attempt proved
+-   complete read-only investigation of the affected component,
+    upstream inputs, downstream consumers, schemas, tests, artifacts,
+    boundaries, and dependencies
+-   reassess assumptions, ownership, interfaces, responsibilities, and
+    the full dependency chain
+-   select one evidence-based structural direction
+-   execute that structural direction through its focused verification
+    gate unless the user stops or a real evidence, access, secret,
+    runtime, destructive-change approval, canonical-change approval, or
+    other explicit authorization boundary is reached
+-   never end the workflow with only a failure report when another
+    diagnostic or corrective step can be performed with available tools
+-   when user action is required, provide exactly one concrete next
+    action that advances the same issue
 
 Allowed structural directions:
 
@@ -758,12 +772,19 @@ Allowed structural directions:
 -   replace the faulty component
 -   revert to the last verified state
 -   delete and reconstruct the component
--   stop at an evidence, access, secret, runtime, or approval boundary
+-   perform a broader coherent correction across the complete affected
+    dependency chain instead of continuing microscopic patches
 
-Read-only investigation may continue if it is reported as investigation
-and does not conceal another patch attempt.
+Read-only investigation is required when necessary to choose the
+structural direction. It is not a reason to stop working.
 
-Deletion is never automatic.
+The trigger prohibits a third blind patch; it does not prohibit a
+structurally redesigned implementation attempt after the full
+reassessment.
+
+Destructive deletion, rollback, replacement, or reconstruction remains
+subject to the approval requirements elsewhere in these rules. Deletion
+is never automatic.
 
 ------------------------------------------------------------------------
 
@@ -950,6 +971,24 @@ There is no separate Project Knowledge deliverable.
 ------------------------------------------------------------------------
 
 ## Changelog
+
+### Version 2.4 --- 2026-07-31
+
+-   Replaced the repeated-failure instruction to stop editing with a
+    requirement to stop blind incremental patching while continuing
+    diagnosis and resolution of the same issue.
+-   Required complete mapping of the affected component, inputs,
+    consumers, schemas, tests, artifacts, boundaries, and dependencies
+    before selecting one structural correction.
+-   Required execution of the selected structural direction through its
+    focused verification gate unless the user stops or a real evidence,
+    access, secret, runtime, destructive-change approval,
+    canonical-change approval, or other explicit authorization boundary
+    is reached.
+-   Clarified that the trigger prohibits a third blind patch, not a
+    structurally redesigned implementation after full reassessment.
+-   Prohibited ending with only a failure report when another diagnostic
+    or corrective step can be performed with available tools.
 
 ### Version 2.3 --- 2026-07-29
 
