@@ -4,6 +4,7 @@ export * from './distribution.js';
 export * from './predict.js';
 export * from './runtime-artifact.js';
 export * from './runtime-probability.js';
+export * from './runtime-factor-extension.js';
 export type {
   BatterHitsRuntimeObservation as ConfirmedBatterHitsRuntimeObservation,
 } from './runtime-probability.js';
