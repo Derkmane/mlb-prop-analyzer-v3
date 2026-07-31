@@ -41,6 +41,7 @@ export const BATTER_HITS_RUNTIME_DISTRIBUTION_VERSION =
 
 export type BatterHitsTeamSide = 'home' | 'away';
 export type BatterHitsHand = (typeof VALID_HANDS)[number];
+export type BatterHitsRuntimeLineupStatus = 'projected' | 'confirmed';
 type CategoryVector = Readonly<Record<string, number>>;
 
 interface FrozenSharedScenarioSide {
@@ -147,8 +148,8 @@ export interface FrozenBatterHitsProbabilityArtifacts {
   readonly terminalOutcome: FrozenTerminalPaOutcomeArtifact;
 }
 
-export interface ConfirmedBatterHitsRuntimeObservation {
-  readonly lineupStatus: 'confirmed';
+export interface BatterHitsRuntimeObservation {
+  readonly lineupStatus: BatterHitsRuntimeLineupStatus;
   readonly providerGameId: number;
   readonly providerPlayerId: number;
   readonly providerTeamId: number;
@@ -211,6 +212,17 @@ function assertExact(value: unknown, expected: unknown, label: string): void {
   if (value !== expected) {
     throw new Error(`${label} must equal ${String(expected)}.`);
   }
+}
+
+function assertLineupStatus(
+  value: BatterHitsRuntimeLineupStatus,
+): BatterHitsRuntimeLineupStatus {
+  if (value !== 'projected' && value !== 'confirmed') {
+    throw new RangeError(
+      'runtime observation lineupStatus must be projected or confirmed.',
+    );
+  }
+  return value;
 }
 
 function assertPositiveInteger(value: number, label: string): number {
@@ -611,9 +623,9 @@ function starterSurvival(
 
 function validateObservation(
   offer: NormalizedBatterHitsBoardOffer,
-  observation: ConfirmedBatterHitsRuntimeObservation,
+  observation: BatterHitsRuntimeObservation,
 ): void {
-  assertExact(observation.lineupStatus, 'confirmed', 'runtime observation lineupStatus');
+  assertLineupStatus(observation.lineupStatus);
   assertPositiveInteger(observation.providerGameId, 'runtime observation game ID');
   assertPositiveInteger(observation.providerPlayerId, 'runtime observation player ID');
   assertPositiveInteger(observation.providerTeamId, 'runtime observation team ID');
@@ -626,7 +638,7 @@ function validateObservation(
     'runtime observation opposing starter team ID',
   );
   assertLineupSlot(observation.lineupSlot);
-  assertExact(observation.eligibilityProbability, 1, 'confirmed lineup eligibilityProbability');
+  assertExact(observation.eligibilityProbability, 1, 'active lineup eligibilityProbability');
   assertSha256(observation.lineupSourceSnapshotSha256, 'lineup source snapshot SHA-256');
   assertTimestamp(observation.lineupSourceCapturedAt, 'lineup source capturedAt');
   assertExact(observation.providerGameId, offer.providerGameId, 'offer/runtime game ID');
@@ -639,7 +651,7 @@ function validateObservation(
 
 export function buildFrozenBatterHitsRuntimeDistribution(
   offer: NormalizedBatterHitsBoardOffer,
-  observation: ConfirmedBatterHitsRuntimeObservation,
+  observation: BatterHitsRuntimeObservation,
   rawArtifacts: FrozenBatterHitsProbabilityArtifacts,
 ): FrozenBatterHitsRuntimeDistribution {
   validateObservation(offer, observation);
@@ -781,7 +793,7 @@ export function buildFrozenBatterHitsRuntimeDistribution(
 
 export function createFrozenBatterHitsProbabilityCandidate(
   offer: NormalizedBatterHitsBoardOffer,
-  observation: ConfirmedBatterHitsRuntimeObservation,
+  observation: BatterHitsRuntimeObservation,
   artifacts: FrozenBatterHitsProbabilityArtifacts,
 ): FrozenBatterHitsProbabilityResult {
   const distribution = buildFrozenBatterHitsRuntimeDistribution(
