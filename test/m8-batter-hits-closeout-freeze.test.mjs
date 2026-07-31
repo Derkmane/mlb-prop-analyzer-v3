@@ -2,11 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  M8_BATTER_HITS_CLOSEOUT_CONTRACT,
   M8_DEFERRED_COMPONENT_MANIFEST,
   REQUIRED_FITTED_COMPONENT_IDS,
   applyDeferredIdentityComponents,
+  buildBatterHitsCloseoutFreeze,
   buildM8BatterHitsCloseoutFreeze,
   summarizeSelectedEvidence,
+  verifyBatterHitsCloseoutFreeze,
   verifyM8BatterHitsCloseoutFreeze,
 } from '../scripts/m8-batter-hits-closeout-freeze-utils.mjs';
 
@@ -20,6 +23,15 @@ const CANDIDATES = Object.freeze({
   starterBullpenTransition: 'starter-bf-side-pool-1000',
   paSurvival: 'slot-home-away-pool-50',
   sharedOffensiveEnvironment: 'shared-environment-k4',
+});
+
+const V5_CONTRACT = Object.freeze({
+  purpose:
+    'Frozen M9 Batter Hits V5 acceptance runtime manifest containing only preselected current-season components.',
+  modelVersion: 'm9-batter-hits-v5-runtime-freeze-v1',
+  settlementVersion: 'batter-hits-settlement-not-production-validated',
+  settlementRegistryVersion: 'settlement-registry-v1',
+  status: 'frozen-current-season-v5-runtime-manifest-before-untouched-test',
 });
 
 function evidence(candidateId, period) {
@@ -69,8 +81,8 @@ function fittedComponents() {
   );
 }
 
-function build() {
-  return buildM8BatterHitsCloseoutFreeze({
+function buildArguments() {
+  return {
     activeSeason: 2026,
     fittedComponents: fittedComponents(),
     runtimeSourceArtifacts: [
@@ -88,7 +100,11 @@ function build() {
       endDate: '2026-07-25',
       rowsIncluded: false,
     },
-  });
+  };
+}
+
+function build() {
+  return buildM8BatterHitsCloseoutFreeze(buildArguments());
 }
 
 test('freezes deterministic selected-component evidence without test access', () => {
@@ -115,6 +131,45 @@ test('freezes deterministic selected-component evidence without test access', ()
         .length > 0,
     );
   }
+});
+
+test('preserves the exact default M8 freeze contract through the generic builder', () => {
+  const legacy = buildM8BatterHitsCloseoutFreeze(buildArguments());
+  const generic = buildBatterHitsCloseoutFreeze({
+    ...buildArguments(),
+    contract: M8_BATTER_HITS_CLOSEOUT_CONTRACT,
+  });
+
+  assert.deepEqual(generic, legacy);
+  assert.equal(
+    verifyBatterHitsCloseoutFreeze(generic, {
+      expectedContract: M8_BATTER_HITS_CLOSEOUT_CONTRACT,
+    }),
+    generic,
+  );
+});
+
+test('freezes a distinctly versioned pre-untouched acceptance candidate without changing M8', () => {
+  const custom = buildBatterHitsCloseoutFreeze({
+    ...buildArguments(),
+    contract: V5_CONTRACT,
+  });
+
+  assert.equal(custom.modelVersion, V5_CONTRACT.modelVersion);
+  assert.equal(custom.status, V5_CONTRACT.status);
+  assert.equal(custom.productionEnabled, false);
+  assert.equal(custom.untouchedTestAccessed, false);
+  assert.equal(custom.untouchedTestReservation.rowsIncluded, false);
+  assert.equal(
+    verifyBatterHitsCloseoutFreeze(custom, {
+      expectedContract: V5_CONTRACT,
+    }),
+    custom,
+  );
+  assert.throws(
+    () => verifyM8BatterHitsCloseoutFreeze(custom),
+    /does not match the expected contract/,
+  );
 });
 
 test('identity components leave synthetic terminal PA vectors unchanged', () => {
