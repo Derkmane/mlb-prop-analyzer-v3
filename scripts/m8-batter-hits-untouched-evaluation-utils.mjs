@@ -4,6 +4,9 @@ import { sha256 } from './provider-probe-utils.mjs';
 
 const PROBABILITY_FLOOR = 1e-300;
 
+export const M8_UNTOUCHED_MINIMUM_INCLUDED_STARTER_OBSERVATIONS = 900;
+export const M8_UNTOUCHED_MINIMUM_ACTUAL_HITS_ABOVE_25 = 35;
+
 function assertArray(value, label) {
   if (!Array.isArray(value)) throw new TypeError(`${label} must be an array.`);
   return value;
@@ -14,6 +17,13 @@ function assertString(value, label) {
     throw new TypeError(`${label} must be a non-empty string.`);
   }
   return value.trim();
+}
+
+function assertActualHits(value, label) {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new TypeError(`${label} must be a non-negative integer.`);
+  }
+  return value;
 }
 
 function accumulator() {
@@ -56,6 +66,32 @@ function finalize(acc) {
   });
 }
 
+export function evaluateM8UntouchedEvidenceThresholds(rawObservations) {
+  const observations = assertArray(rawObservations, 'untouched observations');
+  const actualHitsAbove25Count = observations.reduce((count, observation, index) => {
+    const actualHits = assertActualHits(
+      observation?.actualHits,
+      `untouched observations[${index}].actualHits`,
+    );
+    return count + (actualHits > 2.5 ? 1 : 0);
+  }, 0);
+  const includedStarterObservationsPass =
+    observations.length >= M8_UNTOUCHED_MINIMUM_INCLUDED_STARTER_OBSERVATIONS;
+  const actualHitsAbove25Pass =
+    actualHitsAbove25Count >= M8_UNTOUCHED_MINIMUM_ACTUAL_HITS_ABOVE_25;
+  return Object.freeze({
+    minimumIncludedStarterObservations:
+      M8_UNTOUCHED_MINIMUM_INCLUDED_STARTER_OBSERVATIONS,
+    includedStarterObservationCount: observations.length,
+    includedStarterObservationsPass,
+    minimumActualHitsAbove25: M8_UNTOUCHED_MINIMUM_ACTUAL_HITS_ABOVE_25,
+    actualHitsAbove25Count,
+    actualHitsAbove25Pass,
+    allRequiredEvidencePass:
+      includedStarterObservationsPass && actualHitsAbove25Pass,
+  });
+}
+
 export function evaluateM8FrozenBatterHitsCandidate({
   candidate: rawCandidate,
   sharedEnvironmentArtifact,
@@ -66,12 +102,14 @@ export function evaluateM8FrozenBatterHitsCandidate({
   const candidate = verifyM8FrozenBatterHitsCandidate(rawCandidate);
   const observations = assertArray(rawObservations, 'untouched observations');
   if (observations.length === 0) throw new Error('untouched evaluation has no observations.');
+  const evidenceThresholds = evaluateM8UntouchedEvidenceThresholds(observations);
 
   const ids = [];
   const selected = accumulator();
   const noEnvironment = accumulator();
   for (const observation of observations) {
     ids.push(assertString(observation.observationId, 'observation id'));
+    const actualHits = assertActualHits(observation.actualHits, 'observation actualHits');
     const selectedPrediction = predictM8BatterHitsDistribution({
       sharedEnvironmentArtifact,
       starterRetentionArtifact,
@@ -89,8 +127,8 @@ export function evaluateM8FrozenBatterHitsCandidate({
         candidate.environmentEffectPolicy.noEnvironmentBenchmarkCoefficient,
       observation,
     });
-    score(selected, selectedPrediction.statisticDistribution, observation.actualHits);
-    score(noEnvironment, baselinePrediction.statisticDistribution, observation.actualHits);
+    score(selected, selectedPrediction.statisticDistribution, actualHits);
+    score(noEnvironment, baselinePrediction.statisticDistribution, actualHits);
   }
 
   const selectedMetrics = finalize(selected);
@@ -100,21 +138,26 @@ export function evaluateM8FrozenBatterHitsCandidate({
     higher15: selectedMetrics.higher15Brier <= baselineMetrics.higher15Brier,
     higher25: selectedMetrics.higher25Brier <= baselineMetrics.higher25Brier,
   });
+  const environmentImprovesLogLoss =
+    selectedMetrics.logLoss < baselineMetrics.logLoss;
+  const environmentDoesNotWorsenMulticlassBrier =
+    selectedMetrics.multiclassBrier <= baselineMetrics.multiclassBrier;
   const acceptance = Object.freeze({
     candidateFrozenBeforeTest: true,
-    environmentImprovesLogLoss:
-      selectedMetrics.logLoss < baselineMetrics.logLoss,
-    environmentDoesNotWorsenMulticlassBrier:
-      selectedMetrics.multiclassBrier <= baselineMetrics.multiclassBrier,
+    evidenceSufficient: evidenceThresholds.allRequiredEvidencePass,
+    evidenceThresholds,
+    environmentImprovesLogLoss,
+    environmentDoesNotWorsenMulticlassBrier,
     lineBrierPasses,
     allRequiredGatesPass:
-      selectedMetrics.logLoss < baselineMetrics.logLoss &&
-      selectedMetrics.multiclassBrier <= baselineMetrics.multiclassBrier &&
+      evidenceThresholds.allRequiredEvidencePass &&
+      environmentImprovesLogLoss &&
+      environmentDoesNotWorsenMulticlassBrier &&
       Object.values(lineBrierPasses).every(Boolean),
   });
 
   return Object.freeze({
-    evaluationVersion: 1,
+    evaluationVersion: 2,
     purpose:
       'One-time untouched current-season acceptance evaluation of the frozen complete Batter Hits candidate against its predeclared no-environment benchmark.',
     modelVersion: candidate.modelVersion,
