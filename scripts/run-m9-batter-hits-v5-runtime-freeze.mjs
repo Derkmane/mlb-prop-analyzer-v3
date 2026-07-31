@@ -7,6 +7,9 @@ import {
   verifyBatterHitsCloseoutFreeze,
 } from './m8-batter-hits-closeout-freeze-utils.mjs';
 import {
+  ensureM9BatterHitsV5RecencyArtifacts,
+} from './m9-batter-hits-v5-recency-preparation-utils.mjs';
+import {
   M9_BATTER_HITS_V5_EXPECTED_CANDIDATES,
   M9_BATTER_HITS_V5_FREEZE_CONTRACT,
   buildM9BatterHitsV5FreezeRunSpecification,
@@ -59,7 +62,26 @@ async function readSource(filePath, label) {
   return Object.freeze({ path: filePath, value });
 }
 
-const files = await collectFiles(ROOT);
+let files = await collectFiles(ROOT);
+const recencyPreparation = await ensureM9BatterHitsV5RecencyArtifacts({
+  rootPath: ROOT,
+  files,
+});
+
+if (recencyPreparation.generated) {
+  console.log('=== M9 BATTER HITS V5 RECENCY EVIDENCE PREPARED ===');
+  console.log(`Source dataset: ${recencyPreparation.sourceDatasetPath}`);
+  console.log(`Hit benchmark: ${recencyPreparation.benchmarkPath}`);
+  console.log(`Fixed evaluation: ${recencyPreparation.fixedPath}`);
+  console.log(`Walk-forward evaluation: ${recencyPreparation.walkForwardPath}`);
+  console.log(`Selected candidate: ${recencyPreparation.selectedCandidateId}`);
+  console.log(`Walk-forward folds: ${recencyPreparation.foldCount}`);
+  console.log('Production enabled: false');
+  console.log('Untouched-test rows accessed: false');
+}
+
+files = await collectFiles(ROOT);
+
 const paths = Object.freeze({
   recencyFixed: uniqueBySuffix(
     files,
