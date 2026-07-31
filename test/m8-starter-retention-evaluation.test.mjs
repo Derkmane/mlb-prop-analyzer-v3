@@ -156,6 +156,22 @@ test('selects retention over assigning every batting-slot turn to the named star
   assert.equal(verifyM8StarterRetentionEvaluation(evaluation), evaluation);
 });
 
+test('hashes exact dataset file bytes including trailing newline', () => {
+  const dataset = makeDataset();
+  const text = `${JSON.stringify(dataset)}\n`;
+
+  const evaluation = evaluateM8StarterRetention({
+    rawDataset: dataset,
+    datasetText: text,
+    candidates: CANDIDATES,
+  });
+
+  assert.equal(
+    evaluation.sourceDatasetFileSha256,
+    sha256(text),
+  );
+});
+
 test('is deterministic for identical versioned inputs', () => {
   const dataset = makeDataset();
   const text = JSON.stringify(dataset);
