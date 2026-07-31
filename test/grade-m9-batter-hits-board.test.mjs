@@ -146,7 +146,7 @@ test('grades only one exact final-game official Hits row', () => {
   assert.equal(unresolved.reason, 'OFFICIAL_STATS_ROW_NOT_UNIQUE');
 });
 
-test('builds one deterministic Higher and Lower grade report', () => {
+test('builds one deterministic Higher and Lower grade identity across observation times', () => {
   const source = archive([row('higher'), row('lower')]);
   const evidence = new Map([
     [1, { game: finalGame, statsRows: officialStats }],
@@ -158,6 +158,10 @@ test('builds one deterministic Higher and Lower grade report', () => {
     gameEvidenceById: evidence,
   };
   const report = buildProspectiveGradeReport(input);
+  const laterReport = buildProspectiveGradeReport({
+    ...input,
+    gradedAt: '2026-08-01T06:00:00Z',
+  });
   assert.equal(report.complete, true);
   assert.deepEqual(report.counts, {
     total: 2,
@@ -168,18 +172,26 @@ test('builds one deterministic Higher and Lower grade report', () => {
     losses: 1,
     voids: 0,
   });
-  assert.equal(buildProspectiveGradeReport(input).gradeSha256, report.gradeSha256);
+  assert.equal(laterReport.gradeSha256, report.gradeSha256);
+  assert.notEqual(laterReport.gradedAt, report.gradedAt);
 });
 
-test('does not persist incomplete grading', async () => {
-  const report = buildProspectiveGradeReport({
+test('does not persist incomplete grading and keeps pending identity deterministic', async () => {
+  const input = {
     archive: archive([row()]),
     archivePath: 'archive.json',
     gradedAt: '2026-07-31T17:00:00Z',
     gameEvidenceById: new Map([
       [1, { game: scheduledGame, statsRows: [] }],
     ]),
+  };
+  const report = buildProspectiveGradeReport(input);
+  const laterReport = buildProspectiveGradeReport({
+    ...input,
+    gradedAt: '2026-07-31T17:30:00Z',
   });
+  assert.equal(laterReport.gradeSha256, report.gradeSha256);
+
   let wrote = false;
   const result = await persistCompleteGrade({
     filePath: '/tmp/never-written-grade.json',
@@ -192,16 +204,21 @@ test('does not persist incomplete grading', async () => {
   assert.equal(wrote, false);
 });
 
-test('persists one immutable completed grade and rejects changed reruns', async () => {
+test('persists one immutable completed grade and reuses a later identical rerun', async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'm9-grade-'));
   const filePath = path.join(directory, 'grade.json');
-  const report = buildProspectiveGradeReport({
+  const input = {
     archive: archive([row()]),
     archivePath: 'archive.json',
     gradedAt: '2026-08-01T05:00:00Z',
     gameEvidenceById: new Map([
       [1, { game: finalGame, statsRows: officialStats }],
     ]),
+  };
+  const report = buildProspectiveGradeReport(input);
+  const laterReport = buildProspectiveGradeReport({
+    ...input,
+    gradedAt: '2026-08-01T06:00:00Z',
   });
   const writeJson = async (target, value) => {
     await writeFile(target, JSON.stringify(value), 'utf8');
@@ -211,7 +228,11 @@ test('persists one immutable completed grade and rejects changed reruns', async 
   assert.equal(first.persisted, true);
   assert.equal(first.reused, false);
 
-  const second = await persistCompleteGrade({ filePath, report, writeJson });
+  const second = await persistCompleteGrade({
+    filePath,
+    report: laterReport,
+    writeJson,
+  });
   assert.equal(second.reused, true);
 
   await assert.rejects(
@@ -223,8 +244,7 @@ test('persists one immutable completed grade and rejects changed reruns', async 
       }),
     /different identity/u,
   );
-  assert.equal(
-    JSON.parse(await readFile(filePath, 'utf8')).gradeSha256,
-    report.gradeSha256,
-  );
+  const persisted = JSON.parse(await readFile(filePath, 'utf8'));
+  assert.equal(persisted.gradeSha256, report.gradeSha256);
+  assert.equal(persisted.gradedAt, report.gradedAt);
 });
