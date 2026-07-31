@@ -16,9 +16,9 @@ import {
   chicagoDate,
 } from './archive-m9-batter-hits-board.mjs';
 
-export const GRADE_VERSION = 1;
-export const GRADE_CONTRACT = 'm9-batter-hits-prospective-board-grade-v1';
-export const GRADING_VERSION = 'm9-batter-hits-official-hits-grading-v1';
+export const GRADE_VERSION = 2;
+export const GRADE_CONTRACT = 'm9-batter-hits-prospective-board-grade-v2';
+export const GRADING_VERSION = 'm9-batter-hits-official-hits-grading-v2';
 export const PROJECT_RULES_VERSION = '2.3';
 export const MATH_SPEC_VERSION = '1.5';
 
@@ -361,12 +361,12 @@ export function buildProspectiveGradeReport({
     { total: 0, graded: 0, pending: 0, unresolved: 0, wins: 0, losses: 0, voids: 0 },
   );
   const complete = counts.total > 0 && counts.pending === 0 && counts.unresolved === 0;
+  const observedAt = timestamp(gradedAt, 'gradedAt');
   const identity = {
     gradeVersion: GRADE_VERSION,
     gradeContract: GRADE_CONTRACT,
     gradingVersion: GRADING_VERSION,
     archiveDate: string(verifiedArchive.archiveDate, 'archive.archiveDate'),
-    gradedAt: timestamp(gradedAt, 'gradedAt'),
     sourceArchivePath: string(archivePath, 'archivePath'),
     sourceArchiveSha256: sha256Value(
       verifiedArchive.archiveSha256,
@@ -387,6 +387,7 @@ export function buildProspectiveGradeReport({
   };
   return Object.freeze({
     ...identity,
+    gradedAt: observedAt,
     gradeSha256: hash(JSON.stringify(identity)),
   });
 }
