@@ -13,6 +13,15 @@ export const REQUIRED_FITTED_COMPONENT_IDS = Object.freeze([
   'sharedOffensiveEnvironment',
 ]);
 
+export const M8_BATTER_HITS_CLOSEOUT_CONTRACT = Object.freeze({
+  purpose:
+    'Frozen M8 Batter Hits runtime manifest containing only already-selected current-season components and explicit identity/deferred component declarations.',
+  modelVersion: 'm8-batter-hits-runtime-freeze-v1',
+  settlementVersion: 'batter-hits-settlement-not-production-validated',
+  settlementRegistryVersion: 'settlement-registry-v1',
+  status: 'frozen-current-season-runtime-manifest-before-untouched-test',
+});
+
 export const M8_DEFERRED_COMPONENT_MANIFEST = Object.freeze({
   park: Object.freeze({
     modeled: false,
@@ -60,6 +69,27 @@ function stringArray(value, label) {
   );
 
   return Object.freeze([...new Set(normalized)].sort());
+}
+
+function validateFreezeContract(rawContract) {
+  const contract = object(rawContract, 'closeout freeze contract');
+
+  return Object.freeze({
+    purpose: nonEmptyString(contract.purpose, 'closeout freeze contract purpose'),
+    modelVersion: nonEmptyString(
+      contract.modelVersion,
+      'closeout freeze contract modelVersion',
+    ),
+    settlementVersion: nonEmptyString(
+      contract.settlementVersion,
+      'closeout freeze contract settlementVersion',
+    ),
+    settlementRegistryVersion: nonEmptyString(
+      contract.settlementRegistryVersion,
+      'closeout freeze contract settlementRegistryVersion',
+    ),
+    status: nonEmptyString(contract.status, 'closeout freeze contract status'),
+  });
 }
 
 function candidateAppears(value, candidateId) {
@@ -343,6 +373,42 @@ function validateFittedComponents(rawComponents) {
   );
 }
 
+function validateRuntimeSourceArtifacts(rawSources, { sort = false } = {}) {
+  if (!Array.isArray(rawSources) || rawSources.length === 0) {
+    throw new Error('runtimeSourceArtifacts must be non-empty.');
+  }
+
+  const seenPaths = new Set();
+  const sources = rawSources.map((source, index) => {
+    const value = object(source, `runtimeSourceArtifacts[${index}]`);
+    const sourcePath = nonEmptyString(
+      value.sourcePath,
+      `runtimeSourceArtifacts[${index}].sourcePath`,
+    );
+
+    if (seenPaths.has(sourcePath)) {
+      throw new Error(`runtimeSourceArtifacts contains duplicate path ${sourcePath}.`);
+    }
+    seenPaths.add(sourcePath);
+
+    return Object.freeze({
+      sourcePath,
+      sourceSha256: nonEmptyString(
+        value.sourceSha256,
+        `runtimeSourceArtifacts[${index}].sourceSha256`,
+      ),
+    });
+  });
+
+  if (sort) {
+    sources.sort((left, right) =>
+      left.sourcePath.localeCompare(right.sourcePath),
+    );
+  }
+
+  return Object.freeze(sources);
+}
+
 function artifactIdentity(value) {
   return {
     artifactVersion: value.artifactVersion,
@@ -360,45 +426,24 @@ function artifactIdentity(value) {
   };
 }
 
-export function buildM8BatterHitsCloseoutFreeze({
+export function buildBatterHitsCloseoutFreeze({
   activeSeason,
   fittedComponents,
   runtimeSourceArtifacts,
   untouchedTestReservation,
   componentManifest = M8_DEFERRED_COMPONENT_MANIFEST,
+  contract = M8_BATTER_HITS_CLOSEOUT_CONTRACT,
 }) {
   if (!Number.isSafeInteger(activeSeason) || activeSeason !== 2026) {
     throw new Error('activeSeason must be the 2026 MLB regular season.');
   }
 
+  const validatedContract = validateFreezeContract(contract);
   const manifest = validateDeferredManifest(componentManifest);
   const fitted = validateFittedComponents(fittedComponents);
-
-  if (
-    !Array.isArray(runtimeSourceArtifacts) ||
-    runtimeSourceArtifacts.length === 0
-  ) {
-    throw new Error('runtimeSourceArtifacts must be non-empty.');
-  }
-
-  const sources = Object.freeze(
-    runtimeSourceArtifacts
-      .map((source, index) => {
-        const value = object(source, `runtimeSourceArtifacts[${index}]`);
-
-        return Object.freeze({
-          sourcePath: nonEmptyString(
-            value.sourcePath,
-            `runtimeSourceArtifacts[${index}].sourcePath`,
-          ),
-          sourceSha256: nonEmptyString(
-            value.sourceSha256,
-            `runtimeSourceArtifacts[${index}].sourceSha256`,
-          ),
-        });
-      })
-      .sort((left, right) => left.sourcePath.localeCompare(right.sourcePath)),
-  );
+  const sources = validateRuntimeSourceArtifacts(runtimeSourceArtifacts, {
+    sort: true,
+  });
 
   const reservation = object(
     untouchedTestReservation,
@@ -411,10 +456,11 @@ export function buildM8BatterHitsCloseoutFreeze({
 
   const identity = {
     artifactVersion: 1,
-    modelVersion: 'm8-batter-hits-runtime-freeze-v1',
-    settlementVersion: 'batter-hits-settlement-not-production-validated',
-    settlementRegistryVersion: 'settlement-registry-v1',
-    status: 'frozen-current-season-runtime-manifest-before-untouched-test',
+    modelVersion: validatedContract.modelVersion,
+    settlementVersion: validatedContract.settlementVersion,
+    settlementRegistryVersion:
+      validatedContract.settlementRegistryVersion,
+    status: validatedContract.status,
     productionEnabled: false,
     untouchedTestAccessed: false,
     activeSeason,
@@ -428,45 +474,81 @@ export function buildM8BatterHitsCloseoutFreeze({
   };
 
   return Object.freeze({
-    purpose:
-      'Frozen M8 Batter Hits runtime manifest containing only already-selected current-season components and explicit identity/deferred component declarations.',
+    purpose: validatedContract.purpose,
     ...identity,
     artifactSha256: sha256(JSON.stringify(artifactIdentity(identity))),
   });
 }
 
-export function verifyM8BatterHitsCloseoutFreeze(rawArtifact) {
-  const artifact = object(rawArtifact, 'M8 closeout freeze');
+export function verifyBatterHitsCloseoutFreeze(
+  rawArtifact,
+  { expectedContract = null } = {},
+) {
+  const artifact = object(rawArtifact, 'Batter Hits closeout freeze');
+  const actualContract = validateFreezeContract({
+    purpose: artifact.purpose,
+    modelVersion: artifact.modelVersion,
+    settlementVersion: artifact.settlementVersion,
+    settlementRegistryVersion: artifact.settlementRegistryVersion,
+    status: artifact.status,
+  });
 
   if (
     artifact.artifactVersion !== 1 ||
-    artifact.modelVersion !== 'm8-batter-hits-runtime-freeze-v1' ||
-    artifact.settlementVersion !==
-      'batter-hits-settlement-not-production-validated' ||
-    artifact.settlementRegistryVersion !== 'settlement-registry-v1' ||
-    artifact.status !==
-      'frozen-current-season-runtime-manifest-before-untouched-test' ||
     artifact.productionEnabled !== false ||
-    artifact.untouchedTestAccessed !== false
+    artifact.untouchedTestAccessed !== false ||
+    artifact.activeSeason !== 2026
   ) {
-    throw new Error('unsupported M8 closeout freeze contract.');
+    throw new Error('unsupported Batter Hits closeout freeze contract.');
+  }
+
+  if (expectedContract !== null) {
+    const expected = validateFreezeContract(expectedContract);
+
+    for (const field of [
+      'purpose',
+      'modelVersion',
+      'settlementVersion',
+      'settlementRegistryVersion',
+      'status',
+    ]) {
+      if (actualContract[field] !== expected[field]) {
+        throw new Error(
+          `Batter Hits closeout freeze ${field} does not match the expected contract.`,
+        );
+      }
+    }
   }
 
   validateDeferredManifest(artifact.componentManifest);
   validateFittedComponents(artifact.fittedComponents);
+  validateRuntimeSourceArtifacts(artifact.runtimeSourceArtifacts);
 
   if (artifact.untouchedTestReservation?.rowsIncluded !== false) {
-    throw new Error('M8 closeout freeze exposes untouched-test rows.');
+    throw new Error('Batter Hits closeout freeze exposes untouched-test rows.');
   }
 
   if (
     artifact.artifactSha256 !==
     sha256(JSON.stringify(artifactIdentity(artifact)))
   ) {
-    throw new Error('M8 closeout freeze SHA-256 is invalid.');
+    throw new Error('Batter Hits closeout freeze SHA-256 is invalid.');
   }
 
   return artifact;
+}
+
+export function buildM8BatterHitsCloseoutFreeze(args) {
+  return buildBatterHitsCloseoutFreeze({
+    ...args,
+    contract: M8_BATTER_HITS_CLOSEOUT_CONTRACT,
+  });
+}
+
+export function verifyM8BatterHitsCloseoutFreeze(rawArtifact) {
+  return verifyBatterHitsCloseoutFreeze(rawArtifact, {
+    expectedContract: M8_BATTER_HITS_CLOSEOUT_CONTRACT,
+  });
 }
 
 export function applyDeferredIdentityComponents({
