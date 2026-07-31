@@ -3,7 +3,7 @@ import {
   type BatterHitsProbabilityArtifactPaths,
 } from '../adapters/index.js';
 import {
-  createFrozenBatterHitsProbabilityCandidateForActiveLineup,
+  createFrozenBatterHitsProbabilityCandidate,
   type BatterHitsRuntimeObservation,
   type FrozenBatterHitsProbabilityResult,
   type NormalizedBatterHitsBoardOffer,
@@ -46,7 +46,7 @@ export async function connectFrozenBatterHitsProbabilityOutput(
   const artifacts = await loadFrozenBatterHitsProbabilityArtifactsFromFiles(
     input.artifactPaths,
   );
-  return createFrozenBatterHitsProbabilityCandidateForActiveLineup(
+  return createFrozenBatterHitsProbabilityCandidate(
     input.offer,
     input.observation,
     artifacts,
