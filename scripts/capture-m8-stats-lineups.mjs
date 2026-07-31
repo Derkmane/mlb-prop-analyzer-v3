@@ -25,6 +25,11 @@ import {
   buildM8StatsLineupCaptureManifest,
   summarizeM8StatsLineupGame,
 } from './m8-stats-lineup-capture-utils.mjs';
+import {
+  buildM8StatsLineupCaptureReference,
+  resolveM8StatsLineupCapture,
+  verifyM8StatsLineupCaptureManifest,
+} from './m8-stats-lineup-capture-reference-utils.mjs';
 
 function requireEnvironmentValue(name) {
   const value = process.env[name]?.trim();
@@ -76,6 +81,19 @@ const datasetPath = requireEnvironmentValue(
 const outputRoot = requireEnvironmentValue(
   'M8_STATS_LINEUP_OUTPUT_DIR',
 );
+const reuseSourceRoot =
+  process.env.M8_STATS_LINEUP_REUSE_SOURCE_DIR
+    ?.trim() || null;
+
+if (
+  reuseSourceRoot !== null &&
+  path.resolve(reuseSourceRoot) ===
+    path.resolve(outputRoot)
+) {
+  throw new Error(
+    'M8_STATS_LINEUP_REUSE_SOURCE_DIR must differ from the output directory.',
+  );
+}
 const fallbackDelayMs = parseNonNegativeInteger(
   process.env.BDL_CAPTURE_DELAY_MS,
   'BDL_CAPTURE_DELAY_MS',
@@ -151,6 +169,31 @@ if (await pathExists(planPath)) {
   }
 } else {
   await writeJsonAtomic(planPath, plan);
+}
+
+let reuseSourceManifest = null;
+let reuseSourceGamesById = new Map();
+
+if (reuseSourceRoot !== null) {
+  const sourceManifestRead = await readJson(
+    path.join(
+      reuseSourceRoot,
+      'capture-manifest.json',
+    ),
+    'stats-lineup reuse-source manifest',
+  );
+
+  reuseSourceManifest =
+    verifyM8StatsLineupCaptureManifest(
+      sourceManifestRead.value,
+    );
+
+  reuseSourceGamesById = new Map(
+    reuseSourceManifest.games.map((game) => [
+      game.gameId,
+      game,
+    ]),
+  );
 }
 
 const rateLimiter = createBdlAdaptiveRateLimiter({
@@ -291,54 +334,6 @@ async function fetchCursorPages({
   return pages;
 }
 
-function captureIdentity(value) {
-  return {
-    captureVersion: value.captureVersion,
-    provider: value.provider,
-    sourcePlanSha256: value.sourcePlanSha256,
-    plannedGame: value.plannedGame,
-    gameSnapshot: value.gameSnapshot,
-    statsPages: value.statsPages,
-    lineupPages: value.lineupPages,
-    summary: value.summary,
-    untouchedTestReservation:
-      value.untouchedTestReservation,
-  };
-}
-
-function verifyCapture(value, plannedGame) {
-  if (
-    value?.sourcePlanSha256 !== plan.planSha256 ||
-    value?.plannedGame?.gameId !==
-      plannedGame.gameId
-  ) {
-    throw new Error(
-      `saved stats-lineup capture identity mismatch for game ${plannedGame.gameId}.`,
-    );
-  }
-  if (
-    value?.untouchedTestReservation
-      ?.rowsIncluded !== false ||
-    Object.hasOwn(
-      value?.untouchedTestReservation ?? {},
-      'rows',
-    )
-  ) {
-    throw new Error(
-      `saved stats-lineup capture exposes untouched-test rows for game ${plannedGame.gameId}.`,
-    );
-  }
-  const expected = sha256(
-    JSON.stringify(captureIdentity(value)),
-  );
-  if (value.captureSha256 !== expected) {
-    throw new Error(
-      `saved stats-lineup capture SHA-256 mismatch for game ${plannedGame.gameId}.`,
-    );
-  }
-  return value;
-}
-
 async function captureGame(plannedGame) {
   const gameUrl = new URL(
     `https://api.balldontlie.io/mlb/v1/games/${plannedGame.gameId}`,
@@ -434,6 +429,9 @@ console.log(
 );
 
 const capturedById = new Map();
+let existingTargetGameCount = 0;
+let referencedSourceGameCount = 0;
+
 for (
   const [index, plannedGame] of
   plan.games.entries()
@@ -444,24 +442,122 @@ for (
     String(plannedGame.gameId),
     'capture.json',
   );
-  if (!(await pathExists(capturePath))) {
+
+  if (await pathExists(capturePath)) {
+    const verified =
+      await resolveM8StatsLineupCapture({
+        capturePath,
+        expectedGameId: plannedGame.gameId,
+        expectedSourcePlanSha256:
+          plan.planSha256,
+      });
+
+    if (
+      verified.plannedGame.observedDate !==
+        plannedGame.observedDate ||
+      verified.plannedGame.periodId !==
+        plannedGame.periodId ||
+      verified.plannedGame.sourceRowCount !==
+        plannedGame.sourceRowCount ||
+      verified.plannedGame.rowIdsSha256 !==
+        plannedGame.rowIdsSha256
+    ) {
+      throw new Error(
+        `saved stats-lineup planning identity mismatch for game ${plannedGame.gameId}.`,
+      );
+    }
+
+    capturedById.set(
+      plannedGame.gameId,
+      verified.summary,
+    );
+    existingTargetGameCount += 1;
+
+    console.log(
+      `[${index + 1}/${plan.gameCount}] Verified target game ${plannedGame.gameId}.`,
+    );
     continue;
   }
 
-  const saved = await readJson(
+  const sourceManifestGame =
+    reuseSourceGamesById.get(
+      plannedGame.gameId,
+    );
+
+  if (!sourceManifestGame) {
+    continue;
+  }
+
+  if (
+    sourceManifestGame.observedDate !==
+    plannedGame.observedDate
+  ) {
+    throw new Error(
+      `stats-lineup reuse-source date mismatch for game ${plannedGame.gameId}.`,
+    );
+  }
+
+  const sourceCapturePath = path.join(
+    reuseSourceRoot,
+    'games',
+    String(plannedGame.gameId),
+    'capture.json',
+  );
+  const sourceRead = await readJson(
+    sourceCapturePath,
+    `stats-lineup reuse-source game ${plannedGame.gameId}`,
+  );
+  const sourceCapture =
+    await resolveM8StatsLineupCapture({
+      capturePath: sourceCapturePath,
+      expectedGameId: plannedGame.gameId,
+      expectedSourcePlanSha256:
+        reuseSourceManifest.sourcePlanSha256,
+    });
+
+  if (
+    sourceCapture.summary.summarySha256 !==
+    sourceManifestGame.summarySha256
+  ) {
+    throw new Error(
+      `stats-lineup reuse-source summary mismatch for game ${plannedGame.gameId}.`,
+    );
+  }
+
+  const reference =
+    buildM8StatsLineupCaptureReference({
+      sourceCapture,
+      sourceCaptureText: sourceRead.text,
+      sourceCapturePath,
+      targetCapturePath: capturePath,
+      targetPlannedGame: plannedGame,
+      targetSourcePlanSha256:
+        plan.planSha256,
+      targetUntouchedTestReservation:
+        plan.untouchedTestReservation,
+    });
+
+  await writeJsonAtomic(
     capturePath,
-    `saved game ${plannedGame.gameId}`,
+    reference,
   );
-  const verified = verifyCapture(
-    saved.value,
-    plannedGame,
-  );
+
+  const verified =
+    await resolveM8StatsLineupCapture({
+      capturePath,
+      expectedGameId: plannedGame.gameId,
+      expectedSourcePlanSha256:
+        plan.planSha256,
+    });
+
   capturedById.set(
     plannedGame.gameId,
     verified.summary,
   );
+  referencedSourceGameCount += 1;
+
   console.log(
-    `[${index + 1}/${plan.gameCount}] Reused game ${plannedGame.gameId}.`,
+    `[${index + 1}/${plan.gameCount}] Referenced source game ${plannedGame.gameId}.`,
   );
 }
 
@@ -476,6 +572,12 @@ const selected =
 console.log(
   `Verified before run: ${capturedById.size}`,
 );
+console.log(
+  `Existing target games: ${existingTargetGameCount}`,
+);
+console.log(
+  `Referenced source games: ${referencedSourceGameCount}`,
+);
 console.log(`Missing before run: ${missing.length}`);
 console.log(`Selected this run: ${selected.length}`);
 
@@ -488,14 +590,13 @@ for (const plannedGame of selected) {
     'capture.json',
   );
   await writeJsonAtomic(capturePath, capture);
-  const saved = await readJson(
-    capturePath,
-    `written game ${plannedGame.gameId}`,
-  );
-  const verified = verifyCapture(
-    saved.value,
-    plannedGame,
-  );
+  const verified =
+    await resolveM8StatsLineupCapture({
+      capturePath,
+      expectedGameId: plannedGame.gameId,
+      expectedSourcePlanSha256:
+        plan.planSha256,
+    });
   capturedById.set(
     plannedGame.gameId,
     verified.summary,

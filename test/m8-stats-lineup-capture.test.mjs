@@ -1,4 +1,12 @@
 import assert from 'node:assert/strict';
+import {
+  mkdir,
+  mkdtemp,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 
 import {
@@ -6,6 +14,13 @@ import {
   deriveM8PlateAppearanceCandidate,
   summarizeM8StatsLineupGame,
 } from '../scripts/m8-stats-lineup-capture-utils.mjs';
+import {
+  buildM8StatsLineupCaptureReference,
+  resolveM8StatsLineupCapture,
+} from '../scripts/m8-stats-lineup-capture-reference-utils.mjs';
+import {
+  sha256,
+} from '../scripts/provider-probe-utils.mjs';
 
 const player = (id, name) => ({
   id,
@@ -297,5 +312,298 @@ test(
       first.totals.completeLineupGames,
       1,
     );
+  },
+);
+
+async function makeStatsLineupReferenceFixture() {
+  const root = await mkdtemp(
+    path.join(
+      os.tmpdir(),
+      'm8-stats-lineup-reference-',
+    ),
+  );
+  const sourceCapturePath = path.join(
+    root,
+    'source',
+    'games',
+    '99',
+    'capture.json',
+  );
+  const targetCapturePath = path.join(
+    root,
+    'target',
+    'games',
+    '99',
+    'capture.json',
+  );
+
+  await mkdir(path.dirname(sourceCapturePath), {
+    recursive: true,
+  });
+  await mkdir(path.dirname(targetCapturePath), {
+    recursive: true,
+  });
+
+  const sourcePlannedGame = {
+    ...plannedGame(),
+    periodId: 'validation',
+    sourceSnapshotPath:
+      '2026-04-01/plate-appearances/game-99.json',
+    sourceSnapshotSha256: 'f'.repeat(64),
+    rowIdsSha256: '1'.repeat(64),
+  };
+  const targetPlannedGame = {
+    ...sourcePlannedGame,
+    periodId: 'fit',
+  };
+
+  const lineups = [
+    ...lineupRowsFor(awayTeam, 0),
+    ...lineupRowsFor(homeTeam, 100),
+  ];
+  const stats = [
+    ...Array.from(
+      { length: 9 },
+      (_, index) => statsRow(index + 1, 4),
+    ),
+    ...Array.from(
+      { length: 9 },
+      (_, index) => statsRow(101 + index, 4),
+    ),
+  ];
+  const game = gameBody();
+  const summary = summarizeM8StatsLineupGame({
+    plannedGame: sourcePlannedGame,
+    gameBody: game,
+    statsRows: stats,
+    lineupRows: lineups,
+    snapshots: snapshots(),
+  });
+
+  const sourceIdentity = {
+    captureVersion: 1,
+    provider: 'BALLDONTLIE MLB API',
+    sourcePlanSha256: 'a'.repeat(64),
+    plannedGame: sourcePlannedGame,
+    gameSnapshot: {
+      rawBodySha256: '2'.repeat(64),
+      responseStatus: 200,
+      body: {
+        data: game,
+      },
+    },
+    statsPages: [
+      {
+        pageNumber: 1,
+        cursor: null,
+        rawBodySha256: '3'.repeat(64),
+        responseStatus: 200,
+        responseHeaders: {},
+        body: {
+          data: stats,
+          meta: {},
+        },
+      },
+    ],
+    lineupPages: [
+      {
+        pageNumber: 1,
+        cursor: null,
+        rawBodySha256: '4'.repeat(64),
+        responseStatus: 200,
+        responseHeaders: {},
+        body: {
+          data: lineups,
+          meta: {},
+        },
+      },
+    ],
+    summary,
+    untouchedTestReservation: {
+      startDate: '2026-07-06',
+      endDate: '2026-07-25',
+      plateAppearanceCount: 100,
+      rowsIncluded: false,
+    },
+  };
+  const sourceCapture = {
+    ...sourceIdentity,
+    captureSha256: sha256(
+      JSON.stringify(sourceIdentity),
+    ),
+  };
+  const sourceCaptureText =
+    `${JSON.stringify(sourceCapture)}\n`;
+
+  await writeFile(
+    sourceCapturePath,
+    sourceCaptureText,
+    'utf8',
+  );
+
+  const targetUntouchedTestReservation = {
+    startDate: '2026-07-30',
+    endDate: '2026-08-04',
+    plateAppearanceCount: 0,
+    rowsIncluded: false,
+  };
+
+  const reference =
+    buildM8StatsLineupCaptureReference({
+      sourceCapture,
+      sourceCaptureText,
+      sourceCapturePath,
+      targetCapturePath,
+      targetPlannedGame,
+      targetSourcePlanSha256:
+        'b'.repeat(64),
+      targetUntouchedTestReservation,
+    });
+
+  await writeFile(
+    targetCapturePath,
+    `${JSON.stringify(reference)}\n`,
+    'utf8',
+  );
+
+  return {
+    root,
+    sourceCapture,
+    sourceCapturePath,
+    targetCapturePath,
+    targetPlannedGame,
+    targetUntouchedTestReservation,
+  };
+}
+
+test(
+  'V5 reference rebases only planning metadata while preserving immutable provider evidence',
+  async () => {
+    const fixture =
+      await makeStatsLineupReferenceFixture();
+
+    try {
+      const resolved =
+        await resolveM8StatsLineupCapture({
+          capturePath:
+            fixture.targetCapturePath,
+          expectedGameId: 99,
+          expectedSourcePlanSha256:
+            'b'.repeat(64),
+        });
+
+      assert.equal(
+        resolved.plannedGame.periodId,
+        'fit',
+      );
+      assert.equal(
+        resolved.summary.periodId,
+        'fit',
+      );
+      assert.equal(
+        resolved.plannedGame.rowIdsSha256,
+        fixture.sourceCapture.plannedGame
+          .rowIdsSha256,
+      );
+      assert.deepEqual(
+        resolved.gameSnapshot,
+        fixture.sourceCapture.gameSnapshot,
+      );
+      assert.deepEqual(
+        resolved.statsPages,
+        fixture.sourceCapture.statsPages,
+      );
+      assert.deepEqual(
+        resolved.lineupPages,
+        fixture.sourceCapture.lineupPages,
+      );
+      assert.deepEqual(
+        resolved.untouchedTestReservation,
+        fixture
+          .targetUntouchedTestReservation,
+      );
+    } finally {
+      await rm(fixture.root, {
+        recursive: true,
+        force: true,
+      });
+    }
+  },
+);
+
+test(
+  'V5 reference rejects a source capture whose file hash changed',
+  async () => {
+    const fixture =
+      await makeStatsLineupReferenceFixture();
+
+    try {
+      await writeFile(
+        fixture.sourceCapturePath,
+        '{"tampered":true}\n',
+        'utf8',
+      );
+
+      await assert.rejects(
+        resolveM8StatsLineupCapture({
+          capturePath:
+            fixture.targetCapturePath,
+          expectedGameId: 99,
+          expectedSourcePlanSha256:
+            'b'.repeat(64),
+        }),
+        /file hash mismatch/,
+      );
+    } finally {
+      await rm(fixture.root, {
+        recursive: true,
+        force: true,
+      });
+    }
+  },
+);
+
+test(
+  'V5 reference rejects changed plate-appearance row identity',
+  async () => {
+    const fixture =
+      await makeStatsLineupReferenceFixture();
+
+    try {
+      const sourceText =
+        `${JSON.stringify(
+          fixture.sourceCapture,
+        )}\n`;
+
+      assert.throws(
+        () =>
+          buildM8StatsLineupCaptureReference({
+            sourceCapture:
+              fixture.sourceCapture,
+            sourceCaptureText:
+              sourceText,
+            sourceCapturePath:
+              fixture.sourceCapturePath,
+            targetCapturePath:
+              fixture.targetCapturePath,
+            targetPlannedGame: {
+              ...fixture.targetPlannedGame,
+              rowIdsSha256:
+                '9'.repeat(64),
+            },
+            targetSourcePlanSha256:
+              'b'.repeat(64),
+            targetUntouchedTestReservation:
+              fixture
+                .targetUntouchedTestReservation,
+          }),
+        /rowIdsSha256 mismatch/,
+      );
+    } finally {
+      await rm(fixture.root, {
+        recursive: true,
+        force: true,
+      });
+    }
   },
 );

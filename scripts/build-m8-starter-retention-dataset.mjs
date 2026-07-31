@@ -3,6 +3,9 @@ import path from 'node:path';
 
 import { sha256, writeJsonAtomic } from './provider-probe-utils.mjs';
 import {
+  resolveM8StatsLineupCapture,
+} from './m8-stats-lineup-capture-reference-utils.mjs';
+import {
   buildM8StarterRetentionDataset,
   verifyM8StarterRetentionDataset,
 } from './m8-starter-retention-dataset-utils.mjs';
@@ -88,29 +91,44 @@ if (
 }
 
 const captures = [];
-for (const [index, manifestGame] of manifest.games.entries()) {
+for (
+  const [index, manifestGame] of
+  manifest.games.entries()
+) {
   const gameId = manifestGame.gameId;
-  const captureRead = await readJson(
-    path.join(captureRoot, 'games', String(gameId), 'capture.json'),
-    `stats-lineup capture game ${gameId}`,
+  const capturePath = path.join(
+    captureRoot,
+    'games',
+    String(gameId),
+    'capture.json',
   );
-  const capture = captureRead.value;
-  verifyUntouchedReservation(
-    capture.untouchedTestReservation,
-    `capture game ${gameId}`,
-  );
+
+  const capture =
+    await resolveM8StatsLineupCapture({
+      capturePath,
+      expectedGameId: gameId,
+      expectedSourcePlanSha256:
+        manifest.sourcePlanSha256,
+    });
+
   if (
-    capture.sourcePlanSha256 !== manifest.sourcePlanSha256 ||
-    capture.plannedGame?.gameId !== gameId
+    capture.summary?.summarySha256 !==
+    manifestGame.summarySha256
   ) {
-    throw new Error(`stats-lineup capture identity mismatch for game ${gameId}.`);
+    throw new Error(
+      `stats-lineup capture summary mismatch for game ${gameId}.`,
+    );
   }
-  if (capture.captureSha256 !== sha256(JSON.stringify(captureIdentity(capture)))) {
-    throw new Error(`stats-lineup capture SHA-256 mismatch for game ${gameId}.`);
-  }
+
   captures.push(capture);
-  if ((index + 1) % 200 === 0 || index + 1 === manifest.gameCount) {
-    console.log(`Verified captures: ${index + 1}/${manifest.gameCount}`);
+
+  if (
+    (index + 1) % 200 === 0 ||
+    index + 1 === manifest.gameCount
+  ) {
+    console.log(
+      `Verified captures: ${index + 1}/${manifest.gameCount}`,
+    );
   }
 }
 
