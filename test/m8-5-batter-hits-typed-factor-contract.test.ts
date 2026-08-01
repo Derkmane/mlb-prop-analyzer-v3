@@ -11,6 +11,11 @@ import {
   type M8_5BatterHitsContextEffect,
 } from '../src/features/batter-hits/index.js';
 
+type NonIdentityEffect = Exclude<
+  M8_5BatterHitsContextEffect,
+  { readonly kind: 'identity' }
+>;
+
 const EVIDENCE = Object.freeze({
   fitPeriod: Object.freeze({ start: '2026-03-25', end: '2026-06-30' }),
   validationPeriod: Object.freeze({ start: '2026-07-01', end: '2026-07-20' }),
@@ -29,7 +34,7 @@ const TERMINAL_VECTOR = Object.freeze(
   ),
 );
 
-function validatedArtifact(effect: M8_5BatterHitsContextEffect) {
+function validatedArtifact(effect: NonIdentityEffect) {
   return createValidatedM8_5BatterHitsFactorArtifactV1({
     factorKey: 'teamSpecificBullpen',
     modelVersion: `test-${effect.kind}-v1`,
@@ -40,7 +45,7 @@ function validatedArtifact(effect: M8_5BatterHitsContextEffect) {
   });
 }
 
-const EFFECTS: readonly M8_5BatterHitsContextEffect[] = Object.freeze([
+const EFFECTS: readonly NonIdentityEffect[] = Object.freeze([
   Object.freeze({
     kind: 'terminal-outcome-vector' as const,
     applicationStage: 'terminal-outcome-before-statistic-distribution' as const,
