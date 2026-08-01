@@ -1,0 +1,32 @@
+name: m8-5-typed-factor-checklist-sync
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.head_ref == 'agent/m8-5-typed-factor-contract'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out typed factor-contract branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/m8-5-typed-factor-contract
+          fetch-depth: 0
+
+      - name: Apply verified checklist evidence and remove temporary files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/scripts/m8_5_typed_factor_checklist_sync.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/m8-5-typed-factor-checklist-sync.yml
+          git rm .github/scripts/m8_5_typed_factor_checklist_sync.py
+          git add PROJECT_CHECKLIST.md
+          git commit -m 'Record typed factor-contract verification'
+          git push origin HEAD:agent/m8-5-typed-factor-contract
