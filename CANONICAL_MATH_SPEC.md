@@ -1,6 +1,6 @@
 # MLB Prop Analyzer — Canonical Math & Statistics Reference
 
-**Version:** 1.5
+**Version:** 1.6
 **Status:** Canonical probability mathematics
 **Empirical status:** Mathematical framework verified where marked; predictive accuracy not yet validated
 
@@ -544,14 +544,25 @@ This conditions on the pick not voiding.
 
 When participation is the only external void source and no tie is possible, participation probability cancels from the ranking probability.
 
-Display separately:
+Display separately when available:
 
-- projected start probability
+- approved projected-start or lineup-projection diagnostic evidence
 - chance the pick grades
 - projected void probability
 - `P(Win | grades)`
 
-They may be numerically close but are not interchangeable concepts.
+An approved projection model may report projected-start probability,
+coverage, exact-slot accuracy, or historical projected-versus-confirmed
+accuracy as diagnostics. Those diagnostics may not alter `P(A)`,
+`P(Win)`, `P(Loss)`, `P(Void)`, `P(Win | grades)`, eligibility, or
+ranking solely because the active lineup status is projected. Until
+confirmed information replaces it, the approved projected lineup is the
+active baseball assumption. Only an actual change in player identity,
+batting order, opposing starter, or another approved baseball input may
+change the modeled distribution.
+
+These displayed quantities may be numerically close but are not
+interchangeable concepts.
 
 ### Side-direction invariant
 
@@ -578,6 +589,104 @@ Production factors must be applied in this order:
 4. derive `P(Win)`, `P(Loss)`, `P(Void)`, and `P(Win | grades)`
 
 Do not assign a direct side-independent booster or penalty score.
+
+### 11.1 Base soft-line discovery and final context-adjusted probability
+
+When the approved prediction path uses a base model for discovery before
+a later validated context model, the two stages must remain
+mathematically distinct.
+
+Let:
+
+```text
+D_base = approved versioned base distribution of X
+D_final = approved versioned context-adjusted final distribution of X
+d = exact posted selected side
+L = exact posted line
+```
+
+Settle each distribution through the same versioned eligibility and
+settlement rules:
+
+```text
+p_base(d,L)
+  = P_base(Win | grades; d,L)
+
+p_final(d,L)
+  = P_final(Win | grades; d,L)
+```
+
+For a Higher offer:
+
+```text
+p_base(Higher,L)
+  = P_base(X > L | A)
+    / [P_base(X > L | A) + P_base(X < L | A)]
+
+p_final(Higher,L)
+  = P_final(X > L | A)
+    / [P_final(X > L | A) + P_final(X < L | A)]
+```
+
+For a Lower offer:
+
+```text
+p_base(Lower,L)
+  = P_base(X < L | A)
+    / [P_base(X < L | A) + P_base(X > L | A)]
+
+p_final(Lower,L)
+  = P_final(X < L | A)
+    / [P_final(X < L | A) + P_final(X > L | A)]
+```
+
+A **soft-line candidate** is an exact posted offer whose `p_base(d,L)`
+satisfies an approved, versioned discovery rule. A line may be soft to
+Higher or soft to Lower. Neither direction receives preference.
+
+The discovery rule may be expressed as a threshold or another
+chronologically validated side-aware predicate. When a threshold
+`tau_soft` is used:
+
+```text
+softnessMargin(d,L)
+  = p_base(d,L) - tau_soft
+```
+
+The threshold is a versioned model-selection quantity. It is not fixed
+at `0.50` by this specification and may not be invented during runtime.
+
+The context probability delta is:
+
+```text
+contextProbabilityDelta(d,L)
+  = p_final(d,L) - p_base(d,L)
+```
+
+This delta is diagnostic evidence only. It may explain how validated
+context strengthened or weakened the exact posted side, but it may not
+replace `p_final(d,L)` in ranking.
+
+Required invariants:
+
+1. `D_base` and `D_final` are explicit versioned distributions.
+2. Every context factor acts through eligibility, workload, shared
+   scenarios, or the distribution of `X`; no factor directly adds or
+   subtracts probability points.
+3. Context-factor models may not use the selected side as a model input.
+   Side awareness appears when the resulting distribution is settled
+   against the exact posted side and line.
+4. The exact same final distribution is used for baseline and alternate
+   offers for the same player, game, and settlement statistic; only
+   posted offer attributes and settlement differ.
+5. Category ranking uses only final `P(Win | grades)`, then `P(Void)`.
+   `p_base`, softness margin, context probability delta, price,
+   multiplier, and discovery labels are not ranking quantities.
+6. A hard discovery filter may prevent full context evaluation only
+   after chronological current-season validation establishes an
+   approved recall standard for the strongest `p_final` candidates.
+   Without that evidence, every supported offer must receive the full
+   model or pass only through a broad high-recall discovery screen.
 
 ---
 
@@ -1005,6 +1114,23 @@ Before ranking any real prop:
 33. Baseline and alternate offers for the same base market use the same statistic distribution and differ only by posted offer attributes and settlement.
 34. Planned, disabled, or not-yet-production-validated markets fail closed and cannot reach ranking.
 35. Production engine modules cannot import audit, deprecated, prior-season, or unapproved fallback models.
+36. Base soft-line probability is produced by exact settlement of the
+    versioned base distribution for the exact posted side and line.
+37. Final context probability is produced by recomputing and exactly
+    settling the versioned final distribution; no direct probability
+    increment or decrement is allowed.
+38. Context-factor modules cannot read selected side, and the same
+    distributional shift helps one side while hurting the opposite side
+    under exact settlement.
+39. Final category ordering uses final `P(Win | grades)`, then `P(Void)`;
+    base probability, softness margin, context delta, multiplier, and
+    discovery labels cannot alter the order.
+40. Any hard discovery cutoff demonstrates the approved current-season
+    recall standard against full-model final probabilities before it may
+    exclude offers from complete context evaluation.
+41. Projected-lineup diagnostics cannot change model probabilities,
+    eligibility, void, confidence, category access, or ranking solely
+    because lineup status is projected.
 
 ---
 
@@ -1014,6 +1140,10 @@ The following must be fitted, documented, versioned, and validated before real-p
 
 ### Shared and hitter components
 
+- side-aware soft-line discovery rule, threshold or predicate, version,
+  and current-season recall validation
+- base-versus-final distribution contract and context probability-delta
+  reporting
 - within-current-season recency weighting by outcome
 - single current-season talent-pooling model by outcome
 - current-season platoon interaction structure
@@ -1090,6 +1220,13 @@ P(V) = 1−P(A)+P(A)P(X=L|A)
 Ranking:
 P(Win|grades) = P(Win) / [P(Win)+P(Loss)]
 
+Two-stage soft-line path:
+p_base(d,L)  = exact selected-side settlement of D_base
+p_final(d,L) = exact selected-side settlement of D_final
+softnessMargin = p_base(d,L) - tau_soft
+contextProbabilityDelta = p_final(d,L) - p_base(d,L)
+rank by p_final(d,L), then P(Void)
+
 Side direction:
 upward shift in X  => Higher probability up, Lower probability down
 downward shift in X => Higher probability down, Lower probability up
@@ -1110,6 +1247,30 @@ no validated distribution → no ranked prop
 ---
 
 ## Changelog
+
+### Version 1.6 — 2026-08-01
+
+- Defined side-aware soft-line discovery for exact posted Higher and
+  Lower offers using a versioned base distribution and discovery rule.
+- Separated base discovery probability from final context-adjusted
+  probability and defined softness margin and context probability delta
+  as auditable non-ranking quantities.
+- Locked all context factors to eligibility, workload, shared scenarios,
+  or statistic-distribution effects before exact settlement and
+  prohibited direct probability-point boosters.
+- Required context-factor models to remain side-independent in their
+  inputs while preserving directional Higher/Lower effects through
+  settlement.
+- Required final category ranking to use final `P(Win | grades)`, then
+  `P(Void)`, and prohibited base probability, softness margin, context
+  delta, price, multiplier, or discovery labels from altering rank.
+- Required a hard discovery filter to prove current-season recall for
+  the strongest full-model final probabilities before excluding offers
+  from complete context evaluation.
+- Clarified that projected-lineup probability and accuracy measures are
+  diagnostic only and cannot penalize probabilities, eligibility, void,
+  confidence, category access, or ranking solely because status is
+  projected.
 
 ### Version 1.5 — 2026-07-29
 
