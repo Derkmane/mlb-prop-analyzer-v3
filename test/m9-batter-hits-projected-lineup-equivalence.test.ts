@@ -5,6 +5,8 @@ import test from 'node:test';
 
 import {
   connectFrozenBatterHitsProbabilityOutput,
+  connectM8BatterHitsBaseDistribution,
+  connectM8BatterHitsBaseEvaluationFromDistribution,
   connectPregameBatterHitsBoard,
 } from '../src/composition/index.js';
 import type {
@@ -224,4 +226,176 @@ test('projected and confirmed versions of one active lineup produce identical fi
   );
   assert.equal(lineupStatusFromCandidate(projected), 'projected');
   assert.equal(lineupStatusFromCandidate(confirmed), 'confirmed');
+});
+
+test('M8 base evaluation preserves frozen math and reuses one D_base across exact offers', async () => {
+  const board = pregameBoard();
+  const baselineOffer = board.offers.find(
+    (candidate) =>
+      candidate.playerName === 'Gavin Sheets' &&
+      candidate.offerType === 'baseline' &&
+      candidate.line === 0.5 &&
+      candidate.selectedSide === 'higher',
+  );
+  const observedAlternate = board.offers.find(
+    (candidate) =>
+      candidate.offerType === 'alternate' &&
+      candidate.selectedSide === 'lower' &&
+      candidate.line === 1.5,
+  );
+  assert.ok(baselineOffer);
+  assert.ok(observedAlternate);
+
+  const alternateOffer: NormalizedBatterHitsBoardOffer = Object.freeze({
+    ...baselineOffer,
+    providerMarketKey: observedAlternate.providerMarketKey,
+    offerType: observedAlternate.offerType,
+    selectedSide: observedAlternate.selectedSide,
+    rawSide: observedAlternate.rawSide,
+    line: observedAlternate.line,
+    americanPrice: observedAlternate.americanPrice,
+    multiplier: observedAlternate.multiplier,
+    marketLastUpdate: observedAlternate.marketLastUpdate,
+  });
+  const integerHigher: NormalizedBatterHitsBoardOffer = Object.freeze({
+    ...baselineOffer,
+    line: 1,
+    selectedSide: 'higher',
+    rawSide: 'Over',
+  });
+  const integerLower: NormalizedBatterHitsBoardOffer = Object.freeze({
+    ...baselineOffer,
+    line: 1,
+    selectedSide: 'lower',
+    rawSide: 'Under',
+  });
+  const boardWithOffers = Object.freeze({
+    ...board,
+    offers: Object.freeze([
+      ...board.offers,
+      alternateOffer,
+      integerHigher,
+      integerLower,
+    ]),
+  });
+  const observation = observationFor(baselineOffer, 'confirmed');
+
+  const frozenResult = await connectFrozenBatterHitsProbabilityOutput({
+    pregameBoard: board,
+    offer: baselineOffer,
+    observation,
+  });
+  const baseDistribution = await connectM8BatterHitsBaseDistribution({
+    pregameBoard: board,
+    offer: baselineOffer,
+    observation,
+    evaluatedAt: SOURCE_CAPTURED_AT,
+  });
+  const baselineEvaluation = connectM8BatterHitsBaseEvaluationFromDistribution({
+    pregameBoard: boardWithOffers,
+    offer: baselineOffer,
+    baseDistribution,
+  });
+  const alternateEvaluation = connectM8BatterHitsBaseEvaluationFromDistribution({
+    pregameBoard: boardWithOffers,
+    offer: alternateOffer,
+    baseDistribution,
+  });
+  const integerHigherEvaluation =
+    connectM8BatterHitsBaseEvaluationFromDistribution({
+      pregameBoard: boardWithOffers,
+      offer: integerHigher,
+      baseDistribution,
+    });
+  const integerLowerEvaluation =
+    connectM8BatterHitsBaseEvaluationFromDistribution({
+      pregameBoard: boardWithOffers,
+      offer: integerLower,
+      baseDistribution,
+    });
+
+  assert.deepEqual(baseDistribution.dBase, frozenResult.distribution);
+  assert.strictEqual(baselineEvaluation.dBase, baseDistribution.dBase);
+  assert.strictEqual(alternateEvaluation.dBase, baseDistribution.dBase);
+  assert.strictEqual(integerHigherEvaluation.dBase, baseDistribution.dBase);
+  assert.strictEqual(integerLowerEvaluation.dBase, baseDistribution.dBase);
+
+  assert.deepEqual(baselineEvaluation.probabilities, {
+    pWin: frozenResult.candidate.pWin,
+    pLoss: frozenResult.candidate.pLoss,
+    pVoid: frozenResult.candidate.pVoid,
+    pBase: frozenResult.candidate.pWinGivenGrades,
+  });
+  assert.equal(baselineEvaluation.offer.selectedSide, 'higher');
+  assert.equal(baselineEvaluation.offer.line, 0.5);
+  assert.equal(alternateEvaluation.offer.selectedSide, 'lower');
+  assert.equal(alternateEvaluation.offer.line, 1.5);
+  assert.equal(integerHigherEvaluation.probabilities.pVoid > 0, true);
+  assert.equal(
+    integerHigherEvaluation.probabilities.pVoid,
+    integerLowerEvaluation.probabilities.pVoid,
+  );
+  assert.equal(
+    integerHigherEvaluation.probabilities.pWin,
+    integerLowerEvaluation.probabilities.pLoss,
+  );
+  assert.equal(
+    integerHigherEvaluation.probabilities.pLoss,
+    integerLowerEvaluation.probabilities.pWin,
+  );
+
+  assert.equal(baseDistribution.productionEnabled, false);
+  assert.equal(baseDistribution.hardDiscoveryFilterEnabled, false);
+  assert.equal(baselineEvaluation.discoveryDecision, 'AUDIT_ONLY_UNTHRESHOLDED');
+  assert.equal(baselineEvaluation.tauSoft, null);
+  assert.equal(baselineEvaluation.softnessMargin, null);
+  assert.equal(Object.isFrozen(baseDistribution), true);
+  assert.equal(Object.isFrozen(baseDistribution.dBase), true);
+  assert.equal(Object.isFrozen(baselineEvaluation), true);
+  assert.equal(Object.isFrozen(baselineEvaluation.offer), true);
+  assert.equal(Object.isFrozen(baselineEvaluation.probabilities), true);
+});
+
+test('M8 base distribution is projected-status invariant and rejects contract tampering', async () => {
+  const board = pregameBoard();
+  const offer = board.offers.find(
+    (candidate) =>
+      candidate.playerName === 'Gavin Sheets' &&
+      candidate.offerType === 'baseline' &&
+      candidate.line === 0.5 &&
+      candidate.selectedSide === 'higher',
+  );
+  assert.ok(offer);
+
+  const projected = await connectM8BatterHitsBaseDistribution({
+    pregameBoard: board,
+    offer,
+    observation: observationFor(offer, 'projected'),
+    evaluatedAt: SOURCE_CAPTURED_AT,
+  });
+  const confirmed = await connectM8BatterHitsBaseDistribution({
+    pregameBoard: board,
+    offer,
+    observation: observationFor(offer, 'confirmed'),
+    evaluatedAt: SOURCE_CAPTURED_AT,
+  });
+
+  assert.deepEqual(projected.dBase, confirmed.dBase);
+  assert.equal(projected.baseballInputs.lineupStatus, 'projected');
+  assert.equal(confirmed.baseballInputs.lineupStatus, 'confirmed');
+  assert.equal(projected.sharedScenarioIdentity, confirmed.sharedScenarioIdentity);
+
+  const tampered = Object.freeze({
+    ...confirmed,
+    baseDistributionContract: 'tampered-contract',
+  }) as unknown as typeof confirmed;
+  assert.throws(
+    () =>
+      connectM8BatterHitsBaseEvaluationFromDistribution({
+        pregameBoard: board,
+        offer,
+        baseDistribution: tampered,
+      }),
+    /base distribution contract/u,
+  );
 });
