@@ -5,6 +5,7 @@ export * from './predict.js';
 export * from './runtime-artifact.js';
 export * from './runtime-probability.js';
 export * from './base-evaluation.js';
+export * from './context-factor-contract.js';
 export type {
   BatterHitsRuntimeObservation as ConfirmedBatterHitsRuntimeObservation,
 } from './runtime-probability.js';
