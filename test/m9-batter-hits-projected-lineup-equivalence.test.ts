@@ -379,11 +379,23 @@ test('M8 base distribution is projected-status invariant and rejects contract ta
     observation: observationFor(offer, 'confirmed'),
     evaluatedAt: SOURCE_CAPTURED_AT,
   });
+  const confirmedAgain = await connectM8BatterHitsBaseDistribution({
+    pregameBoard: board,
+    offer,
+    observation: observationFor(offer, 'confirmed'),
+    evaluatedAt: SOURCE_CAPTURED_AT,
+  });
 
   assert.deepEqual(projected.dBase, confirmed.dBase);
   assert.equal(projected.baseballInputs.lineupStatus, 'projected');
   assert.equal(confirmed.baseballInputs.lineupStatus, 'confirmed');
   assert.equal(projected.sharedScenarioIdentity, confirmed.sharedScenarioIdentity);
+  assert.deepEqual(confirmedAgain, confirmed);
+  assert.equal(
+    confirmedAgain.baseDistributionSha256,
+    confirmed.baseDistributionSha256,
+  );
+  assert.match(confirmed.baseDistributionSha256, /^[a-f0-9]{64}$/u);
 
   const tampered = Object.freeze({
     ...confirmed,
