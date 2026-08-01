@@ -36,8 +36,6 @@ jobs:
             src/features/batter-hits/runtime-probability.ts \
             test/m9-batter-hits-projected-lineup-equivalence.test.ts
 
-          git rm src/features/batter-hits/runtime-lineup-observation.ts
-
           git checkout origin/agent/m8-c2-production-seal-gate -- \
             docs/modeling/m8-production-enablement-gate-v1.md
 
@@ -54,7 +52,6 @@ jobs:
             src/composition/batter-hits-probability.ts \
             src/features/batter-hits/index.ts \
             src/features/batter-hits/runtime-probability.ts \
-            src/features/batter-hits/runtime-lineup-observation.ts \
             test/m9-batter-hits-projected-lineup-equivalence.test.ts
           git commit -m 'Establish clean M8 amendment base'
 
@@ -64,7 +61,6 @@ jobs:
             docs/modeling/m8-production-enablement-gate-v1.md \
             src/composition/batter-hits-probability.ts \
             src/features/batter-hits/index.ts \
-            src/features/batter-hits/runtime-lineup-observation.ts \
             src/features/batter-hits/runtime-probability.ts \
             test/m9-batter-hits-projected-lineup-equivalence.test.ts | sort)"
           test "$changed" = "$expected"
