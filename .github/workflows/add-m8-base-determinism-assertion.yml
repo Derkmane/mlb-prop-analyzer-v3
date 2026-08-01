@@ -1,0 +1,28 @@
+name: add-m8-base-determinism-assertion
+
+on:
+  pull_request:
+    types: [synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.head_ref == 'agent/m8-amendment-clean'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/m8-amendment-clean
+          fetch-depth: 0
+      - name: Add deterministic rerun assertion
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/scripts/add_m8_base_determinism_assertion.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add test/m9-batter-hits-projected-lineup-equivalence.test.ts
+          git commit -m 'Prove deterministic M8 base reruns'
+          git push origin HEAD:agent/m8-amendment-clean
