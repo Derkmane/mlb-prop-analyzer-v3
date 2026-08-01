@@ -1,6 +1,6 @@
 # MLB Prop Analyzer --- Project Rules
 
-**Version:** 2.4\
+**Version:** 2.5\
 **Status:** Canonical project rules\
 **Applies to:** MLB Prop Analyzer V3\
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
@@ -152,6 +152,44 @@ display side-aware probability, eligibility, workload, distribution
 construction, settlement, calibration, reproducibility, category
 ranking, saved predictions, or grading.
 
+### Side-aware soft-line discovery --- LOCKED
+
+A **soft line** is an exact posted Underdog offer whose selected side and
+line produce favorable side-specific probability under an approved,
+versioned base baseball distribution and discovery rule.
+
+Rules:
+
+-   a line may be soft to Higher because it is posted too low relative
+    to the modeled distribution
+-   a line may be soft to Lower because it is posted too high relative
+    to the modeled distribution
+-   every exact posted Higher or Lower offer is evaluated on its own
+    selected side and line; neither side receives preference
+-   expected player output, fair-line distance, price, or multiplier may
+    be preserved as evidence or metadata but may not replace exact
+    side-and-line settlement probability
+-   the base soft-line probability and discovery decision are
+    preliminary evidence, not the final ranking probability
+-   every later approved context factor must act through eligibility,
+    workload, shared scenarios, or the statistic distribution; the app
+    must then recompute and resettle the exact posted side and line
+-   the final context-adjusted `P(Win | grades)` is the only probability
+    used for category ranking
+-   base softness margin, context probability delta, multiplier, and
+    discovery labels may not independently alter final ranking
+-   a hard discovery cutoff may exclude offers from complete context
+    evaluation only after chronological current-season validation shows
+    that the cutoff preserves the strongest final-probability
+    candidates at the approved recall standard
+-   until that validation exists, discovery must be an audit label, a
+    broad high-recall screen, or both; it may not silently discard an
+    offer that could become one of the strongest final picks
+
+The base distribution, discovery method, final context-adjusted
+distribution, and all corresponding versions must remain distinct and
+auditable whenever this two-stage process is used.
+
 ------------------------------------------------------------------------
 
 ## 6. Product structure --- LOCKED
@@ -205,6 +243,15 @@ Rules:
     versioned, current-season evidence path; the projection method must
     be validated separately, but projection status is not a probability
     penalty
+-   projection accuracy, coverage, exact-slot accuracy, and
+    projected-versus-confirmed replacement rates may be measured, saved,
+    and displayed as diagnostic evidence, but those diagnostics may not
+    reduce `P(Win)`, `P(Win | grades)`, eligibility, category access,
+    ranking, or confidence or increase `P(Void)` solely because the
+    active lineup is projected
+-   only an actual change in player identity, batting order, opposing
+    starter, or another approved baseball input may change the modeled
+    distribution when confirmed information replaces the projection
 -   a player who is neither projected nor confirmed to start may not be
     treated as a starting hitter merely because an offer exists
 
@@ -381,7 +428,9 @@ raw provider response
 → normalized contracts
 → shared GameScenarioSet
 → market feature statistic distribution and eligibility
-→ core settlement and side-aware probabilities
+→ when used, versioned side-aware base discovery evidence and validated
+  context-adjusted final distribution
+→ core settlement and final side-aware probabilities
 → generic candidate
 → category selection and ranking
 → immutable saved run
@@ -395,6 +444,10 @@ Examples:
 -   UI may not call BALLDONTLIE directly.
 -   Infrastructure may not rank candidates.
 -   Categories may not change `P(Win)`.
+-   Soft-line discovery may not replace or bypass the validated final
+    context model.
+-   Base discovery probability, context probability delta, and
+    multiplier may not replace final `P(Win | grades)` in ranking.
 -   Features may not create arbitrary saved-run formats.
 -   Historical rendering may not rerun the current production model.
 
@@ -806,7 +859,13 @@ Every saved prediction must preserve or reference:
 -   selected side and line
 -   scenario weights
 -   opportunity distributions
--   final statistic distribution
+-   base statistic distribution and base side-specific probabilities
+    when soft-line discovery is used
+-   soft-line discovery method and version when soft-line discovery is
+    used
+-   final context-adjusted statistic distribution
+-   final context-model and factor-artifact versions
+-   context probability delta when it is reported
 -   `P(Win)`, `P(Loss)`, `P(Void)`, and `P(Win | grades)`
 
 Saved predictions and runs are immutable.
@@ -971,6 +1030,27 @@ There is no separate Project Knowledge deliverable.
 ------------------------------------------------------------------------
 
 ## Changelog
+
+### Version 2.5 --- 2026-08-01
+
+-   Defined a soft line as an exact posted offer that may favor either
+    Higher or Lower under an approved side-aware base distribution and
+    discovery rule.
+-   Separated preliminary base soft-line probability from final
+    context-adjusted probability and locked final `P(Win | grades)` as
+    the only category-ranking probability.
+-   Required all context factors to act through eligibility, workload,
+    shared scenarios, or the statistic distribution before exact
+    settlement and prohibited direct probability-point boosters.
+-   Required any hard discovery cutoff to prove high recall for the
+    strongest final-probability candidates before it may exclude offers
+    from full context evaluation.
+-   Clarified that projected-lineup accuracy and replacement metrics are
+    diagnostic only and may not penalize probability, eligibility,
+    void, confidence, category access, or ranking.
+-   Added audit and saved-record requirements for base distribution,
+    discovery method, final context distribution, factor versions, and
+    reported probability delta.
 
 ### Version 2.4 --- 2026-07-31
 
