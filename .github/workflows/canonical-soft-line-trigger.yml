@@ -18,45 +18,25 @@ jobs:
           ref: agent/canonical-soft-line-definition
           fetch-depth: 0
 
-      - name: Execute hash-locked canonical sync
+      - name: Apply and verify complete canonical replacements
         shell: bash
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          import subprocess
+          python scripts/canonical-soft-line-sync.py
+          git diff --check
+          test "$(git diff --name-only | sort | tr '\n' ' ')" = "CANONICAL_MATH_SPEC.md PROJECT_RULES.md "
+          grep -F '**Version:** 2.5\' PROJECT_RULES.md
+          grep -F '**Version:** 1.6' CANONICAL_MATH_SPEC.md
+          grep -F '### Side-aware soft-line discovery --- LOCKED' PROJECT_RULES.md
+          grep -F '### 11.1 Base soft-line discovery and final context-adjusted probability' CANONICAL_MATH_SPEC.md
 
-          workflow = Path('.github/workflows/canonical-soft-line-sync.yml').read_text().splitlines()
-          blocks = []
-          index = 0
-          while index < len(workflow):
-              if workflow[index] == '        run: |':
-                  index += 1
-                  block = []
-                  while index < len(workflow):
-                      line = workflow[index]
-                      if line.startswith('          '):
-                          block.append(line[10:])
-                          index += 1
-                          continue
-                      if line == '':
-                          block.append('')
-                          index += 1
-                          continue
-                      break
-                  blocks.append('\n'.join(block))
-                  continue
-              index += 1
-
-          if len(blocks) != 3:
-              raise SystemExit(f'Expected 3 embedded run blocks; found {len(blocks)}')
-
-          for block in blocks:
-              subprocess.run(block, shell=True, executable='/bin/bash', check=True)
-          PY
-
-      - name: Remove temporary trigger
+      - name: Commit canonical replacements and remove temporary files
         shell: bash
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add PROJECT_RULES.md CANONICAL_MATH_SPEC.md
+          git rm .github/workflows/canonical-soft-line-sync.yml
           git rm .github/workflows/canonical-soft-line-trigger.yml
-          git commit -m "Remove temporary canonical sync trigger"
+          git rm scripts/canonical-soft-line-sync.py
+          git commit -m "Define side-aware soft-line canonical rules"
           git push origin HEAD:agent/canonical-soft-line-definition
