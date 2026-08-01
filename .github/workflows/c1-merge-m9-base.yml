@@ -1,0 +1,32 @@
+name: c1-merge-m9-base
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  merge-base:
+    if: github.head_ref == 'agent/m8-c1-projected-lineup-compliance'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out projected-lineup branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/m8-c1-projected-lineup-compliance
+          fetch-depth: 0
+
+      - name: Merge current M9 base without changing C1 scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin agent/m9-live-archive-grading-clean
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/c1-merge-m9-base.yml
+          git commit -m 'Remove temporary C1 base-sync workflow'
+          git merge --no-ff origin/agent/m9-live-archive-grading-clean \
+            -m 'Merge canonicalized M9 base into projected-lineup branch'
+          git push origin HEAD:agent/m8-c1-projected-lineup-compliance
