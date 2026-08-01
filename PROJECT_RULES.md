@@ -1,6 +1,6 @@
 # MLB Prop Analyzer --- Project Rules
 
-**Version:** 2.3\
+**Version:** 2.5\
 **Status:** Canonical project rules\
 **Applies to:** MLB Prop Analyzer V3\
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
@@ -152,6 +152,44 @@ display side-aware probability, eligibility, workload, distribution
 construction, settlement, calibration, reproducibility, category
 ranking, saved predictions, or grading.
 
+### Side-aware soft-line discovery --- LOCKED
+
+A **soft line** is an exact posted Underdog offer whose selected side and
+line produce favorable side-specific probability under an approved,
+versioned base baseball distribution and discovery rule.
+
+Rules:
+
+-   a line may be soft to Higher because it is posted too low relative
+    to the modeled distribution
+-   a line may be soft to Lower because it is posted too high relative
+    to the modeled distribution
+-   every exact posted Higher or Lower offer is evaluated on its own
+    selected side and line; neither side receives preference
+-   expected player output, fair-line distance, price, or multiplier may
+    be preserved as evidence or metadata but may not replace exact
+    side-and-line settlement probability
+-   the base soft-line probability and discovery decision are
+    preliminary evidence, not the final ranking probability
+-   every later approved context factor must act through eligibility,
+    workload, shared scenarios, or the statistic distribution; the app
+    must then recompute and resettle the exact posted side and line
+-   the final context-adjusted `P(Win | grades)` is the only probability
+    used for category ranking
+-   base softness margin, context probability delta, multiplier, and
+    discovery labels may not independently alter final ranking
+-   a hard discovery cutoff may exclude offers from complete context
+    evaluation only after chronological current-season validation shows
+    that the cutoff preserves the strongest final-probability
+    candidates at the approved recall standard
+-   until that validation exists, discovery must be an audit label, a
+    broad high-recall screen, or both; it may not silently discard an
+    offer that could become one of the strongest final picks
+
+The base distribution, discovery method, final context-adjusted
+distribution, and all corresponding versions must remain distinct and
+auditable whenever this two-stage process is used.
+
 ------------------------------------------------------------------------
 
 ## 6. Product structure --- LOCKED
@@ -205,6 +243,15 @@ Rules:
     versioned, current-season evidence path; the projection method must
     be validated separately, but projection status is not a probability
     penalty
+-   projection accuracy, coverage, exact-slot accuracy, and
+    projected-versus-confirmed replacement rates may be measured, saved,
+    and displayed as diagnostic evidence, but those diagnostics may not
+    reduce `P(Win)`, `P(Win | grades)`, eligibility, category access,
+    ranking, or confidence or increase `P(Void)` solely because the
+    active lineup is projected
+-   only an actual change in player identity, batting order, opposing
+    starter, or another approved baseball input may change the modeled
+    distribution when confirmed information replaces the projection
 -   a player who is neither projected nor confirmed to start may not be
     treated as a starting hitter merely because an offer exists
 
@@ -381,7 +428,9 @@ raw provider response
 → normalized contracts
 → shared GameScenarioSet
 → market feature statistic distribution and eligibility
-→ core settlement and side-aware probabilities
+→ when used, versioned side-aware base discovery evidence and validated
+  context-adjusted final distribution
+→ core settlement and final side-aware probabilities
 → generic candidate
 → category selection and ranking
 → immutable saved run
@@ -395,6 +444,10 @@ Examples:
 -   UI may not call BALLDONTLIE directly.
 -   Infrastructure may not rank candidates.
 -   Categories may not change `P(Win)`.
+-   Soft-line discovery may not replace or bypass the validated final
+    context model.
+-   Base discovery probability, context probability delta, and
+    multiplier may not replace final `P(Win | grades)` in ranking.
 -   Features may not create arbitrary saved-run formats.
 -   Historical rendering may not rerun the current production model.
 
@@ -728,7 +781,7 @@ environment boundary honestly.
 
 ------------------------------------------------------------------------
 
-## 22. Repeated-failure escalation --- LOCKED
+## 22. Repeated-failure structural reassessment and continued resolution --- LOCKED
 
 Mandatory structural reassessment is triggered when either occurs:
 
@@ -744,12 +797,26 @@ failures do not count.
 
 After the trigger:
 
--   stop editing the affected file or component
--   do not make a third implementation attempt
--   report what each attempt proved
--   report any remaining read-only diagnostic findings
--   reassess assumptions, boundaries, responsibilities, and dependencies
--   propose one structural direction
+-   stop blind, incremental, or assumption-driven patching of the
+    affected file or component
+-   do not repeat the same implementation approach or make another
+    unexamined patch
+-   continue working on the same unresolved issue
+-   report what each failed attempt proved
+-   complete read-only investigation of the affected component,
+    upstream inputs, downstream consumers, schemas, tests, artifacts,
+    boundaries, and dependencies
+-   reassess assumptions, ownership, interfaces, responsibilities, and
+    the full dependency chain
+-   select one evidence-based structural direction
+-   execute that structural direction through its focused verification
+    gate unless the user stops or a real evidence, access, secret,
+    runtime, destructive-change approval, canonical-change approval, or
+    other explicit authorization boundary is reached
+-   never end the workflow with only a failure report when another
+    diagnostic or corrective step can be performed with available tools
+-   when user action is required, provide exactly one concrete next
+    action that advances the same issue
 
 Allowed structural directions:
 
@@ -758,12 +825,19 @@ Allowed structural directions:
 -   replace the faulty component
 -   revert to the last verified state
 -   delete and reconstruct the component
--   stop at an evidence, access, secret, runtime, or approval boundary
+-   perform a broader coherent correction across the complete affected
+    dependency chain instead of continuing microscopic patches
 
-Read-only investigation may continue if it is reported as investigation
-and does not conceal another patch attempt.
+Read-only investigation is required when necessary to choose the
+structural direction. It is not a reason to stop working.
 
-Deletion is never automatic.
+The trigger prohibits a third blind patch; it does not prohibit a
+structurally redesigned implementation attempt after the full
+reassessment.
+
+Destructive deletion, rollback, replacement, or reconstruction remains
+subject to the approval requirements elsewhere in these rules. Deletion
+is never automatic.
 
 ------------------------------------------------------------------------
 
@@ -785,7 +859,13 @@ Every saved prediction must preserve or reference:
 -   selected side and line
 -   scenario weights
 -   opportunity distributions
--   final statistic distribution
+-   base statistic distribution and base side-specific probabilities
+    when soft-line discovery is used
+-   soft-line discovery method and version when soft-line discovery is
+    used
+-   final context-adjusted statistic distribution
+-   final context-model and factor-artifact versions
+-   context probability delta when it is reported
 -   `P(Win)`, `P(Loss)`, `P(Void)`, and `P(Win | grades)`
 
 Saved predictions and runs are immutable.
@@ -950,6 +1030,45 @@ There is no separate Project Knowledge deliverable.
 ------------------------------------------------------------------------
 
 ## Changelog
+
+### Version 2.5 --- 2026-08-01
+
+-   Defined a soft line as an exact posted offer that may favor either
+    Higher or Lower under an approved side-aware base distribution and
+    discovery rule.
+-   Separated preliminary base soft-line probability from final
+    context-adjusted probability and locked final `P(Win | grades)` as
+    the only category-ranking probability.
+-   Required all context factors to act through eligibility, workload,
+    shared scenarios, or the statistic distribution before exact
+    settlement and prohibited direct probability-point boosters.
+-   Required any hard discovery cutoff to prove high recall for the
+    strongest final-probability candidates before it may exclude offers
+    from full context evaluation.
+-   Clarified that projected-lineup accuracy and replacement metrics are
+    diagnostic only and may not penalize probability, eligibility,
+    void, confidence, category access, or ranking.
+-   Added audit and saved-record requirements for base distribution,
+    discovery method, final context distribution, factor versions, and
+    reported probability delta.
+
+### Version 2.4 --- 2026-07-31
+
+-   Replaced the repeated-failure instruction to stop editing with a
+    requirement to stop blind incremental patching while continuing
+    diagnosis and resolution of the same issue.
+-   Required complete mapping of the affected component, inputs,
+    consumers, schemas, tests, artifacts, boundaries, and dependencies
+    before selecting one structural correction.
+-   Required execution of the selected structural direction through its
+    focused verification gate unless the user stops or a real evidence,
+    access, secret, runtime, destructive-change approval,
+    canonical-change approval, or other explicit authorization boundary
+    is reached.
+-   Clarified that the trigger prohibits a third blind patch, not a
+    structurally redesigned implementation after full reassessment.
+-   Prohibited ending with only a failure report when another diagnostic
+    or corrective step can be performed with available tools.
 
 ### Version 2.3 --- 2026-07-29
 
