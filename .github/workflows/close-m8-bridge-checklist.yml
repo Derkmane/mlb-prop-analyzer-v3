@@ -1,0 +1,28 @@
+name: close-m8-bridge-checklist
+
+on:
+  pull_request:
+    types: [synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.head_ref == 'agent/m8-amendment-clean'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/m8-amendment-clean
+          fetch-depth: 0
+      - name: Close verified M8 Bridge checklist items
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/scripts/close_m8_bridge_checklist.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PROJECT_CHECKLIST.md
+          git commit -m 'Close the verified M8 Bridge checklist'
+          git push origin HEAD:agent/m8-amendment-clean
