@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 2.8
+**Version:** 3.1
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -311,6 +311,79 @@ M8 current-season fitting and runtime-freeze work is closed. The one-time untouc
 
 ---
 
+## M8 Bridge — Frozen base-distribution handoff
+
+This section amends the runtime and evidence boundary around frozen M8. It does not reopen, refit, or mutate the frozen M8 candidate. The exact frozen M8 statistic distribution is the versioned `D_base` predecessor consumed by M8.5.
+
+- [x] Preserve frozen M8 runtime artifacts, selected component hashes, model version, distribution-builder version, settlement version, production-disabled state, and sealed untouched-test boundary unchanged.
+- [x] Land direct projected-or-confirmed runtime acceptance through the real M9 path; identical baseball inputs must produce identical distributions and probabilities with only lineup-status metadata differing.
+- [x] Define `M8BatterHitsBaseEvaluationV1` as the immutable public base-evaluation envelope.
+- [x] Preserve exact player, game, market, posted side, posted line, lineup, opposing starter, shared `GameScenarioSet`, provider snapshots, and evaluation timestamp.
+- [x] Preserve `D_base`, base `P(Win)`, base `P(Loss)`, base `P(Void)`, and `p_base(d,L)=P_base(Win | grades; d,L)` from exact core settlement.
+- [x] Build `D_base` once per identical player, game, settlement statistic, baseball input set, and model version; baseline and alternate offers settle that same distribution without rebuilding it.
+- [x] Preserve a deterministic shared-scenario identity or hash so M8.5 proves it consumed the same game assumptions.
+- [x] Add audit-only side-aware soft-line evidence for every supported exact posted Higher or Lower offer.
+- [x] Keep `tau_soft`, softness margin, and every hard discovery exclusion disabled until M8.5 final probabilities exist and chronological current-season recall validation passes.
+- [x] Prove the bridge leaves the existing frozen M8 distribution and probabilities byte-for-byte unchanged for identical inputs.
+- [x] Prove Higher/Lower symmetry, integer-line tie/void handling, baseline/altline distribution reuse, deterministic reruns, and tamper rejection through the bridge.
+- [x] Keep production ranking and category access disabled; completing the bridge does not authorize a real ranked pick.
+
+### M8 Bridge exit gate
+
+- [x] Frozen M8 remains immutable and independently verifiable as `D_base`.
+- [x] Every base evaluation carries complete version and source lineage.
+- [x] Every supported posted side and line can receive exact `p_base` without a runtime-invented threshold.
+- [x] No discovery label, price, multiplier, fair-line distance, or base probability can bypass M8.5 or alter final rank.
+- [x] Focused bridge tests and the complete repository verification gate pass.
+
+
+M8 Bridge completion evidence — `M8BatterHitsBaseEvaluationV1` and the reusable `m8-batter-hits-base-distribution-v1` contract preserve the frozen M8 distribution as immutable `D_base`, settle every exact surviving offer through core settlement, retain complete player/game/lineup/starter/provider/model/artifact lineage, hash the base distribution and shared scenario identity, and keep discovery audit-only with no runtime `tau_soft` or hard exclusion. Focused regressions proved exact parity with the existing frozen M8 output, one-object baseline/altline reuse, Higher/Lower symmetry, integer-line voids, projected/confirmed invariance, deterministic reruns, and tamper rejection. GitHub Actions verify run 492 passed 350 of 350 tests with typecheck, script checks, architecture, build, selected-side, and protective-architecture gates clean. Production ranking remained disabled and untouched-test evidence remained sealed.
+
+---
+
+## M8.5 — Context-adjusted Batter Hits successor
+
+M8.5 is a new current-season model version that consumes the immutable M8 base evaluation and produces a separately versioned context-adjusted `D_final`. It may not silently edit the frozen M8 artifacts or use the original M8 untouched cohort for factor selection or tuning.
+
+### Versioned factor contract
+
+- [ ] Replace the scalar-only factor-extension proposal with a typed artifact contract that supports `identity`, `terminal-outcome-vector`, `scenario-mixture`, `opportunity-survival`, `workload-transition`, and `batted-ball-translation` effect types.
+- [ ] Require every factor artifact to preserve factor key, status, model version, artifact SHA-256, validation status, active season, application stage, selected-side-input prohibition, required inputs, and source-evidence version.
+- [ ] Require unknown, missing, unvalidated, wrong-season, side-dependent, hash-drifted, or unsupported factor artifacts to fail closed or remain explicit identity according to the approved manifest.
+- [ ] Prohibit every factor from directly adding or subtracting probability points or reading the selected Higher/Lower side.
+
+### Context factors and order
+
+- [ ] Team-specific bullpen outcome model — replace the generic league bullpen outcome assumptions while preserving the validated starter-to-bullpen workload transition and avoiding double counting.
+- [ ] Game-specific offensive-environment model — preserve one shared game scenario set and jointly affect approved opportunity and outcome assumptions.
+- [ ] Park model — proceed only with verified approved-source venue evidence and current-season validation.
+- [ ] Times-through-order model — apply only to starter repeated exposure and preserve the separate starter-to-bullpen transition.
+- [ ] Defense data-sufficiency decision — implement only if approved current-season evidence supports balls-in-play translation without altering K, BB, HBP, or HR outcomes improperly.
+
+### Final distribution and validation
+
+- [ ] Define `M8_5FinalEvaluationV1` with source M8 evaluation hash, `D_base` hash, `D_final`, final probabilities, context model version, factor versions, factor artifact hashes, shared-scenario identity, and settlement version.
+- [ ] Apply every validated context factor through eligibility, workload, shared scenarios, or the statistic distribution before exact settlement.
+- [ ] Settle `D_final` against the exact posted side and line to produce `p_final(d,L)`.
+- [ ] Preserve `contextProbabilityDelta(d,L)=p_final(d,L)-p_base(d,L)` as diagnostic evidence only.
+- [ ] Use one identical `D_final` for baseline and alternate offers sharing the same player, game, statistic, baseball inputs, and model versions.
+- [ ] Fit and validate each candidate using active-season-only chronological evidence, untouched later validation, and walk-forward evaluation where required.
+- [ ] Reserve a new untouched current-season cohort for the frozen M8.5 candidate; do not use the original M8 untouched rows to select, tune, or retry M8.5.
+- [ ] Validate any proposed `tau_soft` or other hard discovery predicate only after `p_final` exists, using an approved recall standard for the strongest final-probability candidates.
+- [ ] Prove upward shifts help Higher and hurt Lower, downward shifts help Lower and hurt Higher, and no factor can create a side-independent booster.
+- [ ] Freeze a new versioned M8.5 successor only after all factor, calibration, tail, deterministic-output, provenance, and untouched-test gates pass.
+- [ ] Keep M8.5 production-disabled until explicit approval and every downstream M9/M10 gate passes.
+
+### M8.5 exit gate
+
+- [ ] `D_base` and `D_final` are distinct, immutable, versioned, and fully traceable.
+- [ ] Final category ordering can consume only `p_final`, then `P(Void)`.
+- [ ] Hard soft-line filtering remains disabled unless approved recall validation passes.
+- [ ] Focused factor and final-distribution tests plus the complete repository verification gate pass.
+- [ ] A new untouched-test acceptance decision is preserved immutably.
+
+---
+
 ## M9 — Real Batter Hits ranking
 
 - [x] Connect real frozen model artifacts — exact `m8-batter-hits-runtime-freeze-v1` artifact connected through the feature, adapter, and composition public boundaries with SHA-256 `e5a660ffc0aefc093dc80aae0169109bd7717605098d790b3257a83fad5bf3de`; build and 2 focused tests passed, GitHub Actions verify run 402 passed 334 of 334 tests, production ranking remains disabled, and untouched-test rows remain sealed.
@@ -320,7 +393,8 @@ M8 current-season fitting and runtime-freeze work is closed. The one-time untouc
 - [x] Produce `P(Win)`, `P(Loss)`, `P(Void)`, and `P(Win | grades)` — the exact frozen complete Batter Hits candidate, SHA-256 `728895ca850c5481cd1f17944e38464f16396becc3622146a1384bba19ce5cde`, now builds deterministic scenario-conditioned nested opportunity-count and Poisson-binomial Hits distributions and settles exact Higher/Lower sides and posted lines through the generic core settlement path. Baseline and alternate examples conserve probability mass, mismatched runtime identity and production authorization fail closed, 3 focused tests passed, and GitHub Actions verify run 417 passed 346 of 346 tests while production ranking remained disabled and untouched-test rows remained sealed.
 - [x] Verify baseline and alternate offers use the same statistic distribution — the committed board contains verified baseline and alternate Batter Hits offers but no same-player pair, so one explicit test-only invariant held normalized player, game, team, lineup, opposing starter, shared scenarios, and frozen model artifacts fixed while substituting only provider-observed alternate offer attributes. The complete runtime distribution and candidate statistic distribution remained exactly identical; selected side, posted line, price, multiplier, and settlement probabilities were allowed to differ. One focused test passed and GitHub Actions verify run 420 passed 347 of 347 tests while production ranking remained disabled and untouched-test rows remained sealed.
 - [ ] Enable only after all acceptance gates pass.
-- [ ] Begin prospective board archiving and grading.
+- [ ] Implement prospective board archiving and grading — the prior implementation remains isolated in blocked PR #21 and is intentionally absent from this clean M8 amendment branch. Do not mark M9 archive/grading complete or merge its claimed live evidence until the exact July 31 runtime files are recovered and verified unchanged, or the implementation is separately re-established under an approved evidence plan.
+- [ ] Recover and verify the July 31 live archive evidence — the runtime reported 30 rows at `artifacts/board-archives/batter-hits/2026-07-31.json` with claimed SHA-256 `ae8803b5625662e483f1b6f52e715f55a671a3c9d777ae7ec1aa65fda1bedc8c`, and a grading file at `artifacts/board-archives/batter-hits/grades/2026-07-31.json` with claimed SHA-256 `998b8158e2156756c4efec5aec21ebac049232657ae171dd49066fb51e4628d6`. The archive path built confirmed-only runtime observations, so no projected lineup row was coerced. Recover the exact original runtime files unchanged, verify both hashes, and preserve an approved immutable evidence receipt; do not regenerate, rewrite, or relabel the July 31 records.
 
 ---
 
@@ -331,7 +405,7 @@ M8 current-season fitting and runtime-freeze work is closed. The one-time untouc
 - [ ] High Probability Altline eligibility.
 - [ ] One prop per player per category.
 - [ ] Category overlap allowed.
-- [ ] Sort by `P(Win | grades)`, then `P(Void)`.
+- [ ] Sort only by final `p_final=P(Win | grades)`, then `P(Void)`; base probability, softness margin, context delta, price, multiplier, and discovery labels cannot alter order.
 - [ ] Top Five selection.
 - [ ] Complete immutable saved-run storage.
 - [ ] Atomic persistence.
@@ -370,6 +444,34 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 3.1 — 2026-08-01
+
+- Closed the M8 Bridge after direct projected/confirmed runtime compliance and the immutable `M8BatterHitsBaseEvaluationV1` handoff passed.
+- Added one reusable, hash-verified `D_base` per identical baseball-input identity and exact side-and-line settlement for baseline and alternate offers without rebuilding the distribution.
+- Preserved complete model, settlement, provider, lineup, opposing-starter, artifact, and shared-scenario lineage while keeping discovery audit-only and `tau_soft` absent.
+- Recorded Higher/Lower symmetry, integer-line void, deterministic rerun, projected/confirmed invariance, frozen-output parity, and tamper-rejection evidence.
+- Recorded GitHub Actions verify run 492 passing 350 of 350 tests with production ranking disabled and untouched-test evidence sealed.
+- Corrected the inherited M9 archive/grading status: PR #21 remains isolated and its code and July 31 runtime bytes are not part of the clean M8 amendment branch.
+- Left every M8.5 factor, fitting, validation, final-distribution, and production gate unchecked.
+
+### Version 3.0 — 2026-08-01
+
+- Added the explicit M8 Bridge that preserves frozen M8 as immutable `D_base` and requires a versioned base-evaluation envelope before M8.5.
+- Added audit-only exact side-and-line `p_base` discovery while keeping `tau_soft` and hard offer exclusion disabled until final-model recall validation exists.
+- Added the separately versioned M8.5 `D_final` sequence, typed context-factor effect families, current-season validation, new untouched-cohort requirement, and final exact settlement rules.
+- Locked team-specific bullpen work to replace generic bullpen outcome assumptions while preserving the validated starter-to-bullpen workload transition.
+- Corrected July 31 evidence status: archive/grader implementation is verified, but exact original archive and grading bytes remain an open recovery-and-hash-verification gate and may not be regenerated or rewritten.
+- Clarified M10 ordering uses only final `p_final`, then `P(Void)`.
+
+### Version 2.9 — 2026-07-31
+
+- Began prospective live Underdog Batter Hits board archiving through the connected frozen M8 runtime.
+- Preserved one immutable 30-row July 31 archive with SHA-256 `ae8803b5625662e483f1b6f52e715f55a671a3c9d777ae7ec1aa65fda1bedc8c`.
+- Added official BALLDONTLIE final-game Hits grading using exact archived game and player identities and exact Higher/Lower settlement.
+- Verified that incomplete games remain pending and do not create a permanent grade sidecar; the initial live run reported 30 pending and 0 unresolved rows.
+- Recorded 10-of-10 archive/grading tests, 24-of-24 integrated focused tests, and 360-of-360 complete repository tests passing.
+- Preserved the connected M8 model, production-disabled status, and sealed untouched-test boundary.
 
 ### Version 2.8 — 2026-07-30
 

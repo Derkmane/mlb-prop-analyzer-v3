@@ -4,5 +4,9 @@ export * from './distribution.js';
 export * from './predict.js';
 export * from './runtime-artifact.js';
 export * from './runtime-probability.js';
+export * from './base-evaluation.js';
+export type {
+  BatterHitsRuntimeObservation as ConfirmedBatterHitsRuntimeObservation,
+} from './runtime-probability.js';
 export * from './normalized-board-offer.js';
 export * from './synthetic-json-entrypoint.js';
