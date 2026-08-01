@@ -2,6 +2,10 @@ import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { selectUniqueArtifactCopy } from './m8-artifact-pair-selection-utils.mjs';
+import { assertM8UntouchedAccessOpen } from './m8-untouched-access-gate-utils.mjs';
+
+const accessGate = assertM8UntouchedAccessOpen();
+console.log(`Untouched acceptance access opened: ${accessGate.openedAt}`);
 
 const ORIGINAL_SEARCH_ROOT =
   process.env.M8_ARTIFACT_SEARCH_ROOT?.trim() || 'artifacts';

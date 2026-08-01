@@ -20,13 +20,25 @@ const CANDIDATES = Object.freeze([
   }),
 ]);
 
-function row({ id, date, periodId, side, slot, pa }) {
+function row({
+  id,
+  date,
+  periodId,
+  side,
+  slot,
+  pa,
+  gameId = Number(id),
+  playerId = Number(id) + 1000,
+}) {
   return {
-    rowId: `${periodId}:${date}:${id}`,
+    rowId:
+      `${periodId}:${date}:${gameId}:${side}:${slot}:${playerId}`,
     observedDate: date,
     periodId,
+    gameId,
     homeAway: side,
     side,
+    playerId,
     lineupSlot: slot,
     plateAppearances: pa,
     sourceField: 'stats.plate_appearances',
@@ -189,4 +201,43 @@ test('rejects non-chronological fit and validation periods', () => {
       }),
     /fit and validation periods must be strictly chronological/,
   );
+});
+
+
+test('accepts canonical numeric ordering for mixed-width game IDs', () => {
+  const source = dataset();
+
+  source.periods.fit.rows = [
+    row({
+      id: 'short',
+      gameId: 5059128,
+      playerId: 2001,
+      date: '2026-06-01',
+      periodId: 'fit',
+      side: 'away',
+      slot: 1,
+      pa: 4,
+    }),
+    row({
+      id: 'wide',
+      gameId: 10209277,
+      playerId: 2002,
+      date: '2026-06-01',
+      periodId: 'fit',
+      side: 'away',
+      slot: 1,
+      pa: 4,
+    }),
+  ];
+  source.periods.fit.rowCount =
+    source.periods.fit.rows.length;
+
+  const result = evaluateM8PaSurvivalWalkForward({
+    rawDataset: source,
+    datasetFileSha256: DIGEST,
+    candidates: CANDIDATES,
+    evaluateCandidates: evaluator,
+  });
+
+  assert.equal(result.foldCount, 2);
 });

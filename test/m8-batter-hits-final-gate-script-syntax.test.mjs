@@ -5,6 +5,7 @@ import test from 'node:test';
 const scripts = [
   'scripts/run-m8-batter-hits-freeze-gate.mjs',
   'scripts/m8-untouched-hit-observation-utils.mjs',
+  'scripts/m8-untouched-access-gate-utils.mjs',
   'scripts/run-m8-batter-hits-untouched-test.mjs',
   'scripts/run-m8-batter-hits-untouched-test-safe.mjs',
 ];

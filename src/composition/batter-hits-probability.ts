@@ -3,8 +3,8 @@ import {
   type BatterHitsProbabilityArtifactPaths,
 } from '../adapters/index.js';
 import {
-  createFrozenBatterHitsProbabilityCandidate,
-  type ConfirmedBatterHitsRuntimeObservation,
+  createFrozenBatterHitsProbabilityCandidateForActiveLineup,
+  type BatterHitsRuntimeObservation,
   type FrozenBatterHitsProbabilityResult,
   type NormalizedBatterHitsBoardOffer,
 } from '../features/batter-hits/index.js';
@@ -13,7 +13,7 @@ import type { PregameNormalizedBatterHitsBoard } from './batter-hits-board.js';
 export interface ConnectFrozenBatterHitsProbabilityInput {
   readonly pregameBoard: PregameNormalizedBatterHitsBoard;
   readonly offer: NormalizedBatterHitsBoardOffer;
-  readonly observation: ConfirmedBatterHitsRuntimeObservation;
+  readonly observation: BatterHitsRuntimeObservation;
   readonly artifactPaths?: BatterHitsProbabilityArtifactPaths;
 }
 
@@ -34,9 +34,10 @@ function assertOfferSurvivedPregameGate(
 }
 
 /**
- * Connects one confirmed-lineup pregame offer to the already-frozen M8 model.
- * This produces side-aware probability fields but does not authorize ranking or
- * enable the feature in production registries.
+ * Connects one active projected-or-confirmed pregame lineup to the already-
+ * frozen M8 model. Lineup status is source metadata only and cannot alter the
+ * distribution or probabilities. This does not authorize ranking or enable the
+ * feature in production registries.
  */
 export async function connectFrozenBatterHitsProbabilityOutput(
   input: ConnectFrozenBatterHitsProbabilityInput,
@@ -45,7 +46,7 @@ export async function connectFrozenBatterHitsProbabilityOutput(
   const artifacts = await loadFrozenBatterHitsProbabilityArtifactsFromFiles(
     input.artifactPaths,
   );
-  return createFrozenBatterHitsProbabilityCandidate(
+  return createFrozenBatterHitsProbabilityCandidateForActiveLineup(
     input.offer,
     input.observation,
     artifacts,
