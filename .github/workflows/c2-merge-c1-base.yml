@@ -1,0 +1,32 @@
+name: c2-merge-c1-base
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  merge-base:
+    if: github.head_ref == 'agent/m8-c2-production-seal-gate'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out production-seal branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/m8-c2-production-seal-gate
+          fetch-depth: 0
+
+      - name: Merge current projected-lineup base
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin agent/m8-c1-projected-lineup-compliance
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/c2-merge-c1-base.yml
+          git commit -m 'Remove temporary C2 base-sync workflow'
+          git merge --no-ff origin/agent/m8-c1-projected-lineup-compliance \
+            -m 'Merge current projected-lineup base into production-seal branch'
+          git push origin HEAD:agent/m8-c2-production-seal-gate
