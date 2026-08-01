@@ -1,6 +1,9 @@
 name: m9-correct-archive-evidence
 
 on:
+  push:
+    branches:
+      - agent/m9-live-archive-grading-clean
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -9,7 +12,7 @@ permissions:
 
 jobs:
   correct:
-    if: github.head_ref == 'agent/m9-live-archive-grading-clean'
+    if: github.ref_name == 'agent/m9-live-archive-grading-clean' || github.head_ref == 'agent/m9-live-archive-grading-clean'
     runs-on: ubuntu-latest
     steps:
       - name: Check out M9 branch
