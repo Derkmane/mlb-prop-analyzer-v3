@@ -1,0 +1,154 @@
+{
+  "artifactVersion": 1,
+  "factorKey": "gameSpecificOffensiveEnvironment",
+  "status": "validated",
+  "modelVersion": "m8-5-game-offensive-environment-opponent-only-l2-0.01-v1",
+  "productionEnabled": false,
+  "activeSeason": 2026,
+  "applicationStage": "shared-scenario-before-statistic-distribution",
+  "selectedSideInputAllowed": false,
+  "directProbabilityEffectAllowed": false,
+  "sourceSharedEnvironmentModelVersion": "m8-shared-offensive-environment-v2",
+  "sourceSharedEnvironmentArtifactSha256": "b7e1936b2e8cd1b1f5553281f946fc8d3b4f68f056f6b60bbd6f868f6c1453e7",
+  "scenarioIds": [
+    "shared-environment:0",
+    "shared-environment:1",
+    "shared-environment:2",
+    "shared-environment:3"
+  ],
+  "featureNames": [
+    "awayOpponentPaAllowedPerGame",
+    "awayOpponentHitRateAllowed",
+    "homeOpponentPaAllowedPerGame",
+    "homeOpponentHitRateAllowed"
+  ],
+  "featureNormalization": [
+    {
+      "featureName": "awayOpponentPaAllowedPerGame",
+      "mean": 37.89163750498208,
+      "scale": 1.3897517508952122
+    },
+    {
+      "featureName": "awayOpponentHitRateAllowed",
+      "mean": 0.21264440471438986,
+      "scale": 0.018337734510061283
+    },
+    {
+      "featureName": "homeOpponentPaAllowedPerGame",
+      "mean": 37.84471227905516,
+      "scale": 1.3651676023144135
+    },
+    {
+      "featureName": "homeOpponentHitRateAllowed",
+      "mean": 0.21097431945573417,
+      "scale": 0.019151287084240954
+    }
+  ],
+  "scenarioLogits": [
+    {
+      "scenarioId": "shared-environment:0",
+      "intercept": 0,
+      "coefficients": [
+        {
+          "featureName": "awayOpponentPaAllowedPerGame",
+          "coefficient": 0
+        },
+        {
+          "featureName": "awayOpponentHitRateAllowed",
+          "coefficient": 0
+        },
+        {
+          "featureName": "homeOpponentPaAllowedPerGame",
+          "coefficient": 0
+        },
+        {
+          "featureName": "homeOpponentHitRateAllowed",
+          "coefficient": 0
+        }
+      ]
+    },
+    {
+      "scenarioId": "shared-environment:1",
+      "intercept": -0.10852442514775325,
+      "coefficients": [
+        {
+          "featureName": "awayOpponentPaAllowedPerGame",
+          "coefficient": -0.014134979063041238
+        },
+        {
+          "featureName": "awayOpponentHitRateAllowed",
+          "coefficient": -0.20982883916112094
+        },
+        {
+          "featureName": "homeOpponentPaAllowedPerGame",
+          "coefficient": 0.11913218084810194
+        },
+        {
+          "featureName": "homeOpponentHitRateAllowed",
+          "coefficient": 0.021288376025579522
+        }
+      ]
+    },
+    {
+      "scenarioId": "shared-environment:2",
+      "intercept": 0.32182891666254854,
+      "coefficients": [
+        {
+          "featureName": "awayOpponentPaAllowedPerGame",
+          "coefficient": 0.25206371167508523
+        },
+        {
+          "featureName": "awayOpponentHitRateAllowed",
+          "coefficient": -0.040103426802367906
+        },
+        {
+          "featureName": "homeOpponentPaAllowedPerGame",
+          "coefficient": 0.04175102813883313
+        },
+        {
+          "featureName": "homeOpponentHitRateAllowed",
+          "coefficient": 0.013871511807935302
+        }
+      ]
+    },
+    {
+      "scenarioId": "shared-environment:3",
+      "intercept": -0.545038422916278,
+      "coefficients": [
+        {
+          "featureName": "awayOpponentPaAllowedPerGame",
+          "coefficient": 0.10938442838715765
+        },
+        {
+          "featureName": "awayOpponentHitRateAllowed",
+          "coefficient": 0.11128378674969935
+        },
+        {
+          "featureName": "homeOpponentPaAllowedPerGame",
+          "coefficient": 0.138378256131334
+        },
+        {
+          "featureName": "homeOpponentHitRateAllowed",
+          "coefficient": -0.12125647547525172
+        }
+      ]
+    }
+  ],
+  "validationEvidence": {
+    "fitPeriod": {
+      "start": "2026-03-27",
+      "end": "2026-06-21"
+    },
+    "validationPeriod": {
+      "start": "2026-06-22",
+      "end": "2026-07-05"
+    },
+    "walkForwardEvaluated": true,
+    "untouchedRowsIncluded": false,
+    "evidenceArtifactSha256": "81c853f8545e4a40afa865a4cb648817fd53780c5e6a5222033a65d65cdebef4"
+  },
+  "untouchedTestReservation": {
+    "rowsIncluded": false
+  },
+  "artifactSha256": "6530a40baeed55d6c20ac9a45cb511974853137bac88b731d621bfd9d7ab4bce"
+}
