@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 3.2
+**Version:** 3.3
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -356,7 +356,10 @@ Typed factor-contract completion evidence — `M8_5BatterHitsFactorArtifactV1` r
 
 ### Context factors and order
 
-- [ ] Team-specific bullpen outcome model — replace the generic league bullpen outcome assumptions while preserving the validated starter-to-bullpen workload transition and avoiding double counting.
+- [x] Team-specific bullpen outcome model — replace the generic league bullpen outcome assumptions while preserving the validated starter-to-bullpen workload transition and avoiding double counting.
+
+Team-specific bullpen completion evidence — Real active-season fixed-holdout and expanding daily walk-forward evaluation selected `team-hand-pool-2500` over the frozen generic bullpen terminal-outcome baseline. The evaluation used 34,718 fit bullpen PA and 5,773 later-validation bullpen PA across all 30 pitching teams and produced 60 typed team-and-hand terminal-outcome vectors. Fixed-validation categorical log loss improved from `1.6923687794008386` to `1.692003088213786`; walk-forward categorical log loss improved from `1.6923687794008506` to `1.691816818192014`. Evaluation identity SHA-256 is `3056b9fd5b8258cdc222d1cd2e5b9fb02183f0a9d72b5625776f367132538a31`; committed factor artifact SHA-256 is `156dd99ea37aea2272fcd300b8512ad9dc27905c458b6033eeb330759f74cd9d`; committed factor file byte SHA-256 is `5eedb8c4c6485b2d90e86b7d2070e5f07cd54eeb8b7cc412323346e3e896a1f5`; preserved starter/bullpen-transition SHA-256 is `1db3b58868096ea2e19a2e2e9559a709275869db1618af69fd8143d9aae302c3`; and team-identity projection SHA-256 is `c42a6894fc43f1e119078392936431f137297ad792eef239ef71a802d27cd86e`. A byte-for-byte rerun reproduced the exact evaluation and factor files. The committed artifact-lock regression and GitHub Actions verify runs 536 and 537 passed 371 of 371 tests with typecheck, script checks, architecture, build, selected-side, and protective-architecture gates clean. Excluded-game offensive statistics were not used; the frozen workload transition was unchanged; selected-side input and direct probability adjustment remained prohibited; production and ranking remained disabled; and untouched-test rows remained sealed.
+
 - [ ] Game-specific offensive-environment model — preserve one shared game scenario set and jointly affect approved opportunity and outcome assumptions.
 - [ ] Park model — proceed only with verified approved-source venue evidence and current-season validation.
 - [ ] Times-through-order model — apply only to starter repeated exposure and preserve the separate starter-to-bullpen transition.
@@ -446,6 +449,14 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 3.3 — 2026-08-02
+
+- Closed the first M8.5 context-factor item after real current-season fixed-holdout and expanding walk-forward validation selected `team-hand-pool-2500` for team-specific bullpen terminal outcomes.
+- Preserved the exact 30-team, 60-vector factor artifact and added a byte-lock regression covering the committed file, internal artifact identity, active-season evidence, and side/direct-probability prohibitions.
+- Recorded exact evaluation, artifact, file-byte, team-identity-projection, and frozen starter/bullpen-transition SHA-256 identities.
+- Confirmed rejected offensive statistics were not used, the frozen workload transition was unchanged, production and ranking remained disabled, and untouched-test rows remained sealed.
+- Recorded the deterministic real-evidence rerun and GitHub Actions verify runs 536 and 537 passing 371 of 371 tests with typecheck, script checks, architecture, build, selected-side, and protective-architecture gates clean.
 
 ### Version 3.2 — 2026-08-01
 
