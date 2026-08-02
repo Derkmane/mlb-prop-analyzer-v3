@@ -9,6 +9,9 @@ import {
   selectM8_5TeamBullpenArtifactPair,
 } from './m8-5-team-bullpen-artifact-selection-utils.mjs';
 import {
+  buildM8_5TeamBullpenTeamIdentityProjection,
+} from './m8-5-team-bullpen-team-identity-utils.mjs';
+import {
   verifyM8FrozenBatterHitsCandidate,
 } from './m8-batter-hits-frozen-candidate-utils.mjs';
 import {
@@ -102,6 +105,7 @@ function evaluationIdentity(value) {
     sourceStarterBullpenTransitionSha256:
       value.sourceStarterBullpenTransitionSha256,
     sourceGenericBullpenModelVersion: value.sourceGenericBullpenModelVersion,
+    teamIdentityProjection: value.teamIdentityProjection,
     teamBullpenDataset: value.teamBullpenDataset,
     evaluation: value.evaluation,
     untouchedTestReservation: value.untouchedTestReservation,
@@ -149,13 +153,16 @@ const artifactSelection = selectM8_5TeamBullpenArtifactPair({
 });
 const { resolved, teamEnvironment } = artifactSelection;
 verifyM8TeamOffensiveEnvironmentDataset(teamEnvironment.value);
+const teamIdentityProjection = buildM8_5TeamBullpenTeamIdentityProjection(
+  teamEnvironment.value,
+);
 
 const starterBullpenTransitionSha256 = sha256(
   JSON.stringify(shared.starterBullpenTransition),
 );
 const teamBullpenDataset = buildM8_5TeamBullpenDataset({
   resolvedDataset: resolved.value,
-  teamEnvironmentDataset: teamEnvironment.value,
+  teamEnvironmentDataset: teamIdentityProjection.dataset,
   starterBullpenTransitionSha256,
 });
 const evaluation = evaluateM8_5TeamBullpenCandidates({
@@ -175,6 +182,7 @@ const withoutHash = {
   sourceCompleteCandidateArtifactSha256: completeCandidate.artifactSha256,
   sourceStarterBullpenTransitionSha256: starterBullpenTransitionSha256,
   sourceGenericBullpenModelVersion: completeCandidate.bullpenModel.modelVersion,
+  teamIdentityProjection: teamIdentityProjection.evidence,
   teamBullpenDataset,
   evaluation,
   untouchedTestReservation: Object.freeze({ rowsIncluded: false }),
@@ -256,6 +264,15 @@ console.log(
 console.log(
   `Matching team-environment copies found: ${artifactSelection.matchingEnvironmentCopyCount}`,
 );
+console.log(
+  `Team identities from included environment rows: ${teamIdentityProjection.evidence.counts.includedIdentityRowCount}`,
+);
+console.log(
+  `Team identities recovered from excluded games: ${teamIdentityProjection.evidence.counts.excludedGameIdentityRowCount}`,
+);
+console.log(
+  `Team identity projection SHA-256: ${teamIdentityProjection.evidence.projectionSha256}`,
+);
 console.log(`Fit bullpen PA: ${teamBullpenDataset.periods.fit.rowCount}`);
 console.log(`Validation bullpen PA: ${teamBullpenDataset.periods.validation.rowCount}`);
 console.log(`Pitching teams: ${teamBullpenDataset.totals.pitchingTeamCount}`);
@@ -285,6 +302,7 @@ if (factorArtifact !== null) {
   console.log(`Factor artifact SHA-256: ${factorArtifact.artifactSha256}`);
   console.log(`Typed team-hand effects: ${factorArtifact.effects.length}`);
 }
+console.log('Excluded-game offensive statistics used: false');
 console.log('Selected-side input used: false');
 console.log('Direct probability adjustment used: false');
 console.log('Starter/bullpen workload transition changed: false');
