@@ -6,6 +6,9 @@ import { writeJsonAtomic } from './provider-probe-utils.mjs';
 import {
   verifyAndBuildM8_5ParkFrozenBasePredictions,
 } from './m8-5-park-frozen-base-prediction-utils.mjs';
+import {
+  adaptFrozenPlatoonWalkForwardArtifact,
+} from './m8-5-park-platoon-walk-forward-schema-utils.mjs';
 
 function requireEnvironmentValue(name) {
   const value = process.env[name]?.trim();
@@ -85,11 +88,17 @@ for (const [label, value] of [
   }
 }
 
-const [fixedFile, platoonFile, platoonWalkForwardFile] = await Promise.all([
+const [fixedFile, platoonFile, rawPlatoonWalkForwardFile] = await Promise.all([
   readJson(fixedPath, 'fixed categorical evaluation'),
   readJson(platoonPath, 'platoon boundary evaluation'),
   readJson(platoonWalkForwardPath, 'platoon walk-forward evaluation'),
 ]);
+const platoonWalkForwardFile = Object.freeze({
+  ...rawPlatoonWalkForwardFile,
+  value: adaptFrozenPlatoonWalkForwardArtifact(
+    rawPlatoonWalkForwardFile.value,
+  ),
+});
 const explicitDatasetPath =
   process.env.M8_RESOLVED_CATEGORICAL_DATASET_PATH?.trim() || null;
 const datasetFile = explicitDatasetPath
