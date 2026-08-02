@@ -5,7 +5,9 @@ import {
   createValidatedM8_5BatterHitsFactorArtifactV1,
   verifyM8_5BatterHitsFactorArtifactV1,
 } from '../dist/src/features/batter-hits/index.js';
-import { selectUniqueArtifactCopy } from './m8-artifact-pair-selection-utils.mjs';
+import {
+  selectM8_5TeamBullpenArtifactPair,
+} from './m8-5-team-bullpen-artifact-selection-utils.mjs';
 import {
   verifyM8FrozenBatterHitsCandidate,
 } from './m8-batter-hits-frozen-candidate-utils.mjs';
@@ -139,18 +141,13 @@ for (const filePath of artifactFiles) {
   if (isResolvedDataset(item.value)) resolvedCandidates.push(item);
   if (isTeamEnvironmentDataset(item.value)) environmentCandidates.push(item);
 }
-const resolved = selectUniqueArtifactCopy(resolvedCandidates, {
-  label: 'resolved categorical dataset',
-  identityField: 'datasetSha256',
+const artifactSelection = selectM8_5TeamBullpenArtifactPair({
+  resolvedCandidates,
+  environmentCandidates,
+  frozenStarterBullpenDatasetSha256:
+    shared.sourceStarterBullpenDatasetSha256,
 });
-const matchingEnvironments = environmentCandidates.filter(
-  (item) =>
-    item.value.sourceResolvedDatasetSha256 === resolved.value.datasetSha256,
-);
-const teamEnvironment = selectUniqueArtifactCopy(matchingEnvironments, {
-  label: 'team offensive-environment dataset matching the resolved dataset',
-  identityField: 'datasetSha256',
-});
+const { resolved, teamEnvironment } = artifactSelection;
 verifyM8TeamOffensiveEnvironmentDataset(teamEnvironment.value);
 
 const starterBullpenTransitionSha256 = sha256(
@@ -250,6 +247,15 @@ if (evaluation.decision === 'VALIDATED_TEAM_SIGNAL') {
 console.log('=== M8.5 TEAM-SPECIFIC BULLPEN OUTCOME EVALUATION ===');
 console.log(`Resolved dataset: ${resolved.path}`);
 console.log(`Team environment dataset: ${teamEnvironment.path}`);
+console.log(
+  `Resolved dataset candidates discovered: ${artifactSelection.resolvedCandidateCount}`,
+);
+console.log(
+  `Frozen-lineage resolved copies matched: ${artifactSelection.frozenLineageCopyCount}`,
+);
+console.log(
+  `Matching team-environment copies found: ${artifactSelection.matchingEnvironmentCopyCount}`,
+);
 console.log(`Fit bullpen PA: ${teamBullpenDataset.periods.fit.rowCount}`);
 console.log(`Validation bullpen PA: ${teamBullpenDataset.periods.validation.rowCount}`);
 console.log(`Pitching teams: ${teamBullpenDataset.totals.pitchingTeamCount}`);
