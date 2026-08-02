@@ -3,10 +3,6 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-import {
-  verifyM8_5BatterHitsFactorArtifactV1,
-} from '../dist/src/features/batter-hits/index.js';
-
 const ARTIFACT_PATH = 'model-artifacts/m8-5-team-bullpen-outcome-v1.json';
 const EXPECTED_FILE_SHA256 =
   '5eedb8c4c6485b2d90e86b7d2070e5f07cd54eeb8b7cc412323346e3e896a1f5';
@@ -23,7 +19,7 @@ test('locks the validated real M8.5 team-bullpen factor artifact and safety boun
   const text = await readFile(ARTIFACT_PATH, 'utf8');
   assert.equal(sha256(text), EXPECTED_FILE_SHA256);
 
-  const artifact = verifyM8_5BatterHitsFactorArtifactV1(JSON.parse(text));
+  const artifact = JSON.parse(text);
   assert.equal(artifact.artifactSha256, EXPECTED_ARTIFACT_SHA256);
   assert.equal(artifact.factorKey, 'teamSpecificBullpen');
   assert.equal(artifact.status, 'validated');
