@@ -57,7 +57,7 @@
     "test:m8-shared-offensive-environment-walk-forward": "node --test test/m8-shared-offensive-environment-walk-forward.test.mjs",
     "test:m8-shared-offensive-environment-artifact": "node --test test/m8-shared-offensive-environment-artifact.test.mjs",
     "test": "npm run build && node --test \"dist/test/**/*.test.js\" \"test/**/*.test.mjs\"",
-    "verify": "npm run typecheck && npm run check:scripts && npm run check:m8-pa-survival-baseline-artifact && npm run check:m8-team-offensive-environment-dataset && npm run check:m8-shared-offensive-environment && npm run check:m8-shared-offensive-environment-walk-forward && npm run check:m8-shared-offensive-environment-artifact && npm run architecture && npm test",
+    "verify": "npm run typecheck && npm run check:scripts && npm run check:m8-pa-survival-baseline-artifact && npm run check:m8-team-offensive-environment-dataset && npm run check:m8-shared-offensive-environment && npm run check:m8-shared-offensive-environment-walk-forward && npm run check:m8-shared-offensive-environment-artifact && npm run check:m8-5-team-bullpen-outcome && npm run architecture && npm test",
     "verify:provider-access": "node scripts/verify-provider-access.mjs",
     "capture:provider-capabilities": "node scripts/capture-provider-capabilities.mjs",
     "capture:m8-current-season-pa": "node scripts/capture-m8-current-season-pa.mjs",
@@ -95,7 +95,9 @@
     "build:m8-team-offensive-environment-dataset": "node scripts/build-m8-team-offensive-environment-dataset.mjs",
     "evaluate:m8-shared-offensive-environment": "node scripts/evaluate-m8-shared-offensive-environment.mjs",
     "evaluate:m8-shared-offensive-environment-walk-forward": "node scripts/evaluate-m8-shared-offensive-environment-walk-forward.mjs",
-    "build:m8-shared-offensive-environment-artifact": "node scripts/build-m8-shared-offensive-environment-artifact.mjs"
+    "build:m8-shared-offensive-environment-artifact": "node scripts/build-m8-shared-offensive-environment-artifact.mjs",
+    "check:m8-5-team-bullpen-outcome": "node --check scripts/m8-5-team-bullpen-outcome-utils.mjs && node --check scripts/evaluate-m8-5-team-bullpen-outcome.mjs",
+    "evaluate:m8-5-team-bullpen-outcome": "npm run build && node scripts/evaluate-m8-5-team-bullpen-outcome.mjs"
   },
   "dependencies": {
     "zod": "4.4.3"
