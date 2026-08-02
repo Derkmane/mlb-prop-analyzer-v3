@@ -1,4 +1,6 @@
-import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { readdir, readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 import { writeJsonAtomic } from './provider-probe-utils.mjs';
 import {
@@ -13,18 +15,52 @@ function requireEnvironmentValue(name) {
   return value;
 }
 
-async function readJson(path, label = path) {
-  const text = await readFile(path, 'utf8');
+async function readJson(filePath, label = filePath) {
+  const text = await readFile(filePath, 'utf8');
   try {
-    return { path, text, value: JSON.parse(text) };
+    return { path: filePath, text, value: JSON.parse(text) };
   } catch {
     throw new Error(`${label} is not valid JSON.`);
   }
 }
 
-const datasetPath = requireEnvironmentValue(
-  'M8_RESOLVED_CATEGORICAL_DATASET_PATH',
-);
+function sha256(text) {
+  return createHash('sha256').update(text).digest('hex');
+}
+
+async function discoverResolvedDataset({
+  root,
+  expectedDatasetSha256,
+  expectedFileSha256,
+}) {
+  const entries = await readdir(root, { withFileTypes: true });
+  const matches = [];
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith('.json')) continue;
+    const candidatePath = path.join(root, entry.name);
+    const text = await readFile(candidatePath, 'utf8');
+    if (sha256(text) !== expectedFileSha256) continue;
+    let value;
+    try {
+      value = JSON.parse(text);
+    } catch {
+      continue;
+    }
+    if (
+      value?.datasetVersion === 3 &&
+      value?.datasetSha256 === expectedDatasetSha256
+    ) {
+      matches.push({ path: candidatePath, text, value });
+    }
+  }
+  if (matches.length !== 1) {
+    throw new Error(
+      `expected exactly one resolved categorical dataset matching frozen lineage; found ${matches.length}.`,
+    );
+  }
+  return matches[0];
+}
+
 const outputPath = requireEnvironmentValue(
   'M8_5_PARK_FROZEN_BASE_PREDICTIONS_OUTPUT_PATH',
 );
@@ -49,13 +85,20 @@ for (const [label, value] of [
   }
 }
 
-const [datasetFile, fixedFile, platoonFile, platoonWalkForwardFile] =
-  await Promise.all([
-    readJson(datasetPath, 'resolved categorical dataset'),
-    readJson(fixedPath, 'fixed categorical evaluation'),
-    readJson(platoonPath, 'platoon boundary evaluation'),
-    readJson(platoonWalkForwardPath, 'platoon walk-forward evaluation'),
-  ]);
+const [fixedFile, platoonFile, platoonWalkForwardFile] = await Promise.all([
+  readJson(fixedPath, 'fixed categorical evaluation'),
+  readJson(platoonPath, 'platoon boundary evaluation'),
+  readJson(platoonWalkForwardPath, 'platoon walk-forward evaluation'),
+]);
+const explicitDatasetPath =
+  process.env.M8_RESOLVED_CATEGORICAL_DATASET_PATH?.trim() || null;
+const datasetFile = explicitDatasetPath
+  ? await readJson(explicitDatasetPath, 'resolved categorical dataset')
+  : await discoverResolvedDataset({
+      root: 'artifacts/m8-current-season-pa',
+      expectedDatasetSha256: fixedFile.value.sourceDatasetSha256,
+      expectedFileSha256: fixedFile.value.sourceDatasetFileSha256,
+    });
 const { TERMINAL_PA_CATEGORIES } = await import(
   new URL('../dist/src/domain/terminal-pa.js', import.meta.url),
 );
@@ -83,7 +126,7 @@ if (
 }
 
 console.log('=== M8.5 PARK FROZEN-BASE PARITY COMPLETE ===');
-console.log(`Resolved dataset: ${datasetPath}`);
+console.log(`Resolved dataset: ${datasetFile.path}`);
 console.log(`Fixed evaluation: ${fixedPath}`);
 console.log(`Platoon evaluation: ${platoonPath}`);
 console.log(`Platoon walk-forward: ${platoonWalkForwardPath}`);
