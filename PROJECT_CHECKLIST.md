@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 3.3
+**Version:** 3.4
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -360,7 +360,10 @@ Typed factor-contract completion evidence — `M8_5BatterHitsFactorArtifactV1` r
 
 Team-specific bullpen completion evidence — Real active-season fixed-holdout and expanding daily walk-forward evaluation selected `team-hand-pool-2500` over the frozen generic bullpen terminal-outcome baseline. The evaluation used 34,718 fit bullpen PA and 5,773 later-validation bullpen PA across all 30 pitching teams and produced 60 typed team-and-hand terminal-outcome vectors. Fixed-validation categorical log loss improved from `1.6923687794008386` to `1.692003088213786`; walk-forward categorical log loss improved from `1.6923687794008506` to `1.691816818192014`. Evaluation identity SHA-256 is `3056b9fd5b8258cdc222d1cd2e5b9fb02183f0a9d72b5625776f367132538a31`; committed factor artifact SHA-256 is `156dd99ea37aea2272fcd300b8512ad9dc27905c458b6033eeb330759f74cd9d`; committed factor file byte SHA-256 is `5eedb8c4c6485b2d90e86b7d2070e5f07cd54eeb8b7cc412323346e3e896a1f5`; preserved starter/bullpen-transition SHA-256 is `1db3b58868096ea2e19a2e2e9559a709275869db1618af69fd8143d9aae302c3`; and team-identity projection SHA-256 is `c42a6894fc43f1e119078392936431f137297ad792eef239ef71a802d27cd86e`. A byte-for-byte rerun reproduced the exact evaluation and factor files. The committed artifact-lock regression and GitHub Actions verify runs 536 and 537 passed 371 of 371 tests with typecheck, script checks, architecture, build, selected-side, and protective-architecture gates clean. Excluded-game offensive statistics were not used; the frozen workload transition was unchanged; selected-side input and direct probability adjustment remained prohibited; production and ranking remained disabled; and untouched-test rows remained sealed.
 
-- [ ] Game-specific offensive-environment model — preserve one shared game scenario set and jointly affect approved opportunity and outcome assumptions.
+- [x] Game-specific offensive-environment model — preserve one shared game scenario set and jointly affect approved opportunity and outcome assumptions.
+
+Game-specific offensive-environment completion evidence — Real active-season fixed-holdout and expanding daily walk-forward evaluation selected `opponent-only-l2-0.01` over the frozen global shared-scenario mixture. The strictly chronological pregame feature path used only earlier-date current-season opponent plate-appearance and hit-rate-allowed evidence, excluded same-date and same-game outcome leakage, and rejected incomplete feature histories. The evaluation retained 1,107 fit games and 189 later-validation games with 15 feature exclusions. Fixed-validation joint log loss improved from `10.32538847048714` to `10.318972105284502`; walk-forward joint log loss improved from `10.325388470487145` to `10.319085221244196`. Evaluation identity SHA-256 is `81c853f8545e4a40afa865a4cb648817fd53780c5e6a5222033a65d65cdebef4`; feature-dataset identity SHA-256 is `8090f344de26b2b57f56086645c01a7d7486137a1316a4a826265170c35ce23a`; committed model artifact SHA-256 is `6530a40baeed55d6c20ac9a45cb511974853137bac88b731d621bfd9d7ab4bce`; and committed model file byte SHA-256 is `b149943ae56f586f312b703def10ce6203cfa63bdf11909762edd50f653b534b`. A byte-for-byte rerun reproduced every metric and identity. The committed artifact-lock regression and GitHub Actions verify run 548 passed 386 of 386 tests with typecheck, script checks, architecture, build, selected-side, and protective-architecture gates clean. Shared scenario definitions were unchanged; one game-specific mixture jointly moves approved opportunity and outcome assumptions; selected-side input and direct probability adjustment remained prohibited; excluded offensive statistics were not used; production and ranking remained disabled; and untouched-test rows remained sealed.
+
 - [ ] Park model — proceed only with verified approved-source venue evidence and current-season validation.
 - [ ] Times-through-order model — apply only to starter repeated exposure and preserve the separate starter-to-bullpen transition.
 - [ ] Defense data-sufficiency decision — implement only if approved current-season evidence supports balls-in-play translation without altering K, BB, HBP, or HR outcomes improperly.
@@ -449,6 +452,15 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 3.4 — 2026-08-02
+
+- Closed the second M8.5 context-factor item after real active-season fixed-holdout and expanding daily walk-forward evaluation selected `opponent-only-l2-0.01` for game-specific shared-scenario weights.
+- Added a strictly chronological earlier-date opponent-only pregame feature path with same-date, same-game, excluded-offensive-statistic, and untouched-test leakage protections.
+- Preserved the exact frozen shared scenario definitions and changed only their game-specific mixture weights so approved opportunity and outcome assumptions move jointly.
+- Recorded exact evaluation, feature-dataset, model-artifact, and file-byte SHA-256 identities plus a byte-for-byte deterministic rerun.
+- Recorded the committed artifact-lock regression and GitHub Actions verify run 548 passing 386 of 386 tests with typecheck, script checks, architecture, build, selected-side, and protective-architecture gates clean.
+- Preserved production-disabled and ranking-disabled status, selected-side and direct-probability prohibitions, excluded-offensive-statistic rejection, and the sealed untouched-test boundary.
 
 ### Version 3.3 — 2026-08-02
 
