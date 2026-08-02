@@ -1,0 +1,4120 @@
+{
+  "contractVersion": 1,
+  "factorKey": "teamSpecificBullpen",
+  "status": "validated",
+  "modelVersion": "m8-5-team-bullpen-outcome-team-hand-pool-2500-v1",
+  "productionEnabled": false,
+  "activeSeason": 2026,
+  "validationStatus": "current-season-validated",
+  "applicationStages": [
+    "terminal-outcome-before-statistic-distribution"
+  ],
+  "selectedSideInputAllowed": false,
+  "directProbabilityEffectAllowed": false,
+  "requiredInputs": [
+    "opposingPitchingTeamId",
+    "bullpenPitcherHand",
+    "frozenGenericBullpenHandWeights",
+    "frozenStarterBullpenTransition"
+  ],
+  "sourceEvidenceVersion": "m8-5-team-bullpen-outcome-evaluation-v1",
+  "validationEvidence": {
+    "fitPeriod": {
+      "start": "2026-03-26",
+      "end": "2026-06-21"
+    },
+    "validationPeriod": {
+      "start": "2026-06-22",
+      "end": "2026-07-05"
+    },
+    "walkForwardEvaluated": true,
+    "untouchedRowsIncluded": false,
+    "evidenceArtifactSha256": "3056b9fd5b8258cdc222d1cd2e5b9fb02183f0a9d72b5625776f367132538a31"
+  },
+  "effects": [
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:1|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22709471733610875
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09116048480880905
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0013113150469790198
+        },
+        {
+          "category": "HBP",
+          "probability": 0.014344063371664075
+        },
+        {
+          "category": "1B",
+          "probability": 0.13812438332173713
+        },
+        {
+          "category": "2B",
+          "probability": 0.03831561092236206
+        },
+        {
+          "category": "3B",
+          "probability": 0.004056093185799157
+        },
+        {
+          "category": "HR",
+          "probability": 0.02468076294515857
+        },
+        {
+          "category": "ROE",
+          "probability": 0.0059579163154704256
+        },
+        {
+          "category": "FC",
+          "probability": 0.024568867742309538
+        },
+        {
+          "category": "SF",
+          "probability": 0.007001429709999855
+        },
+        {
+          "category": "SH",
+          "probability": 0.007211706240322766
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41597441714153455
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0001982319117452632
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:1|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.21977274955349846
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09151476916384695
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0012131784611137844
+        },
+        {
+          "category": "HBP",
+          "probability": 0.01203946947723617
+        },
+        {
+          "category": "1B",
+          "probability": 0.13625951107029105
+        },
+        {
+          "category": "2B",
+          "probability": 0.0404403615606305
+        },
+        {
+          "category": "3B",
+          "probability": 0.0034615947823606525
+        },
+        {
+          "category": "HR",
+          "probability": 0.02878750677804162
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006945829964428987
+        },
+        {
+          "category": "FC",
+          "probability": 0.02190373491779198
+        },
+        {
+          "category": "SF",
+          "probability": 0.009034690789522216
+        },
+        {
+          "category": "SH",
+          "probability": 0.004312325452221521
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4235175492779936
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.000796728751022712
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:2|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.23200039804791864
+        },
+        {
+          "category": "UBB",
+          "probability": 0.0906255148801403
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0011970664344203535
+        },
+        {
+          "category": "HBP",
+          "probability": 0.012741600002069352
+        },
+        {
+          "category": "1B",
+          "probability": 0.13631954287007253
+        },
+        {
+          "category": "2B",
+          "probability": 0.037093756990149204
+        },
+        {
+          "category": "3B",
+          "probability": 0.004760906230987024
+        },
+        {
+          "category": "HR",
+          "probability": 0.026057782893146513
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006144298915145488
+        },
+        {
+          "category": "FC",
+          "probability": 0.022781033409910785
+        },
+        {
+          "category": "SF",
+          "probability": 0.007096895975125086
+        },
+        {
+          "category": "SH",
+          "probability": 0.0065833847442523154
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41641685769392983
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00018096091273253655
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:2|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22390770592355638
+        },
+        {
+          "category": "UBB",
+          "probability": 0.0913027908342215
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0013016789562419972
+        },
+        {
+          "category": "HBP",
+          "probability": 0.011039217876796601
+        },
+        {
+          "category": "1B",
+          "probability": 0.13993780351843688
+        },
+        {
+          "category": "2B",
+          "probability": 0.03900723828061387
+        },
+        {
+          "category": "3B",
+          "probability": 0.0027748545144489524
+        },
+        {
+          "category": "HR",
+          "probability": 0.02713049020925129
+        },
+        {
+          "category": "ROE",
+          "probability": 0.0052609139912642875
+        },
+        {
+          "category": "FC",
+          "probability": 0.021309987339784946
+        },
+        {
+          "category": "SF",
+          "probability": 0.007189068671162377
+        },
+        {
+          "category": "SH",
+          "probability": 0.0033745583358682375
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.42529575497047084
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0011679365778819143
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:3|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22060428773035562
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09127366451660596
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0012198717978367012
+        },
+        {
+          "category": "HBP",
+          "probability": 0.013703248025113808
+        },
+        {
+          "category": "1B",
+          "probability": 0.13963547952431904
+        },
+        {
+          "category": "2B",
+          "probability": 0.04103551440225485
+        },
+        {
+          "category": "3B",
+          "probability": 0.004851606457529911
+        },
+        {
+          "category": "HR",
+          "probability": 0.024038035406926804
+        },
+        {
+          "category": "ROE",
+          "probability": 0.00626135421439161
+        },
+        {
+          "category": "FC",
+          "probability": 0.0239339431046359
+        },
+        {
+          "category": "SF",
+          "probability": 0.00831046013281079
+        },
+        {
+          "category": "SH",
+          "probability": 0.007427712347216145
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41752041393324624
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0001844084067565568
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:3|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22436694001792126
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09212971366412204
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0015446428829700327
+        },
+        {
+          "category": "HBP",
+          "probability": 0.009960845132820709
+        },
+        {
+          "category": "1B",
+          "probability": 0.13745473028987343
+        },
+        {
+          "category": "2B",
+          "probability": 0.04150617522260579
+        },
+        {
+          "category": "3B",
+          "probability": 0.0035528257918987583
+        },
+        {
+          "category": "HR",
+          "probability": 0.030145188897379042
+        },
+        {
+          "category": "ROE",
+          "probability": 0.008027361272266588
+        },
+        {
+          "category": "FC",
+          "probability": 0.02158253955174397
+        },
+        {
+          "category": "SF",
+          "probability": 0.0074758566444122895
+        },
+        {
+          "category": "SH",
+          "probability": 0.0038269959043914794
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4179079488995759
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.000518235828018818
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:4|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22994060093768875
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09248094783158554
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0011936979745275067
+        },
+        {
+          "category": "HBP",
+          "probability": 0.01411271051912297
+        },
+        {
+          "category": "1B",
+          "probability": 0.13277027929534138
+        },
+        {
+          "category": "2B",
+          "probability": 0.0380446011491639
+        },
+        {
+          "category": "3B",
+          "probability": 0.0036922860235132646
+        },
+        {
+          "category": "HR",
+          "probability": 0.023874011432314584
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006478750413097945
+        },
+        {
+          "category": "FC",
+          "probability": 0.024827375911747118
+        },
+        {
+          "category": "SF",
+          "probability": 0.007076925814097649
+        },
+        {
+          "category": "SH",
+          "probability": 0.006564859567342706
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4187625014288747
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0001804517015816887
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:4|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22550672428610688
+        },
+        {
+          "category": "UBB",
+          "probability": 0.08969374850557556
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0012875697077228056
+        },
+        {
+          "category": "HBP",
+          "probability": 0.010919560823316304
+        },
+        {
+          "category": "1B",
+          "probability": 0.14058883383025314
+        },
+        {
+          "category": "2B",
+          "probability": 0.03889412173065367
+        },
+        {
+          "category": "3B",
+          "probability": 0.0027447771195880937
+        },
+        {
+          "category": "HR",
+          "probability": 0.030552736366784957
+        },
+        {
+          "category": "ROE",
+          "probability": 0.005513582932207536
+        },
+        {
+          "category": "FC",
+          "probability": 0.02386624328376374
+        },
+        {
+          "category": "SF",
+          "probability": 0.007730531228148849
+        },
+        {
+          "category": "SH",
+          "probability": 0.003337980589892583
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41851800600052147
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0008455835954644886
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:5|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.2237569529436339
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09021452769681629
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0011870176081083255
+        },
+        {
+          "category": "HBP",
+          "probability": 0.013683958029334248
+        },
+        {
+          "category": "1B",
+          "probability": 0.13762361106563678
+        },
+        {
+          "category": "2B",
+          "probability": 0.03748191712734277
+        },
+        {
+          "category": "3B",
+          "probability": 0.003671622652972443
+        },
+        {
+          "category": "HR",
+          "probability": 0.02548926705214074
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006092720330338391
+        },
+        {
+          "category": "FC",
+          "probability": 0.0243386602718073
+        },
+        {
+          "category": "SF",
+          "probability": 0.007387093420594481
+        },
+        {
+          "category": "SH",
+          "probability": 0.007927210825447818
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.42096599914735605
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00017944182847035365
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:5|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.21942754805601433
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09403446493738679
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0012667771438869405
+        },
+        {
+          "category": "HBP",
+          "probability": 0.011352608744207295
+        },
+        {
+          "category": "1B",
+          "probability": 0.14106073870746108
+        },
+        {
+          "category": "2B",
+          "probability": 0.037961340362059934
+        },
+        {
+          "category": "3B",
+          "probability": 0.003005144826066409
+        },
+        {
+          "category": "HR",
+          "probability": 0.03127811874721164
+        },
+        {
+          "category": "ROE",
+          "probability": 0.00633862257407012
+        },
+        {
+          "category": "FC",
+          "probability": 0.02104329663719473
+        },
+        {
+          "category": "SF",
+          "probability": 0.00791038553799288
+        },
+        {
+          "category": "SH",
+          "probability": 0.004502845619976584
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.42029087183902614
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0005272362674451045
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:6|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22335035912948695
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09288156333173418
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0017960983488450554
+        },
+        {
+          "category": "HBP",
+          "probability": 0.01535878654874013
+        },
+        {
+          "category": "1B",
+          "probability": 0.14134728739149371
+        },
+        {
+          "category": "2B",
+          "probability": 0.040013586768922076
+        },
+        {
+          "category": "3B",
+          "probability": 0.005160562492456947
+        },
+        {
+          "category": "HR",
+          "probability": 0.022602002831192267
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006799562911900586
+        },
+        {
+          "category": "FC",
+          "probability": 0.023504572000365324
+        },
+        {
+          "category": "SF",
+          "probability": 0.007365867495664209
+        },
+        {
+          "category": "SH",
+          "probability": 0.008213085497820618
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4114358280260709
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0001708372253069401
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:6|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22405892026935256
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09827851066603321
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0018030929974339497
+        },
+        {
+          "category": "HBP",
+          "probability": 0.010324820468078576
+        },
+        {
+          "category": "1B",
+          "probability": 0.13556701154842968
+        },
+        {
+          "category": "2B",
+          "probability": 0.03853268493946726
+        },
+        {
+          "category": "3B",
+          "probability": 0.0025952812061932513
+        },
+        {
+          "category": "HR",
+          "probability": 0.03240257268765699
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006384585443074123
+        },
+        {
+          "category": "FC",
+          "probability": 0.021687876885292272
+        },
+        {
+          "category": "SF",
+          "probability": 0.008480786335488325
+        },
+        {
+          "category": "SH",
+          "probability": 0.0034490012664020932
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41534250113490007
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0010923541521976085
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:7|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22722242444964683
+        },
+        {
+          "category": "UBB",
+          "probability": 0.0921014241740903
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0015508942257612787
+        },
+        {
+          "category": "HBP",
+          "probability": 0.013809543242452038
+        },
+        {
+          "category": "1B",
+          "probability": 0.13712174515942663
+        },
+        {
+          "category": "2B",
+          "probability": 0.03959082282635828
+        },
+        {
+          "category": "3B",
+          "probability": 0.004058301858400359
+        },
+        {
+          "category": "HR",
+          "probability": 0.025017230674927775
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006501619281481632
+        },
+        {
+          "category": "FC",
+          "probability": 0.023503081439144754
+        },
+        {
+          "category": "SF",
+          "probability": 0.007454888842033048
+        },
+        {
+          "category": "SH",
+          "probability": 0.006941015089994818
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4145929373675578
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0005340713687245821
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:7|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22052261505039733
+        },
+        {
+          "category": "UBB",
+          "probability": 0.10522881718827995
+        },
+        {
+          "category": "IBB",
+          "probability": 0.002420641716984255
+        },
+        {
+          "category": "HBP",
+          "probability": 0.012243104420916421
+        },
+        {
+          "category": "1B",
+          "probability": 0.13559683811213274
+        },
+        {
+          "category": "2B",
+          "probability": 0.03934395224578062
+        },
+        {
+          "category": "3B",
+          "probability": 0.004410351726750728
+        },
+        {
+          "category": "HR",
+          "probability": 0.031054832560340834
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006766575456408941
+        },
+        {
+          "category": "FC",
+          "probability": 0.021977477615214572
+        },
+        {
+          "category": "SF",
+          "probability": 0.007407087636704045
+        },
+        {
+          "category": "SH",
+          "probability": 0.004088527989543961
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4084257096070278
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0005134686735177546
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:8|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.23239029908514416
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09347412804519775
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0015861672713291342
+        },
+        {
+          "category": "HBP",
+          "probability": 0.014123623106811053
+        },
+        {
+          "category": "1B",
+          "probability": 0.1377133227569154
+        },
+        {
+          "category": "2B",
+          "probability": 0.040130253092806135
+        },
+        {
+          "category": "3B",
+          "probability": 0.004511613416912713
+        },
+        {
+          "category": "HR",
+          "probability": 0.024864192961036233
+        },
+        {
+          "category": "ROE",
+          "probability": 0.005566457553948542
+        },
+        {
+          "category": "FC",
+          "probability": 0.025120660547688474
+        },
+        {
+          "category": "SF",
+          "probability": 0.008707472956490837
+        },
+        {
+          "category": "SH",
+          "probability": 0.006737868501788922
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4048887334159895
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00018520728794106173
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:8|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.23101260191784367
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09201539138969085
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0016162841072506864
+        },
+        {
+          "category": "HBP",
+          "probability": 0.01230312187354696
+        },
+        {
+          "category": "1B",
+          "probability": 0.13756231414537368
+        },
+        {
+          "category": "2B",
+          "probability": 0.03998405486314031
+        },
+        {
+          "category": "3B",
+          "probability": 0.003090844662848623
+        },
+        {
+          "category": "HR",
+          "probability": 0.029663047862221445
+        },
+        {
+          "category": "ROE",
+          "probability": 0.00745952970482549
+        },
+        {
+          "category": "FC",
+          "probability": 0.02101664041468916
+        },
+        {
+          "category": "SF",
+          "probability": 0.008135971587493775
+        },
+        {
+          "category": "SH",
+          "probability": 0.0036911122923106083
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41190681334242685
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0005422718363380863
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:9|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22532111137223884
+        },
+        {
+          "category": "UBB",
+          "probability": 0.08953447236629897
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0012879253668241755
+        },
+        {
+          "category": "HBP",
+          "probability": 0.014467717649285243
+        },
+        {
+          "category": "1B",
+          "probability": 0.13907624441618807
+        },
+        {
+          "category": "2B",
+          "probability": 0.039909222416346486
+        },
+        {
+          "category": "3B",
+          "probability": 0.003983745413604635
+        },
+        {
+          "category": "HR",
+          "probability": 0.024240536812929928
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006231152722746664
+        },
+        {
+          "category": "FC",
+          "probability": 0.025269157387892625
+        },
+        {
+          "category": "SF",
+          "probability": 0.007635559806254125
+        },
+        {
+          "category": "SH",
+          "probability": 0.007083072390874882
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41576538579214084
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00019469608637447477
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:9|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.216875157523409
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09397510424135713
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0011143292914063089
+        },
+        {
+          "category": "HBP",
+          "probability": 0.011862573545561066
+        },
+        {
+          "category": "1B",
+          "probability": 0.14204270823851173
+        },
+        {
+          "category": "2B",
+          "probability": 0.04491801636780506
+        },
+        {
+          "category": "3B",
+          "probability": 0.004519669075087096
+        },
+        {
+          "category": "HR",
+          "probability": 0.029390186472352885
+        },
+        {
+          "category": "ROE",
+          "probability": 0.005843837922299151
+        },
+        {
+          "category": "FC",
+          "probability": 0.02387137484944334
+        },
+        {
+          "category": "SF",
+          "probability": 0.009638672027792181
+        },
+        {
+          "category": "SH",
+          "probability": 0.0036929346890279143
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41152362406209697
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0007318116938501296
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:10|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.2273188552836873
+        },
+        {
+          "category": "UBB",
+          "probability": 0.08923958012228048
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0012021549208578472
+        },
+        {
+          "category": "HBP",
+          "probability": 0.013858461213555301
+        },
+        {
+          "category": "1B",
+          "probability": 0.13831594191875862
+        },
+        {
+          "category": "2B",
+          "probability": 0.038668367363469
+        },
+        {
+          "category": "3B",
+          "probability": 0.005135376962397525
+        },
+        {
+          "category": "HR",
+          "probability": 0.023688917641541043
+        },
+        {
+          "category": "ROE",
+          "probability": 0.0061704170826912715
+        },
+        {
+          "category": "FC",
+          "probability": 0.025003269471164387
+        },
+        {
+          "category": "SF",
+          "probability": 0.00677283035404875
+        },
+        {
+          "category": "SH",
+          "probability": 0.008028301718014635
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4164157958066918
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00018173014084192033
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:10|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.2226111931274348
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09771357808758897
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0015767540771130968
+        },
+        {
+          "category": "HBP",
+          "probability": 0.010779352460558956
+        },
+        {
+          "category": "1B",
+          "probability": 0.13939509154322452
+        },
+        {
+          "category": "2B",
+          "probability": 0.041146169082323665
+        },
+        {
+          "category": "3B",
+          "probability": 0.0024038169731427556
+        },
+        {
+          "category": "HR",
+          "probability": 0.030160435869259747
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006665655545123246
+        },
+        {
+          "category": "FC",
+          "probability": 0.02294836428103733
+        },
+        {
+          "category": "SF",
+          "probability": 0.0073255534502270365
+        },
+        {
+          "category": "SH",
+          "probability": 0.004517988176326247
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4122270380237493
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0005290093028905024
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:11|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22669069045565177
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09104299599050239
+        },
+        {
+          "category": "IBB",
+          "probability": 0.001202580914805706
+        },
+        {
+          "category": "HBP",
+          "probability": 0.014572089300448836
+        },
+        {
+          "category": "1B",
+          "probability": 0.13765623814197575
+        },
+        {
+          "category": "2B",
+          "probability": 0.03726463538875726
+        },
+        {
+          "category": "3B",
+          "probability": 0.004428479505615951
+        },
+        {
+          "category": "HR",
+          "probability": 0.025114746457147542
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006172603623117456
+        },
+        {
+          "category": "FC",
+          "probability": 0.02394905376225977
+        },
+        {
+          "category": "SF",
+          "probability": 0.007483947586633458
+        },
+        {
+          "category": "SH",
+          "probability": 0.006259353561288205
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4179807907733136
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00018179453848219033
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:11|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22391057670402809
+        },
+        {
+          "category": "UBB",
+          "probability": 0.10177823801668738
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0012278684542932484
+        },
+        {
+          "category": "HBP",
+          "probability": 0.010413249231685868
+        },
+        {
+          "category": "1B",
+          "probability": 0.13525143072589704
+        },
+        {
+          "category": "2B",
+          "probability": 0.04033937361733039
+        },
+        {
+          "category": "3B",
+          "probability": 0.003208176408490831
+        },
+        {
+          "category": "HR",
+          "probability": 0.031203421656334503
+        },
+        {
+          "category": "ROE",
+          "probability": 0.005553266180773224
+        },
+        {
+          "category": "FC",
+          "probability": 0.019510956752295663
+        },
+        {
+          "category": "SF",
+          "probability": 0.007962754086146674
+        },
+        {
+          "category": "SH",
+          "probability": 0.003478540851967853
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41565110495442525
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0005110423596440736
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:12|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22438816635052816
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09035106949169015
+        },
+        {
+          "category": "IBB",
+          "probability": 0.001601196553054556
+        },
+        {
+          "category": "HBP",
+          "probability": 0.01425744752400387
+        },
+        {
+          "category": "1B",
+          "probability": 0.13537387173347507
+        },
+        {
+          "category": "2B",
+          "probability": 0.04051049601569715
+        },
+        {
+          "category": "3B",
+          "probability": 0.0041899304536618855
+        },
+        {
+          "category": "HR",
+          "probability": 0.026557512573640803
+        },
+        {
+          "category": "ROE",
+          "probability": 0.005983632443308112
+        },
+        {
+          "category": "FC",
+          "probability": 0.024629821325472694
+        },
+        {
+          "category": "SF",
+          "probability": 0.006967820732317646
+        },
+        {
+          "category": "SH",
+          "probability": 0.006437279792257768
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41856479284340053
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0001869621674915237
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:12|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.21946591826598547
+        },
+        {
+          "category": "UBB",
+          "probability": 0.10321291981131339
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0018282549246546732
+        },
+        {
+          "category": "HBP",
+          "probability": 0.011953462558933594
+        },
+        {
+          "category": "1B",
+          "probability": 0.13864647993999032
+        },
+        {
+          "category": "2B",
+          "probability": 0.04293026100602159
+        },
+        {
+          "category": "3B",
+          "probability": 0.002928410130388941
+        },
+        {
+          "category": "HR",
+          "probability": 0.030776361558298285
+        },
+        {
+          "category": "ROE",
+          "probability": 0.005879857270812985
+        },
+        {
+          "category": "FC",
+          "probability": 0.023475088943964703
+        },
+        {
+          "category": "SF",
+          "probability": 0.007708398258816103
+        },
+        {
+          "category": "SH",
+          "probability": 0.0037940437425068737
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.40688677000465673
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0005137735836564232
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:13|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.2235265923981788
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09153278920530897
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0011550998439692657
+        },
+        {
+          "category": "HBP",
+          "probability": 0.013316009532289522
+        },
+        {
+          "category": "1B",
+          "probability": 0.13902855821533547
+        },
+        {
+          "category": "2B",
+          "probability": 0.03953737272534819
+        },
+        {
+          "category": "3B",
+          "probability": 0.004593999035006199
+        },
+        {
+          "category": "HR",
+          "probability": 0.02582498791765499
+        },
+        {
+          "category": "ROE",
+          "probability": 0.005928892928671702
+        },
+        {
+          "category": "FC",
+          "probability": 0.023343849461231136
+        },
+        {
+          "category": "SF",
+          "probability": 0.006507726374907971
+        },
+        {
+          "category": "SH",
+          "probability": 0.006692952944164505
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41883655260799557
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00017461680993762461
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:13|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.226320028389418
+        },
+        {
+          "category": "UBB",
+          "probability": 0.10459923880113396
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0018853529045428476
+        },
+        {
+          "category": "HBP",
+          "probability": 0.013551519258569612
+        },
+        {
+          "category": "1B",
+          "probability": 0.13164768660070036
+        },
+        {
+          "category": "2B",
+          "probability": 0.0418215306394001
+        },
+        {
+          "category": "3B",
+          "probability": 0.0030198669072718787
+        },
+        {
+          "category": "HR",
+          "probability": 0.029288054417743
+        },
+        {
+          "category": "ROE",
+          "probability": 0.007288230033098021
+        },
+        {
+          "category": "FC",
+          "probability": 0.02267731156254535
+        },
+        {
+          "category": "SF",
+          "probability": 0.007336768320787702
+        },
+        {
+          "category": "SH",
+          "probability": 0.003606350068819091
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.40612205798398165
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0008360041119886203
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:14|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.2348700481285538
+        },
+        {
+          "category": "UBB",
+          "probability": 0.08895493037372186
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0011795910120200564
+        },
+        {
+          "category": "HBP",
+          "probability": 0.012555591242915056
+        },
+        {
+          "category": "1B",
+          "probability": 0.13606739799675202
+        },
+        {
+          "category": "2B",
+          "probability": 0.03620465800037295
+        },
+        {
+          "category": "3B",
+          "probability": 0.003996235371862431
+        },
+        {
+          "category": "HR",
+          "probability": 0.024982208725085286
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006054601120763802
+        },
+        {
+          "category": "FC",
+          "probability": 0.023143632157489425
+        },
+        {
+          "category": "SF",
+          "probability": 0.006645707365130212
+        },
+        {
+          "category": "SH",
+          "probability": 0.006834861226957009
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41833221813079285
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00017831914758315644
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:14|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22659898299931047
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09592249965682943
+        },
+        {
+          "category": "IBB",
+          "probability": 0.003241085700777581
+        },
+        {
+          "category": "HBP",
+          "probability": 0.011888724281585304
+        },
+        {
+          "category": "1B",
+          "probability": 0.14006424519396532
+        },
+        {
+          "category": "2B",
+          "probability": 0.03975402650551394
+        },
+        {
+          "category": "3B",
+          "probability": 0.0034661408165762454
+        },
+        {
+          "category": "HR",
+          "probability": 0.02828806181504423
+        },
+        {
+          "category": "ROE",
+          "probability": 0.0063188766075616245
+        },
+        {
+          "category": "FC",
+          "probability": 0.021717964123571507
+        },
+        {
+          "category": "SF",
+          "probability": 0.006369459264739193
+        },
+        {
+          "category": "SH",
+          "probability": 0.0037582448387884966
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41205955372548936
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0005521344702472345
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:15|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22659114892023102
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09107591981679634
+        },
+        {
+          "category": "IBB",
+          "probability": 0.001207716491666086
+        },
+        {
+          "category": "HBP",
+          "probability": 0.015346062635539717
+        },
+        {
+          "category": "1B",
+          "probability": 0.13575299076037564
+        },
+        {
+          "category": "2B",
+          "probability": 0.039559003938460124
+        },
+        {
+          "category": "3B",
+          "probability": 0.004091519275746695
+        },
+        {
+          "category": "HR",
+          "probability": 0.024510254271199416
+        },
+        {
+          "category": "ROE",
+          "probability": 0.005487219723999094
+        },
+        {
+          "category": "FC",
+          "probability": 0.02298371164309504
+        },
+        {
+          "category": "SF",
+          "probability": 0.007515907505152888
+        },
+        {
+          "category": "SH",
+          "probability": 0.006641955782902246
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4190540183495697
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0001825708852657441
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:15|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.23331206508989652
+        },
+        {
+          "category": "UBB",
+          "probability": 0.1001536755896501
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0015209562330394985
+        },
+        {
+          "category": "HBP",
+          "probability": 0.012757081067085917
+        },
+        {
+          "category": "1B",
+          "probability": 0.1321030210669087
+        },
+        {
+          "category": "2B",
+          "probability": 0.03792070748106185
+        },
+        {
+          "category": "3B",
+          "probability": 0.0032034459802860378
+        },
+        {
+          "category": "HR",
+          "probability": 0.025849243800751584
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006134874458300836
+        },
+        {
+          "category": "FC",
+          "probability": 0.021251577576901538
+        },
+        {
+          "category": "SF",
+          "probability": 0.007066318294217822
+        },
+        {
+          "category": "SH",
+          "probability": 0.0031785135136429225
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41444843449592567
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0011000853523311217
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:16|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.2334738500052884
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09473584740914172
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0017996941413352357
+        },
+        {
+          "category": "HBP",
+          "probability": 0.012720198867489695
+        },
+        {
+          "category": "1B",
+          "probability": 0.13829359494049234
+        },
+        {
+          "category": "2B",
+          "probability": 0.0384253590480724
+        },
+        {
+          "category": "3B",
+          "probability": 0.0038362259475636347
+        },
+        {
+          "category": "HR",
+          "probability": 0.023314586086776903
+        },
+        {
+          "category": "ROE",
+          "probability": 0.00781417665146395
+        },
+        {
+          "category": "FC",
+          "probability": 0.023885295200899923
+        },
+        {
+          "category": "SF",
+          "probability": 0.006713279976469677
+        },
+        {
+          "category": "SH",
+          "probability": 0.006227526109427866
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.40858918637380415
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00017117924177402106
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:16|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.2255290486368914
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09000672417977817
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0016425358554894708
+        },
+        {
+          "category": "HBP",
+          "probability": 0.009636707610983548
+        },
+        {
+          "category": "1B",
+          "probability": 0.13852272115856284
+        },
+        {
+          "category": "2B",
+          "probability": 0.040951948747860095
+        },
+        {
+          "category": "3B",
+          "probability": 0.0034595176175636795
+        },
+        {
+          "category": "HR",
+          "probability": 0.030144836219219304
+        },
+        {
+          "category": "ROE",
+          "probability": 0.0069437449962095965
+        },
+        {
+          "category": "FC",
+          "probability": 0.020721050816329013
+        },
+        {
+          "category": "SF",
+          "probability": 0.007631173673787462
+        },
+        {
+          "category": "SH",
+          "probability": 0.005024948829542404
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41923396222155535
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0005510794362276538
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:17|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22317901844790763
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09596460431968977
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0011932782495013019
+        },
+        {
+          "category": "HBP",
+          "probability": 0.014810983124425673
+        },
+        {
+          "category": "1B",
+          "probability": 0.13694300423229802
+        },
+        {
+          "category": "2B",
+          "probability": 0.04014092864524367
+        },
+        {
+          "category": "3B",
+          "probability": 0.0036909877513530993
+        },
+        {
+          "category": "HR",
+          "probability": 0.02281076459285175
+        },
+        {
+          "category": "ROE",
+          "probability": 0.0061248549312368
+        },
+        {
+          "category": "FC",
+          "probability": 0.02622511593428167
+        },
+        {
+          "category": "SF",
+          "probability": 0.0067228200033332
+        },
+        {
+          "category": "SH",
+          "probability": 0.007265786128676271
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4147474653875847
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00018038825161629434
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:17|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22153325670483978
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09976497100920442
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0012545451376695651
+        },
+        {
+          "category": "HBP",
+          "probability": 0.011846488201112957
+        },
+        {
+          "category": "1B",
+          "probability": 0.14120740628783565
+        },
+        {
+          "category": "2B",
+          "probability": 0.03970703653237197
+        },
+        {
+          "category": "3B",
+          "probability": 0.004183127736617367
+        },
+        {
+          "category": "HR",
+          "probability": 0.030372596779827583
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006880917105642165
+        },
+        {
+          "category": "FC",
+          "probability": 0.022650603368519342
+        },
+        {
+          "category": "SF",
+          "probability": 0.009041003420546962
+        },
+        {
+          "category": "SH",
+          "probability": 0.00385586581918019
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4068782864742558
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0008238954223762321
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:18|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22398699948690612
+        },
+        {
+          "category": "UBB",
+          "probability": 0.08893757012882868
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0011350111510306697
+        },
+        {
+          "category": "HBP",
+          "probability": 0.014756667560490506
+        },
+        {
+          "category": "1B",
+          "probability": 0.13962070369118917
+        },
+        {
+          "category": "2B",
+          "probability": 0.03851531808263311
+        },
+        {
+          "category": "3B",
+          "probability": 0.005182999720685021
+        },
+        {
+          "category": "HR",
+          "probability": 0.025041409532465007
+        },
+        {
+          "category": "ROE",
+          "probability": 0.008501367031584434
+        },
+        {
+          "category": "FC",
+          "probability": 0.02360676579167126
+        },
+        {
+          "category": "SF",
+          "probability": 0.0070634448459798065
+        },
+        {
+          "category": "SH",
+          "probability": 0.006911001923061978
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41656916105762243
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00017157999585175289
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:18|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.23117448774109053
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09202499658690398
+        },
+        {
+          "category": "IBB",
+          "probability": 0.001281221135974403
+        },
+        {
+          "category": "HBP",
+          "probability": 0.00963305451417206
+        },
+        {
+          "category": "1B",
+          "probability": 0.13157514466498835
+        },
+        {
+          "category": "2B",
+          "probability": 0.04270851126911577
+        },
+        {
+          "category": "3B",
+          "probability": 0.003347576369537735
+        },
+        {
+          "category": "HR",
+          "probability": 0.02855309267437553
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006102730135007127
+        },
+        {
+          "category": "FC",
+          "probability": 0.02251590125216428
+        },
+        {
+          "category": "SF",
+          "probability": 0.0070760817675478045
+        },
+        {
+          "category": "SH",
+          "probability": 0.004862354183286024
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4186115998076066
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0005332478982295325
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:19|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22220254549004845
+        },
+        {
+          "category": "UBB",
+          "probability": 0.08889313465967275
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0018734572218067741
+        },
+        {
+          "category": "HBP",
+          "probability": 0.014283583190644886
+        },
+        {
+          "category": "1B",
+          "probability": 0.1397936450283625
+        },
+        {
+          "category": "2B",
+          "probability": 0.038958249762790206
+        },
+        {
+          "category": "3B",
+          "probability": 0.0039934592444766295
+        },
+        {
+          "category": "HR",
+          "probability": 0.023575482633577765
+        },
+        {
+          "category": "ROE",
+          "probability": 0.0060503950762200295
+        },
+        {
+          "category": "FC",
+          "probability": 0.02660098288193716
+        },
+        {
+          "category": "SF",
+          "probability": 0.00664109068755805
+        },
+        {
+          "category": "SH",
+          "probability": 0.007524798801651726
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41943098004942386
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00017819527182936476
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:19|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22785102375897054
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09432730276890602
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0016183127035572448
+        },
+        {
+          "category": "HBP",
+          "probability": 0.011691014088010149
+        },
+        {
+          "category": "1B",
+          "probability": 0.13836251786566908
+        },
+        {
+          "category": "2B",
+          "probability": 0.04066178822349568
+        },
+        {
+          "category": "3B",
+          "probability": 0.003094723978396597
+        },
+        {
+          "category": "HR",
+          "probability": 0.02907272849963873
+        },
+        {
+          "category": "ROE",
+          "probability": 0.007155117442139358
+        },
+        {
+          "category": "FC",
+          "probability": 0.022925666634224386
+        },
+        {
+          "category": "SF",
+          "probability": 0.008146183035987648
+        },
+        {
+          "category": "SH",
+          "probability": 0.0030681955835466426
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4114824729763677
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0005429524410903149
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:20|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.2267817664752148
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09137037085490961
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0012163739575561658
+        },
+        {
+          "category": "HBP",
+          "probability": 0.014022378496726386
+        },
+        {
+          "category": "1B",
+          "probability": 0.13851824517442854
+        },
+        {
+          "category": "2B",
+          "probability": 0.04306838747923763
+        },
+        {
+          "category": "3B",
+          "probability": 0.004120849163028034
+        },
+        {
+          "category": "HR",
+          "probability": 0.024685955018663216
+        },
+        {
+          "category": "ROE",
+          "probability": 0.00552655463241486
+        },
+        {
+          "category": "FC",
+          "probability": 0.025657430006127982
+        },
+        {
+          "category": "SF",
+          "probability": 0.007569784978308108
+        },
+        {
+          "category": "SH",
+          "probability": 0.006689568369159611
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4105884557570936
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0001838796371314484
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:20|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.2249816755874287
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09210603674935465
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0014816324579824591
+        },
+        {
+          "category": "HBP",
+          "probability": 0.013001798879198032
+        },
+        {
+          "category": "1B",
+          "probability": 0.13931667464461003
+        },
+        {
+          "category": "2B",
+          "probability": 0.04211120915492121
+        },
+        {
+          "category": "3B",
+          "probability": 0.003120622039399585
+        },
+        {
+          "category": "HR",
+          "probability": 0.03035184881595767
+        },
+        {
+          "category": "ROE",
+          "probability": 0.00655080703478832
+        },
+        {
+          "category": "FC",
+          "probability": 0.020989399472356545
+        },
+        {
+          "category": "SF",
+          "probability": 0.0086072638137583
+        },
+        {
+          "category": "SH",
+          "probability": 0.0030963341926926605
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41378760165920253
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0004970954983495644
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:21|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.23035333164908287
+        },
+        {
+          "category": "UBB",
+          "probability": 0.08613264175958403
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0011742848932808662
+        },
+        {
+          "category": "HBP",
+          "probability": 0.013537175088535164
+        },
+        {
+          "category": "1B",
+          "probability": 0.1444518699088774
+        },
+        {
+          "category": "2B",
+          "probability": 0.03950200728964464
+        },
+        {
+          "category": "3B",
+          "probability": 0.004324279987836753
+        },
+        {
+          "category": "HR",
+          "probability": 0.025215852768882486
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006373386652054486
+        },
+        {
+          "category": "FC",
+          "probability": 0.024769629659895185
+        },
+        {
+          "category": "SF",
+          "probability": 0.006615813179750735
+        },
+        {
+          "category": "SH",
+          "probability": 0.007150136937700803
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4102220732049451
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00017751701992966821
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:21|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.23132826076772786
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09176246504861658
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0013082324059902263
+        },
+        {
+          "category": "HBP",
+          "probability": 0.012353449307265058
+        },
+        {
+          "category": "1B",
+          "probability": 0.13969834626742839
+        },
+        {
+          "category": "2B",
+          "probability": 0.03763030807686618
+        },
+        {
+          "category": "3B",
+          "probability": 0.0037328147637350397
+        },
+        {
+          "category": "HR",
+          "probability": 0.027896408347497997
+        },
+        {
+          "category": "ROE",
+          "probability": 0.007490043828854039
+        },
+        {
+          "category": "FC",
+          "probability": 0.023305254739859383
+        },
+        {
+          "category": "SF",
+          "probability": 0.009113242711042366
+        },
+        {
+          "category": "SH",
+          "probability": 0.0037062112412722314
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4101304724278427
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0005444900660021502
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:22|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.23246276623319054
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09333903375006761
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0011606304177775998
+        },
+        {
+          "category": "HBP",
+          "probability": 0.014747755131965324
+        },
+        {
+          "category": "1B",
+          "probability": 0.1355902544585005
+        },
+        {
+          "category": "2B",
+          "probability": 0.04006867341555163
+        },
+        {
+          "category": "3B",
+          "probability": 0.003932000398374901
+        },
+        {
+          "category": "HR",
+          "probability": 0.024580647914524745
+        },
+        {
+          "category": "ROE",
+          "probability": 0.005615282976893795
+        },
+        {
+          "category": "FC",
+          "probability": 0.025507602502427174
+        },
+        {
+          "category": "SF",
+          "probability": 0.00688088238354296
+        },
+        {
+          "category": "SH",
+          "probability": 0.006383001282474457
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.40955601626617333
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0001754528685351371
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:22|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22290194816626951
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09800212800613325
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0018419271870286982
+        },
+        {
+          "category": "HBP",
+          "probability": 0.013837649386326156
+        },
+        {
+          "category": "1B",
+          "probability": 0.13310240635294265
+        },
+        {
+          "category": "2B",
+          "probability": 0.04504610202461283
+        },
+        {
+          "category": "3B",
+          "probability": 0.0026511771819174254
+        },
+        {
+          "category": "HR",
+          "probability": 0.02921172172550063
+        },
+        {
+          "category": "ROE",
+          "probability": 0.007419491261770306
+        },
+        {
+          "category": "FC",
+          "probability": 0.022154980425747265
+        },
+        {
+          "category": "SF",
+          "probability": 0.007167779041487476
+        },
+        {
+          "category": "SH",
+          "probability": 0.003523284273037137
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41262178922395565
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0005176157432709641
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:23|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22822836907283223
+        },
+        {
+          "category": "UBB",
+          "probability": 0.08978353529713222
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0011722567673857348
+        },
+        {
+          "category": "HBP",
+          "probability": 0.014204641107380523
+        },
+        {
+          "category": "1B",
+          "probability": 0.13453053680022645
+        },
+        {
+          "category": "2B",
+          "probability": 0.039779205895362
+        },
+        {
+          "category": "3B",
+          "probability": 0.003971388312555515
+        },
+        {
+          "category": "HR",
+          "probability": 0.02344518635650099
+        },
+        {
+          "category": "ROE",
+          "probability": 0.005326109645746964
+        },
+        {
+          "category": "FC",
+          "probability": 0.027144811646665653
+        },
+        {
+          "category": "SF",
+          "probability": 0.007986079478231302
+        },
+        {
+          "category": "SH",
+          "probability": 0.006792364680468157
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4174583045120176
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0001772104274945565
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:23|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.2309361506788499
+        },
+        {
+          "category": "UBB",
+          "probability": 0.0956027871328757
+        },
+        {
+          "category": "IBB",
+          "probability": 0.001577236264904263
+        },
+        {
+          "category": "HBP",
+          "probability": 0.011394269693727322
+        },
+        {
+          "category": "1B",
+          "probability": 0.1400493408066934
+        },
+        {
+          "category": "2B",
+          "probability": 0.040547131213541504
+        },
+        {
+          "category": "3B",
+          "probability": 0.0030161728804739925
+        },
+        {
+          "category": "HR",
+          "probability": 0.027417365666161663
+        },
+        {
+          "category": "ROE",
+          "probability": 0.005750262779234904
+        },
+        {
+          "category": "FC",
+          "probability": 0.022343761334334286
+        },
+        {
+          "category": "SF",
+          "probability": 0.0070219832830864335
+        },
+        {
+          "category": "SH",
+          "probability": 0.004213559426533074
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.409600807760148
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0005291710794357289
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:24|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22568808289067538
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09614730599282928
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0015145409657296455
+        },
+        {
+          "category": "HBP",
+          "probability": 0.014175262325359053
+        },
+        {
+          "category": "1B",
+          "probability": 0.13700996347351108
+        },
+        {
+          "category": "2B",
+          "probability": 0.040041641181341944
+        },
+        {
+          "category": "3B",
+          "probability": 0.0039631744794375095
+        },
+        {
+          "category": "HR",
+          "probability": 0.025464948122051145
+        },
+        {
+          "category": "ROE",
+          "probability": 0.0060045113493407305
+        },
+        {
+          "category": "FC",
+          "probability": 0.022952164673249596
+        },
+        {
+          "category": "SF",
+          "probability": 0.007280144808507281
+        },
+        {
+          "category": "SH",
+          "probability": 0.006433607635282769
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41314780819106894
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00017684391161556053
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:24|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.21591328544940563
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09599412563748165
+        },
+        {
+          "category": "IBB",
+          "probability": 0.001604218533821754
+        },
+        {
+          "category": "HBP",
+          "probability": 0.010967111010416282
+        },
+        {
+          "category": "1B",
+          "probability": 0.14026791428861193
+        },
+        {
+          "category": "2B",
+          "probability": 0.04092974154534392
+        },
+        {
+          "category": "3B",
+          "probability": 0.003378813474074636
+        },
+        {
+          "category": "HR",
+          "probability": 0.027886403025924923
+        },
+        {
+          "category": "ROE",
+          "probability": 0.007714886248242033
+        },
+        {
+          "category": "FC",
+          "probability": 0.020859751030567066
+        },
+        {
+          "category": "SF",
+          "probability": 0.007764194505658673
+        },
+        {
+          "category": "SH",
+          "probability": 0.004285642091683717
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.42189568938590477
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0005382237728630897
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:25|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22560810065232703
+        },
+        {
+          "category": "UBB",
+          "probability": 0.08900012363694045
+        },
+        {
+          "category": "IBB",
+          "probability": 0.001253669501877245
+        },
+        {
+          "category": "HBP",
+          "probability": 0.015191147397808132
+        },
+        {
+          "category": "1B",
+          "probability": 0.13981008645609738
+        },
+        {
+          "category": "2B",
+          "probability": 0.04069479167605208
+        },
+        {
+          "category": "3B",
+          "probability": 0.003877786909807246
+        },
+        {
+          "category": "HR",
+          "probability": 0.024334619321045574
+        },
+        {
+          "category": "ROE",
+          "probability": 0.0056960056979820685
+        },
+        {
+          "category": "FC",
+          "probability": 0.026813531480272282
+        },
+        {
+          "category": "SF",
+          "probability": 0.007432471403575774
+        },
+        {
+          "category": "SH",
+          "probability": 0.007633504155875624
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41246464409393835
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00018951761640071703
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:25|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.2263249498361172
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09447329642179399
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0015943006448954993
+        },
+        {
+          "category": "HBP",
+          "probability": 0.012444903214370433
+        },
+        {
+          "category": "1B",
+          "probability": 0.13940072471032067
+        },
+        {
+          "category": "2B",
+          "probability": 0.04191317436422897
+        },
+        {
+          "category": "3B",
+          "probability": 0.0027396863428593367
+        },
+        {
+          "category": "HR",
+          "probability": 0.027095760657913026
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006430713844852593
+        },
+        {
+          "category": "FC",
+          "probability": 0.022894621194211165
+        },
+        {
+          "category": "SF",
+          "probability": 0.00957090736806573
+        },
+        {
+          "category": "SH",
+          "probability": 0.0048773846444399235
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4093955614762547
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0008440152796769193
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:26|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.2227153974647652
+        },
+        {
+          "category": "UBB",
+          "probability": 0.0898803605846474
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0012059997660205056
+        },
+        {
+          "category": "HBP",
+          "probability": 0.01567961478531152
+        },
+        {
+          "category": "1B",
+          "probability": 0.14089051316156914
+        },
+        {
+          "category": "2B",
+          "probability": 0.03985813826121997
+        },
+        {
+          "category": "3B",
+          "probability": 0.004085703327948904
+        },
+        {
+          "category": "HR",
+          "probability": 0.024120047797466373
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006190151892124186
+        },
+        {
+          "category": "FC",
+          "probability": 0.024727871256964132
+        },
+        {
+          "category": "SF",
+          "probability": 0.008215955966410669
+        },
+        {
+          "category": "SH",
+          "probability": 0.007343246535165357
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4149046878330814
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00018231136730516742
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:26|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22117331320162747
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09833067442384903
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0015432563094664687
+        },
+        {
+          "category": "HBP",
+          "probability": 0.012644901824802017
+        },
+        {
+          "category": "1B",
+          "probability": 0.13822900791079812
+        },
+        {
+          "category": "2B",
+          "probability": 0.03937436237830063
+        },
+        {
+          "category": "3B",
+          "probability": 0.002352748449775569
+        },
+        {
+          "category": "HR",
+          "probability": 0.029519684538703954
+        },
+        {
+          "category": "ROE",
+          "probability": 0.005925601223248992
+        },
+        {
+          "category": "FC",
+          "probability": 0.021563165638322293
+        },
+        {
+          "category": "SF",
+          "probability": 0.008366811889794325
+        },
+        {
+          "category": "SH",
+          "probability": 0.00382356054002488
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4160366970005038
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0011162146707824156
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:27|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.23002229338652425
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09151106297782562
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0019670617584178346
+        },
+        {
+          "category": "HBP",
+          "probability": 0.013903149528033051
+        },
+        {
+          "category": "1B",
+          "probability": 0.13620200730731424
+        },
+        {
+          "category": "2B",
+          "probability": 0.03944595224911488
+        },
+        {
+          "category": "3B",
+          "probability": 0.004192986566319554
+        },
+        {
+          "category": "HR",
+          "probability": 0.025847488877487376
+        },
+        {
+          "category": "ROE",
+          "probability": 0.005623299571275515
+        },
+        {
+          "category": "FC",
+          "probability": 0.023553694280487633
+        },
+        {
+          "category": "SF",
+          "probability": 0.008796389529350702
+        },
+        {
+          "category": "SH",
+          "probability": 0.006806672410632866
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4119408430205293
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00018709853668736002
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:27|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.21532757261469915
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09079689485475376
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0024156241001589986
+        },
+        {
+          "category": "HBP",
+          "probability": 0.011625484719718193
+        },
+        {
+          "category": "1B",
+          "probability": 0.1367963708729308
+        },
+        {
+          "category": "2B",
+          "probability": 0.041927485658359694
+        },
+        {
+          "category": "3B",
+          "probability": 0.002328364026991398
+        },
+        {
+          "category": "HR",
+          "probability": 0.032174943952723904
+        },
+        {
+          "category": "ROE",
+          "probability": 0.0073447910240148455
+        },
+        {
+          "category": "FC",
+          "probability": 0.021043559242899943
+        },
+        {
+          "category": "SF",
+          "probability": 0.00798397552137774
+        },
+        {
+          "category": "SH",
+          "probability": 0.004672294736382336
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.42505023434281425
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0005124043321749579
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:28|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22415471183804667
+        },
+        {
+          "category": "UBB",
+          "probability": 0.08850269882369886
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0011690262974790573
+        },
+        {
+          "category": "HBP",
+          "probability": 0.012443140201814201
+        },
+        {
+          "category": "1B",
+          "probability": 0.13967134138362236
+        },
+        {
+          "category": "2B",
+          "probability": 0.03863616984742439
+        },
+        {
+          "category": "3B",
+          "probability": 0.003960444080209513
+        },
+        {
+          "category": "HR",
+          "probability": 0.02475846176440592
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006000374586440738
+        },
+        {
+          "category": "FC",
+          "probability": 0.027070006791972818
+        },
+        {
+          "category": "SF",
+          "probability": 0.006930657970885162
+        },
+        {
+          "category": "SH",
+          "probability": 0.007462588959681474
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4190636553779853
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00017672207633370347
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:28|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.21626747622252432
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09081752430031906
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0019578895345745435
+        },
+        {
+          "category": "HBP",
+          "probability": 0.01502679233656227
+        },
+        {
+          "category": "1B",
+          "probability": 0.1383024942568799
+        },
+        {
+          "category": "2B",
+          "probability": 0.041840737382601176
+        },
+        {
+          "category": "3B",
+          "probability": 0.0025001225180127035
+        },
+        {
+          "category": "HR",
+          "probability": 0.029460981153687952
+        },
+        {
+          "category": "ROE",
+          "probability": 0.007250670679840423
+        },
+        {
+          "category": "FC",
+          "probability": 0.02291386313617587
+        },
+        {
+          "category": "SF",
+          "probability": 0.007619041442191616
+        },
+        {
+          "category": "SH",
+          "probability": 0.0037450999442808102
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.42174710377605207
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0005502033162972442
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:29|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22764430763884494
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09042664808194414
+        },
+        {
+          "category": "IBB",
+          "probability": 0.001213329761023133
+        },
+        {
+          "category": "HBP",
+          "probability": 0.013629759029626962
+        },
+        {
+          "category": "1B",
+          "probability": 0.14103178549755294
+        },
+        {
+          "category": "2B",
+          "probability": 0.03902781589813121
+        },
+        {
+          "category": "3B",
+          "probability": 0.003753010069663287
+        },
+        {
+          "category": "HR",
+          "probability": 0.02676932946087607
+        },
+        {
+          "category": "ROE",
+          "probability": 0.005870249347314072
+        },
+        {
+          "category": "FC",
+          "probability": 0.02416311394962355
+        },
+        {
+          "category": "SF",
+          "probability": 0.006835788376646271
+        },
+        {
+          "category": "SH",
+          "probability": 0.007745404272418775
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41134851325072974
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0005409453656048412
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:29|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.22210864421654344
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09522497520867032
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0017734915282940488
+        },
+        {
+          "category": "HBP",
+          "probability": 0.010155317367076134
+        },
+        {
+          "category": "1B",
+          "probability": 0.14054186187727166
+        },
+        {
+          "category": "2B",
+          "probability": 0.03674801816482738
+        },
+        {
+          "category": "3B",
+          "probability": 0.0028406927762528664
+        },
+        {
+          "category": "HR",
+          "probability": 0.028126378377980585
+        },
+        {
+          "category": "ROE",
+          "probability": 0.0077198615461112115
+        },
+        {
+          "category": "FC",
+          "probability": 0.024212010242878192
+        },
+        {
+          "category": "SF",
+          "probability": 0.007189483103598107
+        },
+        {
+          "category": "SH",
+          "probability": 0.00310436040459768
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.41975652113354933
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0004983840523487421
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:30|pitcher-hand:L",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.21965659874143892
+        },
+        {
+          "category": "UBB",
+          "probability": 0.09434557960404372
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0018178912509543988
+        },
+        {
+          "category": "HBP",
+          "probability": 0.013522897204538798
+        },
+        {
+          "category": "1B",
+          "probability": 0.14070303472755497
+        },
+        {
+          "category": "2B",
+          "probability": 0.03847684565792821
+        },
+        {
+          "category": "3B",
+          "probability": 0.003875014885354976
+        },
+        {
+          "category": "HR",
+          "probability": 0.0265836921139435
+        },
+        {
+          "category": "ROE",
+          "probability": 0.006207983628054419
+        },
+        {
+          "category": "FC",
+          "probability": 0.025812008667710506
+        },
+        {
+          "category": "SF",
+          "probability": 0.006107077886578908
+        },
+        {
+          "category": "SH",
+          "probability": 0.008312738709118745
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4144057268494408
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.00017291007333897576
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    },
+    {
+      "kind": "terminal-outcome-vector",
+      "applicationStage": "terminal-outcome-before-statistic-distribution",
+      "scope": "bullpen",
+      "matchupKey": "pitching-team:30|pitcher-hand:R",
+      "categoryProbabilities": [
+        {
+          "category": "K",
+          "probability": 0.2099388520737393
+        },
+        {
+          "category": "UBB",
+          "probability": 0.0924038887435728
+        },
+        {
+          "category": "IBB",
+          "probability": 0.0022799224668074176
+        },
+        {
+          "category": "HBP",
+          "probability": 0.011531375600471868
+        },
+        {
+          "category": "1B",
+          "probability": 0.14057052667352918
+        },
+        {
+          "category": "2B",
+          "probability": 0.04180802657022938
+        },
+        {
+          "category": "3B",
+          "probability": 0.003036021609600323
+        },
+        {
+          "category": "HR",
+          "probability": 0.03008797812418911
+        },
+        {
+          "category": "ROE",
+          "probability": 0.008609099856930726
+        },
+        {
+          "category": "FC",
+          "probability": 0.01986140289638712
+        },
+        {
+          "category": "SF",
+          "probability": 0.010050834358773793
+        },
+        {
+          "category": "SH",
+          "probability": 0.004968792432857225
+        },
+        {
+          "category": "BIP_OUT",
+          "probability": 0.4235312021731929
+        },
+        {
+          "category": "CATCHER_INTERFERENCE",
+          "probability": 0.0013220764197190704
+        },
+        {
+          "category": "OTHER_PA",
+          "probability": 0
+        }
+      ]
+    }
+  ],
+  "untouchedTestReservation": {
+    "rowsIncluded": false
+  },
+  "artifactSha256": "156dd99ea37aea2272fcd300b8512ad9dc27905c458b6033eeb330759f74cd9d"
+}
