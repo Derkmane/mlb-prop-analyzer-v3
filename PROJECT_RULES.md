@@ -1,6 +1,6 @@
 # MLB Prop Analyzer --- Project Rules
 
-**Version:** 2.5\
+**Version:** 2.6\
 **Status:** Canonical project rules\
 **Applies to:** MLB Prop Analyzer V3\
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
@@ -999,8 +999,47 @@ preflight authority until it is synchronized.
 
 ## 27. Execution, communication, and access --- LOCKED
 
+### Codex-first repository execution
+
+Use Codex for repository inspection, implementation, file creation,
+edits, focused tests, diagnostics, CI review, commits, pushes, and pull
+request work whenever the available Codex or GitHub capability can
+perform the task.
+
+Do not hand repository work back to the user as shell babysitting when
+Codex or GitHub can perform it directly. Replit commands are a fallback
+for work that genuinely requires the user's live Replit environment,
+secrets, browser or session access, public-link checks, or runtime-only
+evidence that Codex and GitHub cannot access.
+
 Use GitHub directly whenever it saves time for repository inspection,
 file creation, edits, commits, pull requests, and available CI evidence.
+
+### Runtime and command safety
+
+Do not invoke Python, Node.js, a package manager, a shell utility, or any
+other runtime merely because it is convenient. Use a runtime only when
+it is appropriate for the task and its exact executable is already
+verified to exist in the target environment, or when installation has
+been explicitly approved.
+
+Python is neither prohibited nor assumed. If Python is needed, verify
+the exact available command first, such as `python3 --version` or
+`python --version`, and use only the command that succeeds. If Python is
+not needed or is not verified, use an already verified tool or perform
+the work through Codex or GitHub instead.
+
+Never place required work after a command that may open an interactive
+installation, confirmation, authentication, package-manager, or
+environment prompt. A command given to the user must either be
+non-interactive or stop before the prompt with the next action clearly
+identified.
+
+Do not give the user a large pasted script, heredoc, or fragile chained
+command when Codex or GitHub can make the same repository change
+directly. When a user-run command is truly required, keep it to the
+smallest safe action, use only verified installed tools, and avoid
+unrelated chained operations.
 
 Use Replit only for secrets, live runtime, browser/session access,
 environment-specific verification, or public-link checks.
@@ -1030,6 +1069,26 @@ There is no separate Project Knowledge deliverable.
 ------------------------------------------------------------------------
 
 ## Changelog
+
+### Version 2.6 --- 2026-08-02
+
+-   Required Codex-first repository execution whenever Codex or GitHub
+    can perform inspection, implementation, edits, tests, diagnostics,
+    CI review, commits, pushes, or pull-request work.
+-   Prohibited handing repository work back to the user as repeated
+    shell babysitting when the available repository tools can perform it
+    directly.
+-   Clarified that Python is neither prohibited nor assumed: use it only
+    when it is appropriate and its exact executable has been verified in
+    the target environment.
+-   Prohibited commands that place required work behind interactive
+    installation, confirmation, authentication, package-manager, or
+    environment prompts.
+-   Required user-run commands to use verified installed tools, remain
+    non-interactive, and be reduced to the smallest safe action.
+-   Prohibited large pasted scripts, heredocs, and fragile chained
+    commands when Codex or GitHub can make the same repository change
+    directly.
 
 ### Version 2.5 --- 2026-08-01
 
