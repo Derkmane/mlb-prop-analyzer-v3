@@ -7,7 +7,8 @@ import {
   verifyAndBuildM8_5ParkFrozenBasePredictions,
 } from './m8-5-park-frozen-base-prediction-utils.mjs';
 import {
-  adaptFrozenPlatoonWalkForwardArtifact,
+  finalizeM8_5ParkFrozenBaseParity,
+  verifyAndAdaptFrozenPlatoonWalkForwardArtifact,
 } from './m8-5-park-platoon-walk-forward-schema-utils.mjs';
 
 function requireEnvironmentValue(name) {
@@ -93,12 +94,13 @@ const [fixedFile, platoonFile, rawPlatoonWalkForwardFile] = await Promise.all([
   readJson(platoonPath, 'platoon boundary evaluation'),
   readJson(platoonWalkForwardPath, 'platoon walk-forward evaluation'),
 ]);
-const platoonWalkForwardFile = Object.freeze({
-  ...rawPlatoonWalkForwardFile,
-  value: adaptFrozenPlatoonWalkForwardArtifact(
-    rawPlatoonWalkForwardFile.value,
-  ),
-});
+const platoonWalkForwardLineage =
+  verifyAndAdaptFrozenPlatoonWalkForwardArtifact({
+    artifact: rawPlatoonWalkForwardFile.value,
+    artifactText: rawPlatoonWalkForwardFile.text,
+    platoonBoundary: platoonFile.value,
+    platoonBoundaryText: platoonFile.text,
+  });
 const explicitDatasetPath =
   process.env.M8_RESOLVED_CATEGORICAL_DATASET_PATH?.trim() || null;
 const datasetFile = explicitDatasetPath
@@ -112,24 +114,32 @@ const { TERMINAL_PA_CATEGORIES } = await import(
   new URL('../dist/src/domain/terminal-pa.js', import.meta.url),
 );
 
-const parity = verifyAndBuildM8_5ParkFrozenBasePredictions({
+const rawParity = verifyAndBuildM8_5ParkFrozenBasePredictions({
   dataset: datasetFile.value,
   datasetText: datasetFile.text,
   fixedEvaluation: fixedFile.value,
   fixedEvaluationText: fixedFile.text,
   platoonEvaluation: platoonFile.value,
   platoonEvaluationText: platoonFile.text,
-  platoonWalkForwardEvaluation: platoonWalkForwardFile.value,
+  platoonWalkForwardEvaluation:
+    platoonWalkForwardLineage.adaptedArtifact,
   closeoutFreeze: freezeFile.value,
   closeoutFreezeText: freezeFile.text,
   canonicalCategories: TERMINAL_PA_CATEGORIES,
   hitCategories: ['1B', '2B', '3B', 'HR'],
 });
+const parity = finalizeM8_5ParkFrozenBaseParity({
+  parity: rawParity,
+  canonicalPlatoonWalkForwardSha256:
+    platoonWalkForwardLineage.canonicalIdentity,
+});
 await writeJsonAtomic(outputPath, parity);
 const written = await readJson(outputPath, 'written frozen base predictions');
 if (
   written.value.paritySha256 !== parity.paritySha256 ||
-  written.value.predictionSha256 !== parity.predictionSha256
+  written.value.predictionSha256 !== parity.predictionSha256 ||
+  written.value.sourcePlatoonWalkForwardSha256 !==
+    platoonWalkForwardLineage.canonicalIdentity
 ) {
   throw new Error('written frozen base prediction identities changed.');
 }
@@ -148,6 +158,9 @@ console.log(
 );
 console.log(
   `Final base categorical log loss: ${parity.finalBaseMetrics.categoricalLogLoss}`,
+);
+console.log(
+  `Platoon walk-forward SHA-256: ${parity.sourcePlatoonWalkForwardSha256}`,
 );
 console.log(`Prediction SHA-256: ${parity.predictionSha256}`);
 console.log(`Parity SHA-256: ${parity.paritySha256}`);
