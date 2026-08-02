@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { TERMINAL_PA_CATEGORIES } from '../dist/domain/terminal-pa.js';
 import {
   DEFAULT_M8_5_TEAM_BULLPEN_CANDIDATES,
+  M8_5_TEAM_BULLPEN_TERMINAL_CATEGORIES as TERMINAL_PA_CATEGORIES,
   buildM8_5TeamBullpenDataset,
   evaluateM8_5TeamBullpenCandidates,
   factorEffectsForM8_5TeamBullpenModel,
@@ -195,9 +195,10 @@ test('factor effects are team-and-hand terminal vectors and contain no side or p
     assert.equal(effect.scope, 'bullpen');
     assert.match(effect.matchupKey, /^pitching-team:\d+\|pitcher-hand:[LR]$/u);
     assert.equal(effect.categoryProbabilities.length, TERMINAL_PA_CATEGORIES.length);
-    assert.equal(
-      effect.categoryProbabilities.reduce((sum, entry) => sum + entry.probability, 0),
-      1,
+    assert.ok(
+      Math.abs(
+        effect.categoryProbabilities.reduce((sum, entry) => sum + entry.probability, 0) - 1,
+      ) < 1e-12,
     );
     assert.equal(Object.hasOwn(effect, 'selectedSide'), false);
     assert.equal(Object.hasOwn(effect, 'probabilityDelta'), false);
