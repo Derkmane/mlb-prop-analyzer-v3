@@ -6,7 +6,7 @@
   "productionEnabled": false,
   "sourceVenueAuditSha256": "69aab27d1aa798e197b38e4a8a1a6538965265e5833d944acb115df34c165338",
   "sourceEvaluationDatasetSha256": "074af50e2a881e7ab8df47480bc67e68c15ce03987bf153a587c86bb249712bb",
-  "sourceEvaluationSha256": "12c035a62014923f07d36e7374ed3df48d9375e1928d91a09b8cadbbb178c3c4",
+  "sourceEvaluationSha256": "d715419f9bcbb118540f11f7431729f56ab85b12cc3ab7311216417006b690b9",
   "sourceFrozenBaseParitySha256": "2c342da6b903585713b3a6fc23debb907e5b6a763dd559fb2fc90de292cbcf2a",
   "sourceFrozenPredictionSha256": "df0dc84fab7baf05fa69f4e892cf76705064eb8603c6c9cb3e46d1100b280547",
   "providerVenueTextPreservedExactly": true,
@@ -42,7 +42,7 @@
       },
       "walkForwardEvaluated": true,
       "untouchedRowsIncluded": false,
-      "evidenceArtifactSha256": "12c035a62014923f07d36e7374ed3df48d9375e1928d91a09b8cadbbb178c3c4"
+      "evidenceArtifactSha256": "d715419f9bcbb118540f11f7431729f56ab85b12cc3ab7311216417006b690b9"
     },
     "effects": [
       {
@@ -6481,7 +6481,7 @@
     "untouchedTestReservation": {
       "rowsIncluded": false
     },
-    "artifactSha256": "fd26dacedb507bb9a16b3bc18166ceaad2c66450322db525467247af2f67c33d"
+    "artifactSha256": "c70550bd4798bd5ad6de7263801a7794b2c4eba8d2c86957d0992e3591aee985"
   },
   "effectIdentities": [
     {
@@ -6968,5 +6968,5 @@
   "untouchedTestReservation": {
     "rowsIncluded": false
   },
-  "parkArtifactSha256": "de8bff49c81e17cffb1b857dc5f9db8c123e935c83880b778f02e4fe9ba54138"
+  "parkArtifactSha256": "f1bd0d83997dd1efede69fa3ab69162938dd5df7d65732d44ec1f9689eaf85f9"
 }
