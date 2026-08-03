@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 3.4
+**Version:** 3.5
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -364,7 +364,9 @@ Team-specific bullpen completion evidence — Real active-season fixed-holdout a
 
 Game-specific offensive-environment completion evidence — Real active-season fixed-holdout and expanding daily walk-forward evaluation selected `opponent-only-l2-0.01` over the frozen global shared-scenario mixture. The strictly chronological pregame feature path used only earlier-date current-season opponent plate-appearance and hit-rate-allowed evidence, excluded same-date and same-game outcome leakage, and rejected incomplete feature histories. The evaluation retained 1,107 fit games and 189 later-validation games with 15 feature exclusions. Fixed-validation joint log loss improved from `10.32538847048714` to `10.318972105284502`; walk-forward joint log loss improved from `10.325388470487145` to `10.319085221244196`. Evaluation identity SHA-256 is `81c853f8545e4a40afa865a4cb648817fd53780c5e6a5222033a65d65cdebef4`; feature-dataset identity SHA-256 is `8090f344de26b2b57f56086645c01a7d7486137a1316a4a826265170c35ce23a`; committed model artifact SHA-256 is `6530a40baeed55d6c20ac9a45cb511974853137bac88b731d621bfd9d7ab4bce`; and committed model file byte SHA-256 is `b149943ae56f586f312b703def10ce6203cfa63bdf11909762edd50f653b534b`. A byte-for-byte rerun reproduced every metric and identity. The committed artifact-lock regression and GitHub Actions verify run 548 passed 386 of 386 tests with typecheck, script checks, architecture, build, selected-side, and protective-architecture gates clean. Shared scenario definitions were unchanged; one game-specific mixture jointly moves approved opportunity and outcome assumptions; selected-side input and direct probability adjustment remained prohibited; excluded offensive statistics were not used; production and ranking remained disabled; and untouched-test rows remained sealed.
 
-- [ ] Park model — proceed only with verified approved-source venue evidence and current-season validation.
+- [x] Park model — canonical fixed-validation and expanding walk-forward categorical proper-score nondominated-set intersection selected `venue-hand-pool-2500`; exact provider venue identity and current-season-only validation preserved.
+
+Park model completion evidence — Venue evidence verified 1,346 of 1,346 games across 32 exact provider venues, 30 home teams, and 2 multi-venue home teams with no alias merging and no home-team venue inference; venue audit SHA-256 is `69aab27d1aa798e197b38e4a8a1a6538965265e5833d944acb115df34c165338`. The evaluation cohort retained 26,759 fit plate appearances and 14,265 validation plate appearances with 0 missing-handedness exclusions. Fixed-validation categorical log loss improved from `1.6620430674352507` to `1.6616058208441955`; walk-forward categorical log loss improved from `1.6620430674352604` to `1.66157008198203`. Hit metrics remained diagnostic only and did not select the candidate. Evaluation dataset SHA-256 is `074af50e2a881e7ab8df47480bc67e68c15ce03987bf153a587c86bb249712bb`; canonical evaluation SHA-256 is `d715419f9bcbb118540f11f7431729f56ab85b12cc3ab7311216417006b690b9`; typed factor artifact SHA-256 is `c70550bd4798bd5ad6de7263801a7794b2c4eba8d2c86957d0992e3591aee985`; park wrapper artifact SHA-256 is `f1bd0d83997dd1efede69fa3ab69162938dd5df7d65732d44ec1f9689eaf85f9`; committed artifact file byte SHA-256 is `efc8f4b91eb00d5a961ace09dda951a08a008011791be6e43160d6fef64015ae`. The tracked artifact is `model-artifacts/m8-5-park-transformation-v1.json` with 96 effects across 32 venues and L/R/S batter hands. Frozen M8 was unchanged; selected-side input and direct probability adjustment remained prohibited; prior-season rows were not used; production and ranking remained disabled; and untouched-test rows remained sealed.
 - [ ] Times-through-order model — apply only to starter repeated exposure and preserve the separate starter-to-bullpen transition.
 - [ ] Defense data-sufficiency decision — implement only if approved current-season evidence supports balls-in-play translation without altering K, BB, HBP, or HR outcomes improperly.
 
@@ -452,6 +454,15 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 3.5 — 2026-08-03
+
+- Closed the third M8.5 context-factor item after the canonical fixed-validation and expanding walk-forward categorical proper-score nondominated-set intersection selected `venue-hand-pool-2500`.
+- Recorded exact venue-audit, evaluation-dataset, canonical-evaluation, typed-factor, park-wrapper, and committed file-byte SHA-256 identities.
+- Recorded the corrected candidate-selection rule: categorical log loss and categorical Brier only, independent fixed and walk-forward frontiers, stable intersection, identity as the infinite-pooling candidate, and Hit metrics diagnostic only.
+- Removed the temporary park lineage diagnostic scripts and their syntax-check references.
+- Replaced `PROJECT_RULES.md` with Version 2.9 designating the active repository the sole canonical authority.
+- Preserved production-disabled and ranking-disabled status, the frozen M8 boundary, and the sealed untouched-test cohort.
 
 ### Version 3.4 — 2026-08-02
 
