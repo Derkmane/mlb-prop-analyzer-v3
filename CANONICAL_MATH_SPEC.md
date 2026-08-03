@@ -1,6 +1,6 @@
 # MLB Prop Analyzer — Canonical Math & Statistics Reference
 
-**Version:** 1.6
+**Version:** 1.7
 **Status:** Canonical probability mathematics
 **Empirical status:** Mathematical framework verified where marked; predictive accuracy not yet validated
 
@@ -690,6 +690,51 @@ Required invariants:
 
 ---
 
+### 11.2 Context-factor composition order
+
+When multiple validated context factors apply to one base evaluation, they
+compose in a fixed order determined by their declared `applicationStage`
+and by whether they replace or transform a terminal outcome vector.
+
+A factor whose stage is `shared-scenario-before-statistic-distribution`
+applies first. It changes scenario mixture weights only and must jointly
+affect opportunity counts and per-opportunity outcome conditioning as
+required by Section 10.
+
+Factors whose stage is `terminal-outcome-before-statistic-distribution`
+apply next, distinguished by operation.
+
+A **replacement** factor supplies a complete terminal vector for a defined
+subset of plate appearances. It substitutes an input to the coherent
+matchup combination and applies only to its declared subset. The
+team-specific bullpen factor replaces the pitcher-allowed vector for plate
+appearances against relievers and may not affect plate appearances against
+the starter.
+
+A **transformation** factor multiplies a resulting terminal vector
+elementwise and renormalizes once. It applies to every plate appearance
+within its declared scope, on both the starter and reliever branches. The
+park factor is a transformation.
+
+Replacement precedes transformation on any branch where both apply. A
+replacement changes an input to coherent combination; a transformation
+changes its output. No plate appearance may receive the same factor twice.
+
+#### Category-support boundary
+
+A factor artifact may declare multipliers for canonical terminal categories
+that the active base model does not carry. Composition applies a factor only
+over the categories present in the base model. For every category the factor
+declares that the base model omits, the factor effect must be exactly
+identity; a non-identity effect on an omitted category fails closed rather
+than being silently discarded.
+
+The active M8 Batter Hits base model carries fourteen terminal categories and
+omits `OTHER_PA`, which remains unobserved in approved provider evidence and
+fails closed under Section 19 of the project rules.
+
+---
+
 ## 12. Settlement and market model registry
 
 The mathematics above is generic.
@@ -1247,6 +1292,24 @@ no validated distribution → no ranked prop
 ---
 
 ## Changelog
+
+### Version 1.7 — 2026-08-03
+
+- Defined context-factor composition order for multiple validated factors
+  applied to one base evaluation.
+- Ordered shared-scenario factors before terminal-outcome factors and
+  required replacement factors to precede transformation factors on any
+  branch where both apply.
+- Distinguished replacement factors, which substitute a complete terminal
+  vector for a declared subset of plate appearances, from transformation
+  factors, which multiply a resulting vector elementwise and renormalize
+  once across every plate appearance in scope.
+- Prohibited any plate appearance from receiving the same factor twice.
+- Added the category-support boundary: composition applies a factor only
+  over categories the base model carries, and a non-identity effect on an
+  omitted category fails closed instead of being silently discarded.
+- Recorded that the active M8 Batter Hits base model carries fourteen
+  terminal categories and omits `OTHER_PA`.
 
 ### Version 1.6 — 2026-08-01
 
