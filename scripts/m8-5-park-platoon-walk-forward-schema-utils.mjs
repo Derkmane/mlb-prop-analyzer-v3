@@ -42,6 +42,8 @@ export function verifyAndAdaptFrozenPlatoonWalkForwardArtifact(rawInput) {
     'artifactText',
     'platoonBoundary',
     'platoonBoundaryText',
+    'terminalPaOutcome',
+    'terminalPaOutcomeText',
   ];
   if (
     JSON.stringify(Object.keys(input).sort()) !==
@@ -58,6 +60,10 @@ export function verifyAndAdaptFrozenPlatoonWalkForwardArtifact(rawInput) {
     input.platoonBoundary,
     'frozen platoon boundary artifact',
   );
+  const terminalPaOutcome = assertPlainObject(
+    input.terminalPaOutcome,
+    'frozen terminal PA outcome artifact',
+  );
   const parsedArtifact = parseJson(
     input.artifactText,
     'frozen platoon walk-forward artifact text',
@@ -66,14 +72,33 @@ export function verifyAndAdaptFrozenPlatoonWalkForwardArtifact(rawInput) {
     input.platoonBoundaryText,
     'frozen platoon boundary artifact text',
   );
+  const parsedTerminalPaOutcome = parseJson(
+    input.terminalPaOutcomeText,
+    'frozen terminal PA outcome artifact text',
+  );
   if (JSON.stringify(parsedArtifact) !== JSON.stringify(artifact)) {
     throw new Error('platoon walk-forward artifact text does not match its parsed value.');
   }
   if (JSON.stringify(parsedBoundary) !== JSON.stringify(boundary)) {
     throw new Error('platoon boundary artifact text does not match its parsed value.');
   }
+  if (
+    JSON.stringify(parsedTerminalPaOutcome) !==
+    JSON.stringify(terminalPaOutcome)
+  ) {
+    throw new Error('terminal PA outcome artifact text does not match its parsed value.');
+  }
   if (artifact.platoonWalkForwardVersion !== 1) {
     throw new Error('frozen platoon walk-forward version must equal 1.');
+  }
+  if (
+    terminalPaOutcome.artifactVersion !== 1 ||
+    terminalPaOutcome.modelVersion !== 'm8-terminal-pa-outcome-v1' ||
+    terminalPaOutcome.productionEnabled !== false
+  ) {
+    throw new Error(
+      'frozen terminal PA outcome artifact must be production-disabled m8-terminal-pa-outcome-v1.',
+    );
   }
 
   const canonicalIdentity = assertSha256(
@@ -103,24 +128,40 @@ export function verifyAndAdaptFrozenPlatoonWalkForwardArtifact(rawInput) {
     ),
     'platoon walk-forward coherent source file identity',
   );
+
+  const boundaryIdentity = assertSha256(
+    boundary.platoonEvaluationSha256,
+    'platoon boundary identity',
+  );
   assertEqual(
     assertSha256(
       artifact.sourcePlatoonBoundarySha256,
       'platoon walk-forward boundary source identity',
     ),
-    assertSha256(
-      boundary.platoonEvaluationSha256,
-      'platoon boundary identity',
-    ),
+    boundaryIdentity,
     'platoon walk-forward boundary source identity',
   );
   assertEqual(
     assertSha256(
-      artifact.sourcePlatoonBoundaryFileSha256,
-      'platoon walk-forward boundary source file identity',
+      terminalPaOutcome.sourcePlatoonEvaluationSha256,
+      'terminal PA outcome boundary source identity',
     ),
-    sha256(input.platoonBoundaryText),
-    'platoon walk-forward boundary source file identity',
+    boundaryIdentity,
+    'terminal PA outcome boundary source identity',
+  );
+
+  const historicalBoundaryFileIdentity = assertSha256(
+    artifact.sourcePlatoonBoundaryFileSha256,
+    'historical platoon walk-forward boundary source file identity',
+  );
+  const currentBoundaryFileIdentity = sha256(input.platoonBoundaryText);
+  assertEqual(
+    assertSha256(
+      terminalPaOutcome.sourcePlatoonEvaluationFileSha256,
+      'terminal PA outcome boundary source file identity',
+    ),
+    currentBoundaryFileIdentity,
+    'terminal PA outcome boundary source file identity',
   );
 
   if (
@@ -152,6 +193,9 @@ export function verifyAndAdaptFrozenPlatoonWalkForwardArtifact(rawInput) {
     adaptedArtifact: adapted,
     canonicalIdentity,
     coherentSourceIdentity,
+    boundaryIdentity,
+    historicalBoundaryFileIdentity,
+    currentBoundaryFileIdentity,
   });
 }
 
