@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 for (const script of [
+  'scripts/m8-5-park-candidate-selection-utils.mjs',
   'scripts/m8-5-park-model-utils.mjs',
   'scripts/evaluate-m8-5-park-model.mjs',
 ]) {
