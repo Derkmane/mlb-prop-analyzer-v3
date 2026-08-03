@@ -4,6 +4,9 @@ import {
   buildM8_5ParkFrozenBasePredictions,
   M8_5_PARK_FROZEN_BASE_EXPECTED,
 } from './m8-5-park-frozen-base-prediction-utils.mjs';
+import {
+  selectCanonicalM8_5ParkCandidate,
+} from './m8-5-park-candidate-selection-utils.mjs';
 import { verifyM8_5ParkVenueEvidenceAudit } from './m8-5-park-venue-evidence-utils.mjs';
 
 const HANDS = Object.freeze(['L', 'R', 'S']);
@@ -817,7 +820,7 @@ function walkForward(fitRows, validationRows, venues, categories, hitCategories,
   });
 }
 
-function validatedImprovement(result, baseline) {
+function beatsIdentityOnEveryReportedMetric(result, baseline) {
   return (
     result.fixedMetrics.categoricalLogLoss <
       baseline.fixedMetrics.categoricalLogLoss - TOLERANCE &&
@@ -998,23 +1001,40 @@ export function evaluateM8_5ParkCandidates({
       fixedMetrics,
       walkForwardMetrics: walkForwardResult.metrics,
       walkForwardFolds: walkForwardResult.folds,
-      validatedImprovement: validatedImprovement(
-        {
-          fixedMetrics,
-          walkForwardMetrics: walkForwardResult.metrics,
-        },
-        baseline,
-      ),
+      beatsIdentityOnEveryReportedMetric:
+        beatsIdentityOnEveryReportedMetric(
+          {
+            fixedMetrics,
+            walkForwardMetrics: walkForwardResult.metrics,
+          },
+          baseline,
+        ),
     });
   });
-  const eligible = results
-    .filter((result) => result.validatedImprovement)
-    .sort(
-      (left, right) =>
-        right.candidate.equivalentPa - left.candidate.equivalentPa ||
-        left.candidate.candidateId.localeCompare(right.candidate.candidateId),
+  const selection = selectCanonicalM8_5ParkCandidate({
+    identityFixedMetrics,
+    identityWalkForwardMetrics: identityWalkForward.metrics,
+    candidateResults: results,
+  });
+  if (selection.decision === 'NO_STABLE_PARK_CANDIDATE') {
+    throw new Error(
+      `park candidate family has no stable fixed/walk-forward nondominated intersection: ${JSON.stringify(selection)}`,
     );
-  const selected = eligible[0] ?? null;
+  }
+  const selected =
+    selection.selectedCandidateId === 'identity'
+      ? null
+      : results.find(
+          (result) =>
+            result.candidate.candidateId === selection.selectedCandidateId,
+        );
+  if (selection.selectedCandidateId !== 'identity' && selected === undefined) {
+    throw new Error('canonical park selection did not resolve to one fitted candidate.');
+  }
+  const selectedFixedMetrics =
+    selected?.fixedMetrics ?? identityFixedMetrics;
+  const selectedWalkForwardMetrics =
+    selected?.walkForwardMetrics ?? identityWalkForward.metrics;
   const identityFields = {
     evaluationVersion: 1,
     modelFamily: 'm8-5-handedness-outcome-specific-park-residual-transformation',
@@ -1023,31 +1043,41 @@ export function evaluateM8_5ParkCandidates({
       dataset.datasetSha256,
       'park evaluation dataset SHA-256',
     ),
-    decision:
-      selected === null
-        ? 'IDENTITY_RETAINED_NO_VALIDATED_PARK_SIGNAL'
-        : 'VALIDATED_PARK_SIGNAL',
-    selectedCandidateId: selected?.candidate.candidateId ?? null,
+    decision: selection.decision,
+    selectedCandidateId: selection.selectedCandidateId,
     identityFixedMetrics,
     identityWalkForwardMetrics: identityWalkForward.metrics,
     candidateResults: Object.freeze(results),
-    selectedFixedMetrics: selected?.fixedMetrics ?? null,
-    selectedWalkForwardMetrics: selected?.walkForwardMetrics ?? null,
+    selectedFixedMetrics,
+    selectedWalkForwardMetrics,
     selectedModel:
-      selected === null
+      selected === null || selected === undefined
         ? null
         : fitParkModel(fitRows, venues, categories, selected.candidate),
     selectionPolicy: Object.freeze({
-      requiredFixedCategoricalLogLossImprovement: true,
-      requiredFixedCategoricalBrierNoWorse: true,
-      requiredFixedHitLogLossImprovement: true,
-      requiredFixedHitBrierNoWorse: true,
-      requiredWalkForwardCategoricalLogLossImprovement: true,
-      requiredWalkForwardCategoricalBrierNoWorse: true,
-      requiredWalkForwardHitLogLossImprovement: true,
-      requiredWalkForwardHitBrierNoWorse: true,
-      tieBreaker:
-        'strongest-pooling-among-candidates-passing-every-fixed-and-walk-forward-gate',
+      candidateSetVersion: selection.candidateSetVersion,
+      candidateFamily:
+        'exact-provider-venue-by-batter-hand residual relative-rate multipliers with one pooling hyperparameter',
+      candidateIds: Object.freeze([
+        'identity',
+        ...candidates.map((candidate) => candidate.candidateId),
+      ]),
+      identityCandidateId: 'identity',
+      identityIsInfinitePoolingLimit: true,
+      properScoresUsedForSelection: Object.freeze([
+        'categoricalLogLoss',
+        'categoricalBrier',
+      ]),
+      fixedNondominatedCandidateIds:
+        selection.fixedNondominatedCandidateIds,
+      walkForwardNondominatedCandidateIds:
+        selection.walkForwardNondominatedCandidateIds,
+      stableCandidateIds: selection.stableCandidateIds,
+      selectedStableCandidateId: selection.selectedCandidateId,
+      selectionRule:
+        'intersect fixed-validation and expanding-walk-forward categorical proper-score nondominated sets, then select the strongest pooling candidate; break equal-pooling ties by ascending candidate ID',
+      hitMetricsUsedForSelection: false,
+      hitMetricsRetainedAsDiagnostics: true,
       validationRowsUsedForFinalMultiplierFit: false,
     }),
     safety: Object.freeze({
