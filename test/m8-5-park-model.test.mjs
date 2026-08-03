@@ -80,7 +80,7 @@ function dataset(signal) {
   });
 }
 
-test('selects a handedness- and outcome-specific venue residual signal in fixed and walk-forward evaluation', () => {
+test('selects a handedness- and outcome-specific venue residual through canonical fixed and walk-forward frontiers', () => {
   const result = evaluateM8_5ParkCandidates({
     dataset: dataset(true),
     candidates: [
@@ -105,11 +105,22 @@ test('selects a handedness- and outcome-specific venue residual signal in fixed 
   assert.ok(
     result.selectedModel.byVenue['Park B'].R.relativeRateMultipliers['1B'] < 1,
   );
+  assert.deepEqual(result.selectionPolicy.properScoresUsedForSelection, [
+    'categoricalLogLoss',
+    'categoricalBrier',
+  ]);
+  assert.equal(result.selectionPolicy.hitMetricsUsedForSelection, false);
+  assert.equal(
+    result.selectionPolicy.stableCandidateIds.includes(
+      result.selectedCandidateId,
+    ),
+    true,
+  );
   assert.equal(result.safety.selectedSideInputUsed, false);
   assert.equal(result.safety.directProbabilityAdjustmentUsed, false);
 });
 
-test('retains identity when venue outcomes match the frozen base probabilities', () => {
+test('retains the identity infinite-pooling limit when venue outcomes match frozen base probabilities', () => {
   const result = evaluateM8_5ParkCandidates({
     dataset: dataset(false),
     candidates: [
@@ -118,8 +129,14 @@ test('retains identity when venue outcomes match the frozen base probabilities',
     ],
   });
   assert.equal(result.decision, 'IDENTITY_RETAINED_NO_VALIDATED_PARK_SIGNAL');
-  assert.equal(result.selectedCandidateId, null);
+  assert.equal(result.selectedCandidateId, 'identity');
   assert.equal(result.selectedModel, null);
+  assert.deepEqual(result.selectedFixedMetrics, result.identityFixedMetrics);
+  assert.deepEqual(
+    result.selectedWalkForwardMetrics,
+    result.identityWalkForwardMetrics,
+  );
+  assert.equal(result.selectionPolicy.identityIsInfinitePoolingLimit, true);
 });
 
 test('rejects selected-side fields, direct probability fields, chronology drift, and unverified venues', () => {
