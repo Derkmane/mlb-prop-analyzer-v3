@@ -643,7 +643,7 @@ These are intended investigations, not abandoned markets. No empty feature folde
 - Recorded preserved Underdog baseline and alternate fixtures, market keys, selected-side fields, lines, multipliers, and null source IDs.
 - Recorded preserved BALLDONTLIE game and lineup fixtures.
 - Recorded one observed cross-provider game join and the 17-of-18 player-linkage result with James Jarvis failing closed.
-- Kept complete pregame status semantics, PA/plays fixture promotion, terminal-category closure, and every M2 exit gates open.
+- Kept complete pregame status semantics, PA/plays fixture promotion, terminal-category closure, and every M2 exit gate open.
 - Did not begin provider-derived contracts.
 
 ### Version 1.1 — 2026-07-23
