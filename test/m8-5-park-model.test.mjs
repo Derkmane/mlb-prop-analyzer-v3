@@ -90,7 +90,10 @@ test('selects a handedness- and outcome-specific venue residual through canonica
     ],
   });
   assert.equal(result.decision, 'VALIDATED_PARK_SIGNAL');
-  assert.equal(result.selectedCandidateId, 'venue-hand-pool-50');
+  assert.equal(result.selectedCandidateId, 'venue-hand-pool-2');
+  assert.deepEqual(result.selectionPolicy.stableCandidateIds, [
+    'venue-hand-pool-2',
+  ]);
   assert.ok(
     result.selectedFixedMetrics.categoricalLogLoss <
       result.identityFixedMetrics.categoricalLogLoss,
