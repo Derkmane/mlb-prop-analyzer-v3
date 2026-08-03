@@ -164,6 +164,12 @@ export interface BatterHitsRuntimeObservation {
   readonly lineupSourceSnapshotSha256: string;
 }
 
+export interface BatterHitsRuntimeContextFactors {
+  readonly bullpenOverrideByHand?: Readonly<Record<BatterHitsHand, CategoryVector>>;
+  readonly teamBullpenFactorModelVersion?: string;
+  readonly teamBullpenFactorArtifactSha256?: string;
+}
+
 export interface FrozenBatterHitsScenarioDistribution {
   readonly scenarioIndex: number;
   readonly weight: number;
@@ -514,15 +520,19 @@ function bullpenHitProbability(
   completeCandidate: FrozenCompleteBatterHitsCandidate,
   batterId: number,
   batterSide: BatterHitsHand,
+  bullpenOverrideByHand?: Readonly<Record<BatterHitsHand, CategoryVector>>,
 ): number {
   let result = 0;
   for (const hand of VALID_HANDS) {
     const batter = platoonBatterVector(terminal, batterId, batterSide, hand);
-    const coherent = coherentVector(
-      terminal,
-      batter,
-      completeCandidate.bullpenModel.byHand[hand],
+    const pitcherVector =
+      bullpenOverrideByHand?.[hand] ?? completeCandidate.bullpenModel.byHand[hand];
+    validateCategoryVector(
+      pitcherVector,
+      terminal.categories,
+      `bullpen pitcher vector `,
     );
+    const coherent = coherentVector(terminal, batter, pitcherVector);
     result +=
       completeCandidate.bullpenModel.handWeights[hand] *
       hitProbability(coherent, terminal.hitCategories);
@@ -653,6 +663,7 @@ export function buildFrozenBatterHitsRuntimeDistribution(
   offer: NormalizedBatterHitsBoardOffer,
   observation: BatterHitsRuntimeObservation,
   rawArtifacts: FrozenBatterHitsProbabilityArtifacts,
+  contextFactors?: BatterHitsRuntimeContextFactors,
 ): FrozenBatterHitsRuntimeDistribution {
   validateObservation(offer, observation);
   const artifacts = verifyFrozenBatterHitsProbabilityArtifacts(rawArtifacts);
@@ -678,6 +689,7 @@ export function buildFrozenBatterHitsRuntimeDistribution(
     artifacts.completeCandidate,
     observation.providerPlayerId,
     observation.batterSide,
+    contextFactors?.bullpenOverrideByHand,
   );
   const baselineEnvironmentHit = artifacts.sharedEnvironment.scenarios.reduce(
     (sum, scenario) =>
