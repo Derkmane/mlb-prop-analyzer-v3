@@ -32,6 +32,29 @@ function sha256(text) {
   return createHash('sha256').update(text).digest('hex');
 }
 
+function findRuntimeSource(freeze, expectedPath) {
+  const sources = freeze?.runtimeSourceArtifacts;
+  if (!Array.isArray(sources)) {
+    throw new Error('frozen M8 runtime manifest is missing runtime source artifacts.');
+  }
+  const matches = sources.filter(
+    (source) => source?.sourcePath === expectedPath,
+  );
+  if (matches.length !== 1) {
+    throw new Error(
+      `expected exactly one frozen runtime source for ${expectedPath}; found ${matches.length}.`,
+    );
+  }
+  const source = matches[0];
+  if (
+    typeof source.sourceSha256 !== 'string' ||
+    !/^[0-9a-f]{64}$/.test(source.sourceSha256)
+  ) {
+    throw new Error(`${expectedPath} frozen runtime source identity is invalid.`);
+  }
+  return source;
+}
+
 async function discoverResolvedDataset({
   root,
   expectedDatasetSha256,
@@ -89,17 +112,41 @@ for (const [label, value] of [
   }
 }
 
-const [fixedFile, platoonFile, rawPlatoonWalkForwardFile] = await Promise.all([
+const terminalRuntimeSource = findRuntimeSource(
+  freezeFile.value,
+  'model-artifacts/m8-terminal-pa-outcome-v1.json',
+);
+const [
+  fixedFile,
+  platoonFile,
+  rawPlatoonWalkForwardFile,
+  terminalPaOutcomeFile,
+] = await Promise.all([
   readJson(fixedPath, 'fixed categorical evaluation'),
   readJson(platoonPath, 'platoon boundary evaluation'),
   readJson(platoonWalkForwardPath, 'platoon walk-forward evaluation'),
+  readJson(
+    terminalRuntimeSource.sourcePath,
+    'frozen terminal PA outcome artifact',
+  ),
 ]);
+if (
+  sha256(JSON.stringify(terminalPaOutcomeFile.value)) !==
+  terminalRuntimeSource.sourceSha256
+) {
+  throw new Error(
+    'frozen terminal PA outcome artifact does not match the runtime freeze identity.',
+  );
+}
+
 const platoonWalkForwardLineage =
   verifyAndAdaptFrozenPlatoonWalkForwardArtifact({
     artifact: rawPlatoonWalkForwardFile.value,
     artifactText: rawPlatoonWalkForwardFile.text,
     platoonBoundary: platoonFile.value,
     platoonBoundaryText: platoonFile.text,
+    terminalPaOutcome: terminalPaOutcomeFile.value,
+    terminalPaOutcomeText: terminalPaOutcomeFile.text,
   });
 const explicitDatasetPath =
   process.env.M8_RESOLVED_CATEGORICAL_DATASET_PATH?.trim() || null;
@@ -149,6 +196,7 @@ console.log(`Resolved dataset: ${datasetFile.path}`);
 console.log(`Fixed evaluation: ${fixedPath}`);
 console.log(`Platoon evaluation: ${platoonPath}`);
 console.log(`Platoon walk-forward: ${platoonWalkForwardPath}`);
+console.log(`Terminal PA outcome: ${terminalRuntimeSource.sourcePath}`);
 console.log(`Validation predictions: ${parity.predictions.length}`);
 console.log(
   `Coherent categorical log loss: ${parity.coherentMetrics.categoricalLogLoss}`,
@@ -161,6 +209,12 @@ console.log(
 );
 console.log(
   `Platoon walk-forward SHA-256: ${parity.sourcePlatoonWalkForwardSha256}`,
+);
+console.log(
+  `Historical boundary file SHA-256: ${platoonWalkForwardLineage.historicalBoundaryFileIdentity}`,
+);
+console.log(
+  `Current authenticated boundary file SHA-256: ${platoonWalkForwardLineage.currentBoundaryFileIdentity}`,
 );
 console.log(`Prediction SHA-256: ${parity.predictionSha256}`);
 console.log(`Parity SHA-256: ${parity.paritySha256}`);
