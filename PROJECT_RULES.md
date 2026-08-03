@@ -1,6 +1,6 @@
 # MLB Prop Analyzer --- Project Rules
 
-**Version:** 2.8\
+**Version:** 2.9\
 **Status:** Canonical project rules\
 **Applies to:** MLB Prop Analyzer V3\
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
@@ -966,8 +966,8 @@ For every canonical revision:
     duplicate active repository copy of that authority
 4.  search the active repository tree for obsolete copies before
     claiming completion
-5.  verify the complete Project Source file and active repository file
-    are byte-for-byte identical and report their matching content hash
+5.  verify the replacement file is complete and present at the exact
+    canonical path in the active repository
 6.  do not continue dependent work, open merge approval, or claim the
     revision complete until replacement, cleanup, and identity
     verification all pass
@@ -981,9 +981,11 @@ change unless a canonical retention rule requires it to remain.
 
 ### Zero-tolerance mismatch recovery
 
-At every preflight, and before any technical decision or repository
-work, read the complete Project Source copies and the complete
-repository copies of:
+The active repository is the sole authority for canonical files. No
+local, uploaded, cached, or Project Source copy is authority, and no
+synchronization between copies is required or permitted as a gate. At
+every preflight, and before any technical decision or repository work,
+read the complete active repository copies of:
 
 -   `PROJECT_RULES.md`
 -   `CANONICAL_MATH_SPEC.md`
@@ -1058,9 +1060,11 @@ script, or dependency is introduced.
 The project execution language remains strict TypeScript and Node.js.
 Repository inspection, file creation, edits, transformations, commits,
 pushes, pull requests, and CI review must be performed through Codex or
-GitHub whenever those capabilities are available. Do not delegate a
-repository file edit to the user through a Replit script, heredoc, or
-large pasted command.
+GitHub whenever those capabilities are available. When the assistant
+has no such capability, the user may perform the edit directly in the
+GitHub web editor or the Replit file editor; the assistant supplies
+complete file content or exact find-and-replace text, never a script,
+heredoc, or chained command.
 
 A user-run Replit command may use only an executable already proven to
 exist in this exact workspace by prior successful project output. The
@@ -1097,7 +1101,7 @@ Do not promise background work or future completion.
 
 ## 28. Project placement --- LOCKED
 
-Canonical complete files belong in Project Sources:
+Canonical complete files live only in the active repository at:
 
 -   `PROJECT_RULES.md`
 -   `CANONICAL_MATH_SPEC.md`
@@ -1110,6 +1114,18 @@ There is no separate Project Knowledge deliverable.
 ------------------------------------------------------------------------
 
 ## Changelog
+
+### Version 2.9 --- 2026-08-03
+
+-   Designated the active repository the sole authority for canonical
+    files and removed every Project Source copy, placement, and
+    byte-identity requirement.
+-   Permitted the user to perform repository edits directly in the
+    GitHub web editor or Replit file editor when no assistant has
+    repository write capability.
+-   Preserved the Python prohibition, the proven-executable limit on
+    user-run commands, and the prohibition on scripts, heredocs, and
+    chained commands.
 
 ### Version 2.8 --- 2026-08-03
 
