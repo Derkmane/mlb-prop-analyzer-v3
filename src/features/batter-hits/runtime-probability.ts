@@ -169,6 +169,7 @@ export interface BatterHitsRuntimeContextFactors {
   readonly bullpenOverrideByHand?: Readonly<Record<BatterHitsHand, CategoryVector>>;
   readonly teamBullpenFactorModelVersion?: string;
   readonly teamBullpenFactorArtifactSha256?: string;
+  readonly parkMultipliersByCategory?: CategoryVector;
 }
 
 export interface FrozenBatterHitsScenarioDistribution {
@@ -416,6 +417,40 @@ function normalizeCategoryVector(
   return Object.freeze(result);
 }
 
+function applyParkTransformation(
+  vector: CategoryVector,
+  categories: readonly string[],
+  parkMultipliersByCategory?: CategoryVector,
+): CategoryVector {
+  if (parkMultipliersByCategory === undefined) return vector;
+
+  const keys = Object.keys(parkMultipliersByCategory).sort();
+  const expected = [...categories].sort();
+  if (JSON.stringify(keys) !== JSON.stringify(expected)) {
+    throw new Error(
+      'park multipliers must contain every and only modeled category.',
+    );
+  }
+
+  const weighted: Record<string, number> = {};
+  for (const category of categories) {
+    const multiplier =
+      parkMultipliersByCategory[category] ?? Number.NaN;
+    if (!Number.isFinite(multiplier) || multiplier <= 0) {
+      throw new RangeError(
+        `park multiplier for ${category} must be a positive finite number.`,
+      );
+    }
+    weighted[category] = (vector[category] ?? Number.NaN) * multiplier;
+  }
+
+  return normalizeCategoryVector(
+    weighted,
+    categories,
+    'park-transformed terminal outcome vector',
+  );
+}
+
 function stableSoftmax(
   scores: Readonly<Record<string, number>>,
   categories: readonly string[],
@@ -521,11 +556,17 @@ function terminalHitProbability(
   pitcherId: number,
   batterSide: BatterHitsHand,
   pitcherHand: BatterHitsHand,
+  parkMultipliersByCategory?: CategoryVector,
 ): number {
   const batter = platoonBatterVector(terminal, batterId, batterSide, pitcherHand);
   const pitcher = terminal.pitcherAllowed[String(pitcherId)] ?? terminal.unseenPitcher;
+  const coherent = coherentVector(terminal, batter, pitcher);
   return hitProbability(
-    coherentVector(terminal, batter, pitcher),
+    applyParkTransformation(
+      coherent,
+      terminal.categories,
+      parkMultipliersByCategory,
+    ),
     terminal.hitCategories,
   );
 }
@@ -536,6 +577,7 @@ function bullpenHitProbability(
   batterId: number,
   batterSide: BatterHitsHand,
   bullpenOverrideByHand?: Readonly<Record<BatterHitsHand, CategoryVector>>,
+  parkMultipliersByCategory?: CategoryVector,
 ): number {
   let result = 0;
   for (const hand of VALID_HANDS) {
@@ -548,9 +590,14 @@ function bullpenHitProbability(
       `bullpen pitcher vector `,
     );
     const coherent = coherentVector(terminal, batter, pitcherVector);
+    const transformed = applyParkTransformation(
+      coherent,
+      terminal.categories,
+      parkMultipliersByCategory,
+    );
     result +=
       completeCandidate.bullpenModel.handWeights[hand] *
-      hitProbability(coherent, terminal.hitCategories);
+      hitProbability(transformed, terminal.hitCategories);
   }
   return validateProbability(result, 'generic bullpen hit probability');
 }
@@ -699,6 +746,7 @@ export function buildFrozenBatterHitsRuntimeDistribution(
     observation.opposingStarterPitcherId,
     observation.batterSide,
     observation.opposingStarterHand,
+    contextFactors?.parkMultipliersByCategory,
   );
   const bullpenBaseHit = bullpenHitProbability(
     artifacts.terminalOutcome,
@@ -706,6 +754,7 @@ export function buildFrozenBatterHitsRuntimeDistribution(
     observation.providerPlayerId,
     observation.batterSide,
     contextFactors?.bullpenOverrideByHand,
+    contextFactors?.parkMultipliersByCategory,
   );
   const baselineEnvironmentHit = artifacts.sharedEnvironment.scenarios.reduce(
     (sum, scenario) =>
