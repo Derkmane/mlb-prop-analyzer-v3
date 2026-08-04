@@ -17,13 +17,22 @@ async function writeJson(filePath, value) {
   await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
 }
 
-function dateCapture(date, gameId, count, hash) {
+function dateCapture(
+  date,
+  gameId,
+  count,
+  plateAppearanceHash,
+  {
+    gameDate = `${date}T00:05:00.000Z`,
+    gamesSnapshotHash = plateAppearanceHash,
+  } = {},
+) {
   return {
     date,
     gamesSnapshot: {
       filePath: `missing-games-${date}.json`,
-      rawBodySha256: hash,
-      savedBodySha256: hash,
+      rawBodySha256: gamesSnapshotHash,
+      savedBodySha256: gamesSnapshotHash,
       request: {},
       responseStatus: 200,
     },
@@ -31,12 +40,12 @@ function dateCapture(date, gameId, count, hash) {
     games: [
       {
         gameId,
-        gameDate: date,
+        gameDate,
         status: 'STATUS_FINAL',
         plateAppearancesSnapshot: {
           filePath: `missing-pa-${gameId}.json`,
-          rawBodySha256: hash,
-          savedBodySha256: hash,
+          rawBodySha256: plateAppearanceHash,
+          savedBodySha256: plateAppearanceHash,
           request: {},
           responseStatus: 200,
           recordCount: count,
@@ -46,12 +55,12 @@ function dateCapture(date, gameId, count, hash) {
   };
 }
 
-function completeManifest(startDate, endDate, captures) {
+function completeManifest(startDate, endDate, captures, capturedAt = '2026-08-04T20:00:00.000Z') {
   return {
     captureVersion: 1,
     purpose: 'synthetic metadata-only reservation fixture',
     provider: 'BALLDONTLIE MLB API',
-    capturedAt: '2026-08-04T20:00:00.000Z',
+    capturedAt,
     activeSeason: 2026,
     requestedStartDate: startDate,
     requestedEndDate: endDate,
@@ -60,7 +69,10 @@ function completeManifest(startDate, endDate, captures) {
     delayMs: 0,
     status: 'complete',
     truncated: false,
-    capturedGameCount: captures.length,
+    capturedGameCount: captures.reduce(
+      (total, capture) => total + capture.finalGameCount,
+      0,
+    ),
     capturedPlateAppearanceCount: captures.reduce(
       (total, capture) =>
         total +
@@ -116,7 +128,7 @@ async function arrangeArtifacts(root) {
   };
 }
 
-test('reserves the deterministic July 26+ cohort from manifest metadata without opening PA payloads', async () => {
+test('reserves the deterministic July 26+ cohort, preserves raw gameDate, and never opens missing PA payloads', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'm8-5-reservation-'));
   const captureRoot = path.join(root, 'captures');
   const artifacts = await arrangeArtifacts(root);
@@ -146,6 +158,10 @@ test('reserves the deterministic July 26+ cohort from manifest metadata without 
     endDate: '2026-07-28',
     dateCount: 3,
   });
+  assert.equal(
+    first.reservedDateMetadata[0].games[0].gameDate,
+    '2026-07-26T00:05:00.000Z',
+  );
   assert.equal(first.gameCount, 3);
   assert.equal(first.plateAppearanceCount, 33);
   assert.equal(first.rowsIncluded, false);
@@ -157,14 +173,158 @@ test('reserves the deterministic July 26+ cohort from manifest metadata without 
   assert.match(first.artifactSha256, /^[a-f0-9]{64}$/);
 });
 
-test('fails closed when the required first new date has no complete capture metadata', async () => {
+test('fails closed on a malformed provider gameDate timestamp', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'm8-5-reservation-malformed-date-'));
+  const captureRoot = path.join(root, 'captures');
+  const artifacts = await arrangeArtifacts(root);
+  await writeJson(
+    path.join(captureRoot, 'bad', 'capture-manifest.json'),
+    completeManifest('2026-07-26', '2026-07-26', [
+      dateCapture('2026-07-26', 2001, 10, HASH_A, { gameDate: '2026-07-26' }),
+    ]),
+  );
+
+  await assert.rejects(
+    reserveM8_5UntouchedCohort({
+      captureRoot,
+      latestDate: '2026-07-26',
+      ...artifacts,
+    }),
+    /must be a 24-character UTC ISO date-time/,
+  );
+});
+
+test('fails closed when gameDate resolves to a different UTC calendar date', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'm8-5-reservation-wrong-utc-date-'));
+  const captureRoot = path.join(root, 'captures');
+  const artifacts = await arrangeArtifacts(root);
+  await writeJson(
+    path.join(captureRoot, 'bad', 'capture-manifest.json'),
+    completeManifest('2026-07-26', '2026-07-26', [
+      dateCapture('2026-07-26', 3001, 10, HASH_A, {
+        gameDate: '2026-07-27T00:05:00.000Z',
+      }),
+    ]),
+  );
+
+  await assert.rejects(
+    reserveM8_5UntouchedCohort({
+      captureRoot,
+      latestDate: '2026-07-26',
+      ...artifacts,
+    }),
+    /UTC calendar date does not match its capture date/,
+  );
+});
+
+test('accepts legitimate recaptures with identical game metadata and deduplicates by gameId', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'm8-5-reservation-duplicate-'));
+  const captureRoot = path.join(root, 'captures');
+  const artifacts = await arrangeArtifacts(root);
+  await writeJson(
+    path.join(captureRoot, 'full-2026-07-26', 'capture-manifest.json'),
+    completeManifest('2026-07-26', '2026-07-26', [
+      dateCapture('2026-07-26', 4001, 10, HASH_A, {
+        gamesSnapshotHash: HASH_A,
+      }),
+    ]),
+  );
+  await writeJson(
+    path.join(captureRoot, 'full-2026-07-26-verifiable', 'capture-manifest.json'),
+    completeManifest(
+      '2026-07-26',
+      '2026-07-26',
+      [
+        dateCapture('2026-07-26', 4001, 10, HASH_A, {
+          gamesSnapshotHash: HASH_B,
+        }),
+      ],
+      '2026-08-04T20:01:00.000Z',
+    ),
+  );
+
+  const artifact = await reserveM8_5UntouchedCohort({
+    captureRoot,
+    latestDate: '2026-07-26',
+    ...artifacts,
+  });
+
+  assert.equal(artifact.sourceManifests.length, 2);
+  assert.equal(artifact.gameCount, 1);
+  assert.equal(artifact.plateAppearanceCount, 10);
+  assert.equal(artifact.reservedDateMetadata[0].finalGameCount, 1);
+  assert.equal(artifact.reservedDateMetadata[0].games.length, 1);
+  assert.equal(artifact.reservedDateMetadata[0].games[0].gameId, 4001);
+});
+
+test('fails closed on contradictory metadata for the same gameId', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'm8-5-reservation-conflict-'));
+  const captureRoot = path.join(root, 'captures');
+  const artifacts = await arrangeArtifacts(root);
+  await writeJson(
+    path.join(captureRoot, 'first', 'capture-manifest.json'),
+    completeManifest('2026-07-26', '2026-07-26', [
+      dateCapture('2026-07-26', 5001, 10, HASH_A),
+    ]),
+  );
+  await writeJson(
+    path.join(captureRoot, 'second', 'capture-manifest.json'),
+    completeManifest('2026-07-26', '2026-07-26', [
+      dateCapture('2026-07-26', 5001, 11, HASH_B),
+    ]),
+  );
+
+  await assert.rejects(
+    reserveM8_5UntouchedCohort({
+      captureRoot,
+      latestDate: '2026-07-26',
+      ...artifacts,
+    }),
+    /Contradictory complete capture metadata exists for gameId 5001/,
+  );
+});
+
+test('skips capture manifests that do not carry the dateCaptures contract', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'm8-5-reservation-skip-shape-'));
+  const captureRoot = path.join(root, 'captures');
+  const artifacts = await arrangeArtifacts(root);
+  await writeJson(
+    path.join(captureRoot, 'm8-context-plays-v1', 'capture-manifest.json'),
+    {
+      captureVersion: 'different-contract-v1',
+      provider: 'BALLDONTLIE MLB API',
+      games: [{ gameId: 9999 }],
+    },
+  );
+  await writeJson(
+    path.join(captureRoot, 'complete', 'capture-manifest.json'),
+    completeManifest('2026-07-26', '2026-07-26', [
+      dateCapture('2026-07-26', 6001, 10, HASH_A),
+    ]),
+  );
+
+  const artifact = await reserveM8_5UntouchedCohort({
+    captureRoot,
+    latestDate: '2026-07-26',
+    ...artifacts,
+  });
+
+  assert.equal(artifact.gameCount, 1);
+  assert.equal(artifact.sourceManifests.length, 1);
+  assert.doesNotMatch(
+    artifact.sourceManifests[0].path,
+    /m8-context-plays-v1/,
+  );
+});
+
+test('fails closed when the required July 26 first date has no complete capture metadata', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'm8-5-reservation-gap-'));
   const captureRoot = path.join(root, 'captures');
   const artifacts = await arrangeArtifacts(root);
   await writeJson(
     path.join(captureRoot, 'late', 'capture-manifest.json'),
     completeManifest('2026-07-27', '2026-07-27', [
-      dateCapture('2026-07-27', 2001, 10, HASH_A),
+      dateCapture('2026-07-27', 7001, 10, HASH_A),
     ]),
   );
 
@@ -175,32 +335,5 @@ test('fails closed when the required first new date has no complete capture meta
       ...artifacts,
     }),
     /2026-07-26 has no complete capture metadata/,
-  );
-});
-
-test('fails closed on conflicting complete metadata for one reserved date', async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'm8-5-reservation-conflict-'));
-  const captureRoot = path.join(root, 'captures');
-  const artifacts = await arrangeArtifacts(root);
-  await writeJson(
-    path.join(captureRoot, 'first', 'capture-manifest.json'),
-    completeManifest('2026-07-26', '2026-07-26', [
-      dateCapture('2026-07-26', 3001, 10, HASH_A),
-    ]),
-  );
-  await writeJson(
-    path.join(captureRoot, 'second', 'capture-manifest.json'),
-    completeManifest('2026-07-26', '2026-07-26', [
-      dateCapture('2026-07-26', 3001, 11, HASH_B),
-    ]),
-  );
-
-  await assert.rejects(
-    reserveM8_5UntouchedCohort({
-      captureRoot,
-      latestDate: '2026-07-26',
-      ...artifacts,
-    }),
-    /Conflicting complete capture metadata exists for 2026-07-26/,
   );
 });
