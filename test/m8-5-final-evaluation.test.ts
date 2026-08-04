@@ -485,6 +485,6 @@ test('M8.5 final evaluation fails closed on source, factor, scenario, or hash dr
         sourceM8Evaluation,
         finalDistribution: tamperedFactorReference,
       }),
-    /invalid stage identity/u,
+    /applied factor park must have non-identity stages and no reason/u,
   );
 });
