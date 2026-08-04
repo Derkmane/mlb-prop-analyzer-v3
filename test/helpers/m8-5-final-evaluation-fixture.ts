@@ -78,7 +78,7 @@ interface GameRecord {
   readonly id: number;
   readonly home_team: { readonly id: number };
   readonly away_team: { readonly id: number };
-  readonly venue?: string;
+  readonly venue: string;
 }
 
 interface LineupRecord {
