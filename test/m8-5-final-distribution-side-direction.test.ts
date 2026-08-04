@@ -124,6 +124,11 @@ function settleBothSides(
 
 function settlementForRanking(evaluation: ReturnType<typeof settleM8_5FinalOfferV1>) {
   return Object.freeze({
+    eligibilityProbability:
+      evaluation.sourceM8Evaluation.baseDistribution.baseballInputs
+        .eligibilityProbability,
+    line: evaluation.offer.line,
+    selectedSide: evaluation.offer.selectedSide,
     winProbability: evaluation.probabilities.pWin,
     lossProbability: evaluation.probabilities.pLoss,
     voidProbability: evaluation.probabilities.pVoid,
