@@ -12,6 +12,7 @@ import {
   scoreM8_5UntouchedDistributions,
   verifyM8_5UntouchedAcceptanceArtifact,
 } from '../scripts/m8-5-untouched-acceptance-utils.mjs';
+import { selectManifestFinalGameMap } from '../scripts/run-m8-5-untouched-acceptance.mjs';
 
 function reservation() {
   return {
@@ -146,6 +147,40 @@ test('creates and verifies one immutable acceptance artifact with the explicit s
   assert.throws(
     () => verifyM8_5UntouchedAcceptanceArtifact(tampered),
     /artifact SHA-256 is invalid/,
+  );
+});
+
+test('ignores an unrelated postponed snapshot row but rejects a selected unfinished game', () => {
+  const finalGame = {
+    id: 5057862,
+    season: 2026,
+    postseason: false,
+    status: 'STATUS_FINAL',
+  };
+  const postponedGame = {
+    id: 5057863,
+    season: 2026,
+    postseason: false,
+    status: 'STATUS_POSTPONED',
+  };
+  const snapshot = { data: [finalGame, postponedGame] };
+
+  const selected = selectManifestFinalGameMap(
+    snapshot,
+    '2026-04-02',
+    [{ gameId: finalGame.id }],
+  );
+  assert.deepEqual([...selected.keys()], [finalGame.id]);
+  assert.equal(selected.has(postponedGame.id), false);
+
+  assert.throws(
+    () =>
+      selectManifestFinalGameMap(
+        snapshot,
+        '2026-04-02',
+        [{ gameId: postponedGame.id }],
+      ),
+    /game 5057863 is not a final 2026 regular-season game/,
   );
 });
 
