@@ -624,6 +624,9 @@ test('canonical composition fails closed on source drift, side input, unknown ve
   const targetMatchup =
     `pitching-team:${inputs.observation.opposingStarterTeamId}|pitcher-hand:L`;
   const boundaryEffects = originalTeamArtifact.effects.map((effect) => {
+    if (effect.kind === 'identity') {
+      throw new Error('validated team bullpen fixture cannot contain identity effects.');
+    }
     if (
       effect.kind !== 'terminal-outcome-vector' ||
       effect.matchupKey !== targetMatchup
