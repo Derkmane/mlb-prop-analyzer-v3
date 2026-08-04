@@ -360,7 +360,9 @@ function tailProbability(
 }
 
 function requiredProbability(value: number | null, label: string): number {
-  assert.notEqual(value, null, `${label} must be rankable`);
+  if (value === null) {
+    throw new Error(`${label} must be rankable`);
+  }
   return value;
 }
 
