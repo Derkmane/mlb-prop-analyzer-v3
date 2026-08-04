@@ -1,6 +1,10 @@
 import { TERMINAL_PA_CATEGORIES } from '../../domain/terminal-pa.js';
 import type { M8_5ParkTransformationResolutionV1 } from './park-transformation.js';
 
+const CANONICAL_TERMINAL_CATEGORY_SET = new Set<string>(
+  TERMINAL_PA_CATEGORIES,
+);
+
 function canonicalMultiplierMap(
   resolution: M8_5ParkTransformationResolutionV1,
 ): ReadonlyMap<string, number> {
@@ -13,7 +17,7 @@ function canonicalMultiplierMap(
 
   const multipliers = new Map<string, number>();
   for (const entry of resolution.relativeRateMultipliers) {
-    if (!TERMINAL_PA_CATEGORIES.includes(entry.category)) {
+    if (!CANONICAL_TERMINAL_CATEGORY_SET.has(entry.category)) {
       throw new Error(`park multiplier contains unknown category ${entry.category}.`);
     }
     if (!Number.isFinite(entry.multiplier) || entry.multiplier <= 0) {
@@ -43,7 +47,7 @@ export function projectM8_5ParkMultipliersToModeledCategoriesV1(
 
   const modeled = new Set<string>();
   for (const category of modeledCategories) {
-    if (!TERMINAL_PA_CATEGORIES.includes(category)) {
+    if (!CANONICAL_TERMINAL_CATEGORY_SET.has(category)) {
       throw new Error(`modeled terminal category ${category} is not canonical.`);
     }
     if (modeled.has(category)) {

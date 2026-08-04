@@ -256,7 +256,11 @@ function parkResolutionFor(
 function parkContextFor(
   observation: ConfirmedBatterHitsRuntimeObservation,
   modeledCategories: readonly string[],
-): BatterHitsRuntimeContextFactors {
+): Readonly<{
+  parkMultipliersByCategory: NonNullable<
+    BatterHitsRuntimeContextFactors['parkMultipliersByCategory']
+  >;
+}> {
   return {
     parkMultipliersByCategory:
       projectM8_5ParkMultipliersToModeledCategoriesV1(
