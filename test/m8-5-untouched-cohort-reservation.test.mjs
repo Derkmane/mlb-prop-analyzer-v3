@@ -317,6 +317,89 @@ test('skips capture manifests that do not carry the dateCaptures contract', asyn
   );
 });
 
+test('skips wholly pre-window legacy manifests before strict snapshot hash validation', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'm8-5-reservation-legacy-window-'));
+  const captureRoot = path.join(root, 'captures');
+  const artifacts = await arrangeArtifacts(root);
+  const legacyCapture = dateCapture('2026-07-08', 8001, 10, HASH_A);
+  delete legacyCapture.gamesSnapshot.savedBodySha256;
+  delete legacyCapture.games[0].plateAppearancesSnapshot.savedBodySha256;
+  await writeJson(
+    path.join(captureRoot, 'legacy-2026-07-08', 'capture-manifest.json'),
+    completeManifest('2026-07-08', '2026-07-08', [legacyCapture]),
+  );
+  await writeJson(
+    path.join(captureRoot, 'eligible-2026-07-26', 'capture-manifest.json'),
+    completeManifest('2026-07-26', '2026-07-26', [
+      dateCapture('2026-07-26', 8002, 12, HASH_B),
+    ]),
+  );
+
+  const artifact = await reserveM8_5UntouchedCohort({
+    captureRoot,
+    latestDate: '2026-07-26',
+    ...artifacts,
+  });
+
+  assert.equal(artifact.gameCount, 1);
+  assert.equal(artifact.sourceManifests.length, 1);
+  assert.doesNotMatch(
+    artifact.sourceManifests[0].path,
+    /legacy-2026-07-08/,
+  );
+});
+
+test('fails closed when an eligible manifest omits its saved games snapshot hash', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'm8-5-reservation-eligible-hash-'));
+  const captureRoot = path.join(root, 'captures');
+  const artifacts = await arrangeArtifacts(root);
+  const eligibleCapture = dateCapture('2026-07-26', 9001, 10, HASH_A);
+  delete eligibleCapture.gamesSnapshot.savedBodySha256;
+  await writeJson(
+    path.join(captureRoot, 'eligible', 'capture-manifest.json'),
+    completeManifest('2026-07-26', '2026-07-26', [eligibleCapture]),
+  );
+
+  await assert.rejects(
+    reserveM8_5UntouchedCohort({
+      captureRoot,
+      latestDate: '2026-07-26',
+      ...artifacts,
+    }),
+    /gamesSnapshot\.savedBodySha256 must be a non-empty string/,
+  );
+});
+
+test('reserves the available contiguous run when it ends before latestDate', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'm8-5-reservation-short-run-'));
+  const captureRoot = path.join(root, 'captures');
+  const artifacts = await arrangeArtifacts(root);
+  await writeJson(
+    path.join(captureRoot, 'eligible-run', 'capture-manifest.json'),
+    completeManifest('2026-07-26', '2026-07-29', [
+      dateCapture('2026-07-26', 10001, 10, HASH_A),
+      dateCapture('2026-07-27', 10002, 11, HASH_B),
+      dateCapture('2026-07-28', 10003, 12, HASH_C),
+      dateCapture('2026-07-29', 10004, 13, HASH_A),
+    ]),
+  );
+
+  const artifact = await reserveM8_5UntouchedCohort({
+    captureRoot,
+    latestDate: '2026-08-03',
+    ...artifacts,
+  });
+
+  assert.deepEqual(artifact.dateRange, {
+    startDate: '2026-07-26',
+    endDate: '2026-07-29',
+    dateCount: 4,
+  });
+  assert.equal(artifact.latestDate, '2026-08-03');
+  assert.equal(artifact.gameCount, 4);
+  assert.equal(artifact.plateAppearanceCount, 46);
+});
+
 test('fails closed when the required July 26 first date has no complete capture metadata', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'm8-5-reservation-gap-'));
   const captureRoot = path.join(root, 'captures');
