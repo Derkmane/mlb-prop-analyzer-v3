@@ -18,6 +18,7 @@ import {
 
 const OUTPUT_SCHEMA_VERSION = 1;
 const AUTHORIZATION_VERSION = 'm9-ranked-output-fixture-test-only-v1';
+const UNSUPPORTED_FIXTURE_HAND_ERROR = 'fixture hand must be explicit L or R';
 const TABLE_COLUMNS = Object.freeze([
   'RANK',
   'PLAYER',
@@ -164,6 +165,20 @@ function batterHitsDetails(candidate) {
   );
 }
 
+function unsupportedFixtureHandExclusion(offer) {
+  return Object.freeze({
+    reason: 'FIXTURE_HAND_NOT_RUNTIME_SUPPORTED',
+    explanation:
+      'The committed lineup reports a non-L/R batting or throwing hand, while the frozen runtime contract accepts only explicit L/R inputs. The offer is excluded rather than coerced.',
+    playerName: offer.playerName,
+    market: 'Batter Hits',
+    selectedSide: offer.selectedSide,
+    postedLine: offer.line,
+    offerType: offer.offerType,
+    providerPlayerId: offer.providerPlayerId,
+  });
+}
+
 export function rankedOutputRow(candidate, rank) {
   const details = batterHitsDetails(candidate);
   const offerType = nonemptyString(details.offerType, 'offer type');
@@ -209,10 +224,25 @@ export async function buildM9RankedFixtureEvidence() {
   const registryBefore = JSON.stringify(PRODUCTION_REGISTRIES);
   const board = m9PregameBoard();
   const candidateResults = [];
+  const fixtureExclusions = [];
 
   for (const offer of board.offers) {
+    let probabilityInput;
+    try {
+      probabilityInput = await m9FinalProbabilityInput(board, offer);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === UNSUPPORTED_FIXTURE_HAND_ERROR
+      ) {
+        fixtureExclusions.push(unsupportedFixtureHandExclusion(offer));
+        continue;
+      }
+      throw error;
+    }
+
     const result = await connectFrozenBatterHitsProbabilityOutput(
-      await m9FinalProbabilityInput(board, offer),
+      probabilityInput,
     );
     if (
       result.productionEnabled ||
@@ -249,6 +279,13 @@ export async function buildM9RankedFixtureEvidence() {
       rankedOutputRow(candidate, index + 1),
     ),
   );
+  const frozenFixtureExclusions = Object.freeze(fixtureExclusions);
+  if (rows.length + frozenFixtureExclusions.length !== board.offers.length) {
+    throw new Error(
+      'Every normalized fixture offer must be either ranked or explicitly excluded.',
+    );
+  }
+
   const output = Object.freeze({
     schemaVersion: OUTPUT_SCHEMA_VERSION,
     title: 'M9 Ranked Batter Hits Fixture Output',
@@ -262,6 +299,8 @@ export async function buildM9RankedFixtureEvidence() {
     evaluatedAt: board.asOf,
     normalizedOfferCount: board.offers.length,
     rankedRowCount: rows.length,
+    fixtureExclusionCount: frozenFixtureExclusions.length,
+    fixtureExclusions: frozenFixtureExclusions,
     rows,
   });
 
@@ -284,7 +323,9 @@ export function formatM9RankedFixtureTable(output) {
     'SOURCE: COMMITTED FIXTURE-BACKED EVIDENCE — NOT A LIVE BOARD',
     `AUTHORIZATION: ${output.authorizationMode}`,
     `CAPTURED: ${output.sourceCapturedAt} | EVALUATED: ${output.evaluatedAt}`,
+    `NORMALIZED OFFERS: ${output.normalizedOfferCount}`,
     `RANKED OFFERS: ${output.rankedRowCount}`,
+    `FIXTURE EXCLUSIONS: ${output.fixtureExclusionCount}`,
     '',
     TABLE_COLUMNS.join('\t'),
   ];
@@ -309,6 +350,23 @@ export function formatM9RankedFixtureTable(output) {
         row.settlementVersion,
       ].join('\t'),
     );
+  }
+
+  if (output.fixtureExclusions.length > 0) {
+    lines.push('', 'EXCLUDED FIXTURE OFFERS (NOT RANKED)');
+    for (const exclusion of output.fixtureExclusions) {
+      lines.push(
+        [
+          exclusion.playerName,
+          exclusion.market,
+          exclusion.selectedSide,
+          exclusion.postedLine,
+          exclusion.offerType,
+          exclusion.reason,
+          exclusion.explanation,
+        ].join('\t'),
+      );
+    }
   }
 
   return `${lines.join('\n')}\n`;
