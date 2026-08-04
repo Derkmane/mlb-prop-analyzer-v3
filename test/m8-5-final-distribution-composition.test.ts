@@ -35,7 +35,7 @@ function bullpenOverride(
   teamId: number,
   modeledCategories: readonly string[],
 ): Readonly<Record<Hand, CategoryVector>> {
-  const modeled = new Set(modeledCategories);
+  const modeled = new Set<string>(modeledCategories);
   const vectors = {} as Record<Hand, CategoryVector>;
   for (const hand of ['L', 'R'] as const) {
     const resolution = resolveM8_5TeamBullpenOutcomeV1(artifact, {
@@ -46,7 +46,7 @@ function bullpenOverride(
     if (resolution.status !== 'validated') {
       throw new Error('fixture bullpen resolution must be validated');
     }
-    const byCategory = new Map(
+    const byCategory = new Map<string, number>(
       resolution.categoryProbabilities.map((entry) => [
         entry.category,
         entry.probability,
@@ -237,13 +237,12 @@ test('runtime venue is not resolved or applied when building D_final', async () 
     rawTeamBullpenFactorArtifact: inputs.teamArtifact,
     rawParkFactorArtifact: inputs.parkArtifact,
   });
+  const { venue: _ignoredVenue, ...observationWithoutVenue } =
+    inputs.observation;
   const absentVenue = buildM8_5ValidatedFinalDistributionV1({
     sourceBaseDistribution: inputs.sourceBaseDistribution,
     offer: inputs.offer,
-    observation: Object.freeze({
-      ...inputs.observation,
-      venue: undefined,
-    }),
+    observation: Object.freeze(observationWithoutVenue),
     artifacts: inputs.artifacts,
     rawGameEnvironmentModelArtifact: inputs.gameModel,
     gameEnvironmentResolutionInput: inputs.gameResolutionInput,
