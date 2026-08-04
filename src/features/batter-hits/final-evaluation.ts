@@ -111,7 +111,9 @@ export interface CreateM8_5FinalDistributionV1Input {
   readonly dFinal: FrozenBatterHitsRuntimeDistribution;
   readonly contextModelVersion: string;
   readonly factorArtifacts: readonly M8_5BatterHitsFactorArtifactV1[];
-  readonly factorRuntimeDecisions?: readonly M8_5FactorRuntimeDecisionV1[];
+  readonly factorRuntimeDecisions?:
+    | readonly M8_5FactorRuntimeDecisionV1[]
+    | undefined;
 }
 
 export interface SettleM8_5FinalOfferV1Input {
@@ -304,7 +306,11 @@ function validateRuntimeDecisionForArtifact(
       throw new Error(`applied factor ${artifact.factorKey} must not have a reason.`);
     }
   } else if (rawDecision.runtimeDisposition === 'identity') {
-    if (!identityOnly || artifact.applicationStages.length !== 1 || artifact.applicationStages[0] !== 'identity') {
+    if (
+      !identityOnly ||
+      artifact.applicationStages.length !== 1 ||
+      artifact.applicationStages[0] !== 'identity'
+    ) {
       throw new Error(
         `identity factor ${artifact.factorKey} must contain exactly one identity effect.`,
       );
