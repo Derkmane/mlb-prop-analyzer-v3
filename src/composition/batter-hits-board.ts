@@ -52,6 +52,7 @@ export interface PregameNormalizedBatterHitsBoard
   readonly asOf: string;
   readonly gameSourceCapturedAt: string;
   readonly gameSourceSnapshotSha256: string;
+  readonly providerVenueByGameId: Readonly<Record<string, string>>;
   readonly excludedOffers: readonly ExcludedPregameBatterHitsOffer[];
 }
 
@@ -59,6 +60,20 @@ function indexGames(
   games: readonly NormalizedBallDontLieGameState[],
 ): ReadonlyMap<number, NormalizedBallDontLieGameState> {
   return new Map(games.map((game) => [game.providerGameId, game]));
+}
+
+function indexProviderVenues(
+  games: readonly NormalizedBallDontLieGameState[],
+): Readonly<Record<string, string>> {
+  return Object.freeze(
+    Object.fromEntries(
+      games.flatMap((game) =>
+        game.venue === undefined
+          ? []
+          : [[String(game.providerGameId), game.venue] as const],
+      ),
+    ),
+  );
 }
 
 function indexRejectedGames(
@@ -151,6 +166,7 @@ export function connectPregameBatterHitsBoard(
     asOf: input.asOf,
     gameSourceCapturedAt: gameSnapshot.sourceCapturedAt,
     gameSourceSnapshotSha256: gameSnapshot.sourceSnapshotSha256,
+    providerVenueByGameId: indexProviderVenues(gameSnapshot.games),
     offers: Object.freeze(offers),
     excludedOffers: Object.freeze(excludedOffers),
   });

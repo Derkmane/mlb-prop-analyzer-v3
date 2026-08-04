@@ -154,6 +154,7 @@ export interface BatterHitsRuntimeObservation {
   readonly providerPlayerId: number;
   readonly providerTeamId: number;
   readonly teamSide: BatterHitsTeamSide;
+  readonly venue?: string;
   readonly lineupSlot: LineupSlot;
   readonly batterSide: BatterHitsHand;
   readonly opposingStarterPitcherId: number;
@@ -253,6 +254,20 @@ function assertSha256(value: string, label: string): void {
 function assertTimestamp(value: string, label: string): void {
   if (!Number.isFinite(Date.parse(value))) {
     throw new Error(`${label} must be an ISO timestamp.`);
+  }
+}
+
+function assertOptionalVenue(value: unknown): void {
+  if (value === undefined) return;
+  if (
+    typeof value !== 'string' ||
+    value.length === 0 ||
+    value.trim() !== value ||
+    value.includes('\0')
+  ) {
+    throw new TypeError(
+      'runtime observation venue must be a non-empty trimmed string without null bytes when present.',
+    );
   }
 }
 
@@ -639,6 +654,7 @@ function validateObservation(
   assertPositiveInteger(observation.providerGameId, 'runtime observation game ID');
   assertPositiveInteger(observation.providerPlayerId, 'runtime observation player ID');
   assertPositiveInteger(observation.providerTeamId, 'runtime observation team ID');
+  assertOptionalVenue(observation.venue);
   assertPositiveInteger(
     observation.opposingStarterPitcherId,
     'runtime observation opposing starter ID',

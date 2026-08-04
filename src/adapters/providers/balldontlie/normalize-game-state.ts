@@ -46,6 +46,7 @@ export interface NormalizedBallDontLieGameState extends PregameGameState {
   readonly awayTeamId: number;
   readonly homeTeamName: string;
   readonly awayTeamName: string;
+  readonly venue?: string;
   readonly rawStatus: 'STATUS_SCHEDULED' | 'STATUS_FINAL';
   readonly sourceCapturedAt: string;
   readonly sourceSnapshotSha256: string;
@@ -94,6 +95,18 @@ function verifiedRawStatus(
   lifecycle: GameLifecycleStatus,
 ): 'STATUS_SCHEDULED' | 'STATUS_FINAL' {
   return lifecycle === 'scheduled' ? 'STATUS_SCHEDULED' : 'STATUS_FINAL';
+}
+
+function exactProviderVenue(game: RawBallDontLieGame): string | undefined {
+  const venue = game['venue'];
+  if (venue === undefined) return undefined;
+  if (typeof venue !== 'string') {
+    return fail(
+      'INVALID_RAW_GAMES_SNAPSHOT',
+      `The BALLDONTLIE game ${game.id} venue must be a string when present.`,
+    );
+  }
+  return venue;
 }
 
 function reject(
@@ -159,6 +172,7 @@ export function normalizeBallDontLieGamesSnapshot(
       continue;
     }
 
+    const venue = exactProviderVenue(game);
     games.push(
       Object.freeze({
         provider: 'balldontlie',
@@ -173,6 +187,7 @@ export function normalizeBallDontLieGamesSnapshot(
         awayTeamId: game.away_team.id,
         homeTeamName: game.home_team_name,
         awayTeamName: game.away_team_name,
+        ...(venue === undefined ? {} : { venue }),
         rawStatus: verifiedRawStatus(normalizedLifecycleStatus),
         sourceCapturedAt: sourceMetadata.data.sourceCapturedAt,
         sourceSnapshotSha256: sourceMetadata.data.sourceSnapshotSha256,
