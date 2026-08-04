@@ -10,6 +10,8 @@ const EXPECTED_FREEZE_SHA256 =
   'a296c384397315832b39d322a7d061ca73e542d94a886087f743f0774199cd17';
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_DATE_TIME_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
 function stableJson(value) {
   if (
@@ -60,6 +62,24 @@ function assertDate(value, label) {
     throw new TypeError(`${label} must be an ISO calendar date.`);
   }
   return date;
+}
+
+function assertIsoDateTime(value, label) {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new TypeError(`${label} must be a non-empty ISO date-time string.`);
+  }
+  if (!ISO_DATE_TIME_PATTERN.test(value)) {
+    throw new TypeError(`${label} must be a 24-character UTC ISO date-time.`);
+  }
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed) || new Date(parsed).toISOString() !== value) {
+    throw new TypeError(`${label} must be a valid UTC ISO date-time.`);
+  }
+  return value;
+}
+
+function utcCalendarDate(isoDateTime) {
+  return new Date(Date.parse(isoDateTime)).toISOString().slice(0, 10);
 }
 
 function assertSha256(value, label) {
@@ -126,6 +146,38 @@ async function findCaptureManifests(root) {
   return results.sort();
 }
 
+function normalizedGame(rawGame, label, captureDate) {
+  const game = assertObject(rawGame, label);
+  const gameId = game.gameId;
+  if (!Number.isSafeInteger(gameId) || gameId <= 0) {
+    throw new TypeError(`${label}.gameId must be positive.`);
+  }
+  const gameDate = assertIsoDateTime(game.gameDate, `${label}.gameDate`);
+  if (utcCalendarDate(gameDate) !== captureDate) {
+    throw new Error(`${label} UTC calendar date does not match its capture date.`);
+  }
+  if (game.status !== 'STATUS_FINAL') {
+    throw new Error(`${label} is not final.`);
+  }
+  const snapshot = assertObject(
+    game.plateAppearancesSnapshot,
+    `${label}.plateAppearancesSnapshot`,
+  );
+  return Object.freeze({
+    gameId,
+    gameDate,
+    status: 'STATUS_FINAL',
+    plateAppearanceCount: assertNonNegativeInteger(
+      snapshot.recordCount,
+      `${label}.plateAppearancesSnapshot.recordCount`,
+    ),
+    savedBodySha256: assertSha256(
+      snapshot.savedBodySha256,
+      `${label}.plateAppearancesSnapshot.savedBodySha256`,
+    ),
+  });
+}
+
 function normalizedDateCapture(rawDateCapture, label) {
   const dateCapture = assertObject(rawDateCapture, label);
   const date = assertDate(dateCapture.date, `${label}.date`);
@@ -144,54 +196,32 @@ function normalizedDateCapture(rawDateCapture, label) {
   if (!Array.isArray(dateCapture.games)) {
     throw new TypeError(`${label}.games must be an array.`);
   }
-  const games = dateCapture.games
-    .map((rawGame, gameIndex) => {
-      const game = assertObject(rawGame, `${label}.games[${gameIndex}]`);
-      const gameId = game.gameId;
-      if (!Number.isSafeInteger(gameId) || gameId <= 0) {
-        throw new TypeError(`${label}.games[${gameIndex}].gameId must be positive.`);
-      }
-      const gameDate = assertDate(
-        game.gameDate,
-        `${label}.games[${gameIndex}].gameDate`,
-      );
-      if (gameDate !== date) {
-        throw new Error(`${label}.games[${gameIndex}] date does not match its capture date.`);
-      }
-      if (game.status !== 'STATUS_FINAL') {
-        throw new Error(`${label}.games[${gameIndex}] is not final.`);
-      }
-      const snapshot = assertObject(
-        game.plateAppearancesSnapshot,
-        `${label}.games[${gameIndex}].plateAppearancesSnapshot`,
-      );
-      return Object.freeze({
-        gameId,
-        gameDate,
-        status: 'STATUS_FINAL',
-        plateAppearanceCount: assertNonNegativeInteger(
-          snapshot.recordCount,
-          `${label}.games[${gameIndex}].plateAppearancesSnapshot.recordCount`,
-        ),
-        savedBodySha256: assertSha256(
-          snapshot.savedBodySha256,
-          `${label}.games[${gameIndex}].plateAppearancesSnapshot.savedBodySha256`,
-        ),
-      });
-    })
+  const gameById = new Map();
+  for (let gameIndex = 0; gameIndex < dateCapture.games.length; gameIndex += 1) {
+    const game = normalizedGame(
+      dateCapture.games[gameIndex],
+      `${label}.games[${gameIndex}]`,
+      date,
+    );
+    const identity = stableJson(game);
+    const existing = gameById.get(game.gameId);
+    if (existing && existing.identity !== identity) {
+      throw new Error(`${label} contains contradictory metadata for gameId ${game.gameId}.`);
+    }
+    if (!existing) gameById.set(game.gameId, { identity, value: game });
+  }
+  const games = [...gameById.values()]
+    .map((entry) => entry.value)
     .sort((left, right) => left.gameId - right.gameId);
   if (games.length !== finalGameCount) {
-    throw new Error(`${label}.finalGameCount does not match games metadata.`);
-  }
-  const gameIds = new Set(games.map((game) => game.gameId));
-  if (gameIds.size !== games.length) {
-    throw new Error(`${label} contains duplicate game IDs.`);
+    throw new Error(`${label}.finalGameCount does not match deduplicated games metadata.`);
   }
   return Object.freeze({ date, finalGameCount, gamesSnapshotSha256, games });
 }
 
 function validateCompleteManifest(rawManifest, manifestPath) {
   const manifest = assertObject(rawManifest, `capture manifest ${manifestPath}`);
+  if (!Array.isArray(manifest.dateCaptures)) return null;
   if (
     manifest.captureVersion !== 1 ||
     manifest.provider !== 'BALLDONTLIE MLB API' ||
@@ -205,9 +235,6 @@ function validateCompleteManifest(rawManifest, manifestPath) {
   }
   const startDate = assertDate(manifest.requestedStartDate, 'requestedStartDate');
   const endDate = assertDate(manifest.requestedEndDate, 'requestedEndDate');
-  if (!Array.isArray(manifest.dateCaptures)) {
-    throw new TypeError(`capture manifest dateCaptures must be an array: ${manifestPath}`);
-  }
   const dates = manifest.dateCaptures.map((entry, index) =>
     normalizedDateCapture(entry, `dateCaptures[${index}]`),
   );
@@ -216,6 +243,40 @@ function validateCompleteManifest(rawManifest, manifestPath) {
     throw new Error(`Capture manifest does not contain its exact requested date sequence: ${manifestPath}`);
   }
   return Object.freeze({ startDate, endDate, dates });
+}
+
+function mergeDateCapture(dateByKey, dateCapture) {
+  let merged = dateByKey.get(dateCapture.date);
+  if (!merged) {
+    merged = {
+      date: dateCapture.date,
+      gamesSnapshotSha256: dateCapture.gamesSnapshotSha256,
+      gameById: new Map(),
+    };
+    dateByKey.set(dateCapture.date, merged);
+  }
+  for (const game of dateCapture.games) {
+    const identity = stableJson(game);
+    const existing = merged.gameById.get(game.gameId);
+    if (existing && existing.identity !== identity) {
+      throw new Error(
+        `Contradictory complete capture metadata exists for gameId ${game.gameId}.`,
+      );
+    }
+    if (!existing) merged.gameById.set(game.gameId, { identity, value: game });
+  }
+}
+
+function finalizedDateCapture(merged) {
+  const games = [...merged.gameById.values()]
+    .map((entry) => entry.value)
+    .sort((left, right) => left.gameId - right.gameId);
+  return Object.freeze({
+    date: merged.date,
+    finalGameCount: games.length,
+    gamesSnapshotSha256: merged.gamesSnapshotSha256,
+    games: Object.freeze(games),
+  });
 }
 
 function deriveBoundaries({ freeze, originalM8Candidate, factorArtifacts }) {
@@ -309,6 +370,7 @@ export async function reserveM8_5UntouchedCohort({
   for (const manifestPath of manifestPaths) {
     const { text, value } = await readJsonWithText(manifestPath, 'capture manifest');
     const manifest = validateCompleteManifest(value, manifestPath);
+    if (manifest === null) continue;
     const relativePath = path.relative(process.cwd(), manifestPath) || manifestPath;
     sourceManifests.push(
       Object.freeze({ path: relativePath, sha256: sha256Text(text) }),
@@ -320,12 +382,7 @@ export async function reserveM8_5UntouchedCohort({
       ) {
         continue;
       }
-      const identity = stableJson(dateCapture);
-      const existing = dateByKey.get(dateCapture.date);
-      if (existing && existing.identity !== identity) {
-        throw new Error(`Conflicting complete capture metadata exists for ${dateCapture.date}.`);
-      }
-      dateByKey.set(dateCapture.date, { identity, value: dateCapture });
+      mergeDateCapture(dateByKey, dateCapture);
     }
   }
 
@@ -342,7 +399,7 @@ export async function reserveM8_5UntouchedCohort({
   ) {
     const entry = dateByKey.get(date);
     if (!entry) break;
-    selectedDates.push(entry.value);
+    selectedDates.push(finalizedDateCapture(entry));
   }
   const endDate = selectedDates.at(-1)?.date;
   if (!endDate) throw new Error('No qualifying contiguous cohort exists.');
