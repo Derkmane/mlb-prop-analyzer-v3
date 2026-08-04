@@ -107,18 +107,31 @@ function verifySuccessorLineage(
       'final evaluation must contain exactly the frozen canonical D_final factors.',
     );
   }
+  const referencesByKey = new Map(
+    evaluation.factorReferences.map((reference) => [
+      reference.factorKey,
+      reference,
+    ] as const),
+  );
+  const decisionsByKey = new Map(
+    evaluation.factorRuntimeDecisions.map((decision) => [
+      decision.factorKey,
+      decision,
+    ] as const),
+  );
+  if (
+    referencesByKey.size !== evaluation.factorReferences.length ||
+    decisionsByKey.size !== evaluation.factorRuntimeDecisions.length
+  ) {
+    throw new Error('final evaluation contains duplicate factor keys.');
+  }
 
-  includedFactors.forEach((factor, index) => {
-    const reference = evaluation.factorReferences[index];
-    const decision = evaluation.factorRuntimeDecisions[index];
+  includedFactors.forEach((factor) => {
+    const reference = referencesByKey.get(factor.factorKey);
+    const decision = decisionsByKey.get(factor.factorKey);
     if (reference === undefined || decision === undefined) {
       throw new Error(`final evaluation is missing factor ${factor.factorKey}.`);
     }
-    assertExact(
-      reference.factorKey,
-      factor.factorKey,
-      `final factor ${index} key`,
-    );
     assertExact(
       reference.modelVersion,
       factor.modelVersion,
@@ -128,11 +141,6 @@ function verifySuccessorLineage(
       reference.applicationStages,
       factor.applicationStages,
       `final factor ${factor.factorKey} application stages`,
-    );
-    assertExact(
-      decision.factorKey,
-      factor.factorKey,
-      `final factor ${factor.factorKey} runtime decision key`,
     );
     const expectedDisposition =
       factor.disposition === 'validated-not-applied'
@@ -202,11 +210,19 @@ function factorDiagnostics(
 function runtimeFactorDiagnostics(
   evaluation: M8_5FinalEvaluationV1,
 ): readonly JsonObject[] {
+  const decisionsByKey = new Map(
+    evaluation.factorRuntimeDecisions.map((decision) => [
+      decision.factorKey,
+      decision,
+    ] as const),
+  );
   return Object.freeze(
-    evaluation.factorReferences.map((reference, index) => {
-      const decision = evaluation.factorRuntimeDecisions[index];
+    evaluation.factorReferences.map((reference) => {
+      const decision = decisionsByKey.get(reference.factorKey);
       if (decision === undefined) {
-        throw new Error(`final evaluation is missing runtime decision ${index}.`);
+        throw new Error(
+          `final evaluation is missing runtime decision ${reference.factorKey}.`,
+        );
       }
       return Object.freeze({
         factorKey: reference.factorKey,
