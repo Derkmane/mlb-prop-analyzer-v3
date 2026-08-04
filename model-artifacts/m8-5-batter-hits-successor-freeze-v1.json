@@ -1,0 +1,112 @@
+{
+  "purpose": "Frozen M8.5 Batter Hits successor manifest locking the source M8 model, D_base and D_final identity contracts, context composition, and every closed factor disposition before a new untouched current-season cohort is reserved or read.",
+  "artifactVersion": 1,
+  "modelVersion": "m8-5-batter-hits-successor-freeze-v1",
+  "status": "frozen-current-season-successor-before-new-untouched-test",
+  "activeSeason": 2026,
+  "productionEnabled": false,
+  "rankingEnabled": false,
+  "hardDiscoveryFilterEnabled": false,
+  "untouchedTestAccessed": false,
+  "sourceM8RuntimeArtifact": {
+    "sourcePath": "model-artifacts/m8-batter-hits-runtime-freeze-v1.json",
+    "modelVersion": "m8-batter-hits-runtime-freeze-v1",
+    "artifactSha256": "e5a660ffc0aefc093dc80aae0169109bd7717605098d790b3257a83fad5bf3de"
+  },
+  "dBaseDefinition": {
+    "contractVersion": "m8-batter-hits-base-distribution-v1",
+    "identityField": "baseDistributionSha256",
+    "identityRule": "sha256(stable-json(all D_base fields except baseDistributionSha256))",
+    "sourceRuntimeArtifactSha256": "e5a660ffc0aefc093dc80aae0169109bd7717605098d790b3257a83fad5bf3de",
+    "sharedScenarioIdentityField": "sharedScenarioIdentity"
+  },
+  "dFinalDefinition": {
+    "contractVersion": "m8-5-batter-hits-final-distribution-v1",
+    "identityField": "finalDistributionSha256",
+    "identityRule": "sha256(stable-json(all D_final fields except finalDistributionSha256))",
+    "contextModelVersion": "m8-5-batter-hits-context-v1",
+    "settlementVersion": "batter-hits-settlement-not-production-validated",
+    "settlementRegistryVersion": "settlement-registry-v1",
+    "sharedScenarioIdentityRule": "must equal source D_base sharedScenarioIdentity",
+    "applicationOrder": [
+      "gameSpecificOffensiveEnvironment",
+      "teamSpecificBullpen",
+      "timesThroughOrder",
+      "park"
+    ],
+    "sameDistributionForBaselineAndAlternate": true
+  },
+  "factors": [
+    {
+      "factorKey": "gameSpecificOffensiveEnvironment",
+      "disposition": "applied",
+      "modelVersion": "m8-5-game-offensive-environment-opponent-only-l2-0.01-v1",
+      "factorArtifactSha256": "6530a40baeed55d6c20ac9a45cb511974853137bac88b731d621bfd9d7ab4bce",
+      "sourceArtifactPath": "model-artifacts/m8-5-game-offensive-environment-model-v1.json",
+      "sourceArtifactSha256": "6530a40baeed55d6c20ac9a45cb511974853137bac88b731d621bfd9d7ab4bce",
+      "applicationStages": [
+        "shared-scenario-before-statistic-distribution"
+      ],
+      "includedInCanonicalDFinalComposition": true,
+      "reason": null
+    },
+    {
+      "factorKey": "teamSpecificBullpen",
+      "disposition": "applied",
+      "modelVersion": "m8-5-team-bullpen-outcome-team-hand-pool-2500-v1",
+      "factorArtifactSha256": "156dd99ea37aea2272fcd300b8512ad9dc27905c458b6033eeb330759f74cd9d",
+      "sourceArtifactPath": "model-artifacts/m8-5-team-bullpen-outcome-v1.json",
+      "sourceArtifactSha256": "156dd99ea37aea2272fcd300b8512ad9dc27905c458b6033eeb330759f74cd9d",
+      "applicationStages": [
+        "terminal-outcome-before-statistic-distribution"
+      ],
+      "includedInCanonicalDFinalComposition": true,
+      "reason": null
+    },
+    {
+      "factorKey": "timesThroughOrder",
+      "disposition": "identity",
+      "modelVersion": "m8-5-times-through-order-identity-v1",
+      "factorArtifactSha256": "78352afd7c5bfe2ce1383aa7276e9b942826ec02271726a0a2065807c467c352",
+      "sourceArtifactPath": "model-artifacts/m8-5-times-through-order-identity-v1.json",
+      "sourceArtifactSha256": "78352afd7c5bfe2ce1383aa7276e9b942826ec02271726a0a2065807c467c352",
+      "applicationStages": [
+        "identity"
+      ],
+      "includedInCanonicalDFinalComposition": true,
+      "reason": "Current-season fixed and expanding walk-forward validation retained identity; no validated times-through-order signal is applied."
+    },
+    {
+      "factorKey": "park",
+      "disposition": "validated-not-applied",
+      "modelVersion": "m8-5-park-venue-hand-pool-2500-v1",
+      "factorArtifactSha256": "c70550bd4798bd5ad6de7263801a7794b2c4eba8d2c86957d0992e3591aee985",
+      "sourceArtifactPath": "model-artifacts/m8-5-park-transformation-v1.json",
+      "sourceArtifactSha256": "f1bd0d83997dd1efede69fa3ab69162938dd5df7d65732d44ec1f9689eaf85f9",
+      "applicationStages": [
+        "terminal-outcome-before-statistic-distribution"
+      ],
+      "includedInCanonicalDFinalComposition": true,
+      "reason": "Validated fitting evidence is preserved, but the approximately 0.0004-nat effect does not justify a unique runtime venue dependency; no runtime park resolution is wired."
+    },
+    {
+      "factorKey": "defenseToBattedBall",
+      "disposition": "identity",
+      "modelVersion": "m8-5-defense-to-batted-ball-identity-v1",
+      "factorArtifactSha256": "85d163f127791bf04ba786b7c1661f7f88515a7a724debd22a6892855133712f",
+      "sourceArtifactPath": "model-artifacts/m8-5-defense-to-batted-ball-identity-v1.json",
+      "sourceArtifactSha256": "85d163f127791bf04ba786b7c1661f7f88515a7a724debd22a6892855133712f",
+      "applicationStages": [
+        "identity"
+      ],
+      "includedInCanonicalDFinalComposition": false,
+      "reason": "Current-season team-level effect-size pre-screen did not justify fitting or runtime application; Defense remains explicit identity."
+    }
+  ],
+  "newUntouchedTestReservation": {
+    "reserved": false,
+    "rowsIncluded": false,
+    "cohortVersion": null
+  },
+  "artifactSha256": "a296c384397315832b39d322a7d061ca73e542d94a886087f743f0774199cd17"
+}
