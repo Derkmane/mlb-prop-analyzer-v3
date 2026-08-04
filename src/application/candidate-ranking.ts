@@ -2,9 +2,14 @@ import { compareSettlementResultsForRanking } from '../core/index.js';
 import type { PredictionCandidate } from '../domain/prediction-candidate.js';
 import type { SettlementResult } from '../domain/settlement.js';
 import {
+  FeatureUnavailableError,
+  type FeatureUnavailableCode,
+} from './feature-gate.js';
+import {
   authorizeMarketForPrediction,
   MarketRegistryUnavailableError,
   type MarketRegistryUnavailableCode,
+  type ProductionMarketAuthorization,
   type ProductionRegistrySnapshot,
 } from './market-registry-gate.js';
 
@@ -18,10 +23,14 @@ export const CANDIDATE_RANKING_EXCLUSION_REASONS = [
 export type CandidateRankingExclusionReason =
   (typeof CANDIDATE_RANKING_EXCLUSION_REASONS)[number];
 
+export type CandidateRankingAuthorizationCode =
+  | MarketRegistryUnavailableCode
+  | FeatureUnavailableCode;
+
 export interface ExcludedPredictionCandidate<TCandidate> {
   readonly candidate: TCandidate;
   readonly reason: CandidateRankingExclusionReason;
-  readonly marketAuthorizationCode?: MarketRegistryUnavailableCode;
+  readonly authorizationCode?: CandidateRankingAuthorizationCode;
 }
 
 export interface RankPredictionCandidatesInput<TCandidate> {
@@ -51,14 +60,12 @@ function settlementView(
 function exclude<TCandidate>(
   candidate: TCandidate,
   reason: CandidateRankingExclusionReason,
-  marketAuthorizationCode?: MarketRegistryUnavailableCode,
+  authorizationCode?: CandidateRankingAuthorizationCode,
 ): ExcludedPredictionCandidate<TCandidate> {
   return Object.freeze({
     candidate,
     reason,
-    ...(marketAuthorizationCode === undefined
-      ? {}
-      : { marketAuthorizationCode }),
+    ...(authorizationCode === undefined ? {} : { authorizationCode }),
   });
 }
 
@@ -83,14 +90,19 @@ export function rankPredictionCandidates<
       continue;
     }
 
-    let authorization;
+    let authorization: ProductionMarketAuthorization;
     try {
       authorization = authorizeMarketForPrediction(
         input.registries,
         candidate.baseMarketKey,
       );
     } catch (error) {
-      if (!(error instanceof MarketRegistryUnavailableError)) {
+      if (
+        !(
+          error instanceof MarketRegistryUnavailableError ||
+          error instanceof FeatureUnavailableError
+        )
+      ) {
         throw error;
       }
       excluded.push(
