@@ -1,0 +1,37 @@
+{
+  "contractVersion": 1,
+  "factorKey": "defenseToBattedBall",
+  "status": "disabled",
+  "modelVersion": "m8-5-defense-to-batted-ball-identity-v1",
+  "productionEnabled": false,
+  "activeSeason": 2026,
+  "validationStatus": "not-evaluated",
+  "applicationStages": [
+    "identity"
+  ],
+  "selectedSideInputAllowed": false,
+  "directProbabilityEffectAllowed": false,
+  "requiredInputs": [
+    "defending-team-id",
+    "terminal-category:1B",
+    "terminal-category:2B",
+    "terminal-category:3B",
+    "terminal-category:ROE",
+    "terminal-category:FC",
+    "terminal-category:SF",
+    "terminal-category:SH",
+    "terminal-category:BIP_OUT"
+  ],
+  "sourceEvidenceVersion": "m8-5-defense-pre-screen-v1:a40eca0b15e5d69c7c718e807c2ced7b007650f0628dd7761c87f9f56f1d3b59:team-dataset-prefix-eb627fae",
+  "validationEvidence": null,
+  "effects": [
+    {
+      "kind": "identity",
+      "applicationStage": "identity"
+    }
+  ],
+  "untouchedTestReservation": {
+    "rowsIncluded": false
+  },
+  "artifactSha256": "53ae8887179f6d066dec50f62f7dac5951be54158032687a3aa162902b5375ea"
+}
