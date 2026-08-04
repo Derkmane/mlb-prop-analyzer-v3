@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 3.6
+**Version:** 3.7
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -374,7 +374,9 @@ Park is a validated factor that is explicitly not applied at runtime; the measur
 
 Times-through-order completion evidence — The explicit identity artifact is `model-artifacts/m8-5-times-through-order-identity-v1.json`, SHA-256 `78352afd7c5bfe2ce1383aa7276e9b942826ec02271726a0a2065807c467c352`. First exposure remains identity, no repeated-starter-exposure adjustment is applied to `D_final`, and the separately validated starter-to-bullpen transition remains unchanged. Selected-side input and direct probability adjustment remain prohibited; production and ranking remain disabled; and the untouched cohort remains sealed.
 
-- [ ] Defense data-sufficiency decision — implement only if approved current-season evidence supports balls-in-play translation without altering K, BB, HBP, or HR outcomes improperly.
+- [x] Defense data-sufficiency decision — approved current-season team-level evidence supports defending-team attribution and strict BIP-only isolation, but the effect-size pre-screen does not justify fitting or runtime application; Defense is closed as an explicit versioned identity/no-op.
+
+Defense completion evidence — Approved BALLDONTLIE evidence attributes each plate appearance to the defending team through exact game `home_team`/`away_team` identity plus `halfInning`, restricts the eligible translation scope to `1B`, `2B`, `3B`, `ROE`, `FC`, `SF`, `SH`, and `BIP_OUT`, preserves `K`, `UBB`, `IBB`, `HBP`, `HR`, and `CATCHER_INTERFERENCE` unchanged, and supports strictly-earlier-date chronology without same-date or same-game leakage. Individual fielder identity and position are unavailable, so only team-level Defense was assessed. The canonical 2026-03-26 through 2026-06-21 fit period used resolved dataset SHA-256 `a40eca0b15e5d69c7c718e807c2ced7b007650f0628dd7761c87f9f56f1d3b59` and team offensive-environment dataset SHA-256 `eb627faefd24b9862965151c45fd7ccce588d36fe9acb7ddb6f4a04e14a3dc8a`; 30 defending teams, 1,122 mapped games, 54,919 included BIP rows, 1,687 unmapped rows (3.1%), and per-team BIP counts of minimum 1,490 and median 1,847 were retained. `BIP_REACH` had pooled rate `0.29596`, observed max-minus-min spread `0.06084`, and spread-to-noise ratio `2.022`. Accounting for the expected range across 30 groups implies approximately one percentage point of true between-team variation and an optimistic unconditional categorical log-loss ceiling near `0.00026` nats before existing per-pitcher allowed effects absorb shared team-defense signal. No Defense candidate family or grid was fit. The committed identity artifact is `model-artifacts/m8-5-defense-to-batted-ball-identity-v1.json`, artifact SHA-256 `85d163f127791bf04ba786b7c1661f7f88515a7a724debd22a6892855133712f`; it is production-disabled, selected-side independent, direct-probability-effect prohibited, BIP-scoped, and keeps untouched-test rows excluded. The focused artifact-lock regression and GitHub Actions verify run 647 passed 454 of 454 tests with typecheck, script checks, architecture, build, selected-side, and protective-architecture gates clean. Production and ranking remain disabled, and no M8.5 freeze, untouched-test access, exit-gate closure, or M9 work began.
 
 ### Final distribution and validation
 
@@ -463,6 +465,15 @@ These are intended investigations, not abandoned markets. No empty feature folde
 
 ## Changelog
 
+### Version 3.7 — 2026-08-04
+
+- Closed the M8.5 Defense data-sufficiency decision as an explicit versioned identity/no-op after approved-source team attribution, BIP-only scope, and strictly chronological capability passed.
+- Recorded the current-season pre-screen using resolved dataset SHA-256 `a40eca0b15e5d69c7c718e807c2ced7b007650f0628dd7761c87f9f56f1d3b59` and team offensive-environment dataset SHA-256 `eb627faefd24b9862965151c45fd7ccce588d36fe9acb7ddb6f4a04e14a3dc8a`: 30 teams, 1,122 mapped games, 54,919 included BIP rows, 1,687 unmapped rows, minimum 1,490 and median 1,847 observations per team, and `BIP_REACH` spread-to-noise ratio `2.022`.
+- Recorded approximately one percentage point of estimated true between-team variation and an optimistic categorical log-loss ceiling near `0.00026` nats before overlap with existing per-pitcher allowed effects; no Defense family or candidate grid was fit.
+- Added and locked `model-artifacts/m8-5-defense-to-batted-ball-identity-v1.json`, artifact SHA-256 `85d163f127791bf04ba786b7c1661f7f88515a7a724debd22a6892855133712f`, restricted to approved BIP categories with production, ranking, selected-side input, direct probability effects, fitting, and untouched-test access disabled.
+- Recorded GitHub Actions verify run 647 passing 454 of 454 tests with typecheck, script checks, architecture, build, selected-side, and protective-architecture gates clean.
+- Did not begin the M8.5 freeze, reserve or read a new untouched cohort, close an M8.5 exit gate, or start M9.
+
 ### Version 3.6 — 2026-08-04
 
 - Closed times-through-order as an explicit identity/no-op limited to starter repeated exposure while preserving the separate starter-to-bullpen transition; recorded artifact SHA-256 `78352afd7c5bfe2ce1383aa7276e9b942826ec02271726a0a2065807c467c352`.
@@ -539,7 +550,7 @@ These are intended investigations, not abandoned markets. No empty feature folde
 
 - Added a fixture-backed test-only invariant proving baseline and alternate Batter Hits offer attributes do not create different baseball distributions.
 - Recorded that the committed board contains real baseline and alternate offers but no same-player pair, avoiding any unsupported provider claim.
-- Held player, game, team, lineup, opposing starter, shared scenarios, and frozen model artifacts fixed while substituting only a provider-observed alternate offer attribute set.
+- Held player, game, team, lineup, opposing starter, shared scenarios, and frozen model artifacts fixed while substituting only provider-observed alternate offer attributes.
 - Verified exact equality of the complete runtime and candidate statistic distributions while allowing side, line, price, multiplier, and settlement probabilities to differ.
 - Recorded 1-of-1 focused passing test and GitHub Actions verify run 420 with 347-of-347 tests passing; production ranking remains disabled and untouched-test rows remain sealed.
 
