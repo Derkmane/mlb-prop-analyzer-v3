@@ -219,7 +219,11 @@ function normalizedDateCapture(rawDateCapture, label) {
   return Object.freeze({ date, finalGameCount, gamesSnapshotSha256, games });
 }
 
-function validateCompleteManifest(rawManifest, manifestPath) {
+function validateCompleteManifest(
+  rawManifest,
+  manifestPath,
+  { eligibleStartDate, latestEligibleDate },
+) {
   const manifest = assertObject(rawManifest, `capture manifest ${manifestPath}`);
   if (!Array.isArray(manifest.dateCaptures)) return null;
   if (
@@ -235,6 +239,9 @@ function validateCompleteManifest(rawManifest, manifestPath) {
   }
   const startDate = assertDate(manifest.requestedStartDate, 'requestedStartDate');
   const endDate = assertDate(manifest.requestedEndDate, 'requestedEndDate');
+  if (endDate < eligibleStartDate || startDate > latestEligibleDate) {
+    return null;
+  }
   const dates = manifest.dateCaptures.map((entry, index) =>
     normalizedDateCapture(entry, `dateCaptures[${index}]`),
   );
@@ -369,7 +376,10 @@ export async function reserveM8_5UntouchedCohort({
   const sourceManifests = [];
   for (const manifestPath of manifestPaths) {
     const { text, value } = await readJsonWithText(manifestPath, 'capture manifest');
-    const manifest = validateCompleteManifest(value, manifestPath);
+    const manifest = validateCompleteManifest(value, manifestPath, {
+      eligibleStartDate: boundaries.eligibleStartDate,
+      latestEligibleDate,
+    });
     if (manifest === null) continue;
     const relativePath = path.relative(process.cwd(), manifestPath) || manifestPath;
     sourceManifests.push(
