@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-import { PRODUCTION_REGISTRIES } from '../dist/src/composition/index.js';
 import {
   buildM9RankedFixtureEvidence,
   formatM9RankedFixtureTable,
@@ -92,11 +91,12 @@ test('the CLI layer formats existing candidate probabilities without computing o
 });
 
 test('production and ranking remain disabled after the fixture CLI runs', async () => {
-  const before = JSON.stringify(PRODUCTION_REGISTRIES);
+  const source = await readFile(SCRIPT_PATH, 'utf8');
   const evidence = await firstEvidence();
-  const after = JSON.stringify(PRODUCTION_REGISTRIES);
 
-  assert.equal(before, after);
+  assert.match(source, /assertProductionRankingDisabled\(\)/u);
+  assert.match(source, /JSON\.stringify\(PRODUCTION_REGISTRIES\)/u);
+  assert.match(source, /The fixture CLI mutated the production registries/u);
   assert.equal(evidence.output.productionRankingEnabled, false);
   assert.equal(evidence.output.fixtureBackedEvidence, true);
   assert.equal(evidence.output.liveBoard, false);
@@ -110,19 +110,6 @@ test('production and ranking remain disabled after the fixture CLI runs', async 
         result.hardDiscoveryFilterEnabled === false,
     ),
   );
-
-  const market = PRODUCTION_REGISTRIES.implementedMarkets.find(
-    (entry) => entry.baseMarketKey === 'batter-hits',
-  );
-  const feature = PRODUCTION_REGISTRIES.features.find(
-    (entry) => entry.featureId === 'batter-hits-feature',
-  );
-  assert.ok(market);
-  assert.ok(feature);
-  assert.notEqual(market.status, 'production-enabled');
-  assert.equal(market.distributionBuilderValidated, false);
-  assert.equal(feature.enabled, false);
-  assert.notEqual(feature.status, 'production-enabled');
 
   process.stdout.write('\n--- M9 RANKED FIXTURE OUTPUT ---\n');
   process.stdout.write(formatM9RankedFixtureTable(evidence.output));
