@@ -46,6 +46,7 @@ test('committed Defense identity artifact is deterministic and restricted to app
   );
   assert.equal(committed.status, 'disabled');
   assert.equal(committed.validationStatus, 'not-evaluated');
+  assert.equal(committed.validationEvidence, null);
   assert.equal(committed.productionEnabled, false);
   assert.equal(committed.selectedSideInputAllowed, false);
   assert.equal(committed.directProbabilityEffectAllowed, false);
