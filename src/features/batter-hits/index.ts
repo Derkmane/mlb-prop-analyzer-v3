@@ -13,6 +13,7 @@ export * from './park-transformation.js';
 export * from './park-runtime-context.js';
 export * from './final-distribution-composition.js';
 export * from './final-evaluation.js';
+export * from './final-probability-candidate.js';
 export * from './m8-5-successor-freeze.js';
 export type {
   BatterHitsRuntimeObservation as ConfirmedBatterHitsRuntimeObservation,
