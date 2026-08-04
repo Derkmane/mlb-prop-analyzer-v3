@@ -6,11 +6,13 @@ import {
   type M8BatterHitsBaseDistributionV1,
 } from './base-evaluation.js';
 import {
+  createDisabledM8_5BatterHitsFactorArtifactV1,
   verifyM8_5BatterHitsFactorArtifactV1,
   type M8_5BatterHitsFactorArtifactV1,
 } from './context-factor-contract.js';
 import {
   createM8_5FinalDistributionV1,
+  type M8_5FactorRuntimeDecisionV1,
   type M8_5FinalDistributionV1,
 } from './final-evaluation.js';
 import {
@@ -20,12 +22,7 @@ import {
 } from './game-offensive-environment.js';
 import { buildM8_5GameOffensiveEnvironmentRuntimeV1 } from './game-offensive-environment-runtime.js';
 import type { NormalizedBatterHitsBoardOffer } from './normalized-board-offer.js';
-import {
-  resolveM8_5ParkTransformationV1,
-  verifyM8_5ParkFactorArtifactV1,
-  type M8_5ParkTransformationResolutionV1,
-} from './park-transformation.js';
-import { projectM8_5ParkMultipliersToModeledCategoriesV1 } from './park-runtime-context.js';
+import { verifyM8_5ParkFactorArtifactV1 } from './park-transformation.js';
 import {
   resolveM8_5TeamBullpenOutcomeV1,
   type M8_5BullpenPitcherHand,
@@ -39,9 +36,19 @@ import type {
 export const M8_5_BATTER_HITS_CONTEXT_MODEL_VERSION =
   'm8-5-batter-hits-context-v1' as const;
 
+export const M8_5_TIMES_THROUGH_ORDER_EVALUATION_SHA256 =
+  '88dcfe26dde927cad3c86cb7d477f9082aadd0862e0c77ac525d730e7aaac710' as const;
+
+export const M8_5_TIMES_THROUGH_ORDER_IDENTITY_REASON =
+  'Current-season fixed and expanding walk-forward validation retained identity; no validated times-through-order signal is applied.' as const;
+
+export const M8_5_PARK_NOT_APPLIED_REASON =
+  'Validated fitting evidence is preserved, but the approximately 0.0004-nat effect does not justify a unique runtime venue dependency; no runtime park resolution is wired.' as const;
+
 export const M8_5_BATTER_HITS_VALIDATED_COMPOSITION_ORDER = Object.freeze([
   'gameSpecificOffensiveEnvironment',
   'teamSpecificBullpen',
+  'timesThroughOrder',
   'park',
 ] as const);
 
@@ -70,7 +77,8 @@ export interface M8_5ValidatedFinalDistributionCompositionV1 {
   readonly teamBullpenResolutions: Readonly<
     Record<M8_5BullpenPitcherHand, M8_5TeamBullpenOutcomeResolutionV1>
   >;
-  readonly parkResolution: Readonly<M8_5ParkTransformationResolutionV1>;
+  readonly timesThroughOrderArtifact: M8_5BatterHitsFactorArtifactV1;
+  readonly parkArtifact: ReturnType<typeof verifyM8_5ParkFactorArtifactV1>;
   readonly finalDistribution: M8_5FinalDistributionV1;
 }
 
@@ -227,18 +235,38 @@ function teamBullpenResolutions(
   });
 }
 
+function evidenceSha256(
+  artifact: M8_5BatterHitsFactorArtifactV1,
+): string {
+  const value = artifact.validationEvidence?.evidenceArtifactSha256;
+  if (value === undefined) {
+    throw new Error(
+      `validated factor ${artifact.factorKey} is missing evidence SHA-256.`,
+    );
+  }
+  return value;
+}
+
+function appliedDecision(
+  artifact: M8_5BatterHitsFactorArtifactV1,
+): M8_5FactorRuntimeDecisionV1 {
+  return Object.freeze({
+    factorKey: artifact.factorKey,
+    runtimeDisposition: 'applied' as const,
+    reason: null,
+    evidenceSha256: evidenceSha256(artifact),
+  });
+}
+
 export function buildM8_5ValidatedFinalDistributionV1(
   input: Readonly<BuildM8_5ValidatedFinalDistributionV1Input>,
 ): M8_5ValidatedFinalDistributionCompositionV1 {
   const sourceBaseDistribution = verifiedBaseParity(input);
 
-  // Validate the shared-scenario factor first, before resolving either
-  // terminal-outcome factor, matching Canonical Math Spec Section 11.2.
   const gameEnvironmentModel =
     verifyM8_5GameOffensiveEnvironmentModelArtifactV1(
       input.rawGameEnvironmentModelArtifact,
     );
-
   const teamBullpenArtifact = validatedTeamBullpenArtifact(
     input.rawTeamBullpenFactorArtifact,
   );
@@ -260,20 +288,18 @@ export function buildM8_5ValidatedFinalDistributionV1(
   const parkArtifact = verifyM8_5ParkFactorArtifactV1(
     input.rawParkFactorArtifact,
   );
-  const parkResolution = resolveM8_5ParkTransformationV1(parkArtifact, {
-    venue: input.observation.venue,
-    batterHand: input.observation.batterSide,
-  });
-  const parkMultipliersByCategory =
-    projectM8_5ParkMultipliersToModeledCategoriesV1(
-      parkResolution,
-      input.artifacts.terminalOutcome.categories,
-    );
+  const timesThroughOrderArtifact =
+    createDisabledM8_5BatterHitsFactorArtifactV1({
+      factorKey: 'timesThroughOrder',
+      requiredInputs: ['starter-exposure-index'],
+      sourceEvidenceVersion:
+        `m8-5-times-through-order-evaluation-v1:${M8_5_TIMES_THROUGH_ORDER_EVALUATION_SHA256}`,
+    });
 
-  // The runtime builder applies the bullpen replacement as the pitcher
-  // input to coherentVector, then applies park to coherentVector output.
-  // The game wrapper resolves and installs the shared-scenario weights
-  // before recomputing the final opportunity and Hits mixtures.
+  // The only baseball effects applied to D_final are the already-validated
+  // game-specific shared-scenario weights and team bullpen replacement.
+  // TTO is a validated identity decision. Park is verified as preserved
+  // evidence but is deliberately not resolved or passed to runtime.
   const gameRuntime = buildM8_5GameOffensiveEnvironmentRuntimeV1({
     offer: input.offer,
     observation: input.observation,
@@ -285,19 +311,40 @@ export function buildM8_5ValidatedFinalDistributionV1(
       teamBullpenFactorModelVersion: teamBullpenArtifact.modelVersion,
       teamBullpenFactorArtifactSha256:
         teamBullpenArtifact.artifactSha256,
-      parkMultipliersByCategory,
     },
   });
+
+  const gameEnvironmentArtifact = gameRuntime.resolution.factorArtifact;
+  const parkTypedArtifact = parkArtifact.typedFactorArtifact;
+  const factorArtifacts = Object.freeze([
+    gameEnvironmentArtifact,
+    teamBullpenArtifact,
+    timesThroughOrderArtifact,
+    parkTypedArtifact,
+  ]);
+  const factorRuntimeDecisions = Object.freeze([
+    appliedDecision(gameEnvironmentArtifact),
+    appliedDecision(teamBullpenArtifact),
+    Object.freeze({
+      factorKey: 'timesThroughOrder' as const,
+      runtimeDisposition: 'identity' as const,
+      reason: M8_5_TIMES_THROUGH_ORDER_IDENTITY_REASON,
+      evidenceSha256: M8_5_TIMES_THROUGH_ORDER_EVALUATION_SHA256,
+    }),
+    Object.freeze({
+      factorKey: 'park' as const,
+      runtimeDisposition: 'not-applied' as const,
+      reason: M8_5_PARK_NOT_APPLIED_REASON,
+      evidenceSha256: evidenceSha256(parkTypedArtifact),
+    }),
+  ]);
 
   const finalDistribution = createM8_5FinalDistributionV1({
     sourceBaseDistribution,
     dFinal: gameRuntime.distribution,
     contextModelVersion: M8_5_BATTER_HITS_CONTEXT_MODEL_VERSION,
-    factorArtifacts: [
-      gameRuntime.resolution.factorArtifact,
-      teamBullpenArtifact,
-      parkArtifact.typedFactorArtifact,
-    ],
+    factorArtifacts,
+    factorRuntimeDecisions,
   });
 
   return Object.freeze({
@@ -306,7 +353,8 @@ export function buildM8_5ValidatedFinalDistributionV1(
     applicationOrder: M8_5_BATTER_HITS_VALIDATED_COMPOSITION_ORDER,
     gameEnvironmentResolution: gameRuntime.resolution,
     teamBullpenResolutions: bullpenResolutions,
-    parkResolution,
+    timesThroughOrderArtifact,
+    parkArtifact,
     finalDistribution,
   });
 }
