@@ -1,0 +1,29 @@
+{
+  "contractVersion": 1,
+  "factorKey": "timesThroughOrder",
+  "status": "disabled",
+  "modelVersion": "m8-5-times-through-order-identity-v1",
+  "productionEnabled": false,
+  "activeSeason": 2026,
+  "validationStatus": "not-evaluated",
+  "applicationStages": [
+    "identity"
+  ],
+  "selectedSideInputAllowed": false,
+  "directProbabilityEffectAllowed": false,
+  "requiredInputs": [
+    "starter-exposure-index"
+  ],
+  "sourceEvidenceVersion": "m8-5-times-through-order-evaluation-v1:88dcfe26dde927cad3c86cb7d477f9082aadd0862e0c77ac525d730e7aaac710",
+  "validationEvidence": null,
+  "effects": [
+    {
+      "kind": "identity",
+      "applicationStage": "identity"
+    }
+  ],
+  "untouchedTestReservation": {
+    "rowsIncluded": false
+  },
+  "artifactSha256": "78352afd7c5bfe2ce1383aa7276e9b942826ec02271726a0a2065807c467c352"
+}
