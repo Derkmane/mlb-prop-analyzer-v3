@@ -256,16 +256,18 @@ function verifyStoredFactorReferences(
       throw new Error(`factorReferences[${index}].applicationStages must not be empty.`);
     }
     const stageSet = new Set<M8_5BatterHitsApplicationStage>();
-    const applicationStages = reference.applicationStages.map((stage) => {
-      if (!VALID_APPLICATION_STAGES.has(stage) || stage === 'identity') {
-        throw new Error(`factorReferences[${index}] contains invalid stage ${stage}.`);
-      }
-      if (stageSet.has(stage)) {
-        throw new Error(`factorReferences[${index}] contains duplicate stage ${stage}.`);
-      }
-      stageSet.add(stage);
-      return stage;
-    });
+    const applicationStages = reference.applicationStages.map(
+      (stage: M8_5BatterHitsApplicationStage) => {
+        if (!VALID_APPLICATION_STAGES.has(stage) || stage === 'identity') {
+          throw new Error(`factorReferences[${index}] contains invalid stage ${stage}.`);
+        }
+        if (stageSet.has(stage)) {
+          throw new Error(`factorReferences[${index}] contains duplicate stage ${stage}.`);
+        }
+        stageSet.add(stage);
+        return stage;
+      },
+    );
     return Object.freeze({
       factorKey: reference.factorKey,
       modelVersion,
