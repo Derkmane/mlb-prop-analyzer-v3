@@ -48,6 +48,19 @@ function assertOfferSurvivedPregameGate(
   }
 }
 
+function observationWithProviderVenue(
+  board: PregameNormalizedBatterHitsBoard,
+  offer: NormalizedBatterHitsBoardOffer,
+  observation: BatterHitsRuntimeObservation,
+): BatterHitsRuntimeObservation {
+  const venue = board.providerVenueByGameId[String(offer.providerGameId)];
+  if (venue === undefined) return observation;
+  return Object.freeze({
+    ...observation,
+    venue,
+  });
+}
+
 /**
  * Connects one active projected-or-confirmed pregame lineup to the already-
  * frozen M8 model. Lineup status is source metadata only and cannot alter the
@@ -63,7 +76,11 @@ export async function connectFrozenBatterHitsProbabilityOutput(
   );
   return createFrozenBatterHitsProbabilityCandidate(
     input.offer,
-    input.observation,
+    observationWithProviderVenue(
+      input.pregameBoard,
+      input.offer,
+      input.observation,
+    ),
     artifacts,
   );
 }
@@ -82,7 +99,11 @@ export async function connectM8BatterHitsBaseDistribution(
   );
   return createM8BatterHitsBaseDistribution(
     input.offer,
-    input.observation,
+    observationWithProviderVenue(
+      input.pregameBoard,
+      input.offer,
+      input.observation,
+    ),
     artifacts,
     input.evaluatedAt,
   );

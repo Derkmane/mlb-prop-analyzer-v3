@@ -154,6 +154,7 @@ export interface BatterHitsRuntimeObservation {
   readonly providerPlayerId: number;
   readonly providerTeamId: number;
   readonly teamSide: BatterHitsTeamSide;
+  readonly venue?: string;
   readonly lineupSlot: LineupSlot;
   readonly batterSide: BatterHitsHand;
   readonly opposingStarterPitcherId: number;
@@ -162,6 +163,13 @@ export interface BatterHitsRuntimeObservation {
   readonly eligibilityProbability: 1;
   readonly lineupSourceCapturedAt: string;
   readonly lineupSourceSnapshotSha256: string;
+}
+
+export interface BatterHitsRuntimeContextFactors {
+  readonly bullpenOverrideByHand?: Readonly<Record<BatterHitsHand, CategoryVector>>;
+  readonly teamBullpenFactorModelVersion?: string;
+  readonly teamBullpenFactorArtifactSha256?: string;
+  readonly parkMultipliersByCategory?: CategoryVector;
 }
 
 export interface FrozenBatterHitsScenarioDistribution {
@@ -247,6 +255,20 @@ function assertSha256(value: string, label: string): void {
 function assertTimestamp(value: string, label: string): void {
   if (!Number.isFinite(Date.parse(value))) {
     throw new Error(`${label} must be an ISO timestamp.`);
+  }
+}
+
+function assertOptionalVenue(value: unknown): void {
+  if (value === undefined) return;
+  if (
+    typeof value !== 'string' ||
+    value.length === 0 ||
+    value.trim() !== value ||
+    value.includes('\0')
+  ) {
+    throw new TypeError(
+      'runtime observation venue must be a non-empty trimmed string without null bytes when present.',
+    );
   }
 }
 
@@ -395,6 +417,40 @@ function normalizeCategoryVector(
   return Object.freeze(result);
 }
 
+function applyParkTransformation(
+  vector: CategoryVector,
+  categories: readonly string[],
+  parkMultipliersByCategory?: CategoryVector,
+): CategoryVector {
+  if (parkMultipliersByCategory === undefined) return vector;
+
+  const keys = Object.keys(parkMultipliersByCategory).sort();
+  const expected = [...categories].sort();
+  if (JSON.stringify(keys) !== JSON.stringify(expected)) {
+    throw new Error(
+      'park multipliers must contain every and only modeled category.',
+    );
+  }
+
+  const weighted: Record<string, number> = {};
+  for (const category of categories) {
+    const multiplier =
+      parkMultipliersByCategory[category] ?? Number.NaN;
+    if (!Number.isFinite(multiplier) || multiplier <= 0) {
+      throw new RangeError(
+        `park multiplier for ${category} must be a positive finite number.`,
+      );
+    }
+    weighted[category] = (vector[category] ?? Number.NaN) * multiplier;
+  }
+
+  return normalizeCategoryVector(
+    weighted,
+    categories,
+    'park-transformed terminal outcome vector',
+  );
+}
+
 function stableSoftmax(
   scores: Readonly<Record<string, number>>,
   categories: readonly string[],
@@ -500,11 +556,17 @@ function terminalHitProbability(
   pitcherId: number,
   batterSide: BatterHitsHand,
   pitcherHand: BatterHitsHand,
+  parkMultipliersByCategory?: CategoryVector,
 ): number {
   const batter = platoonBatterVector(terminal, batterId, batterSide, pitcherHand);
   const pitcher = terminal.pitcherAllowed[String(pitcherId)] ?? terminal.unseenPitcher;
+  const coherent = coherentVector(terminal, batter, pitcher);
   return hitProbability(
-    coherentVector(terminal, batter, pitcher),
+    applyParkTransformation(
+      coherent,
+      terminal.categories,
+      parkMultipliersByCategory,
+    ),
     terminal.hitCategories,
   );
 }
@@ -514,18 +576,28 @@ function bullpenHitProbability(
   completeCandidate: FrozenCompleteBatterHitsCandidate,
   batterId: number,
   batterSide: BatterHitsHand,
+  bullpenOverrideByHand?: Readonly<Record<BatterHitsHand, CategoryVector>>,
+  parkMultipliersByCategory?: CategoryVector,
 ): number {
   let result = 0;
   for (const hand of VALID_HANDS) {
     const batter = platoonBatterVector(terminal, batterId, batterSide, hand);
-    const coherent = coherentVector(
-      terminal,
-      batter,
-      completeCandidate.bullpenModel.byHand[hand],
+    const pitcherVector =
+      bullpenOverrideByHand?.[hand] ?? completeCandidate.bullpenModel.byHand[hand];
+    validateCategoryVector(
+      pitcherVector,
+      terminal.categories,
+      `bullpen pitcher vector `,
+    );
+    const coherent = coherentVector(terminal, batter, pitcherVector);
+    const transformed = applyParkTransformation(
+      coherent,
+      terminal.categories,
+      parkMultipliersByCategory,
     );
     result +=
       completeCandidate.bullpenModel.handWeights[hand] *
-      hitProbability(coherent, terminal.hitCategories);
+      hitProbability(transformed, terminal.hitCategories);
   }
   return validateProbability(result, 'generic bullpen hit probability');
 }
@@ -629,6 +701,7 @@ function validateObservation(
   assertPositiveInteger(observation.providerGameId, 'runtime observation game ID');
   assertPositiveInteger(observation.providerPlayerId, 'runtime observation player ID');
   assertPositiveInteger(observation.providerTeamId, 'runtime observation team ID');
+  assertOptionalVenue(observation.venue);
   assertPositiveInteger(
     observation.opposingStarterPitcherId,
     'runtime observation opposing starter ID',
@@ -653,6 +726,7 @@ export function buildFrozenBatterHitsRuntimeDistribution(
   offer: NormalizedBatterHitsBoardOffer,
   observation: BatterHitsRuntimeObservation,
   rawArtifacts: FrozenBatterHitsProbabilityArtifacts,
+  contextFactors?: BatterHitsRuntimeContextFactors,
 ): FrozenBatterHitsRuntimeDistribution {
   validateObservation(offer, observation);
   const artifacts = verifyFrozenBatterHitsProbabilityArtifacts(rawArtifacts);
@@ -672,12 +746,15 @@ export function buildFrozenBatterHitsRuntimeDistribution(
     observation.opposingStarterPitcherId,
     observation.batterSide,
     observation.opposingStarterHand,
+    contextFactors?.parkMultipliersByCategory,
   );
   const bullpenBaseHit = bullpenHitProbability(
     artifacts.terminalOutcome,
     artifacts.completeCandidate,
     observation.providerPlayerId,
     observation.batterSide,
+    contextFactors?.bullpenOverrideByHand,
+    contextFactors?.parkMultipliersByCategory,
   );
   const baselineEnvironmentHit = artifacts.sharedEnvironment.scenarios.reduce(
     (sum, scenario) =>

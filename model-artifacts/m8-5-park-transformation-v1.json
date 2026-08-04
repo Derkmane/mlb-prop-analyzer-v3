@@ -1,0 +1,6972 @@
+{
+  "parkArtifactVersion": 1,
+  "factorKey": "park",
+  "activeSeason": 2026,
+  "modelVersion": "m8-5-park-venue-hand-pool-2500-v1",
+  "productionEnabled": false,
+  "sourceVenueAuditSha256": "69aab27d1aa798e197b38e4a8a1a6538965265e5833d944acb115df34c165338",
+  "sourceEvaluationDatasetSha256": "074af50e2a881e7ab8df47480bc67e68c15ce03987bf153a587c86bb249712bb",
+  "sourceEvaluationSha256": "d715419f9bcbb118540f11f7431729f56ab85b12cc3ab7311216417006b690b9",
+  "sourceFrozenBaseParitySha256": "2c342da6b903585713b3a6fc23debb907e5b6a763dd559fb2fc90de292cbcf2a",
+  "sourceFrozenPredictionSha256": "df0dc84fab7baf05fa69f4e892cf76705064eb8603c6c9cb3e46d1100b280547",
+  "providerVenueTextPreservedExactly": true,
+  "homeTeamVenueInferenceUsed": false,
+  "venueAliasMergingUsed": false,
+  "typedFactorArtifact": {
+    "contractVersion": 1,
+    "factorKey": "park",
+    "status": "validated",
+    "modelVersion": "m8-5-park-venue-hand-pool-2500-v1",
+    "productionEnabled": false,
+    "activeSeason": 2026,
+    "validationStatus": "current-season-validated",
+    "applicationStages": [
+      "terminal-outcome-before-statistic-distribution"
+    ],
+    "selectedSideInputAllowed": false,
+    "directProbabilityEffectAllowed": false,
+    "requiredInputs": [
+      "exactProviderVenue",
+      "batterHand",
+      "frozenBaseTerminalOutcomeProbabilities"
+    ],
+    "sourceEvidenceVersion": "m8-5-park-evaluation-v1",
+    "validationEvidence": {
+      "fitPeriod": {
+        "start": "2026-05-26",
+        "end": "2026-06-21"
+      },
+      "validationPeriod": {
+        "start": "2026-06-22",
+        "end": "2026-07-05"
+      },
+      "walkForwardEvaluated": true,
+      "untouchedRowsIncluded": false,
+      "evidenceArtifactSha256": "d715419f9bcbb118540f11f7431729f56ab85b12cc3ab7311216417006b690b9"
+    },
+    "effects": [
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.019904586816155
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1.0229144778994095
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8341675008341676
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.93680980826355
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9955780423375363
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0382873309304725
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.0390948629818113
+          },
+          {
+            "category": "HR",
+            "multiplier": 0.9911217186736229
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.8341675008341676
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9658462191958915
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.0037189385877345
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.0168267700467433
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9868320860653998
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1.1102511674385553
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9965411700701885
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9963546588914979
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1.4973078389725085
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9271872892693743
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0015690654843075
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9769480562014232
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.8599931200550396
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0792216757894355
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.1076603608025941
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9935395814909966
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.1316953066414508
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.8599931200550396
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9992483491896043
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8599931200550396
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9835936783895054
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1.0380535962763815
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.9160864785635765
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.0762976675736478
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.007828678348448
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0639963731955906
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.9160864785635765
+          },
+          {
+            "category": "HR",
+            "multiplier": 0.9884875426726849
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.120398650229841
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0120396374516425
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9629197107206114
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9160864785635765
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9910620211586473
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.9160864785635764
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0234497376085991
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9877687233562665
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8364001338240213
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9931099393893833
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9887493069853952
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0228263248190033
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.1775501150972811
+          },
+          {
+            "category": "HR",
+            "multiplier": 0.9920704748755157
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.026491084740849
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.002433483886028
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9373722056304657
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.0859555767172362
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9918864709343324
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8364001338240215
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0008387252497033
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9796273100806949
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.862663906142167
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9703232292487853
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.028431667985256
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0123301382812377
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.971000396359498
+          },
+          {
+            "category": "HR",
+            "multiplier": 0.942161755632191
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.1891198610876461
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0204984324388777
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.0180010216711715
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.0852218933615423
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9959347698088834
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8626639061421671
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9827605766866402
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.966328387960946
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1.7639613945151233
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.1285999996892373
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0203148215351645
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9781158255516854
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.9778512441284757
+          },
+          {
+            "category": "HR",
+            "multiplier": 0.9484138706073854
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.0813971406393255
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0544816896436808
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9655032663966986
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9781123033155219
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0048640988445772
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1.4802159207121894
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9553554111201886
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9989883406119403
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8486082824168364
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9177200117068574
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0248220556469243
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0005654508997037
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.9921805661334242
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0491968245264913
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.0345109419505456
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9579194092251102
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.898008990166881
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.2307453094334428
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0148314694443452
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8486082824168364
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9693351685429404
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9691824384823344
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8237232289950578
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.0206335960066595
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0122113128629961
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9762649966349415
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.3480475369060074
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0001288370086983
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.0953736003413475
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0693589788114914
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9088244777569673
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9407352343291486
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0134805005119414
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8237232289950577
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0106059088036268
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9819852074219181
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8497620666213461
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.8786759234107719
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.998275771752439
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0226670243180676
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.9332781785655463
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.061490238304586
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.1636281133927484
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9536391899791418
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9513326370770254
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9565045114006806
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9980921702344449
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1.56416115323549
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9977950257784817
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1.007945936799245
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8683570684265369
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.0705889788655587
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9874661920762247
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9890897233021483
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.868357068426537
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0383441802128683
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.9066278535414369
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9524893624924349
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9581578567927876
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.0001843995034227
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0071196148085018
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.868357068426537
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0183636413687904
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1.0202770747167786
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8411843876177658
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9533079894078734
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0132128176235755
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.981365188165979
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.9412807860022167
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.1462231131733558
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.0071139417332646
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0511042054566893
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9418136087171884
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9230461299487066
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9741582782353178
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8411843876177658
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0201533984629736
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9573334040151248
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8541168431841475
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9817395236992006
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0018497277994576
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9822903771038143
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.1319944177130263
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0282870910765847
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.9326373245634583
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0774615151421765
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9827937662155755
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.0835161982338841
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9932901626243982
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8541168431841476
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9909004727567786
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1.0137662657974933
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8512087163772557
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.0640189697516125
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9875316905052952
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9715800482845497
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.2029111040280465
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0392948852778852
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.9326416745447834
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.987226097704854
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.1460425516745159
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9528804965439893
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0023940572825814
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8512087163772557
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.019209821818051
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.975285839236804
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8420343550016841
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.0525472147532895
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0202879373553002
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0242941095554094
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.842034355001684
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0754736984241722
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.8934038607855731
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9198793278513191
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.8885121167147234
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.8420343550016841
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.990049090186086
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8420343550016841
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.977220279280038
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.980863618998427
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8259002312520648
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.1211871963000042
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0211454150106392
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0835034002687396
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.2130062618349546
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0451510747258637
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.0143883683342894
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.8781894330096625
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.1938171536733493
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.8259002312520647
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9962962275639478
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8259002312520648
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9981347006489625
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9905921860857354
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8529512111907198
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.0465928169710577
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9839767068383831
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0777698306203163
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.2089778933391986
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0626030000068358
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.047795251999879
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9858190076130116
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.071497380841928
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9716137916788716
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.993807734250486
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8529512111907198
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0193134541670217
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.993558146754952
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8409014463504877
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.0238817032670018
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9954292869828552
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9549851398440645
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.9268702434543838
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0644258359620045
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.9358105773709646
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.937907075852134
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9017313745039658
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9531298118171315
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.998510709932267
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8409014463504878
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0473579005581175
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9646606594510846
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1.378393642316888
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9095954470926676
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9738916241713234
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0459140498540613
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.4266041490458963
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.030743060756095
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.077942333219837
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0558851724038385
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9997040736824525
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.160532230178458
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9809240701745401
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.7971938775510204
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.023168791582848
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9755619826092151
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1.1131657952956795
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9507244228092752
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0014194621539205
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9372212451932704
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.8997564081418131
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.05289005337019
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.0070526803239217
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0473166758401424
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.0787529604436787
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.8223684210526315
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9956244186058607
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8223684210526315
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0066751509067648
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9752896880319369
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8202099737532809
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.985363212061798
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9843701127801912
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9976837717955241
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.1807613458379351
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0839343779408976
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.1825627349412677
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9275222630593342
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.952599049024156
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.1603276056443468
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.002312556890523
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8202099737532808
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.975446725326766
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9915311319069599
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8704735376044568
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9643157019619697
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0047496195920327
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0212250407768126
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.1347527670898367
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0181716158269392
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.1156940227980243
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9567666016748011
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.1366942900175228
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.1110377526964685
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0081510225658965
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8704735376044568
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0074001535171848
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9623454790785043
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.821827744904668
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9760321369111843
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0145209904680685
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0399411829388718
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.9626501768765428
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0464496776668857
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.8725276383937913
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0210129317769943
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.038035861299051
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.057587006396048
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9930175761842097
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8218277449046679
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9879204825813195
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9116729638536712
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1.0640369399545369
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.069901217262055
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0199301630025257
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9856157895828567
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.993532690638897
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.112205466495755
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.2209632469002862
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0001177485541508
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.8863653442407642
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.1444745416625983
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0112724603096852
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8322237017310253
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.002133323624575
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1.009687634947843
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8010253123998718
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.0746658997506906
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0005969412210987
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0234563995901
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.9331549319322217
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0617252918749485
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.8493058683064421
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.001482491954299
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.8488508560328452
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.1931983294878619
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9928401037492814
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8010253123998718
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0024418589438484
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1.0040801805766941
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1.2456110327913088
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.1683588947578394
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9964891671248957
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9513647108331761
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.9340910764804128
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.010756895062578
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.1630458186068473
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9491222238652102
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9281309835867365
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.0710197327419446
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.001185210527415
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.876885303402315
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0111502911300723
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1.0445333024382168
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1.5133112866047496
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.996950361825584
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9623758827450382
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0015282773732443
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.9364571338845799
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.068171665347495
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.0326603093635827
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9332811340517797
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.0731648207557325
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9433334315135791
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9954412241662032
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8145975887911371
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9559568249058293
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9860195380509562
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8617718028266116
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9626347922763756
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.044510333138229
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0748045284205823
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.2145626795111824
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.048629208097489
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.9548447934997185
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9749980436070897
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9062727341870097
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9736113404326385
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.004360566722209
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8617718028266115
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9652401650270462
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9739435930352763
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1.3954621791986688
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.0775344838946406
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.019295243061917
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0173300944755765
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.1399913408326152
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0509128629082263
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.9275735759607441
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9919552999544683
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.0531672514515065
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.8397715821296609
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0093318293883295
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8397715821296607
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.995825106226991
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9880024542697424
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.9134088417975886
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9822167938522981
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9867749854898596
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0279933172923734
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.0091355310190036
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.1526919734748358
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.0235559113451338
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9688259265268553
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.0401541827356566
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9134088417975886
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9995563079825619
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.9134088417975886
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0017044491340321
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9683550413834262
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.9018759018759018
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9934640027701954
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.027786560231196
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0404833653805499
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.1743498946754847
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.1368852696891785
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.007961249068398
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9884427626105443
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.051592347764417
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.014860072666298
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9816148725785202
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.9018759018759019
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0003307561777517
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1.0148134417386105
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8744316194473593
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.074426816351447
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9844803601731671
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9846461372965979
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.9866726565444406
+          },
+          {
+            "category": "HR",
+            "multiplier": 0.9685324400388434
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.0562642909278823
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9982403847495583
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.1769425215146487
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.0626428539599013
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9994041142252262
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1.5804728421741272
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0108462920979457
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9870464445998013
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8950948800572862
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.209433202899151
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0119849201568614
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0099435226017737
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.028542981323289
+          },
+          {
+            "category": "HR",
+            "multiplier": 0.954411929385542
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.9333881557008197
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.009426799711527
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9490599316923711
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.895094880057286
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9897237907287119
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1.5325282718555475
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9749583713369543
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.988816598000189
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8300132802124834
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9981529305075619
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0295700978661815
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.8946616503375645
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.400078129614644
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0326867406823477
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.0016318635531738
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0099133385826924
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9277439624575408
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.2010810338925135
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0102783635475225
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1.3796468684534444
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9845152277183566
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1.0201373101125757
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8680555555555556
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9831313160828691
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0004432066967406
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9701991588327826
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.8680555555555556
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.062351712654043
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.9061897166268936
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0528087881329635
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9613612433428146
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9947964870764414
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0023239101166086
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1.81510671412595
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9883881042542854
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9894474812867875
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.886839304717985
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.989257611764614
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0150669668810235
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0235403951230575
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.075641803560605
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0058548684387352
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.2583070829682874
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9600980027523793
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9389176362588174
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9611458169903843
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0007333217894898
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8868393047179851
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9931845756018164
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9895354573408606
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8960573476702509
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.0823512503945645
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9816633473776805
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9851045770981218
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.3618844054537476
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.028289456157677
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.9450721433985286
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9626032466253283
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.0806593954008112
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.2985467784989537
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.00762112322957
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8960573476702508
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9643557300195229
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1.0294793340738124
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8403361344537814
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9487681187032913
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.011614024737734
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9471843751269329
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.0999111126510033
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0430076430414312
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.1609795976022443
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9883123642114826
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.0790613480708053
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.221634225899981
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0081022208578159
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8403361344537815
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9773672768552606
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9898002000835908
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8286377195889958
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.1369959130908653
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0225347898784656
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0038901961216296
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.8286377195889956
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0301205136841447
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.0271242403282994
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0413635762262572
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.0439809624942757
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.8286377195889958
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9986602353249625
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1.4820427509189567
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9869859162274571
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9876669606198817
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.9150805270863837
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9541337432141495
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0075144526846334
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.974352683100947
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.0941501169000638
+          },
+          {
+            "category": "HR",
+            "multiplier": 0.9739133466921351
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.9150805270863835
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0037324950427866
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9150805270863835
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9150805270863835
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0147622957026445
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.9150805270863837
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0034239621223908
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9683254903826426
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8726003490401396
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9411954224290934
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9972646562934641
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.01318212267359
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.0229138644033908
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0813044833500587
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.9667855403150073
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9679578415714745
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.918826596068417
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.2941706907287032
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0031192392227537
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8726003490401395
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0165854415026079
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1.034341429982474
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8210180623973728
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.1982888811218346
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9978220984184175
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.016712866048024
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.9821669793173661
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.1260725197825752
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.0467719258823547
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9957303779880837
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.091295722425534
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.8210180623973727
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9671882427731318
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1.544605217374101
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0189491995677045
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9915750506496893
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8558712769599452
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9593129857345042
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0261815061583937
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0026518629886665
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.8558712769599452
+          },
+          {
+            "category": "HR",
+            "multiplier": 0.9689122297309011
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.1822422142444855
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0117939554659259
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9618600250751898
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.8558712769599451
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9840152801372076
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1.7600535853807546
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0024072168500895
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9845090516859016
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8428860418071477
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.011637565143098
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0320548407374677
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.988519403608529
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.1067927926839747
+          },
+          {
+            "category": "HR",
+            "multiplier": 0.9488622545339747
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.9336643893126503
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0693016057914577
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.1108701215512962
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.8428860418071478
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9911178956484509
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 3.28427050477423
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0140561056909625
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9749517101425015
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8922198429693077
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.026069843147899
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0059901184209799
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0327077261107689
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.1910383059405636
+          },
+          {
+            "category": "HR",
+            "multiplier": 0.932065542658281
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.171443394823751
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0106347056545875
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.0895173468665302
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9742482093882026
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.991438022627974
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8922198429693077
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0063808948786674
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9808276769162445
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8411843876177658
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9800389727176344
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9762867731947948
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9996998272992109
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.9822524903722442
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0351298211175741
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.9201593960482787
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.993876018227393
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.0098126053833902
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9992286145631695
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0076177343804384
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1.9497916777359494
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9887964488585139
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9795902727913242
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8796622097114708
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.0160869363933447
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0133034291543448
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9668224307310468
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.8796622097114707
+          },
+          {
+            "category": "HR",
+            "multiplier": 0.9878568360634388
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.0050587460019917
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.033478531932816
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9658688089528502
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.0703271680254831
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0071935449999063
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1.40167118359953
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0071225068026144
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1.0167047020439497
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8596973865199449
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.0327593374905144
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9970799700495269
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.01753842323936
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.9472309596890301
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0300526941332064
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.1713258369513597
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9904424965631318
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.8596973865199451
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.8596973865199449
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9927434729357454
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.859697386519945
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.008222566046489
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9780374910718225
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.859106529209622
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.0389203165568108
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0058676157403013
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9807701746142161
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.0897568842493417
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0812323884151596
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.909687081671735
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0690350997029825
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.1076918916136063
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9969222964364828
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9894275329482548
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1.372634468333875
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9893380078359274
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1.016571877272656
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8347245409015026
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.8655314040507716
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0279741945569116
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0275696360418285
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.0222192101658407
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0977071237107363
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.3932849265582754
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9627238389221315
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9920790017895658
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.8347245409015025
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9864755835262518
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8347245409015026
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.009682427550718
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.970308829936742
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8231807704972012
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.075532730204222
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9916298406652959
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9937871944111426
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.8231807704972012
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0917108340352721
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.9827866853579195
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9831533103472389
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.012776722857665
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.8231807704972011
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9993999001926004
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8231807704972012
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0293997784094109
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9658204301602493
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8341675008341675
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9560917129726654
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.979152052116631
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9268702307782962
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.9153861139131403
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0689440685843223
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.0623632918997465
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0470724051583882
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.938453601693826
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.0674306545035948
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0015711899491786
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1.7524852928050871
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0206523406985772
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9602304667300462
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8765778401122019
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.0777562788420554
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9852068372335863
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9763749811772343
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.876577840112202
+          },
+          {
+            "category": "HR",
+            "multiplier": 0.9961583078363299
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.0943954070268926
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0473457085341449
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.0251191072344992
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.2671349933532665
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.996186825184602
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.876577840112202
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9918861065651386
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9902076052157065
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8635578583765111
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9403356229023335
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0257657276099132
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0220309730995074
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.8635578583765112
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.070830075198269
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.08116932870792
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0310098101706187
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.0898868318959325
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9465904889766305
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9918549489553761
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8635578583765112
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9933913241253001
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9845492985023184
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8692628650904034
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9787080569118458
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0024234505128653
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0045163162754591
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.1378380633739242
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0457893424609046
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.0058982154958052
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0286570394143764
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.0346838995967438
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9961052344606101
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9991270989768654
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1.7471104194928424
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0085375763635813
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1.010461248926524
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8626639061421669
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9230028136553657
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9698263298033086
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9700914831132182
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.9309221856028563
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0543340582253178
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.0506731834709289
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9468809660955387
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9468656473215626
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9828186483351566
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0104658774723747
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.862663906142167
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.977879508742708
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9666368361207256
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1.368819379140097
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.0707095154939068
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0105805697572832
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0859805395701316
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.971309310727265
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.1249329686942682
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.993207905453918
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9300336519651069
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.2199089643555305
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.025753039710131
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.995767591986912
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8330556481172943
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0109149797389307
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9958376972969412
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8579272477693892
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.0305246888617996
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9881417940031746
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0050272179518644
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.8579272477693892
+          },
+          {
+            "category": "HR",
+            "multiplier": 0.9935599570993819
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.9596934421061993
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9672364586106172
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.3122712742210199
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.8579272477693892
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9975078754428137
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1.5505703291060458
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9871020164007557
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9526505473670921
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1.8259017730401481
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.8638562543192814
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0346650565646096
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0003869566203318
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.8638562543192813
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0181758058636279
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.916424603432319
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.017180987063947
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.0800249770827142
+          },
+          {
+            "category": "SH",
+            "multiplier": 1.0051253487336809
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0060574312412187
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8638562543192814
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0020108122226385
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9994096284269007
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8695652173913044
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9946673706677319
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0138477815614855
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.969955225584834
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.0962047181235022
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.066798569641614
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.9642081899068393
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.9801408025193661
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9772141350686399
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.9591557261200604
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9944504999162425
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8695652173913043
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 0.9668204296399803
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1.018468712328942
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8369601606963509
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1.0153959799308927
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9817553742823378
+          },
+          {
+            "category": "2B",
+            "multiplier": 0.9644307833781577
+          },
+          {
+            "category": "3B",
+            "multiplier": 1.372431509682819
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.0865379203621843
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.9258234535607316
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.024825515421288
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9836344382781249
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.8369601606963509
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1.0158437600151813
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 0.8369601606963509
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "L",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0125213836685258
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9681462962006698
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8526603001364257
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9581008526389949
+          },
+          {
+            "category": "1B",
+            "multiplier": 0.9797728126982042
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0104572670794436
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.9246871150240087
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.1132820542910449
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1.282541344840133
+          },
+          {
+            "category": "FC",
+            "multiplier": 0.96512579944074
+          },
+          {
+            "category": "SF",
+            "multiplier": 1.0702425617110758
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.8526603001364257
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.998913223451985
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 2.1667560323522226
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "R",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1.0166141965052984
+          },
+          {
+            "category": "UBB",
+            "multiplier": 0.9520280731363095
+          },
+          {
+            "category": "IBB",
+            "multiplier": 0.8704735376044569
+          },
+          {
+            "category": "HBP",
+            "multiplier": 0.9301696577080564
+          },
+          {
+            "category": "1B",
+            "multiplier": 1.0105945347184977
+          },
+          {
+            "category": "2B",
+            "multiplier": 1.0151964965572406
+          },
+          {
+            "category": "3B",
+            "multiplier": 0.992569533875225
+          },
+          {
+            "category": "HR",
+            "multiplier": 1.012989404177884
+          },
+          {
+            "category": "ROE",
+            "multiplier": 0.9676613675961753
+          },
+          {
+            "category": "FC",
+            "multiplier": 1.0486838778098369
+          },
+          {
+            "category": "SF",
+            "multiplier": 0.9740032677291712
+          },
+          {
+            "category": "SH",
+            "multiplier": 0.8704735376044568
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 0.9965469043279573
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1.7862777521250288
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "park-transformation",
+        "applicationStage": "terminal-outcome-before-statistic-distribution",
+        "batterHand": "S",
+        "relativeRateMultipliers": [
+          {
+            "category": "K",
+            "multiplier": 1
+          },
+          {
+            "category": "UBB",
+            "multiplier": 1
+          },
+          {
+            "category": "IBB",
+            "multiplier": 1
+          },
+          {
+            "category": "HBP",
+            "multiplier": 1
+          },
+          {
+            "category": "1B",
+            "multiplier": 1
+          },
+          {
+            "category": "2B",
+            "multiplier": 1
+          },
+          {
+            "category": "3B",
+            "multiplier": 1
+          },
+          {
+            "category": "HR",
+            "multiplier": 1
+          },
+          {
+            "category": "ROE",
+            "multiplier": 1
+          },
+          {
+            "category": "FC",
+            "multiplier": 1
+          },
+          {
+            "category": "SF",
+            "multiplier": 1
+          },
+          {
+            "category": "SH",
+            "multiplier": 1
+          },
+          {
+            "category": "BIP_OUT",
+            "multiplier": 1
+          },
+          {
+            "category": "CATCHER_INTERFERENCE",
+            "multiplier": 1
+          },
+          {
+            "category": "OTHER_PA",
+            "multiplier": 1
+          }
+        ]
+      }
+    ],
+    "untouchedTestReservation": {
+      "rowsIncluded": false
+    },
+    "artifactSha256": "c70550bd4798bd5ad6de7263801a7794b2c4eba8d2c86957d0992e3591aee985"
+  },
+  "effectIdentities": [
+    {
+      "venue": "American Family Field",
+      "batterHand": "L",
+      "effectIndex": 0
+    },
+    {
+      "venue": "American Family Field",
+      "batterHand": "R",
+      "effectIndex": 1
+    },
+    {
+      "venue": "American Family Field",
+      "batterHand": "S",
+      "effectIndex": 2
+    },
+    {
+      "venue": "Angel Stadium",
+      "batterHand": "L",
+      "effectIndex": 3
+    },
+    {
+      "venue": "Angel Stadium",
+      "batterHand": "R",
+      "effectIndex": 4
+    },
+    {
+      "venue": "Angel Stadium",
+      "batterHand": "S",
+      "effectIndex": 5
+    },
+    {
+      "venue": "Busch Stadium",
+      "batterHand": "L",
+      "effectIndex": 6
+    },
+    {
+      "venue": "Busch Stadium",
+      "batterHand": "R",
+      "effectIndex": 7
+    },
+    {
+      "venue": "Busch Stadium",
+      "batterHand": "S",
+      "effectIndex": 8
+    },
+    {
+      "venue": "Chase Field",
+      "batterHand": "L",
+      "effectIndex": 9
+    },
+    {
+      "venue": "Chase Field",
+      "batterHand": "R",
+      "effectIndex": 10
+    },
+    {
+      "venue": "Chase Field",
+      "batterHand": "S",
+      "effectIndex": 11
+    },
+    {
+      "venue": "Citi Field",
+      "batterHand": "L",
+      "effectIndex": 12
+    },
+    {
+      "venue": "Citi Field",
+      "batterHand": "R",
+      "effectIndex": 13
+    },
+    {
+      "venue": "Citi Field",
+      "batterHand": "S",
+      "effectIndex": 14
+    },
+    {
+      "venue": "Citizens Bank Park",
+      "batterHand": "L",
+      "effectIndex": 15
+    },
+    {
+      "venue": "Citizens Bank Park",
+      "batterHand": "R",
+      "effectIndex": 16
+    },
+    {
+      "venue": "Citizens Bank Park",
+      "batterHand": "S",
+      "effectIndex": 17
+    },
+    {
+      "venue": "Comerica Park",
+      "batterHand": "L",
+      "effectIndex": 18
+    },
+    {
+      "venue": "Comerica Park",
+      "batterHand": "R",
+      "effectIndex": 19
+    },
+    {
+      "venue": "Comerica Park",
+      "batterHand": "S",
+      "effectIndex": 20
+    },
+    {
+      "venue": "Coors Field",
+      "batterHand": "L",
+      "effectIndex": 21
+    },
+    {
+      "venue": "Coors Field",
+      "batterHand": "R",
+      "effectIndex": 22
+    },
+    {
+      "venue": "Coors Field",
+      "batterHand": "S",
+      "effectIndex": 23
+    },
+    {
+      "venue": "Daikin Park",
+      "batterHand": "L",
+      "effectIndex": 24
+    },
+    {
+      "venue": "Daikin Park",
+      "batterHand": "R",
+      "effectIndex": 25
+    },
+    {
+      "venue": "Daikin Park",
+      "batterHand": "S",
+      "effectIndex": 26
+    },
+    {
+      "venue": "Dodger Stadium",
+      "batterHand": "L",
+      "effectIndex": 27
+    },
+    {
+      "venue": "Dodger Stadium",
+      "batterHand": "R",
+      "effectIndex": 28
+    },
+    {
+      "venue": "Dodger Stadium",
+      "batterHand": "S",
+      "effectIndex": 29
+    },
+    {
+      "venue": "Estadio Alfredo Harp Helú",
+      "batterHand": "L",
+      "effectIndex": 30
+    },
+    {
+      "venue": "Estadio Alfredo Harp Helú",
+      "batterHand": "R",
+      "effectIndex": 31
+    },
+    {
+      "venue": "Estadio Alfredo Harp Helú",
+      "batterHand": "S",
+      "effectIndex": 32
+    },
+    {
+      "venue": "Fenway Park",
+      "batterHand": "L",
+      "effectIndex": 33
+    },
+    {
+      "venue": "Fenway Park",
+      "batterHand": "R",
+      "effectIndex": 34
+    },
+    {
+      "venue": "Fenway Park",
+      "batterHand": "S",
+      "effectIndex": 35
+    },
+    {
+      "venue": "Globe Life Field",
+      "batterHand": "L",
+      "effectIndex": 36
+    },
+    {
+      "venue": "Globe Life Field",
+      "batterHand": "R",
+      "effectIndex": 37
+    },
+    {
+      "venue": "Globe Life Field",
+      "batterHand": "S",
+      "effectIndex": 38
+    },
+    {
+      "venue": "Great American Ball Park",
+      "batterHand": "L",
+      "effectIndex": 39
+    },
+    {
+      "venue": "Great American Ball Park",
+      "batterHand": "R",
+      "effectIndex": 40
+    },
+    {
+      "venue": "Great American Ball Park",
+      "batterHand": "S",
+      "effectIndex": 41
+    },
+    {
+      "venue": "Kauffman Stadium",
+      "batterHand": "L",
+      "effectIndex": 42
+    },
+    {
+      "venue": "Kauffman Stadium",
+      "batterHand": "R",
+      "effectIndex": 43
+    },
+    {
+      "venue": "Kauffman Stadium",
+      "batterHand": "S",
+      "effectIndex": 44
+    },
+    {
+      "venue": "Las Vegas Ballpark",
+      "batterHand": "L",
+      "effectIndex": 45
+    },
+    {
+      "venue": "Las Vegas Ballpark",
+      "batterHand": "R",
+      "effectIndex": 46
+    },
+    {
+      "venue": "Las Vegas Ballpark",
+      "batterHand": "S",
+      "effectIndex": 47
+    },
+    {
+      "venue": "loanDepot park",
+      "batterHand": "L",
+      "effectIndex": 48
+    },
+    {
+      "venue": "loanDepot park",
+      "batterHand": "R",
+      "effectIndex": 49
+    },
+    {
+      "venue": "loanDepot park",
+      "batterHand": "S",
+      "effectIndex": 50
+    },
+    {
+      "venue": "Nationals Park",
+      "batterHand": "L",
+      "effectIndex": 51
+    },
+    {
+      "venue": "Nationals Park",
+      "batterHand": "R",
+      "effectIndex": 52
+    },
+    {
+      "venue": "Nationals Park",
+      "batterHand": "S",
+      "effectIndex": 53
+    },
+    {
+      "venue": "Oracle Park",
+      "batterHand": "L",
+      "effectIndex": 54
+    },
+    {
+      "venue": "Oracle Park",
+      "batterHand": "R",
+      "effectIndex": 55
+    },
+    {
+      "venue": "Oracle Park",
+      "batterHand": "S",
+      "effectIndex": 56
+    },
+    {
+      "venue": "Oriole Park at Camden Yards",
+      "batterHand": "L",
+      "effectIndex": 57
+    },
+    {
+      "venue": "Oriole Park at Camden Yards",
+      "batterHand": "R",
+      "effectIndex": 58
+    },
+    {
+      "venue": "Oriole Park at Camden Yards",
+      "batterHand": "S",
+      "effectIndex": 59
+    },
+    {
+      "venue": "Petco Park",
+      "batterHand": "L",
+      "effectIndex": 60
+    },
+    {
+      "venue": "Petco Park",
+      "batterHand": "R",
+      "effectIndex": 61
+    },
+    {
+      "venue": "Petco Park",
+      "batterHand": "S",
+      "effectIndex": 62
+    },
+    {
+      "venue": "PNC Park",
+      "batterHand": "L",
+      "effectIndex": 63
+    },
+    {
+      "venue": "PNC Park",
+      "batterHand": "R",
+      "effectIndex": 64
+    },
+    {
+      "venue": "PNC Park",
+      "batterHand": "S",
+      "effectIndex": 65
+    },
+    {
+      "venue": "Progressive Field",
+      "batterHand": "L",
+      "effectIndex": 66
+    },
+    {
+      "venue": "Progressive Field",
+      "batterHand": "R",
+      "effectIndex": 67
+    },
+    {
+      "venue": "Progressive Field",
+      "batterHand": "S",
+      "effectIndex": 68
+    },
+    {
+      "venue": "Rate Field",
+      "batterHand": "L",
+      "effectIndex": 69
+    },
+    {
+      "venue": "Rate Field",
+      "batterHand": "R",
+      "effectIndex": 70
+    },
+    {
+      "venue": "Rate Field",
+      "batterHand": "S",
+      "effectIndex": 71
+    },
+    {
+      "venue": "Rogers Centre",
+      "batterHand": "L",
+      "effectIndex": 72
+    },
+    {
+      "venue": "Rogers Centre",
+      "batterHand": "R",
+      "effectIndex": 73
+    },
+    {
+      "venue": "Rogers Centre",
+      "batterHand": "S",
+      "effectIndex": 74
+    },
+    {
+      "venue": "Sutter Health Park",
+      "batterHand": "L",
+      "effectIndex": 75
+    },
+    {
+      "venue": "Sutter Health Park",
+      "batterHand": "R",
+      "effectIndex": 76
+    },
+    {
+      "venue": "Sutter Health Park",
+      "batterHand": "S",
+      "effectIndex": 77
+    },
+    {
+      "venue": "T-Mobile Park",
+      "batterHand": "L",
+      "effectIndex": 78
+    },
+    {
+      "venue": "T-Mobile Park",
+      "batterHand": "R",
+      "effectIndex": 79
+    },
+    {
+      "venue": "T-Mobile Park",
+      "batterHand": "S",
+      "effectIndex": 80
+    },
+    {
+      "venue": "Target Field",
+      "batterHand": "L",
+      "effectIndex": 81
+    },
+    {
+      "venue": "Target Field",
+      "batterHand": "R",
+      "effectIndex": 82
+    },
+    {
+      "venue": "Target Field",
+      "batterHand": "S",
+      "effectIndex": 83
+    },
+    {
+      "venue": "Tropicana Field",
+      "batterHand": "L",
+      "effectIndex": 84
+    },
+    {
+      "venue": "Tropicana Field",
+      "batterHand": "R",
+      "effectIndex": 85
+    },
+    {
+      "venue": "Tropicana Field",
+      "batterHand": "S",
+      "effectIndex": 86
+    },
+    {
+      "venue": "Truist Park",
+      "batterHand": "L",
+      "effectIndex": 87
+    },
+    {
+      "venue": "Truist Park",
+      "batterHand": "R",
+      "effectIndex": 88
+    },
+    {
+      "venue": "Truist Park",
+      "batterHand": "S",
+      "effectIndex": 89
+    },
+    {
+      "venue": "Wrigley Field",
+      "batterHand": "L",
+      "effectIndex": 90
+    },
+    {
+      "venue": "Wrigley Field",
+      "batterHand": "R",
+      "effectIndex": 91
+    },
+    {
+      "venue": "Wrigley Field",
+      "batterHand": "S",
+      "effectIndex": 92
+    },
+    {
+      "venue": "Yankee Stadium",
+      "batterHand": "L",
+      "effectIndex": 93
+    },
+    {
+      "venue": "Yankee Stadium",
+      "batterHand": "R",
+      "effectIndex": 94
+    },
+    {
+      "venue": "Yankee Stadium",
+      "batterHand": "S",
+      "effectIndex": 95
+    }
+  ],
+  "untouchedTestReservation": {
+    "rowsIncluded": false
+  },
+  "parkArtifactSha256": "f1bd0d83997dd1efede69fa3ab69162938dd5df7d65732d44ec1f9689eaf85f9"
+}

@@ -1,6 +1,6 @@
 # MLB Prop Analyzer --- Project Rules
 
-**Version:** 2.6\
+**Version:** 2.9\
 **Status:** Canonical project rules\
 **Applies to:** MLB Prop Analyzer V3\
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
@@ -949,11 +949,43 @@ When either canonical source needs revision:
 No silent source changes. Do not provide only a patch, excerpt, diff, or
 summary when a complete canonical replacement is required.
 
+### Mandatory repository replacement and cleanup
+
+Whenever a canonical authority file changes, the old active repository
+copy must be removed and replaced in the same repository change by the
+complete approved new file at the same exact canonical path. Updating a
+Project Source without replacing the repository copy is incomplete and
+may not be reported as synchronized.
+
+For every canonical revision:
+
+1.  replace the full active repository file; do not leave the old active
+    bytes in place
+2.  preserve only the exact canonical filename and path
+3.  delete every stale, suffixed, renamed, backup, copied, generated, or
+    duplicate active repository copy of that authority
+4.  search the active repository tree for obsolete copies before
+    claiming completion
+5.  verify the replacement file is complete and present at the exact
+    canonical path in the active repository
+6.  do not continue dependent work, open merge approval, or claim the
+    revision complete until replacement, cleanup, and identity
+    verification all pass
+
+Historical Git commits may retain prior versions as history. No prior
+version may remain as an active repository file or alternate authority.
+This replacement-and-cleanup rule applies to every canonical authority
+revision and to every other repository component or artifact that is
+explicitly replaced: remove the superseded active copy in the same
+change unless a canonical retention rule requires it to remain.
+
 ### Zero-tolerance mismatch recovery
 
-At every preflight, and before any technical decision or repository
-work, read the complete Project Source copies and the complete
-repository copies of:
+The active repository is the sole authority for canonical files. No
+local, uploaded, cached, or Project Source copy is authority, and no
+synchronization between copies is required or permitted as a gate. At
+every preflight, and before any technical decision or repository work,
+read the complete active repository copies of:
 
 -   `PROJECT_RULES.md`
 -   `CANONICAL_MATH_SPEC.md`
@@ -1017,17 +1049,30 @@ file creation, edits, commits, pull requests, and available CI evidence.
 
 ### Runtime and command safety
 
-Do not invoke Python, Node.js, a package manager, a shell utility, or any
-other runtime merely because it is convenient. Use a runtime only when
-it is appropriate for the task and its exact executable is already
-verified to exist in the target environment, or when installation has
-been explicitly approved.
+Python is prohibited for MLB Prop Analyzer V3 repository and Replit
+execution. Do not install, invoke, probe for, or depend on `python`,
+`python3`, `pip`, `pip3`, virtual environments, Python scripts, or
+Python packages. Do not add Python tooling or dependencies to the
+repository. A future Python exception requires explicit user approval
+and a canonical Project Rules revision before any installation, command,
+script, or dependency is introduced.
 
-Python is neither prohibited nor assumed. If Python is needed, verify
-the exact available command first, such as `python3 --version` or
-`python --version`, and use only the command that succeeds. If Python is
-not needed or is not verified, use an already verified tool or perform
-the work through Codex or GitHub instead.
+The project execution language remains strict TypeScript and Node.js.
+Repository inspection, file creation, edits, transformations, commits,
+pushes, pull requests, and CI review must be performed through Codex or
+GitHub whenever those capabilities are available. When the assistant
+has no such capability, the user may perform the edit directly in the
+GitHub web editor or the Replit file editor; the assistant supplies
+complete file content or exact find-and-replace text, never a script,
+heredoc, or chained command.
+
+A user-run Replit command may use only an executable already proven to
+exist in this exact workspace by prior successful project output. The
+established command set is limited to `git`, `node`, `npm`, and basic
+non-interactive POSIX shell utilities already demonstrated in the
+workspace. If an executable has not been proven available, do not place
+it in a user command. Use Codex or GitHub instead, or stop at the exact
+runtime boundary and obtain explicit approval before installation.
 
 Never place required work after a command that may open an interactive
 installation, confirmation, authentication, package-manager, or
@@ -1035,11 +1080,11 @@ environment prompt. A command given to the user must either be
 non-interactive or stop before the prompt with the next action clearly
 identified.
 
-Do not give the user a large pasted script, heredoc, or fragile chained
-command when Codex or GitHub can make the same repository change
-directly. When a user-run command is truly required, keep it to the
-smallest safe action, use only verified installed tools, and avoid
-unrelated chained operations.
+When a user-run command is genuinely required, keep it to the smallest
+safe runtime-only action. Do not combine repository editing, generated
+text replacement, commits, pushes, tests, and runtime verification into
+one fragile chained command. Repository editing and delivery remain the
+assistant's responsibility through Codex or GitHub.
 
 Use Replit only for secrets, live runtime, browser/session access,
 environment-specific verification, or public-link checks.
@@ -1056,7 +1101,7 @@ Do not promise background work or future completion.
 
 ## 28. Project placement --- LOCKED
 
-Canonical complete files belong in Project Sources:
+Canonical complete files live only in the active repository at:
 
 -   `PROJECT_RULES.md`
 -   `CANONICAL_MATH_SPEC.md`
@@ -1069,6 +1114,50 @@ There is no separate Project Knowledge deliverable.
 ------------------------------------------------------------------------
 
 ## Changelog
+
+### Version 2.9 --- 2026-08-03
+
+-   Designated the active repository the sole authority for canonical
+    files and removed every Project Source copy, placement, and
+    byte-identity requirement.
+-   Permitted the user to perform repository edits directly in the
+    GitHub web editor or Replit file editor when no assistant has
+    repository write capability.
+-   Preserved the Python prohibition, the proven-executable limit on
+    user-run commands, and the prohibition on scripts, heredocs, and
+    chained commands.
+
+### Version 2.8 --- 2026-08-03
+
+-   Required every canonical revision to remove and replace the old
+    active repository file in the same change with the complete approved
+    file at the exact canonical path.
+-   Prohibited reporting Project Source synchronization before the
+    repository copy has been replaced and verified byte-for-byte
+    identical.
+-   Required active-tree cleanup of stale, suffixed, renamed, backup,
+    copied, generated, and duplicate authority files before completion.
+-   Extended same-change removal of superseded active copies to other
+    explicitly replaced repository components and artifacts unless a
+    canonical retention rule requires preservation.
+
+### Version 2.7 --- 2026-08-03
+
+-   Prohibited Python installation, commands, scripts, packages,
+    dependencies, probes, and virtual environments for MLB Prop Analyzer
+    V3 repository and Replit execution.
+-   Locked strict TypeScript and Node.js as the project execution path;
+    any future Python exception requires explicit user approval and a
+    canonical Project Rules revision first.
+-   Restricted user-run Replit commands to executables already proven in
+    the exact workspace, currently `git`, `node`, `npm`, and demonstrated
+    basic non-interactive POSIX shell utilities.
+-   Prohibited delegating repository file edits through Replit scripts,
+    heredocs, large pasted commands, or fragile command chains when
+    Codex or GitHub can perform the work directly.
+-   Required repository editing, generated-text replacement, commits,
+    pushes, pull requests, and CI review to remain assistant-owned through
+    Codex or GitHub whenever available.
 
 ### Version 2.6 --- 2026-08-02
 

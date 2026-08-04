@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 3.4
+**Version:** 3.6
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -28,7 +28,7 @@ This checklist is evidence-driven. A box is checked only after direct verificati
 - [x] Add foundation scripts for typecheck, architecture checks, tests, and build.
 - [x] Add a protective-failure architecture test.
 - [x] Add a synthetic disabled-market fail-closed test.
-- [x] Add a synthetic historical-record rendering test that does not import feature code.
+- [x] Add a synthetic historical-record rendering test that does not import active feature code.
 
 ### M0 exit gate
 
@@ -364,23 +364,33 @@ Team-specific bullpen completion evidence — Real active-season fixed-holdout a
 
 Game-specific offensive-environment completion evidence — Real active-season fixed-holdout and expanding daily walk-forward evaluation selected `opponent-only-l2-0.01` over the frozen global shared-scenario mixture. The strictly chronological pregame feature path used only earlier-date current-season opponent plate-appearance and hit-rate-allowed evidence, excluded same-date and same-game outcome leakage, and rejected incomplete feature histories. The evaluation retained 1,107 fit games and 189 later-validation games with 15 feature exclusions. Fixed-validation joint log loss improved from `10.32538847048714` to `10.318972105284502`; walk-forward joint log loss improved from `10.325388470487145` to `10.319085221244196`. Evaluation identity SHA-256 is `81c853f8545e4a40afa865a4cb648817fd53780c5e6a5222033a65d65cdebef4`; feature-dataset identity SHA-256 is `8090f344de26b2b57f56086645c01a7d7486137a1316a4a826265170c35ce23a`; committed model artifact SHA-256 is `6530a40baeed55d6c20ac9a45cb511974853137bac88b731d621bfd9d7ab4bce`; and committed model file byte SHA-256 is `b149943ae56f586f312b703def10ce6203cfa63bdf11909762edd50f653b534b`. A byte-for-byte rerun reproduced every metric and identity. The committed artifact-lock regression and GitHub Actions verify run 548 passed 386 of 386 tests with typecheck, script checks, architecture, build, selected-side, and protective-architecture gates clean. Shared scenario definitions were unchanged; one game-specific mixture jointly moves approved opportunity and outcome assumptions; selected-side input and direct probability adjustment remained prohibited; excluded offensive statistics were not used; production and ranking remained disabled; and untouched-test rows remained sealed.
 
-- [ ] Park model — proceed only with verified approved-source venue evidence and current-season validation.
-- [ ] Times-through-order model — apply only to starter repeated exposure and preserve the separate starter-to-bullpen transition.
+- [x] Park model — canonical fixed-validation and expanding walk-forward categorical proper-score nondominated-set intersection selected `venue-hand-pool-2500`; exact provider venue identity and current-season-only validation preserved.
+
+Park model completion evidence — Venue evidence verified 1,346 of 1,346 games across 32 exact provider venues, 30 home teams, and 2 multi-venue home teams with no alias merging and no home-team venue inference; venue audit SHA-256 is `69aab27d1aa798e197b38e4a8a1a6538965265e5833d944acb115df34c165338`. The evaluation cohort retained 26,759 fit plate appearances and 14,265 validation plate appearances with 0 missing-handedness exclusions. Fixed-validation categorical log loss improved from `1.6620430674352507` to `1.6616058208441955`; walk-forward categorical log loss improved from `1.6620430674352604` to `1.66157008198203`. Hit metrics remained diagnostic only and did not select the candidate. Evaluation dataset SHA-256 is `074af50e2a881e7ab8df47480bc67e68c15ce03987bf153a587c86bb249712bb`; canonical evaluation SHA-256 is `d715419f9bcbb118540f11f7431729f56ab85b12cc3ab7311216417006b690b9`; typed factor artifact SHA-256 is `c70550bd4798bd5ad6de7263801a7794b2c4eba8d2c86957d0992e3591aee985`; park wrapper artifact SHA-256 is `f1bd0d83997dd1efede69fa3ab69162938dd5df7d65732d44ec1f9689eaf85f9`; committed artifact file byte SHA-256 is `efc8f4b91eb00d5a961ace09dda951a08a008011791be6e43160d6fef64015ae`. The tracked artifact is `model-artifacts/m8-5-park-transformation-v1.json` with 96 effects across 32 venues and L/R/S batter hands. Frozen M8 was unchanged; selected-side input and direct probability adjustment remained prohibited; prior-season rows were not used; production and ranking remained disabled; and untouched-test rows remained sealed.
+
+Park is a validated factor that is explicitly not applied at runtime; the measured effect is approximately `0.0004` nats, no runtime park resolution is wired into `D_final`, and the frozen artifact is preserved as fitting evidence only.
+
+- [x] Times-through-order model — current-season evaluation closed as an explicit identity/no-op limited to starter repeated exposure while preserving the separate starter-to-bullpen transition.
+
+Times-through-order completion evidence — The explicit identity artifact is `model-artifacts/m8-5-times-through-order-identity-v1.json`, SHA-256 `78352afd7c5bfe2ce1383aa7276e9b942826ec02271726a0a2065807c467c352`. First exposure remains identity, no repeated-starter-exposure adjustment is applied to `D_final`, and the separately validated starter-to-bullpen transition remains unchanged. Selected-side input and direct probability adjustment remain prohibited; production and ranking remain disabled; and the untouched cohort remains sealed.
+
 - [ ] Defense data-sufficiency decision — implement only if approved current-season evidence supports balls-in-play translation without altering K, BB, HBP, or HR outcomes improperly.
 
 ### Final distribution and validation
 
-- [ ] Define `M8_5FinalEvaluationV1` with source M8 evaluation hash, `D_base` hash, `D_final`, final probabilities, context model version, factor versions, factor artifact hashes, shared-scenario identity, and settlement version.
-- [ ] Apply every validated context factor through eligibility, workload, shared scenarios, or the statistic distribution before exact settlement.
-- [ ] Settle `D_final` against the exact posted side and line to produce `p_final(d,L)`.
-- [ ] Preserve `contextProbabilityDelta(d,L)=p_final(d,L)-p_base(d,L)` as diagnostic evidence only.
-- [ ] Use one identical `D_final` for baseline and alternate offers sharing the same player, game, statistic, baseball inputs, and model versions.
+- [x] Define `M8_5FinalEvaluationV1` with source M8 evaluation hash, `D_base` hash, `D_final`, final probabilities, context model version, factor versions, factor artifact hashes, shared-scenario identity, and settlement version.
+- [x] Apply each runtime-approved context factor through shared scenarios or the statistic distribution before exact settlement; game-specific offensive environment and team-specific bullpen are applied, times-through-order is explicit identity, and park is explicitly not applied.
+- [x] Settle `D_final` against the exact posted side and line to produce `p_final(d,L)`.
+- [x] Preserve `contextProbabilityDelta(d,L)=p_final(d,L)-p_base(d,L)` as diagnostic evidence only.
+- [x] Use one identical `D_final` for baseline and alternate offers sharing the same player, game, statistic, baseball inputs, and model versions.
 - [ ] Fit and validate each candidate using active-season-only chronological evidence, untouched later validation, and walk-forward evaluation where required.
 - [ ] Reserve a new untouched current-season cohort for the frozen M8.5 candidate; do not use the original M8 untouched rows to select, tune, or retry M8.5.
 - [ ] Validate any proposed `tau_soft` or other hard discovery predicate only after `p_final` exists, using an approved recall standard for the strongest final-probability candidates.
-- [ ] Prove upward shifts help Higher and hurt Lower, downward shifts help Lower and hurt Higher, and no factor can create a side-independent booster.
+- [x] Prove upward shifts help Higher and hurt Lower, downward shifts help Lower and hurt Higher, and no factor can create a side-independent booster.
 - [ ] Freeze a new versioned M8.5 successor only after all factor, calibration, tail, deterministic-output, provenance, and untouched-test gates pass.
-- [ ] Keep M8.5 production-disabled until explicit approval and every downstream M9/M10 gate passes.
+- [x] Keep M8.5 production-disabled until explicit approval and every downstream M9/M10 gate passes.
+
+`M8_5FinalEvaluationV1` now preserves immutable `D_base` and `D_final` lineage, exact final `P(Win)`, `P(Loss)`, `P(Void)`, and `P(Win | grades)`, context-model and settlement versions, factor versions and artifact identities, shared-scenario identity, and diagnostic-only `contextProbabilityDelta`. The composition applies game-specific offensive environment and team-specific bullpen, records times-through-order as explicit identity with artifact SHA-256 `78352afd7c5bfe2ce1383aa7276e9b942826ec02271726a0a2065807c467c352`, and records park as validated but not applied because its approximately `0.0004`-nat effect does not justify a unique runtime venue dependency. Focused regressions proved no-applied-factor equality with `D_base`, bullpen movement with mass conservation to `1e-12`, identical `D_final` reuse for baseline and alternate offers, Higher/Lower directional monotonicity, diagnostic delta exclusion from ranking order, and fail-closed artifact-hash drift. GitHub Actions verify run 641 passed 453 of 453 tests with typecheck, script checks, architecture, build, selected-side, and protective-architecture gates clean. Production and ranking remain disabled, the untouched cohort remains sealed, and no M8.5 freeze or exit-gate decision was made.
 
 ### M8.5 exit gate
 
@@ -398,7 +408,7 @@ Game-specific offensive-environment completion evidence — Real active-season f
 - [x] Connect real normalized current board offers — committed fixture-backed The Odds API contracts and normalization preserve exact event, Underdog bookmaker, baseline/alternate market, uniquely linked BALLDONTLIE player, Higher/Lower side, posted line, price, multiplier, market timestamp, and source snapshot identity; 34 offers normalized, both unresolved James Jarvis offers failed closed, 3 focused tests passed, and GitHub Actions verify run 405 passed 337 of 337 tests while probability generation and production ranking remained disabled.
 - [x] Exclude started games — fixture-backed BALLDONTLIE game-state normalization and the shared pregame eligibility gate require the matched current-season regular-season game to remain `STATUS_SCHEDULED` and require the evaluation time to be strictly before both preserved provider start timestamps; final, unknown, missing, duplicate, or start-time-reached states fail closed. Four focused tests passed and GitHub Actions verify run 408 passed 341 of 341 tests while side and line remained unchanged and production ranking remained disabled.
 - [x] Preserve exact selected side and line — exhaustive fixture-backed regression matched all 34 uniquely linked baseline and alternate offers through both normalized and pregame composition boundaries; raw `Over` remained `Over` and mapped only to `higher`, raw `Under` remained `Under` and mapped only to `lower`, and every numeric provider point survived exactly as the posted line. Final-game exclusion retained the same immutable offer identities. Two focused tests passed and GitHub Actions verify run 413 passed 343 of 343 tests while production ranking remained disabled.
-- [x] Produce `P(Win)`, `P(Loss)`, `P(Void)`, and `P(Win | grades)` — the exact frozen complete Batter Hits candidate, SHA-256 `728895ca850c5481cd1f17944e38464f16396becc3622146a1384bba19ce5cde`, now builds deterministic scenario-conditioned nested opportunity-count and Poisson-binomial Hits distributions and settles exact Higher/Lower sides and posted lines through the generic core settlement path. Baseline and alternate examples conserve probability mass, mismatched runtime identity and production authorization fail closed, 3 focused tests passed, and GitHub Actions verify run 417 passed 346 of 346 tests while production ranking remained disabled and untouched-test rows remained sealed.
+- [x] Produce `P(Win)`, `P(Loss)`, `P(Void)`, and `P(Win | grades)` — the exact frozen complete Batter Hits candidate, SHA-256 `728895ca850c5481cd1f17944e38464f16396becc3622146a1384bba19ce5cde`, now builds deterministic scenario-conditioned nested opportunity-count and exact Poisson-binomial Batter Hits distributions and settles exact Higher/Lower sides and posted lines through the generic core settlement path. Baseline and alternate examples conserve probability mass, mismatched runtime identity and production authorization fail closed, 3 focused tests passed, and GitHub Actions verify run 417 passed 346 of 346 tests while production ranking remained disabled and untouched-test rows remained sealed.
 - [x] Verify baseline and alternate offers use the same statistic distribution — the committed board contains verified baseline and alternate Batter Hits offers but no same-player pair, so one explicit test-only invariant held normalized player, game, team, lineup, opposing starter, shared scenarios, and frozen model artifacts fixed while substituting only provider-observed alternate offer attributes. The complete runtime distribution and candidate statistic distribution remained exactly identical; selected side, posted line, price, multiplier, and settlement probabilities were allowed to differ. One focused test passed and GitHub Actions verify run 420 passed 347 of 347 tests while production ranking remained disabled and untouched-test rows remained sealed.
 - [ ] Enable only after all acceptance gates pass.
 - [ ] Implement prospective board archiving and grading — the prior implementation remains isolated in blocked PR #21 and is intentionally absent from this clean M8 amendment branch. Do not mark M9 archive/grading complete or merge its claimed live evidence until the exact July 31 runtime files are recovered and verified unchanged, or the implementation is separately re-established under an approved evidence plan.
@@ -452,6 +462,24 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 3.6 — 2026-08-04
+
+- Closed times-through-order as an explicit identity/no-op limited to starter repeated exposure while preserving the separate starter-to-bullpen transition; recorded artifact SHA-256 `78352afd7c5bfe2ce1383aa7276e9b942826ec02271726a0a2065807c467c352`.
+- Recorded park as validated but explicitly not applied at runtime because the measured effect is approximately `0.0004` nats and does not justify a unique runtime venue dependency; preserved the frozen artifact and fitting evidence without wiring runtime park resolution.
+- Added and verified `M8_5FinalEvaluationV1` and context-adjusted `D_final` composition applying game-specific offensive environment and team-specific bullpen while recording TTO identity and park non-application.
+- Recorded exact final settlement, immutable baseline/alternate `D_final` reuse, Higher/Lower directional monotonicity, diagnostic-only context delta, mass conservation, and fail-closed factor-artifact drift.
+- Recorded GitHub Actions verify run 641 passing 453 of 453 tests with typecheck, script checks, architecture, build, selected-side, and protective-architecture gates clean.
+- Preserved production-disabled and ranking-disabled status and the sealed untouched cohort; did not start Defense or M9, freeze M8.5, or close any M8.5 exit gate.
+
+### Version 3.5 — 2026-08-03
+
+- Closed the third M8.5 context-factor item after the canonical fixed-validation and expanding walk-forward categorical proper-score nondominated-set intersection selected `venue-hand-pool-2500`.
+- Recorded exact venue-audit, evaluation-dataset, canonical-evaluation, typed-factor, park-wrapper, and committed file-byte SHA-256 identities.
+- Recorded the corrected candidate-selection rule: categorical log loss and categorical Brier only, independent fixed and walk-forward frontiers, stable intersection, identity as the infinite-pooling candidate, and Hit metrics diagnostic only.
+- Removed the temporary park lineage diagnostic scripts and their syntax-check references.
+- Replaced `PROJECT_RULES.md` with Version 2.9 designating the active repository the sole canonical authority.
+- Preserved production-disabled and ranking-disabled status, the frozen M8 boundary, and the sealed untouched-test cohort.
 
 ### Version 3.4 — 2026-08-02
 

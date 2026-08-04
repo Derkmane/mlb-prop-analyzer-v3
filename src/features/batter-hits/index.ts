@@ -8,6 +8,11 @@ export * from './base-evaluation.js';
 export * from './context-factor-contract.js';
 export * from './team-bullpen-outcome.js';
 export * from './game-offensive-environment.js';
+export * from './game-offensive-environment-runtime.js';
+export * from './park-transformation.js';
+export * from './park-runtime-context.js';
+export * from './final-distribution-composition.js';
+export * from './final-evaluation.js';
 export type {
   BatterHitsRuntimeObservation as ConfirmedBatterHitsRuntimeObservation,
 } from './runtime-probability.js';
