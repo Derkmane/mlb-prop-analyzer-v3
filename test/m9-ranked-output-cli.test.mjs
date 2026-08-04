@@ -37,6 +37,18 @@ test('ranked CLI rows match the existing application ranking adapter exactly', a
     evidence.ranking.rankedCandidates.length,
   );
   assert.equal(evidence.ranking.excludedCandidates.length, 0);
+  assert.equal(
+    evidence.output.normalizedOfferCount,
+    evidence.output.rankedRowCount + evidence.output.fixtureExclusionCount,
+  );
+  assert.ok(evidence.output.fixtureExclusionCount > 0);
+  assert.ok(
+    evidence.output.fixtureExclusions.every(
+      (exclusion) =>
+        exclusion.reason === 'FIXTURE_HAND_NOT_RUNTIME_SUPPORTED' &&
+        /excluded rather than coerced/u.test(exclusion.explanation),
+    ),
+  );
 
   evidence.output.rows.forEach((row, index) => {
     const candidate = evidence.ranking.rankedCandidates[index];
