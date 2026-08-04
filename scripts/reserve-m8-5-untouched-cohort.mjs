@@ -226,6 +226,11 @@ function validateCompleteManifest(
 ) {
   const manifest = assertObject(rawManifest, `capture manifest ${manifestPath}`);
   if (!Array.isArray(manifest.dateCaptures)) return null;
+  const startDate = assertDate(manifest.requestedStartDate, 'requestedStartDate');
+  const endDate = assertDate(manifest.requestedEndDate, 'requestedEndDate');
+  if (endDate < eligibleStartDate || startDate > latestEligibleDate) {
+    return null;
+  }
   if (
     manifest.captureVersion !== 1 ||
     manifest.provider !== 'BALLDONTLIE MLB API' ||
@@ -236,11 +241,6 @@ function validateCompleteManifest(
     manifest.requiredFinalStatus !== 'STATUS_FINAL'
   ) {
     throw new Error(`Capture manifest is not complete approved 2026 evidence: ${manifestPath}`);
-  }
-  const startDate = assertDate(manifest.requestedStartDate, 'requestedStartDate');
-  const endDate = assertDate(manifest.requestedEndDate, 'requestedEndDate');
-  if (endDate < eligibleStartDate || startDate > latestEligibleDate) {
-    return null;
   }
   const dates = manifest.dateCaptures.map((entry, index) =>
     normalizedDateCapture(entry, `dateCaptures[${index}]`),
