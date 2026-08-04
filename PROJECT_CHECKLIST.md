@@ -471,7 +471,7 @@ These are intended investigations, not abandoned markets. No empty feature folde
 - Recorded the current-season pre-screen using resolved dataset SHA-256 `a40eca0b15e5d69c7c718e807c2ced7b007650f0628dd7761c87f9f56f1d3b59` and team offensive-environment dataset SHA-256 `eb627faefd24b9862965151c45fd7ccce588d36fe9acb7ddb6f4a04e14a3dc8a`: 30 teams, 1,122 mapped games, 54,919 included BIP rows, 1,687 unmapped rows, minimum 1,490 and median 1,847 observations per team, and `BIP_REACH` spread-to-noise ratio `2.022`.
 - Recorded approximately one percentage point of estimated true between-team variation and an optimistic categorical log-loss ceiling near `0.00026` nats before overlap with existing per-pitcher allowed effects; no Defense family or candidate grid was fit.
 - Added and locked `model-artifacts/m8-5-defense-to-batted-ball-identity-v1.json`, artifact SHA-256 `85d163f127791bf04ba786b7c1661f7f88515a7a724debd22a6892855133712f`, restricted to approved BIP categories with production, ranking, selected-side input, direct probability effects, fitting, and untouched-test access disabled.
-- Recorded GitHub Actions verify run 647 passing 454 of 454 tests with typecheck, script checks, architecture, build, selected-side, and protective-architecture gates clean.
+- Recorded GitHub Actions verify runs 647 and 648 passing 454 of 454 tests with typecheck, script checks, architecture, build, selected-side, and protective-architecture gates clean; run 648 verified the exact final branch head after the checklist closeout.
 - Did not begin the M8.5 freeze, reserve or read a new untouched cohort, close an M8.5 exit gate, or start M9.
 
 ### Version 3.6 — 2026-08-04
@@ -522,7 +522,7 @@ These are intended investigations, not abandoned markets. No empty feature folde
 
 - Closed the M8 Bridge after direct projected/confirmed runtime compliance and the immutable `M8BatterHitsBaseEvaluationV1` handoff passed.
 - Added one reusable, hash-verified `D_base` per identical baseball-input identity and exact side-and-line settlement for baseline and alternate offers without rebuilding the distribution.
-- Preserved complete model, settlement, provider, lineup, opposing-starter, artifact, and shared-scenario lineage while keeping discovery audit-only and `tau_soft` absent.
+- Preserved complete model, settlement, provider, lineup, opposing-starter, artifact, and shared-scenario lineage while keeping discovery audit-only with no runtime `tau_soft` or hard exclusion.
 - Recorded Higher/Lower symmetry, integer-line void, deterministic rerun, projected/confirmed invariance, frozen-output parity, and tamper-rejection evidence.
 - Recorded GitHub Actions verify run 492 passing 350 of 350 tests with production ranking disabled and untouched-test evidence sealed.
 - Corrected the inherited M9 archive/grading status: PR #21 remains isolated and its code and July 31 runtime bytes are not part of the clean M8 amendment branch.
@@ -551,7 +551,7 @@ These are intended investigations, not abandoned markets. No empty feature folde
 - Added a fixture-backed test-only invariant proving baseline and alternate Batter Hits offer attributes do not create different baseball distributions.
 - Recorded that the committed board contains real baseline and alternate offers but no same-player pair, avoiding any unsupported provider claim.
 - Held player, game, team, lineup, opposing starter, shared scenarios, and frozen model artifacts fixed while substituting only provider-observed alternate offer attributes.
-- Verified exact equality of the complete runtime and candidate statistic distributions while allowing side, line, price, multiplier, and settlement probabilities to differ.
+- Verified exact equality of the complete runtime and candidate statistic distribution while allowing side, line, price, multiplier, and settlement probabilities to differ.
 - Recorded 1-of-1 focused passing test and GitHub Actions verify run 420 with 347-of-347 tests passing; production ranking remains disabled and untouched-test rows remain sealed.
 
 ### Version 2.7 — 2026-07-30
@@ -576,7 +576,7 @@ These are intended investigations, not abandoned markets. No empty feature folde
 - Required a uniquely matched current-season regular-season game with exact scheduled status and an evaluation time strictly before both preserved provider start timestamps.
 - Verified that final, unknown, missing, duplicate, and start-time-reached game states fail closed before probability generation or ranking.
 - Preserved exact normalized offer identity, selected Higher/Lower side, and posted line for every surviving offer.
-- Recorded 4-of-4 focused passing tests and GitHub Actions verify run 408 with 341-of-341 tests passing; production ranking remains disabled.
+- Recorded 4-of-4 focused tests and GitHub Actions verify run 408 with 341-of-341 tests passing; production ranking remains disabled.
 
 ### Version 2.4 — 2026-07-30
 
@@ -596,7 +596,7 @@ These are intended investigations, not abandoned markets. No empty feature folde
 
 - Closed M8 current-season fitting and runtime freezing with artifact `model-artifacts/m8-batter-hits-runtime-freeze-v1.json`, SHA-256 `e5a660ffc0aefc093dc80aae0169109bd7717605098d790b3257a83fad5bf3de`.
 - Recorded park, defense-to-batted-ball, and times-through-order as explicit non-modeled identity components; no coefficient or residual is fitted or applied.
-- Deferred eligibility and participation probability to the M9 pregame runtime gate rather than treating it as a fitted M8 component.
+- Deferred eligibility and participation probability to the M9 pregame runtime gate rather than treating it as an M8 fitted current-season component.
 - Recorded exact selected recency, pooling, coherent-matchup, platoon, starter/bullpen, PA-survival, and shared-environment identities with preserved fixed and walk-forward proper-score evidence.
 - Recorded 3-of-3 focused freeze tests and the complete 332-of-332 repository verification with typecheck, script checks, architecture, and build passing.
 - Preserved `productionEnabled: false`, `untouchedTestAccessed: false`, and the sealed one-time untouched-test acceptance boundary.
@@ -670,7 +670,7 @@ These are intended investigations, not abandoned markets. No empty feature folde
 - Recorded preserved Underdog baseline and alternate fixtures, market keys, selected-side fields, lines, multipliers, and null source IDs.
 - Recorded preserved BALLDONTLIE game and lineup fixtures.
 - Recorded one observed cross-provider game join and the 17-of-18 player-linkage result with James Jarvis failing closed.
-- Kept complete pregame status semantics, PA/plays fixture promotion, terminal-category closure, and every M2 exit gate open.
+- Kept complete pregame status semantics, PA/plays fixture promotion, terminal-category closure, and every M2 exit gates open.
 - Did not begin provider-derived contracts.
 
 ### Version 1.1 — 2026-07-23
