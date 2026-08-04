@@ -349,6 +349,57 @@ test('skips wholly pre-window legacy manifests before strict snapshot hash valid
   );
 });
 
+test('skips a pre-window truncated pilot but rejects an eligible truncated manifest', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'm8-5-reservation-truncated-window-'));
+  const captureRoot = path.join(root, 'captures');
+  const artifacts = await arrangeArtifacts(root);
+  const preWindowPilot = completeManifest('2026-07-08', '2026-07-08', [
+    dateCapture('2026-07-08', 8501, 74, HASH_A),
+  ]);
+  preWindowPilot.truncated = true;
+  await writeJson(
+    path.join(captureRoot, 'pilot-2026-07-08', 'capture-manifest.json'),
+    preWindowPilot,
+  );
+  await writeJson(
+    path.join(captureRoot, 'eligible-2026-07-26', 'capture-manifest.json'),
+    completeManifest('2026-07-26', '2026-07-26', [
+      dateCapture('2026-07-26', 8502, 12, HASH_B),
+    ]),
+  );
+
+  const artifact = await reserveM8_5UntouchedCohort({
+    captureRoot,
+    latestDate: '2026-07-26',
+    ...artifacts,
+  });
+
+  assert.equal(artifact.gameCount, 1);
+  assert.equal(artifact.sourceManifests.length, 1);
+  assert.doesNotMatch(
+    artifact.sourceManifests[0].path,
+    /pilot-2026-07-08/,
+  );
+
+  const eligibleTruncated = completeManifest('2026-07-26', '2026-07-26', [
+    dateCapture('2026-07-26', 8503, 12, HASH_C),
+  ]);
+  eligibleTruncated.truncated = true;
+  await writeJson(
+    path.join(captureRoot, 'eligible-truncated', 'capture-manifest.json'),
+    eligibleTruncated,
+  );
+
+  await assert.rejects(
+    reserveM8_5UntouchedCohort({
+      captureRoot,
+      latestDate: '2026-07-26',
+      ...artifacts,
+    }),
+    /Capture manifest is not complete approved 2026 evidence/,
+  );
+});
+
 test('fails closed when an eligible manifest omits its saved games snapshot hash', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'm8-5-reservation-eligible-hash-'));
   const captureRoot = path.join(root, 'captures');
