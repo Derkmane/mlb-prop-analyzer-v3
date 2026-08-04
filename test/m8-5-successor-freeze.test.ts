@@ -133,6 +133,19 @@ test('successor freeze hash drift fails closed', () => {
   );
 });
 
+test('source factor artifact hash drift fails closed', () => {
+  const committed = readJson(FREEZE_PATH);
+  const driftedSources = structuredClone(loadSources());
+  const bullpen = driftedSources.teamSpecificBullpenArtifact as {
+    artifactSha256: string;
+  };
+  bullpen.artifactSha256 = '0'.repeat(64);
+
+  assert.throws(() =>
+    verifyM8_5BatterHitsSuccessorFreezeV1(committed, driftedSources),
+  );
+});
+
 test('post-freeze coefficient changes fail closed before a new untouched cohort can be read', () => {
   const committed = readJson(FREEZE_PATH);
   const driftedSources = structuredClone(loadSources());
