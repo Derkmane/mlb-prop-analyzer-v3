@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 3.7
+**Version:** 3.8
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -385,22 +385,32 @@ Defense completion evidence — Approved BALLDONTLIE evidence attributes each pl
 - [x] Settle `D_final` against the exact posted side and line to produce `p_final(d,L)`.
 - [x] Preserve `contextProbabilityDelta(d,L)=p_final(d,L)-p_base(d,L)` as diagnostic evidence only.
 - [x] Use one identical `D_final` for baseline and alternate offers sharing the same player, game, statistic, baseball inputs, and model versions.
-- [ ] Fit and validate each candidate using active-season-only chronological evidence, untouched later validation, and walk-forward evaluation where required.
-- [ ] Reserve a new untouched current-season cohort for the frozen M8.5 candidate; do not use the original M8 untouched rows to select, tune, or retry M8.5.
-- [ ] Validate any proposed `tau_soft` or other hard discovery predicate only after `p_final` exists, using an approved recall standard for the strongest final-probability candidates.
+- [x] Fit and validate each candidate using active-season-only chronological evidence, untouched later validation, and walk-forward evaluation where required.
+- [x] Reserve a new untouched current-season cohort for the frozen M8.5 candidate; do not use the original M8 untouched rows to select, tune, or retry M8.5.
+- [ ] Validate any proposed `tau_soft` or other hard discovery predicate only after `p_final` exists, using an approved recall standard for the strongest final-probability candidates — no hard predicate was proposed or recall-validated in M8.5, so this item intentionally remains open and hard discovery filtering remains disabled.
 - [x] Prove upward shifts help Higher and hurt Lower, downward shifts help Lower and hurt Higher, and no factor can create a side-independent booster.
-- [ ] Freeze a new versioned M8.5 successor only after all factor, calibration, tail, deterministic-output, provenance, and untouched-test gates pass.
+- [x] Freeze a new versioned M8.5 successor only after all factor, calibration, tail, deterministic-output, provenance, and untouched-test gates pass.
 - [x] Keep M8.5 production-disabled until explicit approval and every downstream M9/M10 gate passes.
 
-`M8_5FinalEvaluationV1` now preserves immutable `D_base` and `D_final` lineage, exact final `P(Win)`, `P(Loss)`, `P(Void)`, and `P(Win | grades)`, context-model and settlement versions, factor versions and artifact identities, shared-scenario identity, and diagnostic-only `contextProbabilityDelta`. The composition applies game-specific offensive environment and team-specific bullpen, records times-through-order as explicit identity with artifact SHA-256 `78352afd7c5bfe2ce1383aa7276e9b942826ec02271726a0a2065807c467c352`, and records park as validated but not applied because its approximately `0.0004`-nat effect does not justify a unique runtime venue dependency. Focused regressions proved no-applied-factor equality with `D_base`, bullpen movement with mass conservation to `1e-12`, identical `D_final` reuse for baseline and alternate offers, Higher/Lower directional monotonicity, diagnostic delta exclusion from ranking order, and fail-closed artifact-hash drift. GitHub Actions verify run 641 passed 453 of 453 tests with typecheck, script checks, architecture, build, selected-side, and protective-architecture gates clean. Production and ranking remain disabled, the untouched cohort remains sealed, and no M8.5 freeze or exit-gate decision was made.
+`M8_5FinalEvaluationV1` preserves immutable `D_base` and `D_final` lineage, exact final `P(Win)`, `P(Loss)`, `P(Void)`, and `P(Win | grades)`, context-model and settlement versions, factor versions and artifact identities, shared-scenario identity, and diagnostic-only `contextProbabilityDelta`. The canonical frozen successor applies game-specific offensive environment and team-specific bullpen, records times-through-order as explicit identity, records Defense as explicit identity, and records park as validated but not applied because its approximately `0.0004`-nat effect does not justify a unique runtime venue dependency. Focused regressions proved no-applied-factor equality with `D_base`, bullpen movement with mass conservation to `1e-12`, identical `D_final` reuse for baseline and alternate offers, Higher/Lower directional monotonicity, diagnostic delta exclusion from ranking order, and fail-closed artifact-hash drift.
+
+Frozen-successor and untouched-acceptance completion evidence — Successor model `m8-5-batter-hits-successor-freeze-v1` is frozen at artifact SHA-256 `a296c384397315832b39d322a7d061ca73e542d94a886087f743f0774199cd17`. The separately reserved untouched cohort spans `2026-07-26` through `2026-07-29`: 4 dates, 54 final games, 4,159 source plate appearances, and 900 scored hitter-game observations. Cohort identity SHA-256 is `d82c8e62cdad9023793898c1f0e9ed5baaee650fad650cc13620b7b0800b3d17`; reservation-artifact SHA-256 is `34558a6b0fffa592de882132b093f3496f14c250b987b3d91eaedc9a254e22cb`; immutable acceptance-artifact internal SHA-256 is `9c7ba5ae6b7b77334e2e5c444b680261fa8e0e82ef9ce621091c30f64ec3f321`; and committed acceptance file-byte SHA-256 is `38603400cf77cb5f0ade13077fb8215e59ac7ad7b1d2fb8b13adf18491cb0497`. Evaluation run count is exactly `1` and the cohort seal remained intact.
+
+On identical observations, `D_final` categorical log loss was `1.1963378032` versus `1.1969075917` for `D_base`, delta `-0.0005697884`; `D_final` categorical Brier was `0.6558780914` versus `0.6561814842` for `D_base`, delta `-0.0003033928`. `D_final` was no worse on both primary proper scores and strictly better on both, so it passed the frozen acceptance rule. Higher 2.5 Brier was microscopically worse for `D_final` (`0.0457482521126077` versus `0.04574081190097689`), but it was labeled diagnostic only and could not alter the decision. The untouched log-loss delta is slightly larger than the approximately `0.0004`-nat combined fitted improvement; with only 900 observations this difference is within noise and is not evidence that the factors performed better than expected.
+
+Exclusions were preserved rather than repaired: 4 simultaneous multi-slot phase shifts, 4 unknown terminal results, 4 incomplete history-update games, and 8 excluded team sides. Factor dispositions are game-specific offensive environment `APPLIED`, team-specific bullpen `APPLIED`, times-through-order `IDENTITY`, Defense `IDENTITY`, and park `VALIDATED NOT APPLIED`. GitHub Actions verify run 674 passed 476 of 476 tests; dependency-cruiser inspected 260 modules and 782 dependencies with zero violations, and typecheck, script checks, build, selected-side, and protective-architecture gates passed. Production, ranking, hard discovery filtering, and retuning remain disabled.
+
+This four-date, 900-observation result is an acceptance check under the frozen rule. It is not decisive evidence of predictive value and must not be described as proof that the context layer materially improves predictions.
 
 ### M8.5 exit gate
 
-- [ ] `D_base` and `D_final` are distinct, immutable, versioned, and fully traceable.
-- [ ] Final category ordering can consume only `p_final`, then `P(Void)`.
-- [ ] Hard soft-line filtering remains disabled unless approved recall validation passes.
-- [ ] Focused factor and final-distribution tests plus the complete repository verification gate pass.
-- [ ] A new untouched-test acceptance decision is preserved immutably.
+- [x] `D_base` and `D_final` are distinct, immutable, versioned, and fully traceable.
+- [x] Final category ordering can consume only `p_final`, then `P(Void)`.
+- [x] Hard soft-line filtering remains disabled unless approved recall validation passes.
+- [x] Focused factor and final-distribution tests plus the complete repository verification gate pass.
+- [x] A new untouched-test acceptance decision is preserved immutably.
+
+M8.5 is closed. This closure authorizes the next M9 ranking milestone only; it does not enable production, ranking, hard discovery filtering, `tau_soft`, retuning, or any category output by itself.
 
 ---
 
@@ -464,6 +474,19 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 3.8 — 2026-08-04
+
+- Closed the M8.5 final-distribution and exit gates after the separately reserved `2026-07-26` through `2026-07-29` untouched cohort completed one immutable acceptance run: 4 dates, 54 final games, 4,159 source plate appearances, and 900 scored hitter-game observations.
+- Recorded cohort identity SHA-256 `d82c8e62cdad9023793898c1f0e9ed5baaee650fad650cc13620b7b0800b3d17`, reservation-artifact SHA-256 `34558a6b0fffa592de882132b093f3496f14c250b987b3d91eaedc9a254e22cb`, frozen-successor SHA-256 `a296c384397315832b39d322a7d061ca73e542d94a886087f743f0774199cd17`, acceptance internal SHA-256 `9c7ba5ae6b7b77334e2e5c444b680261fa8e0e82ef9ce621091c30f64ec3f321`, and committed acceptance file-byte SHA-256 `38603400cf77cb5f0ade13077fb8215e59ac7ad7b1d2fb8b13adf18491cb0497`.
+- Recorded `D_final` categorical log loss `1.1963378032` versus `1.1969075917` for `D_base`, delta `-0.0005697884`, and categorical Brier `0.6558780914` versus `0.6561814842`, delta `-0.0003033928`; `D_final` passed by proper-score dominance under the frozen rule.
+- Recorded that Higher 2.5 Brier was microscopically worse for `D_final` but remained diagnostic only and could not alter the decision; the slightly larger untouched delta relative to the approximately `0.0004`-nat combined fitted improvement is within noise on 900 observations and is not evidence of better-than-expected factor performance.
+- Preserved rather than repaired 4 simultaneous multi-slot phase shifts, 4 unknown terminal results, 4 incomplete history-update games, and 8 excluded team sides.
+- Recorded final factor dispositions: game-specific offensive environment `APPLIED`, team-specific bullpen `APPLIED`, times-through-order `IDENTITY`, Defense `IDENTITY`, and park `VALIDATED NOT APPLIED`.
+- Recorded GitHub Actions verify run 674 passing 476 of 476 tests, with 260 modules and 782 dependencies inspected and zero architecture violations; typecheck, script checks, build, selected-side, and protective-architecture gates passed.
+- Left `tau_soft` and hard-discovery recall validation unchecked because no hard predicate was proposed or validated; hard discovery filtering remains disabled. Production, ranking, hard discovery filtering, and retuning remain disabled.
+- Stated explicitly that four dates and 900 scored observations are not decisive evidence of predictive value and that this result is an acceptance check under the frozen rule, not proof that the context layer materially improves predictions.
+- Closed M8.5 without starting M9 implementation.
 
 ### Version 3.7 — 2026-08-04
 
@@ -566,7 +589,7 @@ These are intended investigations, not abandoned markets. No empty feature folde
 
 - Added exhaustive fixture-backed selected-side and posted-line preservation coverage for all 34 uniquely linked Batter Hits offers.
 - Verified baseline and alternate offers through both normalized and pregame composition boundaries.
-- Verified raw Over maps only to Higher, raw Under maps only to Lower, and every provider point survives exactly as the posted line.
+- Verified raw Over maps only to Higher, raw Under maps only to Lower, and every numeric provider point survives exactly as the posted line.
 - Verified final-game exclusion preserves the same immutable normalized offer identity rather than rewriting side or line.
 - Recorded 2-of-2 focused passing tests and GitHub Actions verify run 413 with 343-of-343 tests passing; production ranking remains disabled.
 
