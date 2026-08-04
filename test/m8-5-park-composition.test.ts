@@ -217,7 +217,7 @@ function firstBaselineHalfHitOffer(): NormalizedBatterHitsBoardOffer {
   return offer;
 }
 
-function earlyLineupBaselineHalfHitOffer(): NormalizedBatterHitsBoardOffer {
+function earlyLineupHalfHitOffer(): NormalizedBatterHitsBoardOffer {
   const lineups = readJson(LINEUPS_FIXTURE_PATH) as LineupsFixture;
   const earlyHitters = new Set(
     lineups.data
@@ -235,9 +235,7 @@ function earlyLineupBaselineHalfHitOffer(): NormalizedBatterHitsBoardOffer {
   );
   const offer = pregameBoard().offers.find(
     (candidate) =>
-      candidate.offerType === 'baseline' &&
-      candidate.line === 0.5 &&
-      earlyHitters.has(candidate.providerPlayerId),
+      candidate.line === 0.5 && earlyHitters.has(candidate.providerPlayerId),
   );
   assert.ok(offer);
   return offer;
@@ -347,7 +345,7 @@ test('a real venue-hand park multiplier set moves the statistic distribution', a
 });
 
 test('park applies to both starter and reliever branches', async () => {
-  const offer = earlyLineupBaselineHalfHitOffer();
+  const offer = earlyLineupHalfHitOffer();
   const observation = observationFor(offer);
   assert.ok(observation.lineupSlot <= 2);
   const artifacts = await loadFrozenBatterHitsProbabilityArtifactsFromFiles();
