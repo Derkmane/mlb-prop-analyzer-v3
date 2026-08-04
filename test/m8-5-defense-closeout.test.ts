@@ -13,9 +13,9 @@ const ARTIFACT_PATH = path.resolve(
   'model-artifacts/m8-5-defense-to-batted-ball-identity-v1.json',
 );
 const EXPECTED_ARTIFACT_SHA256 =
-  '53ae8887179f6d066dec50f62f7dac5951be54158032687a3aa162902b5375ea';
+  '85d163f127791bf04ba786b7c1661f7f88515a7a724debd22a6892855133712f';
 const SOURCE_EVIDENCE_VERSION =
-  'm8-5-defense-pre-screen-v1:a40eca0b15e5d69c7c718e807c2ced7b007650f0628dd7761c87f9f56f1d3b59:team-dataset-prefix-eb627fae';
+  'm8-5-defense-pre-screen-v1:a40eca0b15e5d69c7c718e807c2ced7b007650f0628dd7761c87f9f56f1d3b59:eb627faefd24b9862965151c45fd7ccce588d36fe9acb7ddb6f4a04e14a3dc8a';
 const REQUIRED_INPUTS = Object.freeze([
   'defending-team-id',
   ...M8_5_BATTER_HITS_BATTED_BALL_CATEGORIES.map(
