@@ -7,6 +7,7 @@ import {
   unlink,
 } from 'node:fs/promises';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import {
   buildM8_5ValidatedFinalDistributionV1,
@@ -186,13 +187,29 @@ function sideTotals(gradedRows, halfInning) {
   });
 }
 
-function rawGameMap(gamesBody, date) {
+export function selectManifestFinalGameMap(gamesBody, date, gamePlans) {
   const rows = array(gamesBody.data, `games snapshot ${date}.data`);
+  const expectedIds = new Set();
+  for (const rawPlan of array(gamePlans, `manifest games ${date}`)) {
+    const plan = object(rawPlan, `manifest game ${date}`);
+    const gameId = positiveInteger(
+      plan.gameId,
+      `manifest game ${date} gameId`,
+    );
+    if (expectedIds.has(gameId)) {
+      throw new Error(`duplicate manifest game ${gameId} for ${date}.`);
+    }
+    expectedIds.add(gameId);
+  }
+
   const byId = new Map();
   for (const raw of rows) {
     const game = object(raw, `games snapshot ${date} row`);
     const id = positiveInteger(game.id, `games snapshot ${date} game id`);
-    if (byId.has(id)) throw new Error(`duplicate game ${id} in games snapshot ${date}.`);
+    if (!expectedIds.has(id)) continue;
+    if (byId.has(id)) {
+      throw new Error(`duplicate selected game ${id} in games snapshot ${date}.`);
+    }
     if (
       game.season !== ACTIVE_SEASON ||
       game.postseason !== false ||
@@ -278,7 +295,11 @@ async function readPlannedDate(plan) {
   if (sha256(gamesRead.text) !== plan.gamesSha256) {
     throw new Error(`games snapshot hash drifted for ${plan.date}.`);
   }
-  const gamesById = rawGameMap(gamesRead.value, plan.date);
+  const gamesById = selectManifestFinalGameMap(
+    gamesRead.value,
+    plan.date,
+    plan.games,
+  );
   const games = [];
   let rawPlateAppearanceCount = 0;
   for (const gamePlan of plan.games) {
@@ -810,7 +831,12 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
-  process.exitCode = 1;
-});
+if (
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  main().catch((error) => {
+    console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+    process.exitCode = 1;
+  });
+}
