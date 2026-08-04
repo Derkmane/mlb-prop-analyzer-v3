@@ -549,7 +549,7 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ### Version 2.8 — 2026-07-30
 
 - Added a fixture-backed test-only invariant proving baseline and alternate Batter Hits offer attributes do not create different baseball distributions.
-- Recorded that the committed board contains real baseline and alternate offers but no same-player pair, avoiding any unsupported provider claim.
+- Recorded that the committed board contains real baseline and alternate Batter Hits offers but no same-player pair, avoiding any unsupported provider claim.
 - Held player, game, team, lineup, opposing starter, shared scenarios, and frozen model artifacts fixed while substituting only provider-observed alternate offer attributes.
 - Verified exact equality of the complete runtime and candidate statistic distributions while allowing side, line, price, multiplier, and settlement probabilities to differ.
 - Recorded 1-of-1 focused passing test and GitHub Actions verify run 420 with 347-of-347 tests passing; production ranking remains disabled and untouched-test rows remain sealed.
