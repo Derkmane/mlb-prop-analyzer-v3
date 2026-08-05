@@ -139,29 +139,169 @@ async function fetchExactJsonSnapshot({
   return snapshot;
 }
 
-function matchGame(event, rawGamesSnapshot) {
-  const rows = array(
-    object(rawGamesSnapshot, 'BALLDONTLIE games').data,
-    'BALLDONTLIE games.data',
+function normalizedGameDateUtc(game, label) {
+  const value = nonemptyString(game.date, `${label}.date`);
+  const milliseconds = Date.parse(value);
+  if (!Number.isFinite(milliseconds)) {
+    throw new TypeError(`${label}.date must be an ISO timestamp.`);
+  }
+  return new Date(milliseconds).toISOString();
+}
+
+function exactGameIdentityMatch(event, raw, label) {
+  const game = object(raw, label);
+  return (
+    game.season === ACTIVE_SEASON &&
+    game.season_type === 'regular' &&
+    game.postseason === false &&
+    exactName(game.home_team_name, `${label}.home_team_name`) ===
+      event.homeTeamName &&
+    exactName(game.away_team_name, `${label}.away_team_name`) ===
+      event.awayTeamName
   );
-  const matches = rows.filter((raw) => {
-    const game = object(raw, 'BALLDONTLIE game');
-    return (
-      game.season === ACTIVE_SEASON &&
-      game.season_type === 'regular' &&
-      game.postseason === false &&
-      exactName(game.home_team_name, 'game.home_team_name') ===
-        event.homeTeamName &&
-      exactName(game.away_team_name, 'game.away_team_name') ===
-        event.awayTeamName
-    );
+}
+
+export function resolveExactBallDontLieGameMatch({
+  event,
+  gameQuerySnapshots,
+}) {
+  const eventValue = object(event, 'event');
+  const matches = [];
+  array(gameQuerySnapshots, 'gameQuerySnapshots').forEach(
+    (rawQuery, queryIndex) => {
+      const query = object(rawQuery, `gameQuerySnapshots[${queryIndex}]`);
+      const queryDateUtc = nonemptyString(
+        query.queryDateUtc,
+        `gameQuerySnapshots[${queryIndex}].queryDateUtc`,
+      );
+      if (!DATE_PATTERN.test(queryDateUtc)) {
+        throw new TypeError(
+          `gameQuerySnapshots[${queryIndex}].queryDateUtc must be YYYY-MM-DD.`,
+        );
+      }
+      const snapshot = object(
+        query.snapshot,
+        `gameQuerySnapshots[${queryIndex}].snapshot`,
+      );
+      const rows = array(
+        object(
+          snapshot.parsedBody,
+          `gameQuerySnapshots[${queryIndex}].snapshot.parsedBody`,
+        ).data,
+        `gameQuerySnapshots[${queryIndex}].snapshot.parsedBody.data`,
+      );
+      rows.forEach((raw, gameIndex) => {
+        const label = `gameQuerySnapshots[${queryIndex}].games[${gameIndex}]`;
+        if (!exactGameIdentityMatch(eventValue, raw, label)) return;
+        const game = object(raw, label);
+        matches.push(
+          Object.freeze({
+            providerGameId: positiveInteger(game.id, `${label}.id`),
+            gameDateUtc: normalizedGameDateUtc(game, label),
+            queryDateUtc,
+            game,
+            snapshot,
+          }),
+        );
+      });
+    },
+  );
+
+  matches.sort(
+    (left, right) =>
+      left.providerGameId - right.providerGameId ||
+      left.gameDateUtc.localeCompare(right.gameDateUtc) ||
+      left.queryDateUtc.localeCompare(right.queryDateUtc),
+  );
+  const uniqueProviderGameIds = Object.freeze(
+    [...new Set(matches.map((match) => match.providerGameId))].sort(
+      (left, right) => left - right,
+    ),
+  );
+  const publicMatches = Object.freeze(
+    matches.map(({ providerGameId, gameDateUtc, queryDateUtc }) =>
+      Object.freeze({ providerGameId, gameDateUtc, queryDateUtc }),
+    ),
+  );
+
+  if (uniqueProviderGameIds.length === 0) {
+    return Object.freeze({
+      status: 'no-match',
+      matches: publicMatches,
+      uniqueProviderGameIds,
+      game: null,
+      sourceSnapshot: null,
+    });
+  }
+  if (uniqueProviderGameIds.length > 1) {
+    return Object.freeze({
+      status: 'genuine-ambiguity',
+      matches: publicMatches,
+      uniqueProviderGameIds,
+      game: null,
+      sourceSnapshot: null,
+    });
+  }
+
+  const eventDateUtc = nonemptyString(
+    eventValue.commenceTimeUtc,
+    'event.commenceTimeUtc',
+  ).slice(0, 10);
+  const selected =
+    matches.find((match) => match.queryDateUtc === eventDateUtc) ??
+    matches[0];
+  return Object.freeze({
+    status:
+      matches.length === 1
+        ? 'exact'
+        : 'duplicate-fetch-artifact',
+    matches: publicMatches,
+    uniqueProviderGameIds,
+    game: selected.game,
+    sourceSnapshot: selected.snapshot,
   });
-  if (matches.length !== 1) {
-    throw new Error(
-      `Event ${event.id} requires exactly one exact BALLDONTLIE game match; found ${matches.length}.`,
+}
+
+export function formatBallDontLieGameMatchDiagnostic({
+  event,
+  rawOfferCount,
+  resolution,
+}) {
+  const eventValue = object(event, 'event');
+  const value = object(resolution, 'resolution');
+  if (!Number.isSafeInteger(rawOfferCount) || rawOfferCount < 0) {
+    throw new TypeError('rawOfferCount must be a nonnegative integer.');
+  }
+  const lines = [
+    'M9 BALLDONTLIE GAME MATCH DIAGNOSTIC',
+    `EVENT: ${eventValue.id} | ${eventValue.awayTeamName} at ${eventValue.homeTeamName} | ${eventValue.commenceTimeUtc}`,
+    `RAW OFFERS: ${rawOfferCount}`,
+    `RAW EXACT MATCHES: ${array(value.matches, 'resolution.matches').length}`,
+    `UNIQUE PROVIDER GAME IDS: ${array(
+      value.uniqueProviderGameIds,
+      'resolution.uniqueProviderGameIds',
+    ).length}`,
+  ];
+  for (const match of value.matches) {
+    lines.push(
+      `MATCH: providerGameId=${match.providerGameId} | gameDate=${match.gameDateUtc} | queryDate=${match.queryDateUtc}`,
     );
   }
-  return object(matches[0], `matched game ${event.id}`);
+  if (value.status === 'duplicate-fetch-artifact') {
+    lines.push(
+      'RESOLUTION: DUPLICATE FETCH ARTIFACT — deduplicated by exact provider game ID before the join',
+    );
+  } else if (value.status === 'genuine-ambiguity') {
+    lines.push(
+      'RESOLUTION: GENUINE AMBIGUITY — no deduplication or arbitrary selection',
+    );
+  } else if (value.status === 'no-match') {
+    lines.push('RESOLUTION: NO EXACT CURRENT-SEASON GAME MATCH');
+  } else {
+    lines.push('RESOLUTION: ONE EXACT PROVIDER GAME MATCH');
+  }
+  lines.push('');
+  return `${lines.join('\n')}\n`;
 }
 
 function underdogMarkets(rawOdds) {
@@ -861,21 +1001,28 @@ export async function runM9ProspectiveBoardArchive({
       shardRoot,
     });
 
-    const gamesUrl = new URL('https://api.balldontlie.io/mlb/v1/games');
     const eventUtcDates = [
       ...new Set(
         eventSelection.events.map((event) => event.commenceTimeUtc.slice(0, 10)),
       ),
     ].sort();
-    eventUtcDates.forEach((date) => gamesUrl.searchParams.append('dates[]', date));
-    gamesUrl.searchParams.set('season_type', 'regular');
-    gamesUrl.searchParams.set('per_page', '100');
-    const gamesSnapshot = await fetchBdl({
-      label: `BALLDONTLIE games for pregame event UTC dates ${eventUtcDates.join(',')}`,
-      url: gamesUrl,
-      requireNonemptyRecords: true,
-    });
-    providerSnapshots.push(gamesSnapshot);
+    const gameQuerySnapshots = [];
+    for (const date of eventUtcDates) {
+      const gamesUrl = new URL('https://api.balldontlie.io/mlb/v1/games');
+      gamesUrl.searchParams.append('dates[]', date);
+      gamesUrl.searchParams.set('season_type', 'regular');
+      gamesUrl.searchParams.set('per_page', '100');
+      const snapshot = await fetchBdl({
+        label: `BALLDONTLIE games for pregame event UTC date ${date}`,
+        url: gamesUrl,
+        requireNonemptyRecords: true,
+      });
+      providerSnapshots.push(snapshot);
+      gameQuerySnapshots.push(
+        Object.freeze({ queryDateUtc: date, snapshot }),
+      );
+    }
+    let duplicateGameDiagnosticPrinted = false;
 
     for (const event of eventSelection.events) {
       let oddsSnapshot;
@@ -920,25 +1067,56 @@ export async function runM9ProspectiveBoardArchive({
       }
 
       funnel.add('matchedGameOffers', { entered: rawOffers.count });
-      let game;
-      try {
-        game = matchGame(event, gamesSnapshot.parsedBody);
-      } catch (error) {
-        const reason = /found 0./u.test(
-          error instanceof Error ? error.message : String(error),
-        )
-          ? 'no exact current-season game match'
-          : 'multiple exact current-season game matches';
+      const gameResolution = resolveExactBallDontLieGameMatch({
+        event,
+        gameQuerySnapshots,
+      });
+      if (
+        gameResolution.status === 'duplicate-fetch-artifact' &&
+        !duplicateGameDiagnosticPrinted
+      ) {
+        write(
+          formatBallDontLieGameMatchDiagnostic({
+            event,
+            rawOfferCount: rawOffers.count,
+            resolution: gameResolution,
+          }),
+        );
+        duplicateGameDiagnosticPrinted = true;
+      }
+      if (
+        gameResolution.status === 'no-match' ||
+        gameResolution.status === 'genuine-ambiguity'
+      ) {
+        if (gameResolution.status === 'genuine-ambiguity') {
+          write(
+            formatBallDontLieGameMatchDiagnostic({
+              event,
+              rawOfferCount: rawOffers.count,
+              resolution: gameResolution,
+            }),
+          );
+        }
+        const reason =
+          gameResolution.status === 'no-match'
+            ? 'no exact current-season game match'
+            : 'multiple exact current-season game matches';
         funnel.drop('matchedGameOffers', reason, rawOffers.count);
         exclusions.push({
           providerEventId: event.id,
           homeTeamName: event.homeTeamName,
           awayTeamName: event.awayTeamName,
           reason: 'GAME_MATCH_FAILED_CLOSED',
-          detail: error instanceof Error ? error.message : String(error),
+          detail: formatBallDontLieGameMatchDiagnostic({
+            event,
+            rawOfferCount: rawOffers.count,
+            resolution: gameResolution,
+          }).trim(),
         });
         continue;
       }
+      const game = gameResolution.game;
+      const gamesSnapshot = gameResolution.sourceSnapshot;
 
       let lineups;
       try {

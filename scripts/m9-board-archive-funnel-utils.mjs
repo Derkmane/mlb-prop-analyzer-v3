@@ -15,13 +15,13 @@ const FUNNEL_STAGE_DEFINITIONS = Object.freeze([
     unit: 'offers',
   }),
   Object.freeze({
-    key: 'resolvedIdentityOffers',
-    label: 'offers with a resolved unique player identity',
+    key: 'matchedGameOffers',
+    label: 'offers with a matched current-season game',
     unit: 'offers',
   }),
   Object.freeze({
-    key: 'matchedGameOffers',
-    label: 'offers with a matched current-season game',
+    key: 'resolvedIdentityOffers',
+    label: 'offers with a resolved unique player identity',
     unit: 'offers',
   }),
   Object.freeze({
