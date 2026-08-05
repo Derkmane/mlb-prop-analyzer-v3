@@ -475,6 +475,79 @@ These are intended investigations, not abandoned markets. No empty feature folde
 
 ---
 
+=== V1 MARKET AND CATEGORY SCOPE (LOCKED) ===
+
+Origin: user requirement, restated 2026-08-05. HHR is the
+primary market of this application and the user's most-used
+prop (~90%). It was deferred in the v0.1 scope lock without
+being weighed against actual usage. That was a
+prioritization error. HHR is not optional and V1 does not
+ship without it.
+
+--- V1 MARKETS ---
+
+[x] Batter Hits              -- BUILT, end-to-end
+[ ] Batter Hits+Runs+RBIs    -- PRIMARY, M11
+[ ] Batter Runs              -- M11, designated cut if M11 drags
+
+--- POST-V1 MARKETS (NOT V1) ---
+
+[ ] Batter Total Bases       -- user low priority
+[ ] Pitcher Strikeouts       -- build last; sequential DP model
+
+--- V1 CATEGORIES ---
+
+[x] Opportunity Miner        -- BUILT (positive price edge vs offer)
+[ ] HHR 2.5 Lower Alt        -- top 20 by probability
+[ ] HHR 0.5 Higher Alt       -- top 20 by probability
+
+Categories are eligibility filters over existing
+distributions. They are not models. No new math.
+
+--- ALTERNATE LINE REQUIREMENT ---
+
+The user plays alternate lines ~75% of the time. Alt lines
+are the primary use case, not a secondary feature.
+
+[ ] Every market exposes full alt ladder
+[ ] Each alt line computed INDEPENDENTLY off the same
+    distribution
+[ ] NEVER interpolated between standard lines
+[ ] NEVER substituted with a standard line if unavailable
+[ ] Tail calibration verified per-line, deep lines (2.5+)
+    bucketed separately
+
+--- RANKING RULE (ABSOLUTE) ---
+
+Ranking is by probability ONLY.
+
+The app does NOT filter, floor, penalize, or reorder by
+payout multiplier. It does NOT evaluate ticket or parlay
+value. It does NOT build parlays.
+
+The user selects and stacks props themselves. The app's
+job is to produce accurate ranked lists. Payout is a
+DISPLAY-ONLY field.
+
+Any future proposal to add payout logic to ranking must be
+rejected without escalation.
+
+--- DEFERRED / CLOSED ---
+
+[ ] Remaining M8.5 context factors (park, bullpen team
+    dimension, times-through-order) -- BUILD AFTER the
+    outcome vector generalizes, so they are written once
+    against the general shape, not twice
+[ ] Remove scripts/bootstrap-m10-archive-ledger.mjs once
+    the archive ledger has real entries
+[x] V5 refit -- PERMANENTLY SHELVED, do not resurrect
+[x] Platoon walk-forward parity -- RESOLVED (a05362d5)
+
+--- FRONT END (M12+) ---
+
+[ ] Must display P(Win), P(Loss), P(Void), ranking rationale
+[ ] NO probability logic in the UI layer
+
 ## Changelog
 
 ### Version 4.0 — 2026-08-05
@@ -635,7 +708,7 @@ These are intended investigations, not abandoned markets. No empty feature folde
 
 - Closed M8 current-season fitting and runtime freezing with artifact `model-artifacts/m8-batter-hits-runtime-freeze-v1.json`, SHA-256 `e5a660ffc0aefc093dc80aae0169109bd7717605098d790b3257a83fad5bf3de`.
 - Recorded park, defense-to-batted-ball, and times-through-order as explicit non-modeled identity components; no coefficient or residual is fitted or applied.
-- Deferred eligibility and participation probability to the M9 pregame runtime gate rather than treating it as a fitted M8 component.
+- Deferred eligibility and participation probability to the M9 pregame runtime gate rather than treating it as a fitted M8 current-season component.
 - Recorded exact selected recency, pooling, coherent-matchup, platoon, starter/bullpen, PA-survival, and shared-environment identities with preserved fixed and walk-forward proper-score evidence.
 - Recorded 3-of-3 focused freeze tests and the complete 332-of-332 repository verification with typecheck, script checks, architecture, and build passing.
 - Preserved `productionEnabled: false`, `untouchedTestAccessed: false`, and the sealed one-time untouched-test acceptance boundary.
