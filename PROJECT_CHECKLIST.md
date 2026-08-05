@@ -708,7 +708,7 @@ rejected without escalation.
 
 - Closed M8 current-season fitting and runtime freezing with artifact `model-artifacts/m8-batter-hits-runtime-freeze-v1.json`, SHA-256 `e5a660ffc0aefc093dc80aae0169109bd7717605098d790b3257a83fad5bf3de`.
 - Recorded park, defense-to-batted-ball, and times-through-order as explicit non-modeled identity components; no coefficient or residual is fitted or applied.
-- Deferred eligibility and participation probability to the M9 pregame runtime gate rather than treating it as a fitted M8 current-season component.
+- Deferred eligibility and participation probability to the M9 pregame runtime gate rather than treating it as a fitted M8 component.
 - Recorded exact selected recency, pooling, coherent-matchup, platoon, starter/bullpen, PA-survival, and shared-environment identities with preserved fixed and walk-forward proper-score evidence.
 - Recorded 3-of-3 focused freeze tests and the complete 332-of-332 repository verification with typecheck, script checks, architecture, and build passing.
 - Preserved `productionEnabled: false`, `untouchedTestAccessed: false`, and the sealed one-time untouched-test acceptance boundary.
