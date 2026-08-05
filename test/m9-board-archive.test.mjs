@@ -6,6 +6,7 @@ import test from 'node:test';
 
 import {
   buildM9ProspectiveBoardArchive,
+  createM9CaptureIdentity,
   createM9RawProviderSnapshot,
   m9ArchiveFilePath,
   persistImmutableM9BoardArchive,
@@ -79,10 +80,18 @@ const providerSnapshots = await Promise.all([
   }),
 ]);
 
-function fixtureArchive() {
+function fixtureArchive(capturedAt = FIXED_CAPTURED_AT) {
   return buildM9ProspectiveBoardArchive({
-    archiveDate: '2026-07-23',
-    capturedAt: FIXED_CAPTURED_AT,
+    capturedAt,
+    captureSnapshotSha256: providerSnapshots[0].rawBody.sha256,
+    pregameEvents: [
+      Object.freeze({
+        eventId: evidence.board.offers[0].providerEventId,
+        commenceTimeUtc: evidence.board.offers[0].eventCommenceTime,
+        homeTeamName: evidence.board.offers[0].homeTeamName,
+        awayTeamName: evidence.board.offers[0].awayTeamName,
+      }),
+    ],
     providerSnapshots,
     normalizedOffers: evidence.board.offers,
     candidateEvaluations: evidence.candidateResults.map((result, index) =>
@@ -170,10 +179,10 @@ test('a fixture-backed archive preserves every required offer, probability, line
   assert.deepEqual(first.finalEvaluation, sourceResult.finalEvaluation);
 });
 
-test('re-archiving an existing date fails closed without overwriting even identical bytes', async () => {
+test('re-writing an existing capture identity fails closed without overwriting even identical bytes', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'm9-board-archive-'));
-  const filePath = m9ArchiveFilePath(root, '2026-07-23');
   const archive = fixtureArchive();
+  const filePath = m9ArchiveFilePath(root, archive.captureIdentity);
   try {
     const first = await persistImmutableM9BoardArchive({ filePath, archive });
     const originalBytes = await readFile(filePath);
@@ -181,7 +190,7 @@ test('re-archiving an existing date fails closed without overwriting even identi
 
     await assert.rejects(
       persistImmutableM9BoardArchive({ filePath, archive }),
-      /rerun refused without overwrite/u,
+      /capture identity rewrite refused without overwrite/u,
     );
     assert.deepEqual(await readFile(filePath), originalBytes);
   } finally {
@@ -301,4 +310,37 @@ test('identical versioned inputs produce one deterministic archive identity and 
       );
     }),
   );
+});
+
+
+test('two captures at different timestamps produce two distinct immutable records and neither overwrites the other', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'm9-board-captures-'));
+  const firstArchive = fixtureArchive('2026-07-23T15:12:25.190Z');
+  const secondArchive = fixtureArchive('2026-07-23T15:13:25.190Z');
+  const firstPath = m9ArchiveFilePath(root, firstArchive.captureIdentity);
+  const secondPath = m9ArchiveFilePath(root, secondArchive.captureIdentity);
+  try {
+    assert.notEqual(firstArchive.captureIdentity.captureKey, secondArchive.captureIdentity.captureKey);
+    assert.notEqual(firstPath, secondPath);
+    await persistImmutableM9BoardArchive({ filePath: firstPath, archive: firstArchive });
+    await persistImmutableM9BoardArchive({ filePath: secondPath, archive: secondArchive });
+    assert.deepEqual(JSON.parse(await readFile(firstPath, 'utf8')), firstArchive);
+    assert.deepEqual(JSON.parse(await readFile(secondPath, 'utf8')), secondArchive);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('capture identity is exactly the capture timestamp plus the preserved raw provider snapshot SHA-256', () => {
+  const archive = fixtureArchive();
+  assert.deepEqual(
+    archive.captureIdentity,
+    createM9CaptureIdentity({
+      capturedAt: FIXED_CAPTURED_AT,
+      rawProviderSnapshotSha256: providerSnapshots[0].rawBody.sha256,
+    }),
+  );
+  assert.equal(archive.pregameEvents.length, 1);
+  assert.equal(archive.pregameEvents[0].eventId, evidence.board.offers[0].providerEventId);
+  assert.equal(archive.pregameEvents[0].commenceTimeUtc, evidence.board.offers[0].eventCommenceTime);
 });

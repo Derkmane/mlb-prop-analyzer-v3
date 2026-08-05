@@ -20,6 +20,7 @@ import { createBdlAdaptiveRateLimiter } from './bdl-adaptive-rate-limit-utils.mj
 import { gradeM8UntouchedPlateAppearance } from './m8-untouched-hit-observation-utils.mjs';
 import {
   buildM9ProspectiveBoardArchive,
+  createM9CaptureIdentity,
   createM9RawProviderSnapshot,
   m9ArchiveFilePath,
   persistImmutableM9BoardArchive,
@@ -29,12 +30,12 @@ import {
   createM9ArchiveFunnel,
   persistM9ArchiveForMode,
   printM9ArchiveFunnelReport,
+  selectM9PregameEventsForCapture,
 } from './m9-board-archive-funnel-utils.mjs';
 import { requireSecret } from './provider-probe-utils.mjs';
 import { testOnlyRankingAuthorization } from './print-m9-ranked-batter-hits-fixture.mjs';
 
 const ACTIVE_SEASON = 2026;
-const ARCHIVE_TIME_ZONE = 'America/Chicago';
 const TARGET_MARKETS = Object.freeze([
   'batter_hits',
   'batter_hits_alternate',
@@ -83,21 +84,6 @@ function exactName(value, label) {
   return nonemptyString(value, label).replace(/\s+/gu, ' ');
 }
 
-function chicagoDate(value) {
-  const date = value instanceof Date ? value : new Date(value);
-  if (!Number.isFinite(date.getTime())) {
-    throw new TypeError('Archive clock must be a valid date.');
-  }
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: ARCHIVE_TIME_ZONE,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(date);
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${values.year}-${values.month}-${values.day}`;
-}
-
 function selectedResponseHeaders(headers) {
   return Object.freeze(
     Object.fromEntries(
@@ -112,6 +98,7 @@ async function fetchExactJsonSnapshot({
   provider,
   label,
   url,
+  capturedAt,
   headers = {},
   requireNonemptyRecords = false,
   beforeRequest,
@@ -119,7 +106,7 @@ async function fetchExactJsonSnapshot({
   allowNonOk = false,
 }) {
   if (beforeRequest) await beforeRequest();
-  const capturedAt = new Date().toISOString();
+  const snapshotCapturedAt = capturedAt ?? new Date().toISOString();
   const response = await fetch(url, { headers });
   const rawBodyBytes = Buffer.from(await response.arrayBuffer());
   if (afterResponse) {
@@ -128,7 +115,7 @@ async function fetchExactJsonSnapshot({
   const snapshot = createM9RawProviderSnapshot({
     provider,
     label,
-    capturedAt,
+    capturedAt: snapshotCapturedAt,
     request: {
       method: 'GET',
       origin: url.origin,
@@ -150,66 +137,6 @@ async function fetchExactJsonSnapshot({
     );
   }
   return snapshot;
-}
-
-function prospectiveEvents(rawEvents, archiveDate, asOf) {
-  const rows = array(rawEvents, 'The Odds API events');
-  const asOfMilliseconds = Date.parse(asOf);
-  const events = [];
-  const dropCounts = new Map();
-  const recordDrop = (reason) =>
-    dropCounts.set(reason, (dropCounts.get(reason) ?? 0) + 1);
-
-  rows.forEach((raw, index) => {
-    const event = object(raw, `events[${index}]`);
-    const normalized = Object.freeze({
-      id: nonemptyString(event.id, `events[${index}].id`),
-      sportKey: nonemptyString(
-        event.sport_key,
-        `events[${index}].sport_key`,
-      ),
-      commenceTime: nonemptyString(
-        event.commence_time,
-        `events[${index}].commence_time`,
-      ),
-      homeTeamName: exactName(
-        event.home_team,
-        `events[${index}].home_team`,
-      ),
-      awayTeamName: exactName(
-        event.away_team,
-        `events[${index}].away_team`,
-      ),
-    });
-    if (normalized.sportKey !== 'baseball_mlb') {
-      recordDrop('unexpected sport key');
-      return;
-    }
-    if (chicagoDate(normalized.commenceTime) !== archiveDate) {
-      recordDrop('outside the requested Chicago archive date');
-      return;
-    }
-    if (Date.parse(normalized.commenceTime) <= asOfMilliseconds) {
-      recordDrop('game already in progress');
-      return;
-    }
-    events.push(normalized);
-  });
-
-  events.sort(
-    (left, right) =>
-      left.commenceTime.localeCompare(right.commenceTime) ||
-      left.id.localeCompare(right.id),
-  );
-  return Object.freeze({
-    providerEventCount: rows.length,
-    events: Object.freeze(events),
-    drops: Object.freeze(
-      [...dropCounts.entries()]
-        .map(([reason, count]) => Object.freeze({ reason, count }))
-        .sort((left, right) => left.reason.localeCompare(right.reason)),
-    ),
-  });
 }
 
 function matchGame(event, rawGamesSnapshot) {
@@ -597,14 +524,14 @@ function updateHistory(histories, game) {
   histories.set(game.homeTeamId, home);
 }
 
-async function buildStrictlyEarlierTeamHistories({ archiveDate, shardRoot }) {
+async function buildStrictlyEarlierTeamHistories({ historyCutoffDate, shardRoot }) {
   const entries = await readdir(shardRoot, { withFileTypes: true });
   const dates = entries
     .filter(
       (entry) =>
         entry.isDirectory() &&
         DATE_PATTERN.test(entry.name) &&
-        entry.name < archiveDate,
+        entry.name < historyCutoffDate,
     )
     .map((entry) => entry.name)
     .sort();
@@ -803,7 +730,7 @@ async function assertArchiveAbsent(filePath) {
     throw error;
   }
   throw new Error(
-    `Immutable board archive already exists; live capture refused before provider calls: ${filePath}`,
+    `Immutable board capture already exists; capture identity rewrite refused before downstream provider calls: ${filePath}`,
   );
 }
 
@@ -826,9 +753,13 @@ export async function runM9ProspectiveBoardArchive({
   assertProductionDisabled();
   const registryBefore = JSON.stringify(PRODUCTION_REGISTRIES);
   const capturedAt = now.toISOString();
-  const archiveDate = chicagoDate(now);
-  const filePath = m9ArchiveFilePath(outputRoot, archiveDate);
-  const funnel = createM9ArchiveFunnel({ archiveDate, dryRun });
+  const captureDateUtc = capturedAt.slice(0, 10);
+  let captureIdentity = null;
+  let filePath = null;
+  const funnel = createM9ArchiveFunnel({
+    captureTimestamp: capturedAt,
+    dryRun,
+  });
   let reportPrinted = false;
   const write = (text) => output.write(text);
   const printFunnel = (status) => {
@@ -838,8 +769,6 @@ export async function runM9ProspectiveBoardArchive({
   };
 
   try {
-    if (!dryRun) await assertArchiveAbsent(filePath);
-
     const oddsApiKey = requireSecret('THE_ODDS_API_KEY');
     const bdlApiKey = requireSecret('BALLDONTLIE_API_KEY');
     const rateLimiter = createBdlAdaptiveRateLimiter({
@@ -881,10 +810,6 @@ export async function runM9ProspectiveBoardArchive({
       throw new Error(`Unreachable retry state for ${request.label}.`);
     };
 
-    const histories = await buildStrictlyEarlierTeamHistories({
-      archiveDate,
-      shardRoot,
-    });
     const providerSnapshots = [];
     const normalizedOffers = [];
     const candidateEvaluations = [];
@@ -899,14 +824,21 @@ export async function runM9ProspectiveBoardArchive({
     const eventsSnapshot = await fetchOdds({
       label: 'The Odds API MLB events',
       url: eventsUrl,
+      capturedAt,
       requireNonemptyRecords: true,
     });
     providerSnapshots.push(eventsSnapshot);
-    const eventSelection = prospectiveEvents(
-      eventsSnapshot.parsedBody,
-      archiveDate,
+    captureIdentity = createM9CaptureIdentity({
       capturedAt,
-    );
+      rawProviderSnapshotSha256: eventsSnapshot.rawBody.sha256,
+    });
+    filePath = m9ArchiveFilePath(outputRoot, captureIdentity);
+    if (!dryRun) await assertArchiveAbsent(filePath);
+
+    const eventSelection = selectM9PregameEventsForCapture({
+      rawEvents: eventsSnapshot.parsedBody,
+      capturedAt,
+    });
     funnel.add('providerEvents', {
       entered: eventSelection.providerEventCount,
       survived: eventSelection.providerEventCount,
@@ -916,20 +848,30 @@ export async function runM9ProspectiveBoardArchive({
       survived: eventSelection.events.length,
     });
     eventSelection.drops.forEach((drop) =>
-      funnel.drop('pregameEvents', drop.reason, drop.count),
+      funnel.dropEvent('pregameEvents', drop),
     );
     if (eventSelection.events.length === 0) {
       throw new Error(
-        `No pregame MLB events survived the started-game gate for ${archiveDate}.`,
+        `No pregame MLB events survived the started-game gate at ${capturedAt}.`,
       );
     }
 
+    const histories = await buildStrictlyEarlierTeamHistories({
+      historyCutoffDate: captureDateUtc,
+      shardRoot,
+    });
+
     const gamesUrl = new URL('https://api.balldontlie.io/mlb/v1/games');
-    gamesUrl.searchParams.append('dates[]', archiveDate);
+    const eventUtcDates = [
+      ...new Set(
+        eventSelection.events.map((event) => event.commenceTimeUtc.slice(0, 10)),
+      ),
+    ].sort();
+    eventUtcDates.forEach((date) => gamesUrl.searchParams.append('dates[]', date));
     gamesUrl.searchParams.set('season_type', 'regular');
     gamesUrl.searchParams.set('per_page', '100');
     const gamesSnapshot = await fetchBdl({
-      label: `BALLDONTLIE games ${archiveDate}`,
+      label: `BALLDONTLIE games for pregame event UTC dates ${eventUtcDates.join(',')}`,
       url: gamesUrl,
       requireNonemptyRecords: true,
     });
@@ -1238,8 +1180,16 @@ export async function runM9ProspectiveBoardArchive({
     }
 
     const archive = buildM9ProspectiveBoardArchive({
-      archiveDate,
       capturedAt,
+      captureSnapshotSha256: eventsSnapshot.rawBody.sha256,
+      pregameEvents: eventSelection.events.map((event) =>
+        Object.freeze({
+          eventId: event.eventId,
+          commenceTimeUtc: event.commenceTimeUtc,
+          homeTeamName: event.homeTeamName,
+          awayTeamName: event.awayTeamName,
+        }),
+      ),
       providerSnapshots,
       normalizedOffers,
       candidateEvaluations,
@@ -1263,9 +1213,12 @@ export async function runM9ProspectiveBoardArchive({
     printFunnel('SUCCESS');
     write(
       [
-        'M9 Prospective Batter Hits Board Archive',
+        'M9 Prospective Batter Hits Board Capture Snapshot',
         'PRODUCTION RANKING: DISABLED',
-        `MODE: ${dryRun ? 'DRY RUN — NO ARCHIVE WRITTEN' : 'IMMUTABLE ARCHIVE'}`,
+        `MODE: ${dryRun ? 'DRY RUN — NO ARCHIVE WRITTEN' : 'IMMUTABLE CAPTURE SNAPSHOT'}`,
+        `CAPTURE IDENTITY: ${captureIdentity.captureKey}`,
+        `CAPTURE TIMESTAMP: ${captureIdentity.capturedAt}`,
+        `RAW EVENTS SNAPSHOT SHA-256: ${captureIdentity.rawProviderSnapshotSha256}`,
         `ARCHIVE: ${persisted === null ? 'NOT WRITTEN (--dry-run)' : persisted.filePath}`,
         `ARCHIVE SHA-256: ${archive.archiveSha256}`,
         ...(persisted === null

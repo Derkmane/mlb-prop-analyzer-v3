@@ -2,17 +2,16 @@ import { createHash } from 'node:crypto';
 import { link, mkdir, open, readFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 
-export const M9_BOARD_ARCHIVE_VERSION = 1;
+export const M9_BOARD_ARCHIVE_VERSION = 2;
 export const M9_BOARD_ARCHIVE_CONTRACT =
-  'm9-batter-hits-prospective-board-archive-v1';
-export const M9_BOARD_ARCHIVE_TIME_ZONE = 'America/Chicago';
+  'm9-batter-hits-prospective-capture-snapshot-v2';
 export const M9_BOARD_ARCHIVE_PROJECT_RULES_VERSION = '2.9';
 export const M9_BOARD_ARCHIVE_MATH_SPEC_VERSION = '1.7';
 export const M9_BOARD_ARCHIVE_AUTHORIZATION_MODE =
   'TEST ONLY — EPHEMERAL SNAPSHOT';
 
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
+const CAPTURE_KEY_PATTERN = /^\d{8}T\d{9}Z--[a-f0-9]{64}$/u;
 
 function object(value, label) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
@@ -50,12 +49,26 @@ function isoTimestamp(value, label) {
   return timestamp;
 }
 
-function archiveDate(value) {
-  const date = nonemptyString(value, 'archiveDate');
-  if (!DATE_PATTERN.test(date)) {
-    throw new TypeError('archiveDate must use YYYY-MM-DD.');
+export function createM9CaptureIdentity({
+  capturedAt,
+  rawProviderSnapshotSha256,
+}) {
+  const timestamp = new Date(
+    isoTimestamp(capturedAt, 'captureIdentity.capturedAt'),
+  ).toISOString();
+  const snapshotSha256 = sha256Value(
+    rawProviderSnapshotSha256,
+    'captureIdentity.rawProviderSnapshotSha256',
+  );
+  const captureKey = `${timestamp.replace(/[-:.]/gu, '')}--${snapshotSha256}`;
+  if (!CAPTURE_KEY_PATTERN.test(captureKey)) {
+    throw new Error('Capture identity key failed canonical construction.');
   }
-  return date;
+  return Object.freeze({
+    capturedAt: timestamp,
+    rawProviderSnapshotSha256: snapshotSha256,
+    captureKey,
+  });
 }
 
 function sha256Value(value, label) {
@@ -447,14 +460,34 @@ function sortSnapshots(snapshots) {
   );
 }
 
+function pregameEventRecord(event) {
+  const value = object(event, 'pregame event');
+  return Object.freeze({
+    eventId: nonemptyString(value.eventId, 'pregame event eventId'),
+    commenceTimeUtc: isoTimestamp(
+      value.commenceTimeUtc,
+      'pregame event commenceTimeUtc',
+    ),
+    homeTeamName: nonemptyString(
+      value.homeTeamName,
+      'pregame event homeTeamName',
+    ),
+    awayTeamName: nonemptyString(
+      value.awayTeamName,
+      'pregame event awayTeamName',
+    ),
+  });
+}
+
 /**
  * Copies existing normalization, composition, final-evaluation, and ranking
  * outputs into one immutable record. This layer owns no probability,
  * settlement, model, or ranking calculation.
  */
 export function buildM9ProspectiveBoardArchive({
-  archiveDate: dateInput,
   capturedAt,
+  captureSnapshotSha256,
+  pregameEvents,
   providerSnapshots,
   normalizedOffers,
   candidateEvaluations,
@@ -462,13 +495,39 @@ export function buildM9ProspectiveBoardArchive({
   exclusions = [],
   evidence = {},
 }) {
-  const date = archiveDate(dateInput);
-  const timestamp = isoTimestamp(capturedAt, 'capturedAt');
+  const captureIdentity = createM9CaptureIdentity({
+    capturedAt,
+    rawProviderSnapshotSha256: captureSnapshotSha256,
+  });
+  const timestamp = captureIdentity.capturedAt;
   const snapshots = sortSnapshots(
     array(providerSnapshots, 'providerSnapshots'),
   );
   if (snapshots.length === 0) {
     throw new Error('A prospective archive requires provider snapshots.');
+  }
+  if (
+    !snapshots.some(
+      (snapshot) =>
+        snapshot.rawBody?.sha256 ===
+        captureIdentity.rawProviderSnapshotSha256,
+    )
+  ) {
+    throw new Error(
+      'Capture identity SHA-256 must reference one preserved raw provider snapshot.',
+    );
+  }
+  const events = Object.freeze(
+    [...array(pregameEvents, 'pregameEvents')]
+      .map(pregameEventRecord)
+      .sort(
+        (left, right) =>
+          left.commenceTimeUtc.localeCompare(right.commenceTimeUtc) ||
+          left.eventId.localeCompare(right.eventId),
+      ),
+  );
+  if (events.length === 0) {
+    throw new Error('A prospective archive requires at least one pregame event.');
   }
   const sourceOffers = array(normalizedOffers, 'normalizedOffers');
   const offers = sortOffers(sourceOffers);
@@ -537,9 +596,9 @@ export function buildM9ProspectiveBoardArchive({
   const identity = Object.freeze({
     archiveVersion: M9_BOARD_ARCHIVE_VERSION,
     archiveContract: M9_BOARD_ARCHIVE_CONTRACT,
-    archiveDate: date,
+    captureIdentity,
     capturedAt: timestamp,
-    timeZone: M9_BOARD_ARCHIVE_TIME_ZONE,
+    captureDateUtc: timestamp.slice(0, 10),
     projectRulesVersion: M9_BOARD_ARCHIVE_PROJECT_RULES_VERSION,
     mathSpecVersion: M9_BOARD_ARCHIVE_MATH_SPEC_VERSION,
     productionEnabled: false,
@@ -551,6 +610,7 @@ export function buildM9ProspectiveBoardArchive({
     notice:
       'Production ranking is DISABLED. Ranked order is preserved through a test-only ephemeral registry snapshot.',
     providerSnapshots: snapshots,
+    pregameEvents: events,
     normalizedOffers: offers,
     rankedRows,
     exclusions: Object.freeze(
@@ -573,13 +633,18 @@ export function buildM9ProspectiveBoardArchive({
   });
 }
 
-export function m9ArchiveFilePath(rootDirectory, dateInput) {
-  return path.join(rootDirectory, `${archiveDate(dateInput)}.json`);
+export function m9ArchiveFilePath(rootDirectory, captureIdentityInput) {
+  const identity = object(captureIdentityInput, 'captureIdentity');
+  const captureKey = nonemptyString(identity.captureKey, 'captureIdentity.captureKey');
+  if (!CAPTURE_KEY_PATTERN.test(captureKey)) {
+    throw new TypeError('captureIdentity.captureKey is not canonical.');
+  }
+  return path.join(rootDirectory, 'captures', `${captureKey}.json`);
 }
 
 /**
  * Publishes through an exclusive hard link. The final path is created
- * atomically and can never replace an existing daily archive, even when the
+ * atomically and can never replace an existing capture identity, even when the
  * proposed bytes are identical.
  */
 export async function persistImmutableM9BoardArchive({ filePath, archive }) {
@@ -599,7 +664,7 @@ export async function persistImmutableM9BoardArchive({ filePath, archive }) {
   } catch (error) {
     if (error?.code === 'EEXIST') {
       throw new Error(
-        `Immutable board archive already exists; rerun refused without overwrite: ${target}`,
+        `Immutable board capture already exists; capture identity rewrite refused without overwrite: ${target}`,
       );
     }
     throw error;
