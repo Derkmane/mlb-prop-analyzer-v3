@@ -9,6 +9,7 @@ on:
     - cron: '0 9 * * *'
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -23,6 +24,7 @@ jobs:
     env:
       BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
       M10_ARCHIVE_ROOT: artifacts/board-archives/batter-hits
+      M10_ARCHIVE_BOOTSTRAP_ROOT: artifacts/bootstrap/m9-board-archive
       M10_GRADE_ATTEMPT_ID: github-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
       M10_BDL_MIN_REQUEST_INTERVAL_MS: '13000'
 
@@ -51,11 +53,42 @@ jobs:
           restore-keys: |
             m9-board-archive-ledger-
 
+      - name: Check whether the ledger needs the verified August 5 seed
+        id: ledger-state
+        run: |
+          if find artifacts/board-archives/batter-hits/captures -maxdepth 1 -type f -name '*.json' -print -quit 2>/dev/null | grep -q .; then
+            echo 'needs-bootstrap=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'needs-bootstrap=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download verified August 5 source archive
+        if: steps.ledger-state.outputs.needs-bootstrap == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: m9-board-archive-31017005173
+          path: artifacts/bootstrap/m9-board-archive
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: Derkmane/mlb-prop-analyzer-v3
+          run-id: 31017005173
+
+      - name: Bootstrap empty ledger from verified immutable archive
+        if: steps.ledger-state.outputs.needs-bootstrap == 'true'
+        run: |
+          mkdir -p artifacts/workflow-logs
+          set -o pipefail
+          node scripts/bootstrap-m10-archive-ledger.mjs 2>&1 | tee artifacts/workflow-logs/m10-archive-bootstrap-grade.log
+
       - name: Grade only archives whose exact games are final
         run: |
           mkdir -p artifacts/workflow-logs
           set -o pipefail
           node scripts/grade-m10-pending-archives.mjs 2>&1 | tee artifacts/workflow-logs/m10-pending-archive-grade.log
+
+      - name: Build selected-side and cumulative grading evidence
+        run: |
+          set -o pipefail
+          node scripts/build-m10-selected-side-cumulative-grades.mjs 2>&1 | tee artifacts/workflow-logs/m10-selected-side-cumulative-grade.log
 
       - name: Save immutable archive and grade ledger
         if: always()
@@ -73,11 +106,11 @@ jobs:
           retention-days: 90
           path: artifacts/board-archives/batter-hits/**
 
-      - name: Upload full grading log
+      - name: Upload full grading logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: m10-pending-archive-grade-log-${{ github.run_id }}-${{ github.run_attempt }}
+          name: m10-pending-archive-grade-logs-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: error
           retention-days: 90
-          path: artifacts/workflow-logs/m10-pending-archive-grade.log
+          path: artifacts/workflow-logs/m10-*-grade.log
