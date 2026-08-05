@@ -111,6 +111,7 @@ async function fetchExactJsonSnapshot({
   requireNonemptyRecords = false,
   beforeRequest,
   afterResponse,
+  allowNonOk = false,
 }) {
   if (beforeRequest) await beforeRequest();
   const capturedAt = new Date().toISOString();
@@ -138,7 +139,7 @@ async function fetchExactJsonSnapshot({
     rawBodyBytes,
     requireNonemptyRecords,
   });
-  if (!response.ok) {
+  if (!response.ok && !allowNonOk) {
     throw new Error(
       `${label} returned HTTP ${response.status} ${response.statusText}.`,
     );
@@ -778,12 +779,24 @@ export async function runM9ProspectiveBoardArchive({
         headers: { Authorization: bdlApiKey },
         beforeRequest: () => rateLimiter.beforeRequest(),
         afterResponse: (response) => rateLimiter.afterResponse(response),
+        allowNonOk: true,
       });
-      if (snapshot.response.status !== 429) return snapshot;
-      if (attempt === 8) {
-        throw new Error(`${request.label} exceeded eight HTTP 429 retries.`);
+      if (snapshot.response.status === 429) {
+        if (attempt === 8) {
+          throw new Error(`${request.label} exceeded eight HTTP 429 retries.`);
+        }
+        await rateLimiter.waitForRetry();
+        continue;
       }
-      await rateLimiter.waitForRetry();
+      if (
+        snapshot.response.status < 200 ||
+        snapshot.response.status >= 300
+      ) {
+        throw new Error(
+          `${request.label} returned HTTP ${snapshot.response.status} ${snapshot.response.statusText}.`,
+        );
+      }
+      return snapshot;
     }
     throw new Error(`Unreachable retry state for ${request.label}.`);
   };
