@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
@@ -286,4 +286,17 @@ test('the live path now differs from the working fixture path only in how provid
   assert.equal(linkage.uniqueMatchCount, 17);
   assert.equal(linkage.unmatchedCount, 1);
   assert.equal(linkage.ambiguousCount, 0);
+});
+
+test('temporary M9 player identity correction transport files are absent', async () => {
+  await Promise.all([
+    assert.rejects(
+      access('scripts/__apply-m9-player-identity-fix.mjs'),
+      /ENOENT/u,
+    ),
+    assert.rejects(
+      access('.github/workflows/__apply-m9-player-identity-fix.yml'),
+      /ENOENT/u,
+    ),
+  ]);
 });
