@@ -1,4 +1,4 @@
-import type { PredictionCandidate } from '../domain/prediction-candidate.js';
+import type { CategoryRankableCandidate } from './category-ranking.js';
 import {
   selectOfferTypeCategoryV1,
   type CategoryOfferInput,
@@ -8,7 +8,7 @@ export const HIGH_PROBABILITY_ALTLINE_CATEGORY_ID =
   'high-probability-altline-props' as const;
 
 export interface HighProbabilityAltlineSelectionV1<
-  TCandidate extends PredictionCandidate<unknown>,
+  TCandidate extends CategoryRankableCandidate,
 > {
   readonly categoryId: typeof HIGH_PROBABILITY_ALTLINE_CATEGORY_ID;
   readonly eligibleCandidates: readonly CategoryOfferInput<TCandidate>[];
@@ -17,7 +17,7 @@ export interface HighProbabilityAltlineSelectionV1<
 
 /** Selects only alternate offers using the canonical category ordering. */
 export function selectHighProbabilityAltlinePropsV1<
-  TCandidate extends PredictionCandidate<unknown>,
+  TCandidate extends CategoryRankableCandidate,
 >(
   inputs: readonly Readonly<CategoryOfferInput<TCandidate>>[],
 ): HighProbabilityAltlineSelectionV1<TCandidate> {
