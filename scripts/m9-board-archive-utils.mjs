@@ -86,10 +86,9 @@ function stableJson(value) {
     return `[${value.map((entry) => stableJson(entry)).join(',')}]`;
   }
   if (typeof value === 'object') {
-    const record = value;
-    return `{${Object.keys(record)
+    return `{${Object.keys(value)
       .sort()
-      .map((key) => `${JSON.stringify(key)}:${stableJson(record[key])}`)
+      .map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`)
       .join(',')}}`;
   }
   throw new TypeError('Archive values must be JSON-compatible.');
@@ -133,10 +132,18 @@ function parseJsonBytes(bytes, label) {
   }
 }
 
+function providerRecordCount(parsedBody) {
+  if (Array.isArray(parsedBody)) return parsedBody.length;
+  if (parsedBody === null || typeof parsedBody !== 'object') return 0;
+  if (Array.isArray(parsedBody.data)) return parsedBody.data.length;
+  if (Array.isArray(parsedBody.bookmakers)) return parsedBody.bookmakers.length;
+  return 1;
+}
+
 /**
- * Preserves exact provider response bytes. The parsed value is retained only
- * for audit and downstream validated normalization; the byte payload and its
- * SHA-256 remain the authoritative snapshot identity.
+ * Preserves exact provider response bytes. Parsed JSON exists only for audit
+ * and validated downstream normalization; the byte payload and SHA-256 are
+ * the authoritative snapshot identity.
  */
 export function createM9RawProviderSnapshot({
   provider,
@@ -151,16 +158,7 @@ export function createM9RawProviderSnapshot({
     ? Buffer.from(rawBodyBytes)
     : Buffer.from(rawBodyBytes ?? '');
   const parsedBody = parseJsonBytes(bytes, label);
-  if (
-    requireNonemptyRecords &&
-    ((!Array.isArray(parsedBody) &&
-      !Array.isArray(parsedBody?.data) &&
-      !Array.isArray(parsedBody?.bookmakers)) ||
-      (Array.isArray(parsedBody) && parsedBody.length === 0) ||
-      (Array.isArray(parsedBody?.data) && parsedBody.data.length === 0) ||
-      (Array.isArray(parsedBody?.bookmakers) &&
-        parsedBody.bookmakers.length === 0))
-  ) {
+  if (requireNonemptyRecords && providerRecordCount(parsedBody) === 0) {
     throw new Error(`${label} returned no provider records.`);
   }
 
@@ -213,6 +211,11 @@ export function createM9RawProviderSnapshot({
 function normalizedOfferRecord(offer) {
   const value = object(offer, 'normalized offer');
   return Object.freeze({
+    provider: nonemptyString(value.provider, 'offer provider'),
+    providerBookmakerKey: nonemptyString(
+      value.providerBookmakerKey,
+      'offer providerBookmakerKey',
+    ),
     providerEventId: nonemptyString(
       value.providerEventId,
       'offer providerEventId',
@@ -231,10 +234,6 @@ function normalizedOfferRecord(offer) {
       value.eventCommenceTime,
       'offer eventCommenceTime',
     ),
-    providerBookmakerKey: nonemptyString(
-      value.providerBookmakerKey,
-      'offer providerBookmakerKey',
-    ),
     baseMarketKey: nonemptyString(value.baseMarketKey, 'offer baseMarketKey'),
     providerMarketKey: nonemptyString(
       value.providerMarketKey,
@@ -250,6 +249,9 @@ function normalizedOfferRecord(offer) {
       value.marketLastUpdate,
       'offer marketTimestamp',
     ),
+    providerOutcomeSid: value.providerOutcomeSid,
+    providerMarketSid: value.providerMarketSid,
+    providerBookmakerSid: value.providerBookmakerSid,
     sourceCapturedAt: isoTimestamp(
       value.sourceCapturedAt,
       'offer sourceCapturedAt',
@@ -258,19 +260,33 @@ function normalizedOfferRecord(offer) {
       value.sourceSnapshotSha256,
       'offer sourceSnapshotSha256',
     ),
+    completeNormalizedOffer: immutableJson(value, 'complete normalized offer'),
   });
 }
 
-function offerKey(offer) {
-  const normalized = normalizedOfferRecord(offer);
+function sourceOfferKey(offer) {
+  const value = object(offer, 'source normalized offer');
   return stableJson([
-    normalized.providerEventId,
-    normalized.providerGameId,
-    normalized.providerPlayerId,
-    normalized.providerMarketKey,
-    normalized.offerType,
-    normalized.selectedSide,
-    normalized.postedLine,
+    value.providerEventId,
+    value.providerGameId,
+    value.providerPlayerId,
+    value.providerMarketKey,
+    value.offerType,
+    value.selectedSide,
+    value.line,
+  ]);
+}
+
+function archiveOfferKey(offer) {
+  const value = object(offer, 'archive normalized offer');
+  return stableJson([
+    value.providerEventId,
+    value.providerGameId,
+    value.providerPlayerId,
+    value.providerMarketKey,
+    value.offerType,
+    value.selectedSide,
+    value.postedLine,
   ]);
 }
 
@@ -355,7 +371,7 @@ function evaluationRecord(entry) {
 
   return Object.freeze({
     key: candidateKey(candidate),
-    offerKey: offerKey(offer),
+    offerKey: sourceOfferKey(offer),
     normalizedOffer: normalizedOfferRecord(offer),
     candidate,
     result,
@@ -413,7 +429,9 @@ function sortOffers(offers) {
   return Object.freeze(
     [...offers]
       .map(normalizedOfferRecord)
-      .sort((left, right) => offerKey(left).localeCompare(offerKey(right))),
+      .sort((left, right) =>
+        archiveOfferKey(left).localeCompare(archiveOfferKey(right)),
+      ),
   );
 }
 
@@ -430,8 +448,8 @@ function sortSnapshots(snapshots) {
 }
 
 /**
- * Builds an immutable archive by copying existing normalization, composition,
- * final-evaluation, and ranking outputs. This layer owns no probability,
+ * Copies existing normalization, composition, final-evaluation, and ranking
+ * outputs into one immutable record. This layer owns no probability,
  * settlement, model, or ranking calculation.
  */
 export function buildM9ProspectiveBoardArchive({
@@ -452,7 +470,8 @@ export function buildM9ProspectiveBoardArchive({
   if (snapshots.length === 0) {
     throw new Error('A prospective archive requires provider snapshots.');
   }
-  const offers = sortOffers(array(normalizedOffers, 'normalizedOffers'));
+  const sourceOffers = array(normalizedOffers, 'normalizedOffers');
+  const offers = sortOffers(sourceOffers);
   if (offers.length === 0) {
     throw new Error('A prospective archive requires normalized offers.');
   }
@@ -504,9 +523,7 @@ export function buildM9ProspectiveBoardArchive({
     }),
   );
 
-  const normalizedOfferKeys = new Set(
-    array(normalizedOffers, 'normalizedOffers').map(offerKey),
-  );
+  const normalizedOfferKeys = new Set(sourceOffers.map(sourceOfferKey));
   for (const evaluation of evaluations) {
     if (!normalizedOfferKeys.has(evaluation.offerKey)) {
       throw new Error(
@@ -515,6 +532,8 @@ export function buildM9ProspectiveBoardArchive({
     }
   }
 
+  const exclusionRecords = array(exclusions, 'exclusions');
+  const evidenceRecord = immutableJson(evidence, 'archive evidence');
   const identity = Object.freeze({
     archiveVersion: M9_BOARD_ARCHIVE_VERSION,
     archiveContract: M9_BOARD_ARCHIVE_CONTRACT,
@@ -526,7 +545,8 @@ export function buildM9ProspectiveBoardArchive({
     productionEnabled: false,
     productionRankingEnabled: false,
     gradingPerformed: false,
-    fixtureBackedEvidence: false,
+    fixtureBackedEvidence: evidenceRecord.fixtureBackedEvidence === true,
+    liveBoard: evidenceRecord.liveBoard === true,
     authorizationMode: M9_BOARD_ARCHIVE_AUTHORIZATION_MODE,
     notice:
       'Production ranking is DISABLED. Ranked order is preserved through a test-only ephemeral registry snapshot.',
@@ -534,17 +554,17 @@ export function buildM9ProspectiveBoardArchive({
     normalizedOffers: offers,
     rankedRows,
     exclusions: Object.freeze(
-      [...array(exclusions, 'exclusions')]
+      [...exclusionRecords]
         .map((entry) => immutableJson(entry, 'exclusion'))
         .sort((left, right) => stableJson(left).localeCompare(stableJson(right))),
     ),
-    evidence: immutableJson(evidence, 'archive evidence'),
+    evidence: evidenceRecord,
     counts: Object.freeze({
       providerSnapshotCount: snapshots.length,
       normalizedOfferCount: offers.length,
       composedCandidateCount: evaluations.length,
       rankedCandidateCount: rankedRows.length,
-      exclusionCount: exclusions.length,
+      exclusionCount: exclusionRecords.length,
     }),
   });
   return Object.freeze({
@@ -553,17 +573,14 @@ export function buildM9ProspectiveBoardArchive({
   });
 }
 
-export function m9ArchiveFilePath(
-  rootDirectory,
-  dateInput,
-) {
+export function m9ArchiveFilePath(rootDirectory, dateInput) {
   return path.join(rootDirectory, `${archiveDate(dateInput)}.json`);
 }
 
 /**
  * Publishes through an exclusive hard link. The final path is created
  * atomically and can never replace an existing daily archive, even when the
- * new bytes are identical.
+ * proposed bytes are identical.
  */
 export async function persistImmutableM9BoardArchive({ filePath, archive }) {
   const target = nonemptyString(filePath, 'filePath');
