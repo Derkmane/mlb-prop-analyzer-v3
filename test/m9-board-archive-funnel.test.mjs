@@ -158,4 +158,8 @@ test('the live archive CLI wires dry-run and prints the funnel before either out
   assert.match(source, /if \(!dryRun\)\s*await assertArchiveAbsent/u);
   assert.match(source, /status: 'FAILED CLOSED'/u);
   assert.match(source, /status: 'SUCCESS'/u);
+  assert.match(
+    source,
+    /No pregame MLB events survived the started-game gate/u,
+  );
 });
