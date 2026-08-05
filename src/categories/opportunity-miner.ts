@@ -1,9 +1,6 @@
-import {
-  compareSettlementResultsForRanking,
-  validateProbability,
-} from '../core/index.js';
+import { validateProbability } from '../core/index.js';
 import type { PredictionCandidate } from '../domain/prediction-candidate.js';
-import type { SettlementResult } from '../domain/settlement.js';
+import { deduplicateAndSortPredictionCandidatesForCategory } from './category-ranking.js';
 
 export const OPPORTUNITY_MINER_CATEGORY_ID =
   'opportunity-miner-favorites' as const;
@@ -81,30 +78,6 @@ export function indicativeImpliedProbabilityFromAmericanPrice(
   );
 }
 
-function settlementView(
-  candidate: PredictionCandidate<unknown>,
-): SettlementResult {
-  return Object.freeze({
-    eligibilityProbability: candidate.eligibilityProbability,
-    line: candidate.line,
-    selectedSide: candidate.selectedSide,
-    winProbability: candidate.pWin,
-    lossProbability: candidate.pLoss,
-    voidProbability: candidate.pVoid,
-    winProbabilityGivenGrades: candidate.pWinGivenGrades,
-  });
-}
-
-function compareCandidates(
-  left: PredictionCandidate<unknown>,
-  right: PredictionCandidate<unknown>,
-): number {
-  return compareSettlementResultsForRanking(
-    settlementView(left),
-    settlementView(right),
-  );
-}
-
 /**
  * Adds versioned diagnostic price evidence without changing any candidate
  * probability, distribution, selected side, line, or model lineage.
@@ -168,28 +141,13 @@ export function selectOpportunityMinerFavoritesV1<
       OPPORTUNITY_MINER_PRICE_EDGE_RULE_V1.priceEdgeThresholdExclusive,
   );
 
-  const bestByPlayer = new Map<
-    string,
-    OpportunityMinerCandidateV1<TCandidate>
-  >();
-  for (const candidate of eligible) {
-    const incumbent = bestByPlayer.get(candidate.playerId);
-    if (
-      incumbent === undefined ||
-      compareCandidates(candidate, incumbent) < 0
-    ) {
-      bestByPlayer.set(candidate.playerId, candidate);
-    }
-  }
-
-  const eligibleCandidates = [...bestByPlayer.values()].sort(
-    compareCandidates,
-  );
+  const eligibleCandidates =
+    deduplicateAndSortPredictionCandidatesForCategory(eligible);
 
   return Object.freeze({
     categoryId: OPPORTUNITY_MINER_CATEGORY_ID,
     eligibilityRuleVersion: OPPORTUNITY_MINER_PRICE_EDGE_RULE_V1.version,
-    eligibleCandidates: Object.freeze(eligibleCandidates),
+    eligibleCandidates,
     ineligibleCandidates: Object.freeze(ineligible),
   });
 }
