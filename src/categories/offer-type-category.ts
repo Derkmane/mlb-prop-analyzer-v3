@@ -1,5 +1,7 @@
-import type { PredictionCandidate } from '../domain/prediction-candidate.js';
-import { comparePredictionCandidatesForCategory } from './category-ranking.js';
+import {
+  comparePredictionCandidatesForCategory,
+  type CategoryRankableCandidate,
+} from './category-ranking.js';
 
 export type CategoryOfferType = 'baseline' | 'alternate';
 
@@ -8,7 +10,7 @@ export type CategoryOfferType = 'baseline' | 'alternate';
  * evidence is preserved but is never read by the ranking comparator.
  */
 export interface CategoryOfferInput<
-  TCandidate extends PredictionCandidate<unknown>,
+  TCandidate extends CategoryRankableCandidate,
 > {
   readonly candidate: TCandidate;
   readonly offerType: CategoryOfferType;
@@ -19,15 +21,15 @@ export interface CategoryOfferInput<
 }
 
 export interface OfferTypeCategorySelectionV1<
-  TCandidate extends PredictionCandidate<unknown>,
+  TCandidate extends CategoryRankableCandidate,
 > {
   readonly eligibleCandidates: readonly CategoryOfferInput<TCandidate>[];
   readonly ineligibleCandidates: readonly CategoryOfferInput<TCandidate>[];
 }
 
-function compareInputs(
-  left: CategoryOfferInput<PredictionCandidate<unknown>>,
-  right: CategoryOfferInput<PredictionCandidate<unknown>>,
+function compareInputs<TCandidate extends CategoryRankableCandidate>(
+  left: CategoryOfferInput<TCandidate>,
+  right: CategoryOfferInput<TCandidate>,
 ): number {
   return comparePredictionCandidatesForCategory(
     left.candidate,
@@ -40,7 +42,7 @@ function compareInputs(
  * only by final P(Win | grades), then P(Void), through the core comparator.
  */
 export function selectOfferTypeCategoryV1<
-  TCandidate extends PredictionCandidate<unknown>,
+  TCandidate extends CategoryRankableCandidate,
 >(
   inputs: readonly Readonly<CategoryOfferInput<TCandidate>>[],
   requiredOfferType: CategoryOfferType,
