@@ -1,0 +1,84 @@
+name: M9 prospective board archive
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/m9-board-archiving
+    paths:
+      - .github/workflows/m9-board-archive.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m9-prospective-board-archive
+  cancel-in-progress: false
+
+jobs:
+  archive:
+    name: Capture prospective Batter Hits board
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    env:
+      BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+      THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
+      M8_CAPTURE_START_DATE: '2026-07-08'
+      M8_SHARD_OUTPUT_DIR: artifacts/m8-current-season-pa/shards-2026
+      M8_CURRENT_SEASON_SHARD_ROOT: artifacts/m8-current-season-pa/shards-2026
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Build project
+        run: npm run build
+
+      - name: Restore verified current-season shards
+        id: restore-shards
+        uses: actions/cache/restore@v4
+        with:
+          path: artifacts/m8-current-season-pa/shards-2026
+          key: m8-current-season-shards-2026-${{ github.run_id }}
+          restore-keys: |
+            m8-current-season-shards-2026-
+
+      - name: Set history end date
+        run: |
+          node -e "const d=new Date();d.setUTCDate(d.getUTCDate()-1);process.stdout.write('M8_CAPTURE_END_DATE='+d.toISOString().slice(0,10)+'\n')" >> "$GITHUB_ENV"
+
+      - name: Capture or resume verified historical shards
+        run: node scripts/capture-m8-current-season-pa-shards.mjs
+
+      - name: Run immutable M9 board archiver
+        run: |
+          mkdir -p artifacts/workflow-logs
+          set -o pipefail
+          node scripts/archive-m9-batter-hits-board.mjs 2>&1 | tee artifacts/workflow-logs/m9-board-archive.log
+
+      - name: Save verified current-season shards
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: artifacts/m8-current-season-pa/shards-2026
+          key: m8-current-season-shards-2026-${{ github.run_id }}
+
+      - name: Upload archive and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m9-board-archive-${{ github.run_id }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            artifacts/board-archives/batter-hits/**
+            artifacts/workflow-logs/**
