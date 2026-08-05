@@ -41,6 +41,7 @@ const TARGET_MARKETS = Object.freeze([
   'batter_hits_alternate',
 ]);
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
+export const M9_PLAYER_LOOKUP_DIAGNOSTIC_SAMPLE_LIMIT = 3;
 const SAFE_RESPONSE_HEADERS = Object.freeze([
   'content-type',
   'retry-after',
@@ -512,69 +513,326 @@ function declaredBatterHand(value, label) {
   return hand;
 }
 
-function buildPlayerIdentities({ event, game, lineupsSnapshot, playerNames }) {
-  const gameId = positiveInteger(game.id, 'game.id');
-  const rows = lineupRows(lineupsSnapshot);
+export function splitBallDontLiePlayerLookupName(value) {
+  const fullName = exactName(value, 'playerName');
+  const separatorIndex = fullName.indexOf(' ');
+  if (separatorIndex <= 0 || separatorIndex === fullName.length - 1) {
+    throw new Error(
+      `BALLDONTLIE exact player lookup requires a first and last name: ${fullName}`,
+    );
+  }
+  return Object.freeze({
+    fullName,
+    firstName: fullName.slice(0, separatorIndex),
+    lastName: fullName.slice(separatorIndex + 1),
+  });
+}
+
+export function buildBallDontLiePlayerLookupRequest(playerName) {
+  const name = splitBallDontLiePlayerLookupName(playerName);
+  const url = new URL('https://api.balldontlie.io/mlb/v1/players');
+  url.searchParams.set('first_name', name.firstName);
+  url.searchParams.set('last_name', name.lastName);
+  url.searchParams.set('per_page', '100');
+  return Object.freeze({
+    url,
+    requestParameters: Object.freeze({
+      first_name: name.firstName,
+      last_name: name.lastName,
+      per_page: '100',
+    }),
+  });
+}
+
+function playerLookupTeam(raw, label) {
+  const team = object(raw.team, `${label}.team`);
+  return Object.freeze({
+    id: positiveInteger(team.id, `${label}.team.id`),
+    displayName: exactName(
+      team.display_name,
+      `${label}.team.display_name`,
+    ),
+  });
+}
+
+export function resolveExactBallDontLiePlayerIdentity({
+  event,
+  game,
+  playerName,
+  rawPlayersSnapshot,
+  requestParameters,
+}) {
+  const eventValue = object(event, 'event');
+  const gameValue = object(game, 'game');
+  const offerPlayerName = exactName(playerName, 'playerName');
+  const parameters = object(requestParameters, 'requestParameters');
+  const expectedFirstName = nonemptyString(
+    parameters.first_name,
+    'requestParameters.first_name',
+  );
+  const expectedLastName = nonemptyString(
+    parameters.last_name,
+    'requestParameters.last_name',
+  );
+  if (parameters.per_page !== '100') {
+    throw new Error('BALLDONTLIE exact player lookup requires per_page=100.');
+  }
+  const gameId = positiveInteger(gameValue.id, 'game.id');
+  const homeTeamId = positiveInteger(
+    gameValue.home_team?.id,
+    'game.home_team.id',
+  );
+  const awayTeamId = positiveInteger(
+    gameValue.away_team?.id,
+    'game.away_team.id',
+  );
+  const rows = array(
+    object(rawPlayersSnapshot, 'rawPlayersSnapshot').data,
+    'rawPlayersSnapshot.data',
+  );
+  const candidates = rows.map((raw, index) => {
+    const label = `players[${index}]`;
+    const player = object(raw, label);
+    const providerPlayerId = positiveInteger(player.id, `${label}.id`);
+    const firstName = exactName(
+      player.first_name,
+      `${label}.first_name`,
+    );
+    const lastName = exactName(
+      player.last_name,
+      `${label}.last_name`,
+    );
+    const fullName = exactName(
+      player.full_name,
+      `${label}.full_name`,
+    );
+    const team = playerLookupTeam(player, label);
+    const rejectionReasons = [];
+    if (firstName !== expectedFirstName) {
+      rejectionReasons.push('FIRST_NAME_MISMATCH');
+    }
+    if (lastName !== expectedLastName) {
+      rejectionReasons.push('LAST_NAME_MISMATCH');
+    }
+    if (fullName !== offerPlayerName) {
+      rejectionReasons.push('FULL_NAME_MISMATCH');
+    }
+    if (team.id !== homeTeamId && team.id !== awayTeamId) {
+      rejectionReasons.push('TEAM_NOT_IN_MATCHED_GAME');
+    }
+    return Object.freeze({
+      providerPlayerId,
+      firstName,
+      lastName,
+      fullName,
+      providerTeamId: team.id,
+      teamName: team.displayName,
+      rejectionReasons: Object.freeze(rejectionReasons),
+      accepted: rejectionReasons.length === 0,
+    });
+  });
+  candidates.sort(
+    (left, right) =>
+      left.providerPlayerId - right.providerPlayerId ||
+      left.fullName.localeCompare(right.fullName),
+  );
+  const accepted = candidates.filter((candidate) => candidate.accepted);
+  const common = {
+    providerEventId: eventValue.id,
+    providerGameId: gameId,
+    offerPlayerName,
+    requestParameters: Object.freeze({
+      first_name: expectedFirstName,
+      last_name: expectedLastName,
+      per_page: '100',
+    }),
+    rawResponseRecordCount: rows.length,
+    candidates: Object.freeze(candidates),
+  };
+  if (accepted.length === 0) {
+    return Object.freeze({
+      ...common,
+      status: 'zero-matches',
+      identity: null,
+    });
+  }
+  if (accepted.length > 1) {
+    return Object.freeze({
+      ...common,
+      status: 'multiple-matches',
+      identity: null,
+    });
+  }
+  const match = accepted[0];
+  return Object.freeze({
+    ...common,
+    status: 'exact',
+    identity: Object.freeze({
+      providerEventId: eventValue.id,
+      offerPlayerName,
+      providerGameId: gameId,
+      providerPlayerId: match.providerPlayerId,
+      providerTeamId: match.providerTeamId,
+      playerName: match.fullName,
+      teamName: match.teamName,
+    }),
+  });
+}
+
+export function formatBallDontLiePlayerLookupDiagnostic(resolution) {
+  const value = object(resolution, 'resolution');
+  const parameters = object(
+    value.requestParameters,
+    'resolution.requestParameters',
+  );
+  const candidates = array(value.candidates, 'resolution.candidates');
+  const lines = [
+    'M9 BALLDONTLIE PLAYER LOOKUP DIAGNOSTIC',
+    `EVENT: ${value.providerEventId} | GAME: ${value.providerGameId}`,
+    `OFFER PLAYER NAME: ${value.offerPlayerName}`,
+    `REQUEST: GET /mlb/v1/players | first_name=${parameters.first_name} | last_name=${parameters.last_name} | per_page=${parameters.per_page} | Authorization=[REDACTED]`,
+    `RAW RESPONSE RECORD COUNT: ${value.rawResponseRecordCount}`,
+  ];
+  if (candidates.length === 0) {
+    lines.push('CANDIDATES: NONE');
+  } else {
+    for (const candidate of candidates) {
+      const reasons = array(
+        candidate.rejectionReasons,
+        'candidate.rejectionReasons',
+      );
+      lines.push(
+        `CANDIDATE: providerPlayerId=${candidate.providerPlayerId} | fullName=${candidate.fullName} | teamId=${candidate.providerTeamId} | teamName=${candidate.teamName} | result=${candidate.accepted ? 'ACCEPTED' : `REJECTED(${reasons.join(',')})`}`,
+      );
+    }
+  }
+  lines.push(
+    value.status === 'exact'
+      ? `RESOLUTION: EXACT UNIQUE MATCH — providerPlayerId=${value.identity.providerPlayerId}`
+      : value.status === 'multiple-matches'
+        ? 'RESOLUTION: MULTIPLE EXACT MATCHES — failed closed without coercion'
+        : 'RESOLUTION: ZERO EXACT MATCHES — failed closed without fuzzy matching',
+  );
+  lines.push('');
+  return `${lines.join('\n')}\n`;
+}
+
+async function capturePlayerIdentityLookups({
+  event,
+  game,
+  playerNames,
+  fetchBdl,
+  write,
+  diagnosticState,
+}) {
   const identities = [];
   const identityExclusions = [];
-  const lineupExclusions = [];
   const identityResolvedPlayerNames = [];
-  const lineupResolvedPlayerNames = [];
-
+  const snapshots = [];
   for (const playerName of playerNames) {
+    const request = buildBallDontLiePlayerLookupRequest(playerName);
+    let snapshot;
+    let resolution;
+    try {
+      snapshot = await fetchBdl({
+        label: `BALLDONTLIE exact player lookup ${playerName}`,
+        url: request.url,
+        requireNonemptyRecords: false,
+      });
+      snapshots.push(snapshot);
+      resolution = resolveExactBallDontLiePlayerIdentity({
+        event,
+        game,
+        playerName,
+        rawPlayersSnapshot: snapshot.parsedBody,
+        requestParameters: request.requestParameters,
+      });
+    } catch (error) {
+      identityExclusions.push(
+        Object.freeze({
+          providerEventId: event.id,
+          playerName,
+          reason: 'PLAYER_LOOKUP_FAILED_CLOSED',
+          matchCount: 0,
+          detail: error instanceof Error ? error.message : String(error),
+        }),
+      );
+      continue;
+    }
+    if (
+      diagnosticState.printed < M9_PLAYER_LOOKUP_DIAGNOSTIC_SAMPLE_LIMIT
+    ) {
+      write(formatBallDontLiePlayerLookupDiagnostic(resolution));
+      diagnosticState.printed += 1;
+    }
+    if (resolution.status !== 'exact') {
+      identityExclusions.push(
+        Object.freeze({
+          providerEventId: event.id,
+          playerName,
+          reason:
+            resolution.status === 'zero-matches'
+              ? 'ZERO_MATCHES'
+              : 'MULTIPLE_MATCHES',
+          matchCount: resolution.candidates.filter(
+            (candidate) => candidate.accepted,
+          ).length,
+        }),
+      );
+      continue;
+    }
+    identityResolvedPlayerNames.push(playerName);
+    identities.push(resolution.identity);
+  }
+  return Object.freeze({
+    identities: Object.freeze(identities),
+    identityExclusions: Object.freeze(identityExclusions),
+    identityResolvedPlayerNames: Object.freeze(identityResolvedPlayerNames),
+    snapshots: Object.freeze(snapshots),
+  });
+}
+
+export function resolveActiveLineupIdentities({
+  event,
+  game,
+  lineupsSnapshot,
+  identities,
+}) {
+  const gameId = positiveInteger(game.id, 'game.id');
+  const rows = lineupRows(lineupsSnapshot);
+  const activeIdentities = [];
+  const lineupExclusions = [];
+  const lineupResolvedPlayerNames = [];
+  for (const rawIdentity of identities) {
+    const identity = object(rawIdentity, 'identity');
     const matches = rows.filter((raw, index) => {
       const row = object(raw, `lineups[${index}]`);
       return (
         row.game_id === gameId &&
         row.is_probable_pitcher === false &&
-        lineupPlayer(row, `lineups[${index}]`).fullName === playerName
+        lineupPlayer(row, `lineups[${index}]`).id ===
+          identity.providerPlayerId &&
+        lineupTeam(row, `lineups[${index}]`).id === identity.providerTeamId
       );
     });
-    if (matches.length !== 1) {
-      identityExclusions.push(
-        Object.freeze({
-          providerEventId: event.id,
-          playerName,
-          reason: matches.length === 0 ? 'ZERO_MATCHES' : 'MULTIPLE_MATCHES',
-          matchCount: matches.length,
-        }),
-      );
-      continue;
-    }
-
-    identityResolvedPlayerNames.push(playerName);
-    const row = object(matches[0], `lineup identity ${playerName}`);
-    if (battingOrder(row) === null) {
+    const activeMatches = matches.filter((row) => battingOrder(row) !== null);
+    if (activeMatches.length !== 1) {
       lineupExclusions.push(
         Object.freeze({
           providerEventId: event.id,
-          playerName,
+          playerName: identity.offerPlayerName,
           reason: 'NO_ACTIVE_LINEUP_EVIDENCE',
+          matchCount: activeMatches.length,
         }),
       );
       continue;
     }
-
-    const player = lineupPlayer(row, `lineup identity ${playerName}`);
-    const team = lineupTeam(row, `lineup identity ${playerName}`);
-    lineupResolvedPlayerNames.push(playerName);
-    identities.push(
-      Object.freeze({
-        providerEventId: event.id,
-        offerPlayerName: playerName,
-        providerGameId: gameId,
-        providerPlayerId: player.id,
-        providerTeamId: team.id,
-        playerName: player.fullName,
-        teamName: team.displayName,
-      }),
-    );
+    activeIdentities.push(identity);
+    lineupResolvedPlayerNames.push(identity.offerPlayerName);
   }
   return Object.freeze({
-    identities: Object.freeze(identities),
-    identityExclusions: Object.freeze(identityExclusions),
+    identities: Object.freeze(activeIdentities),
     lineupExclusions: Object.freeze(lineupExclusions),
-    identityResolvedPlayerNames: Object.freeze(identityResolvedPlayerNames),
     lineupResolvedPlayerNames: Object.freeze(lineupResolvedPlayerNames),
   });
 }
@@ -1062,6 +1320,7 @@ export async function runM9ProspectiveBoardArchive({
     const candidateEvaluations = [];
     const exclusions = [];
     const environmentEvidence = [];
+    const playerLookupDiagnosticState = { printed: 0 };
 
     const eventsUrl = new URL(
       'https://api.the-odds-api.com/v4/sports/baseball_mlb/events',
@@ -1210,35 +1469,15 @@ export async function runM9ProspectiveBoardArchive({
       const game = gameResolution.game;
       const gamesSnapshot = gameResolution.sourceSnapshot;
 
-      let lineups;
-      try {
-        lineups = await captureLineups({ gameId: game.id, fetchBdl });
-        providerSnapshots.push(...lineups.snapshots);
-      } catch (error) {
-        funnel.add('matchedGameOffers', { survived: rawOffers.count });
-        funnel.add('resolvedIdentityOffers', {
-          entered: rawOffers.count,
-          survived: 0,
-        });
-        funnel.drop(
-          'resolvedIdentityOffers',
-          'lineup evidence unavailable for identity resolution',
-          rawOffers.count,
-        );
-        exclusions.push({
-          providerEventId: event.id,
-          reason: 'LINEUP_EVIDENCE_FAILED_CLOSED',
-          detail: error instanceof Error ? error.message : String(error),
-        });
-        continue;
-      }
-
-      const identities = buildPlayerIdentities({
+      const identities = await capturePlayerIdentityLookups({
         event,
         game,
-        lineupsSnapshot: lineups.body,
         playerNames: rawOffers.playerNames,
+        fetchBdl,
+        write,
+        diagnosticState: playerLookupDiagnosticState,
       });
+      providerSnapshots.push(...identities.snapshots);
       const identitySurvived = offerCountForNames(
         rawOffers,
         identities.identityResolvedPlayerNames,
@@ -1248,34 +1487,71 @@ export async function runM9ProspectiveBoardArchive({
         survived: identitySurvived,
       });
       identities.identityExclusions.forEach((entry) => {
+        const reason =
+          entry.reason === 'ZERO_MATCHES'
+            ? 'zero matches'
+            : entry.reason === 'MULTIPLE_MATCHES'
+              ? 'multiple matches'
+              : 'player lookup failed closed';
         funnel.drop(
           'resolvedIdentityOffers',
-          entry.reason === 'ZERO_MATCHES' ? 'zero matches' : 'multiple matches',
+          reason,
           rawOffers.countsByPlayer.get(entry.playerName) ?? 0,
         );
       });
+      exclusions.push(...identities.identityExclusions);
+      if (identitySurvived === 0) continue;
+
+      let lineups;
+      try {
+        lineups = await captureLineups({ gameId: game.id, fetchBdl });
+        providerSnapshots.push(...lineups.snapshots);
+      } catch (error) {
+        funnel.add('lineupEvidenceOffers', {
+          entered: identitySurvived,
+          survived: 0,
+        });
+        funnel.drop(
+          'lineupEvidenceOffers',
+          'lineup evidence unavailable',
+          identitySurvived,
+        );
+        exclusions.push({
+          providerEventId: event.id,
+          reason: 'LINEUP_EVIDENCE_FAILED_CLOSED',
+          detail: error instanceof Error ? error.message : String(error),
+        });
+        continue;
+      }
+
+      const lineupResolution = resolveActiveLineupIdentities({
+        event,
+        game,
+        lineupsSnapshot: lineups.body,
+        identities: identities.identities,
+      });
       const lineupSurvived = offerCountForNames(
         rawOffers,
-        identities.lineupResolvedPlayerNames,
+        lineupResolution.lineupResolvedPlayerNames,
       );
       funnel.add('lineupEvidenceOffers', {
         entered: identitySurvived,
         survived: lineupSurvived,
       });
-      identities.lineupExclusions.forEach((entry) => {
+      lineupResolution.lineupExclusions.forEach((entry) => {
         funnel.drop(
           'lineupEvidenceOffers',
           'no confirmed or projected active lineup evidence',
           rawOffers.countsByPlayer.get(entry.playerName) ?? 0,
         );
       });
-      exclusions.push(...identities.identityExclusions, ...identities.lineupExclusions);
+      exclusions.push(...lineupResolution.lineupExclusions);
 
       const board = connectPregameBatterHitsBoard({
         rawEventSnapshot: oddsSnapshot.parsedBody,
         sourceSnapshotSha256: oddsSnapshot.rawBody.sha256,
         sourceCapturedAt: oddsSnapshot.capturedAt,
-        playerIdentities: identities.identities,
+        playerIdentities: lineupResolution.identities,
         rawGamesSnapshot: gamesSnapshot.parsedBody,
         gameSourceSnapshotSha256: gamesSnapshot.rawBody.sha256,
         gameSourceCapturedAt: gamesSnapshot.capturedAt,
