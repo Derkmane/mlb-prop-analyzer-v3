@@ -2,6 +2,12 @@ name: M9 prospective board archive
 
 on:
   workflow_dispatch:
+  schedule:
+    # 21:15 UTC is 4:15 PM Central during the MLB regular season. With the
+    # warm daily shard cache, the board snapshot should land roughly 60-80
+    # minutes before the common 5:35-6:10 PM Central evening starts, after
+    # substantially more official lineups are available but before first pitch.
+    - cron: '15 21 * * *'
   push:
     branches:
       - agent/m9-board-archiving
@@ -48,9 +54,18 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: artifacts/m8-current-season-pa/shards-2026
-          key: m8-current-season-shards-2026-${{ github.run_id }}
+          key: m8-current-season-shards-2026-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             m8-current-season-shards-2026-
+
+      - name: Restore immutable board archive ledger
+        id: restore-board-archives
+        uses: actions/cache/restore@v4
+        with:
+          path: artifacts/board-archives/batter-hits
+          key: m9-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            m9-board-archive-ledger-
 
       - name: Set history end date
         run: |
@@ -70,15 +85,22 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: artifacts/m8-current-season-pa/shards-2026
-          key: m8-current-season-shards-2026-${{ github.run_id }}
+          key: m8-current-season-shards-2026-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Save immutable board archive ledger
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: artifacts/board-archives/batter-hits
+          key: m9-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Upload archive and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: m9-board-archive-${{ github.run_id }}
+          name: m9-board-archive-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: warn
-          retention-days: 30
+          retention-days: 90
           path: |
             artifacts/board-archives/batter-hits/**
             artifacts/workflow-logs/**
