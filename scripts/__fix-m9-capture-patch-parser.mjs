@@ -23,7 +23,7 @@ const normalizeOrdinaryTemplates = (value) =>
 const rawBlock = source
   .slice(rawStart, rawEnd)
   .replaceAll('${', '\\${');
-const corrected =
+let corrected =
   normalizeOrdinaryTemplates(source.slice(0, rawStart)) +
   rawBlock +
   normalizeOrdinaryTemplates(source.slice(rawEnd));
@@ -38,5 +38,24 @@ if (correctedCount < 8) {
 if (!rawBlock.includes('\\${label}')) {
   throw new Error('The raw funnel block did not preserve literal interpolation markers.');
 }
+const incorrectHistoryMarker =
+  '    const histories = await buildStrictlyEarlierTeamHistories({\\n' +
+  '      historyCutoffDate,\\n' +
+  '      shardRoot,\\n' +
+  '    });\\n' +
+  '    const providerSnapshots = [];';
+const originalHistoryMarker =
+  '    const histories = await buildStrictlyEarlierTeamHistories({\\n' +
+  '      archiveDate,\\n' +
+  '      shardRoot,\\n' +
+  '    });\\n' +
+  '    const providerSnapshots = [];';
+const historyMarkerCount = corrected.split(incorrectHistoryMarker).length - 1;
+if (historyMarkerCount !== 1) {
+  throw new Error(
+    `Expected one incorrect history relocation marker; found ${historyMarkerCount}.`,
+  );
+}
+corrected = corrected.replace(incorrectHistoryMarker, originalHistoryMarker);
 await writeFile(filePath, corrected);
 execFileSync(process.execPath, ['--check', filePath], { stdio: 'inherit' });
