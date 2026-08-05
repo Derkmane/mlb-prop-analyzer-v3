@@ -2,6 +2,7 @@
 export {
   comparePredictionCandidatesForCategory,
   deduplicateAndSortPredictionCandidatesForCategory,
+  type CategoryRankableCandidate,
 } from './category-ranking.js';
 export {
   HIGH_PROBABILITY_ALTLINE_CATEGORY_ID,
