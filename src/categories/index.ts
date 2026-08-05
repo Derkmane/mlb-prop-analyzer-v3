@@ -4,6 +4,11 @@ export {
   deduplicateAndSortPredictionCandidatesForCategory,
 } from './category-ranking.js';
 export {
+  HIGH_PROBABILITY_ALTLINE_CATEGORY_ID,
+  selectHighProbabilityAltlinePropsV1,
+  type HighProbabilityAltlineSelectionV1,
+} from './high-probability-altline.js';
+export {
   HIGH_PROBABILITY_BASELINE_CATEGORY_ID,
   selectHighProbabilityBaselinePropsV1,
   type HighProbabilityBaselineSelectionV1,
