@@ -1,0 +1,83 @@
+name: M10 grade pending saved archives
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 09:00 UTC (4:00 AM Central during the regular season) is late enough for
+    # the normal West Coast slate to finish. Any game that still is not exact
+    # STATUS_FINAL is skipped and reconsidered on the next run.
+    - cron: '0 9 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m10-grade-pending-saved-archives
+  cancel-in-progress: false
+
+jobs:
+  grade:
+    name: Grade final saved Batter Hits archives
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+      M10_ARCHIVE_ROOT: artifacts/board-archives/batter-hits
+      M10_GRADE_ATTEMPT_ID: github-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+      M10_BDL_MIN_REQUEST_INTERVAL_MS: '13000'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Build project
+        run: npm run build
+
+      - name: Restore immutable board archive ledger
+        id: restore-board-archives
+        uses: actions/cache/restore@v4
+        with:
+          path: artifacts/board-archives/batter-hits
+          key: m9-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            m9-board-archive-ledger-
+
+      - name: Grade only archives whose exact games are final
+        run: |
+          mkdir -p artifacts/workflow-logs
+          set -o pipefail
+          node scripts/grade-m10-pending-archives.mjs 2>&1 | tee artifacts/workflow-logs/m10-pending-archive-grade.log
+
+      - name: Save immutable archive and grade ledger
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: artifacts/board-archives/batter-hits
+          key: m9-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Upload immutable grades, status evidence, and provider evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m10-pending-archive-grades-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 90
+          path: artifacts/board-archives/batter-hits/**
+
+      - name: Upload full grading log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m10-pending-archive-grade-log-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 90
+          path: artifacts/workflow-logs/m10-pending-archive-grade.log
