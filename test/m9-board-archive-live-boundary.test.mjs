@@ -79,6 +79,14 @@ test('prospective archive scripts parse and the BDL 429 retry remains reachable 
     access('.github/workflows/__apply-m9-board-archive-runtime-fix.yml'),
     /ENOENT/u,
   );
+  await assert.rejects(
+    access('scripts/__apply-m9-game-id-dedupe.mjs'),
+    /ENOENT/u,
+  );
+  await assert.rejects(
+    access('.github/workflows/__apply-m9-game-id-dedupe.yml'),
+    /ENOENT/u,
+  );
 });
 
 function fixtureEvent() {
