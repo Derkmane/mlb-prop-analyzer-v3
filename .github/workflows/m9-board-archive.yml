@@ -7,6 +7,7 @@ on:
     # warm daily shard cache, the board snapshot should land roughly 60-80
     # minutes before the common 5:35-6:10 PM Central evening starts, after
     # substantially more official lineups are available but before first pitch.
+    # The existing strict pregame gate still excludes any earlier-starting game.
     - cron: '15 21 * * *'
   push:
     branches:
