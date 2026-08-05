@@ -78,7 +78,7 @@ function assertProductionRankingDisabled() {
   }
 }
 
-function testOnlyRankingAuthorization(candidates) {
+export function testOnlyRankingAuthorization(candidates) {
   const first = candidates[0];
   if (first === undefined) {
     throw new Error('The committed fixture board produced no candidates.');
