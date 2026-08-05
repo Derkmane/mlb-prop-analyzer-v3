@@ -5,6 +5,7 @@ import test from 'node:test';
 
 import {
   formatBallDontLieGameMatchDiagnostic,
+  M9_GAME_COMMENCE_MATCH_POLICY,
   resolveExactBallDontLieGameMatch,
 } from '../scripts/archive-m9-batter-hits-board.mjs';
 import {
@@ -89,21 +90,30 @@ test('prospective archive scripts parse and the BDL 429 retry remains reachable 
   );
 });
 
-function fixtureEvent() {
+function fixtureEvent({
+  commenceTimeUtc = '2026-08-05T00:06:00.000Z',
+  homeTeamName = 'Home Club',
+  awayTeamName = 'Away Club',
+} = {}) {
   return Object.freeze({
     id: 'odds-event-1',
     eventId: 'odds-event-1',
-    commenceTimeUtc: '2026-08-05T00:06:00.000Z',
-    homeTeamName: 'Home Club',
-    awayTeamName: 'Away Club',
+    commenceTimeUtc,
+    homeTeamName,
+    awayTeamName,
   });
 }
 
-function fixtureGame({ id, date }) {
+function fixtureGame({
+  id,
+  date,
+  homeTeamName = 'Home Club',
+  awayTeamName = 'Away Club',
+}) {
   return Object.freeze({
     id,
-    home_team_name: 'Home Club',
-    away_team_name: 'Away Club',
+    home_team_name: homeTeamName,
+    away_team_name: awayTeamName,
     season: 2026,
     season_type: 'regular',
     postseason: false,
@@ -163,7 +173,7 @@ test('identical provider game IDs returned by overlapping date queries deduplica
   assert.match(diagnostic, /queryDate=2026-08-05/u);
   assert.match(
     diagnostic,
-    /DUPLICATE FETCH ARTIFACT — deduplicated by exact provider game ID/u,
+    /repeated raw rows deduplicated by exact provider game ID/u,
   );
 });
 
@@ -200,7 +210,7 @@ test('different provider game IDs remain a genuine ambiguity and are never selec
   assert.match(diagnostic, /providerGameId=7002/u);
   assert.match(
     diagnostic,
-    /GENUINE AMBIGUITY — no deduplication or arbitrary selection/u,
+    /GENUINE AMBIGUITY — two or more distinct provider game IDs are within tolerance; no nearest-game selection/u,
   );
 });
 
@@ -219,5 +229,178 @@ test('funnel stage order follows the live execution sequence', () => {
       'composedCandidates',
       'rankedCandidates',
     ],
+  );
+});
+
+
+test('the versioned commence tolerance equals the seven-event observed maximum and records its evidence basis', () => {
+  assert.equal(
+    M9_GAME_COMMENCE_MATCH_POLICY.policyVersion,
+    'm9-game-commence-match-v1',
+  );
+  assert.deepEqual(
+    M9_GAME_COMMENCE_MATCH_POLICY.evidence
+      .observedIntendedMatchAbsoluteDifferencesMilliseconds,
+    [60_000, 60_000, 60_000, 60_000, 60_000, 60_000, 60_000],
+  );
+  assert.equal(
+    M9_GAME_COMMENCE_MATCH_POLICY.maximumAbsoluteDifferenceMilliseconds,
+    Math.max(
+      ...M9_GAME_COMMENCE_MATCH_POLICY.evidence
+        .observedIntendedMatchAbsoluteDifferencesMilliseconds,
+    ),
+  );
+  assert.equal(
+    M9_GAME_COMMENCE_MATCH_POLICY.evidence.preservedExample.intendedGame
+      .providerGameId,
+    5059488,
+  );
+  assert.equal(
+    M9_GAME_COMMENCE_MATCH_POLICY.evidence.preservedExample.nextSeriesGame
+      .providerGameId,
+    5059499,
+  );
+  assert.match(
+    M9_GAME_COMMENCE_MATCH_POLICY.evidence.justification,
+    /not widened to force a match/u,
+  );
+});
+
+test('real observed consecutive Angels-Orioles games resolve by exact team pair and commence tolerance', () => {
+  const event = fixtureEvent({
+    commenceTimeUtc: '2026-08-05T22:36:00.000Z',
+    homeTeamName: 'Baltimore Orioles',
+    awayTeamName: 'Los Angeles Angels',
+  });
+  const resolution = resolveExactBallDontLieGameMatch({
+    event,
+    gameQuerySnapshots: [
+      fixtureQuery('2026-08-05', [
+        fixtureGame({
+          id: 5059488,
+          date: '2026-08-05T22:35:00.000Z',
+          homeTeamName: 'Baltimore Orioles',
+          awayTeamName: 'Los Angeles Angels',
+        }),
+      ], 'a'),
+      fixtureQuery('2026-08-06', [
+        fixtureGame({
+          id: 5059499,
+          date: '2026-08-06T16:35:00.000Z',
+          homeTeamName: 'Baltimore Orioles',
+          awayTeamName: 'Los Angeles Angels',
+        }),
+      ], 'b'),
+    ],
+  });
+
+  assert.equal(resolution.status, 'exact');
+  assert.equal(resolution.selectedProviderGameId, 5059488);
+  assert.equal(resolution.game.id, 5059488);
+  assert.deepEqual(resolution.withinToleranceProviderGameIds, [5059488]);
+  assert.deepEqual(
+    resolution.timeComparisons.map((comparison) => ({
+      providerGameId: comparison.providerGameId,
+      absoluteDifferenceMilliseconds:
+        comparison.absoluteDifferenceMilliseconds,
+      withinTolerance: comparison.withinTolerance,
+    })),
+    [
+      {
+        providerGameId: 5059488,
+        absoluteDifferenceMilliseconds: 60_000,
+        withinTolerance: true,
+      },
+      {
+        providerGameId: 5059499,
+        absoluteDifferenceMilliseconds: 64_740_000,
+        withinTolerance: false,
+      },
+    ],
+  );
+
+  const diagnostic = formatBallDontLieGameMatchDiagnostic({
+    event,
+    rawOfferCount: 12,
+    resolution,
+  });
+  assert.match(diagnostic, /policyVersion|m9-game-commence-match-v1/u);
+  assert.match(diagnostic, /absoluteDifferenceMilliseconds=60000/u);
+  assert.match(diagnostic, /absoluteDifferenceMilliseconds=64740000/u);
+  assert.match(diagnostic, /withinTolerance=true/u);
+  assert.match(diagnostic, /withinTolerance=false/u);
+  assert.match(diagnostic, /providerGameId=5059488/u);
+});
+
+test('a farther consecutive-series candidate outside tolerance is never selected', () => {
+  const event = fixtureEvent();
+  const resolution = resolveExactBallDontLieGameMatch({
+    event,
+    gameQuerySnapshots: [
+      fixtureQuery('2026-08-05', [
+        fixtureGame({ id: 7001, date: '2026-08-05T00:05:00.000Z' }),
+        fixtureGame({ id: 7002, date: '2026-08-05T00:04:59.000Z' }),
+      ], 'a'),
+    ],
+  });
+
+  assert.equal(resolution.status, 'exact');
+  assert.equal(resolution.selectedProviderGameId, 7001);
+  assert.deepEqual(resolution.withinToleranceProviderGameIds, [7001]);
+  assert.equal(resolution.game.id, 7001);
+});
+
+test('two distinct provider game IDs inside tolerance fail closed instead of selecting the nearer game', () => {
+  const event = fixtureEvent();
+  const resolution = resolveExactBallDontLieGameMatch({
+    event,
+    gameQuerySnapshots: [
+      fixtureQuery('2026-08-05', [
+        fixtureGame({ id: 7001, date: '2026-08-05T00:05:30.000Z' }),
+        fixtureGame({ id: 7002, date: '2026-08-05T00:05:00.000Z' }),
+      ], 'a'),
+    ],
+  });
+
+  assert.equal(resolution.status, 'genuine-ambiguity');
+  assert.deepEqual(resolution.withinToleranceProviderGameIds, [7001, 7002]);
+  assert.equal(resolution.selectedProviderGameId, null);
+  assert.equal(resolution.game, null);
+  assert.equal(resolution.sourceSnapshot, null);
+  assert.match(
+    formatBallDontLieGameMatchDiagnostic({
+      event,
+      rawOfferCount: 12,
+      resolution,
+    }),
+    /no nearest-game selection/u,
+  );
+});
+
+test('zero candidates inside tolerance fail closed even when the exact team pair exists', () => {
+  const event = fixtureEvent();
+  const resolution = resolveExactBallDontLieGameMatch({
+    event,
+    gameQuerySnapshots: [
+      fixtureQuery('2026-08-05', [
+        fixtureGame({ id: 7001, date: '2026-08-05T00:04:59.000Z' }),
+      ], 'a'),
+      fixtureQuery('2026-08-06', [
+        fixtureGame({ id: 7002, date: '2026-08-06T00:06:00.000Z' }),
+      ], 'b'),
+    ],
+  });
+
+  assert.equal(resolution.status, 'no-match');
+  assert.deepEqual(resolution.withinToleranceProviderGameIds, []);
+  assert.equal(resolution.selectedProviderGameId, null);
+  assert.equal(resolution.game, null);
+  assert.match(
+    formatBallDontLieGameMatchDiagnostic({
+      event,
+      rawOfferCount: 12,
+      resolution,
+    }),
+    /NO EXACT CURRENT-SEASON TEAM MATCH IS WITHIN/u,
   );
 });

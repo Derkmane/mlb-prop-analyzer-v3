@@ -52,6 +52,45 @@ const SAFE_RESPONSE_HEADERS = Object.freeze([
   'x-requests-used',
 ]);
 
+export const M9_GAME_COMMENCE_MATCH_POLICY = Object.freeze({
+  policyVersion: 'm9-game-commence-match-v1',
+  maximumAbsoluteDifferenceMilliseconds: 60_000,
+  evidence: Object.freeze({
+    source: 'user-supplied live M9 dry-run diagnostic',
+    captureTimestamp: '2026-08-05T02:33:12.849Z',
+    observedEventCount: 7,
+    observedIntendedMatchAbsoluteDifferencesMilliseconds: Object.freeze([
+      60_000,
+      60_000,
+      60_000,
+      60_000,
+      60_000,
+      60_000,
+      60_000,
+    ]),
+    maximumObservedDifferenceMilliseconds: 60_000,
+    preservedExample: Object.freeze({
+      event: Object.freeze({
+        awayTeamName: 'Los Angeles Angels',
+        homeTeamName: 'Baltimore Orioles',
+        commenceTimeUtc: '2026-08-05T22:36:00.000Z',
+      }),
+      intendedGame: Object.freeze({
+        providerGameId: 5059488,
+        gameDateUtc: '2026-08-05T22:35:00.000Z',
+        absoluteDifferenceMilliseconds: 60_000,
+      }),
+      nextSeriesGame: Object.freeze({
+        providerGameId: 5059499,
+        gameDateUtc: '2026-08-06T16:35:00.000Z',
+        absoluteDifferenceMilliseconds: 64_740_000,
+      }),
+    }),
+    justification:
+      'The maximum tolerance equals the maximum observed intended-match difference across the seven-event live diagnostic; it is not widened to force a match.',
+  }),
+});
+
 function object(value, label) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new TypeError(`${label} must be an object.`);
@@ -166,6 +205,14 @@ export function resolveExactBallDontLieGameMatch({
   gameQuerySnapshots,
 }) {
   const eventValue = object(event, 'event');
+  const eventCommenceTimeUtc = nonemptyString(
+    eventValue.commenceTimeUtc,
+    'event.commenceTimeUtc',
+  );
+  const eventCommenceMilliseconds = Date.parse(eventCommenceTimeUtc);
+  if (!Number.isFinite(eventCommenceMilliseconds)) {
+    throw new TypeError('event.commenceTimeUtc must be an ISO timestamp.');
+  }
   const matches = [];
   array(gameQuerySnapshots, 'gameQuerySnapshots').forEach(
     (rawQuery, queryIndex) => {
@@ -194,11 +241,19 @@ export function resolveExactBallDontLieGameMatch({
         const label = `gameQuerySnapshots[${queryIndex}].games[${gameIndex}]`;
         if (!exactGameIdentityMatch(eventValue, raw, label)) return;
         const game = object(raw, label);
+        const gameDateUtc = normalizedGameDateUtc(game, label);
+        const absoluteDifferenceMilliseconds = Math.abs(
+          Date.parse(gameDateUtc) - eventCommenceMilliseconds,
+        );
         matches.push(
           Object.freeze({
             providerGameId: positiveInteger(game.id, `${label}.id`),
-            gameDateUtc: normalizedGameDateUtc(game, label),
+            gameDateUtc,
             queryDateUtc,
+            absoluteDifferenceMilliseconds,
+            withinTolerance:
+              absoluteDifferenceMilliseconds <=
+              M9_GAME_COMMENCE_MATCH_POLICY.maximumAbsoluteDifferenceMilliseconds,
             game,
             snapshot,
           }),
@@ -209,6 +264,7 @@ export function resolveExactBallDontLieGameMatch({
 
   matches.sort(
     (left, right) =>
+      left.absoluteDifferenceMilliseconds - right.absoluteDifferenceMilliseconds ||
       left.providerGameId - right.providerGameId ||
       left.gameDateUtc.localeCompare(right.gameDateUtc) ||
       left.queryDateUtc.localeCompare(right.queryDateUtc),
@@ -218,45 +274,83 @@ export function resolveExactBallDontLieGameMatch({
       (left, right) => left - right,
     ),
   );
+  const withinToleranceMatches = matches.filter(
+    (match) => match.withinTolerance,
+  );
+  const withinToleranceProviderGameIds = Object.freeze(
+    [
+      ...new Set(
+        withinToleranceMatches.map((match) => match.providerGameId),
+      ),
+    ].sort((left, right) => left - right),
+  );
   const publicMatches = Object.freeze(
     matches.map(({ providerGameId, gameDateUtc, queryDateUtc }) =>
       Object.freeze({ providerGameId, gameDateUtc, queryDateUtc }),
     ),
   );
+  const timeComparisons = Object.freeze(
+    matches.map(
+      ({
+        providerGameId,
+        gameDateUtc,
+        queryDateUtc,
+        absoluteDifferenceMilliseconds,
+        withinTolerance,
+      }) =>
+        Object.freeze({
+          providerGameId,
+          gameDateUtc,
+          queryDateUtc,
+          absoluteDifferenceMilliseconds,
+          withinTolerance,
+        }),
+    ),
+  );
+  const common = {
+    policyVersion: M9_GAME_COMMENCE_MATCH_POLICY.policyVersion,
+    maximumAbsoluteDifferenceMilliseconds:
+      M9_GAME_COMMENCE_MATCH_POLICY.maximumAbsoluteDifferenceMilliseconds,
+    matches: publicMatches,
+    timeComparisons,
+    uniqueProviderGameIds,
+    withinToleranceProviderGameIds,
+  };
 
-  if (uniqueProviderGameIds.length === 0) {
+  if (withinToleranceProviderGameIds.length === 0) {
     return Object.freeze({
+      ...common,
       status: 'no-match',
-      matches: publicMatches,
-      uniqueProviderGameIds,
+      selectedProviderGameId: null,
       game: null,
       sourceSnapshot: null,
     });
   }
-  if (uniqueProviderGameIds.length > 1) {
+  if (withinToleranceProviderGameIds.length > 1) {
     return Object.freeze({
+      ...common,
       status: 'genuine-ambiguity',
-      matches: publicMatches,
-      uniqueProviderGameIds,
+      selectedProviderGameId: null,
       game: null,
       sourceSnapshot: null,
     });
   }
 
-  const eventDateUtc = nonemptyString(
-    eventValue.commenceTimeUtc,
-    'event.commenceTimeUtc',
-  ).slice(0, 10);
+  const selectedProviderGameId = withinToleranceProviderGameIds[0];
+  const selectedMatches = withinToleranceMatches.filter(
+    (match) => match.providerGameId === selectedProviderGameId,
+  );
+  const eventDateUtc = eventCommenceTimeUtc.slice(0, 10);
   const selected =
-    matches.find((match) => match.queryDateUtc === eventDateUtc) ??
-    matches[0];
+    selectedMatches.find((match) => match.queryDateUtc === eventDateUtc) ??
+    selectedMatches[0];
   return Object.freeze({
+    ...common,
     status:
-      matches.length === 1
+      selectedMatches.length === 1
         ? 'exact'
         : 'duplicate-fetch-artifact',
-    matches: publicMatches,
-    uniqueProviderGameIds,
+    selectedProviderGameId,
     game: selected.game,
     sourceSnapshot: selected.snapshot,
   });
@@ -272,33 +366,46 @@ export function formatBallDontLieGameMatchDiagnostic({
   if (!Number.isSafeInteger(rawOfferCount) || rawOfferCount < 0) {
     throw new TypeError('rawOfferCount must be a nonnegative integer.');
   }
+  const comparisons = array(
+    value.timeComparisons,
+    'resolution.timeComparisons',
+  );
   const lines = [
     'M9 BALLDONTLIE GAME MATCH DIAGNOSTIC',
     `EVENT: ${eventValue.id} | ${eventValue.awayTeamName} at ${eventValue.homeTeamName} | ${eventValue.commenceTimeUtc}`,
     `RAW OFFERS: ${rawOfferCount}`,
-    `RAW EXACT MATCHES: ${array(value.matches, 'resolution.matches').length}`,
-    `UNIQUE PROVIDER GAME IDS: ${array(
+    `MATCH POLICY: ${value.policyVersion} | maximumAbsoluteDifferenceMilliseconds=${value.maximumAbsoluteDifferenceMilliseconds}`,
+    `RAW EXACT TEAM MATCHES: ${comparisons.length}`,
+    `UNIQUE TEAM-MATCH PROVIDER GAME IDS: ${array(
       value.uniqueProviderGameIds,
       'resolution.uniqueProviderGameIds',
     ).length}`,
+    `WITHIN TOLERANCE PROVIDER GAME IDS: ${array(
+      value.withinToleranceProviderGameIds,
+      'resolution.withinToleranceProviderGameIds',
+    ).length}`,
   ];
-  for (const match of value.matches) {
+  for (const match of comparisons) {
     lines.push(
-      `MATCH: providerGameId=${match.providerGameId} | gameDate=${match.gameDateUtc} | queryDate=${match.queryDateUtc}`,
+      `MATCH: providerGameId=${match.providerGameId} | gameDate=${match.gameDateUtc} | queryDate=${match.queryDateUtc} | absoluteDifferenceMilliseconds=${match.absoluteDifferenceMilliseconds} | withinTolerance=${match.withinTolerance}`,
     );
   }
   if (value.status === 'duplicate-fetch-artifact') {
     lines.push(
-      'RESOLUTION: DUPLICATE FETCH ARTIFACT — deduplicated by exact provider game ID before the join',
+      `RESOLUTION: ONE TEAM-AND-COMMENCE PROVIDER GAME ID ${value.selectedProviderGameId}; repeated raw rows deduplicated by exact provider game ID`,
     );
   } else if (value.status === 'genuine-ambiguity') {
     lines.push(
-      'RESOLUTION: GENUINE AMBIGUITY — no deduplication or arbitrary selection',
+      'RESOLUTION: GENUINE AMBIGUITY — two or more distinct provider game IDs are within tolerance; no nearest-game selection',
     );
   } else if (value.status === 'no-match') {
-    lines.push('RESOLUTION: NO EXACT CURRENT-SEASON GAME MATCH');
+    lines.push(
+      'RESOLUTION: NO EXACT CURRENT-SEASON TEAM MATCH IS WITHIN THE VERSIONED COMMENCE-TIME TOLERANCE',
+    );
   } else {
-    lines.push('RESOLUTION: ONE EXACT PROVIDER GAME MATCH');
+    lines.push(
+      `RESOLUTION: ONE EXACT TEAM-AND-COMMENCE PROVIDER GAME MATCH — providerGameId=${value.selectedProviderGameId}`,
+    );
   }
   lines.push('');
   return `${lines.join('\n')}\n`;
@@ -1022,8 +1129,6 @@ export async function runM9ProspectiveBoardArchive({
         Object.freeze({ queryDateUtc: date, snapshot }),
       );
     }
-    let duplicateGameDiagnosticPrinted = false;
-
     for (const event of eventSelection.events) {
       let oddsSnapshot;
       let rawOffers;
@@ -1071,10 +1176,7 @@ export async function runM9ProspectiveBoardArchive({
         event,
         gameQuerySnapshots,
       });
-      if (
-        gameResolution.status === 'duplicate-fetch-artifact' &&
-        !duplicateGameDiagnosticPrinted
-      ) {
+      if (gameResolution.matches.length > 1) {
         write(
           formatBallDontLieGameMatchDiagnostic({
             event,
@@ -1082,25 +1184,15 @@ export async function runM9ProspectiveBoardArchive({
             resolution: gameResolution,
           }),
         );
-        duplicateGameDiagnosticPrinted = true;
       }
       if (
         gameResolution.status === 'no-match' ||
         gameResolution.status === 'genuine-ambiguity'
       ) {
-        if (gameResolution.status === 'genuine-ambiguity') {
-          write(
-            formatBallDontLieGameMatchDiagnostic({
-              event,
-              rawOfferCount: rawOffers.count,
-              resolution: gameResolution,
-            }),
-          );
-        }
         const reason =
           gameResolution.status === 'no-match'
-            ? 'no exact current-season game match'
-            : 'multiple exact current-season game matches';
+            ? 'no exact current-season game match within commence tolerance'
+            : 'multiple exact current-season game matches within commence tolerance';
         funnel.drop('matchedGameOffers', reason, rawOffers.count);
         exclusions.push({
           providerEventId: event.id,
