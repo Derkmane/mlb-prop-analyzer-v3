@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 3.9
+**Version:** 4.0
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -440,7 +440,9 @@ M8.5 is closed. This closure authorizes the next M9 ranking milestone only; it d
 - [x] Complete immutable saved-run storage — commits `1c46ce7a884b27e2c9a83e7f4642aef141701b72` and `764a48bc97553e9d5148bc8ce3cb2188626ab9c6`; GitHub Actions run 761 passed 560 of 560 tests.
 - [x] Atomic persistence — commits `1c46ce7a884b27e2c9a83e7f4642aef141701b72` and `764a48bc97553e9d5148bc8ce3cb2188626ab9c6`; run 761 verified exact bytes, overwrite refusal, directory and file synchronization, and zero surviving temporary files.
 - [x] Historical-only rendering — commit `08df180bfd05dc45d81365cc36948a191611ecc3`; GitHub Actions run 762 passed 562 of 562 tests with zero active-feature imports.
-- [x] Versioned grading — final corrective commit `ecf02030ad0108fd53e3772de119abdd5114d77a`; GitHub Actions run 765 passed 567 of 567 tests. Grading has been exercised only against sanitized deterministic test evidence and has not yet graded a real archived board.
+- [x] Versioned grading — final corrective commit `ecf02030ad0108fd53e3772de119abdd5114d77a`; GitHub Actions run 765 passed 567 of 567 tests. Real evidence: exact capture `20260805T160217812Z--235bac8c330999cccfe86b6037a1007eb06f8ec23d1aacdbc3131a70d18db353` was graded in GitHub Actions run `31041810622`, attempt 2, only after games `5059484`, `5059485`, and `5059486` all returned exact `STATUS_FINAL`. The immutable report graded 78 rows as 39 wins, 39 losses, and 0 voids; observed win rate and mean archived `P(Win | grades)` were both 0.5; archive modification was false; grade report SHA-256 was `c0e0d851992fe9d5b10b236fa45d4b17d594930d95f2756478bf9e04cb4454d4`.
+- [x] Daily scheduled prospective board capture is configured at `21:15 UTC` with immutable ledger caching, a 330-minute timeout, and `if: always()` artifact upload — implementation commit `aac2935f1856823ec8169a71e43b026d2c95ca4c`; GitHub Actions run 774 passed 580/580.
+- [x] Daily scheduled final-only grading is configured at `09:00 UTC`; non-final archives are skipped with immutable status evidence, final archives use exact game/player Hits joins and core settlement, and reports/logs upload under `if: always()` with a 180-minute timeout — implementation commit `aac2935f1856823ec8169a71e43b026d2c95ca4c`; GitHub Actions run 774 passed 580/580.
 - [ ] API entrypoints.
 - [ ] UI display with no probability logic in the UI.
 - [ ] Deployment and public-link verification.
@@ -474,6 +476,12 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 4.0 — 2026-08-05
+
+- Replaced the sanitized-only grading caveat with the first real exact-archive result: 78 picks, 39 wins, 39 losses, 0 voids, observed 0.5 versus mean predicted 0.5, with archive modification false.
+- Recorded the verified daily 21:15 UTC prospective board capture and daily 09:00 UTC final-only grading schedules from implementation commit `aac2935f1856823ec8169a71e43b026d2c95ca4c` and GitHub Actions run 774 (580/580).
+- Left API entrypoints, UI display, deployment, and public-link verification unchecked.
 
 ### Version 3.9 — 2026-08-05
 
