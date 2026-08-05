@@ -30,6 +30,7 @@ import type { FrozenBatterHitsRuntimeArtifact } from './runtime-artifact.js';
 const TOLERANCE = 1e-12;
 const MAXIMUM_TEAM_PA = 63;
 const VALID_HANDS = ['L', 'R'] as const;
+const VALID_DECLARED_BATTER_HANDS = ['L', 'R', 'B'] as const;
 const HIT_CATEGORIES = new Set(['1B', '2B', '3B', 'HR']);
 
 export const BATTER_HITS_COMPLETE_CANDIDATE_MODEL_VERSION =
@@ -41,6 +42,9 @@ export const BATTER_HITS_RUNTIME_DISTRIBUTION_VERSION =
 
 export type BatterHitsTeamSide = 'home' | 'away';
 export type BatterHitsHand = (typeof VALID_HANDS)[number];
+export type BatterHitsDeclaredBatterHand =
+  (typeof VALID_DECLARED_BATTER_HANDS)[number];
+export type BatterHitsPlatoonPath = 'selected-platoon' | 'coherent-overall';
 export type BatterHitsRuntimeLineupStatus = 'projected' | 'confirmed';
 type CategoryVector = Readonly<Record<string, number>>;
 
@@ -156,6 +160,8 @@ export interface BatterHitsRuntimeObservation {
   readonly teamSide: BatterHitsTeamSide;
   readonly venue?: string;
   readonly lineupSlot: LineupSlot;
+  readonly rawBatterBatsThrows?: string;
+  readonly declaredBatterHand?: BatterHitsDeclaredBatterHand;
   readonly batterSide: BatterHitsHand;
   readonly opposingStarterPitcherId: number;
   readonly opposingStarterTeamId: number;
@@ -243,6 +249,79 @@ function assertPositiveInteger(value: number, label: string): number {
 function assertLineupSlot(value: number): asserts value is LineupSlot {
   if (!Number.isInteger(value) || value < 1 || value > 9) {
     throw new RangeError('lineupSlot must be an integer from 1 through 9.');
+  }
+}
+
+function assertHand(value: unknown, label: string): BatterHitsHand {
+  if (value !== 'L' && value !== 'R') {
+    throw new RangeError(`${label} must be explicit L or R.`);
+  }
+  return value;
+}
+
+function assertDeclaredBatterHand(
+  value: unknown,
+  label: string,
+): BatterHitsDeclaredBatterHand {
+  if (value !== 'L' && value !== 'R' && value !== 'B') {
+    throw new RangeError(`${label} must be explicit L, R, or B.`);
+  }
+  return value;
+}
+
+export function resolveBatterSideAgainstVerifiedStarter(
+  declaredBatterHand: BatterHitsDeclaredBatterHand,
+  opposingStarterHand: unknown,
+): BatterHitsHand {
+  const declared = assertDeclaredBatterHand(
+    declaredBatterHand,
+    'declared batter hand',
+  );
+  const starterHand = assertHand(
+    opposingStarterHand,
+    'opposing starter hand',
+  );
+  if (declared === 'B') {
+    return starterHand === 'R' ? 'L' : 'R';
+  }
+  return declared;
+}
+
+export function batterHitsPlatoonPathForDeclaredHand(
+  declaredBatterHand: BatterHitsDeclaredBatterHand,
+): BatterHitsPlatoonPath {
+  return assertDeclaredBatterHand(
+    declaredBatterHand,
+    'declared batter hand',
+  ) === 'B'
+    ? 'coherent-overall'
+    : 'selected-platoon';
+}
+
+function observationDeclaredBatterHand(
+  observation: BatterHitsRuntimeObservation,
+): BatterHitsDeclaredBatterHand {
+  return assertDeclaredBatterHand(
+    observation.declaredBatterHand ?? observation.batterSide,
+    'runtime observation declared batter hand',
+  );
+}
+
+function assertRawBatterBatsThrows(
+  rawValue: unknown,
+  declaredBatterHand: BatterHitsDeclaredBatterHand,
+): void {
+  if (rawValue === undefined) return;
+  if (typeof rawValue !== 'string' || rawValue.length === 0) {
+    throw new TypeError(
+      'runtime observation rawBatterBatsThrows must be a nonempty string when present.',
+    );
+  }
+  const components = rawValue.split('/');
+  if (components.length !== 2 || components[0] !== declaredBatterHand) {
+    throw new Error(
+      'runtime observation rawBatterBatsThrows must preserve the declared batting hand unchanged.',
+    );
   }
 }
 
@@ -487,13 +566,20 @@ function playerAdjustedTarget(
 function platoonBatterVector(
   terminal: FrozenTerminalPaOutcomeArtifact,
   batterId: number,
+  declaredBatterHand: BatterHitsDeclaredBatterHand,
   batterSide: BatterHitsHand,
   pitcherHand: BatterHitsHand,
 ): CategoryVector {
   const categories = terminal.categories;
   const batterKey = String(batterId);
   const overall = terminal.batterOverall[batterKey] ?? terminal.unseenBatter;
-  if (terminal.selectedPlatoonCandidate.platoonCoefficient === 0) return overall;
+  if (
+    terminal.selectedPlatoonCandidate.platoonCoefficient === 0 ||
+    batterHitsPlatoonPathForDeclaredHand(declaredBatterHand) ===
+      'coherent-overall'
+  ) {
+    return overall;
+  }
   const matchup = `${batterSide}-vs-${pitcherHand}`;
   const leagueMatchup = terminal.leaguePlatoonByMatchup[matchup];
   if (leagueMatchup === undefined) {
@@ -554,11 +640,18 @@ function terminalHitProbability(
   terminal: FrozenTerminalPaOutcomeArtifact,
   batterId: number,
   pitcherId: number,
+  declaredBatterHand: BatterHitsDeclaredBatterHand,
   batterSide: BatterHitsHand,
   pitcherHand: BatterHitsHand,
   parkMultipliersByCategory?: CategoryVector,
 ): number {
-  const batter = platoonBatterVector(terminal, batterId, batterSide, pitcherHand);
+  const batter = platoonBatterVector(
+    terminal,
+    batterId,
+    declaredBatterHand,
+    batterSide,
+    pitcherHand,
+  );
   const pitcher = terminal.pitcherAllowed[String(pitcherId)] ?? terminal.unseenPitcher;
   const coherent = coherentVector(terminal, batter, pitcher);
   return hitProbability(
@@ -575,13 +668,20 @@ function bullpenHitProbability(
   terminal: FrozenTerminalPaOutcomeArtifact,
   completeCandidate: FrozenCompleteBatterHitsCandidate,
   batterId: number,
+  declaredBatterHand: BatterHitsDeclaredBatterHand,
   batterSide: BatterHitsHand,
   bullpenOverrideByHand?: Readonly<Record<BatterHitsHand, CategoryVector>>,
   parkMultipliersByCategory?: CategoryVector,
 ): number {
   let result = 0;
   for (const hand of VALID_HANDS) {
-    const batter = platoonBatterVector(terminal, batterId, batterSide, hand);
+    const batter = platoonBatterVector(
+      terminal,
+      batterId,
+      declaredBatterHand,
+      batterSide,
+      hand,
+    );
     const pitcherVector =
       bullpenOverrideByHand?.[hand] ?? completeCandidate.bullpenModel.byHand[hand];
     validateCategoryVector(
@@ -711,6 +811,27 @@ function validateObservation(
     'runtime observation opposing starter team ID',
   );
   assertLineupSlot(observation.lineupSlot);
+  const declaredBatterHand = observationDeclaredBatterHand(observation);
+  const opposingStarterHand = assertHand(
+    observation.opposingStarterHand,
+    'runtime observation opposing starter hand',
+  );
+  const resolvedBatterSide = assertHand(
+    observation.batterSide,
+    'runtime observation resolved batter side',
+  );
+  assertRawBatterBatsThrows(
+    observation.rawBatterBatsThrows,
+    declaredBatterHand,
+  );
+  assertExact(
+    resolvedBatterSide,
+    resolveBatterSideAgainstVerifiedStarter(
+      declaredBatterHand,
+      opposingStarterHand,
+    ),
+    'runtime observation resolved batter side',
+  );
   assertExact(observation.eligibilityProbability, 1, 'active lineup eligibilityProbability');
   assertSha256(observation.lineupSourceSnapshotSha256, 'lineup source snapshot SHA-256');
   assertTimestamp(observation.lineupSourceCapturedAt, 'lineup source capturedAt');
@@ -740,10 +861,12 @@ export function buildFrozenBatterHitsRuntimeDistribution(
   if (Math.abs((retention[0] ?? Number.NaN) - 1) > TOLERANCE) {
     throw new Error('conditional named-hitter retention must start at one.');
   }
+  const declaredBatterHand = observationDeclaredBatterHand(observation);
   const starterBaseHit = terminalHitProbability(
     artifacts.terminalOutcome,
     observation.providerPlayerId,
     observation.opposingStarterPitcherId,
+    declaredBatterHand,
     observation.batterSide,
     observation.opposingStarterHand,
     contextFactors?.parkMultipliersByCategory,
@@ -752,6 +875,7 @@ export function buildFrozenBatterHitsRuntimeDistribution(
     artifacts.terminalOutcome,
     artifacts.completeCandidate,
     observation.providerPlayerId,
+    declaredBatterHand,
     observation.batterSide,
     contextFactors?.bullpenOverrideByHand,
     contextFactors?.parkMultipliersByCategory,
@@ -896,6 +1020,7 @@ export function createFrozenBatterHitsProbabilityCandidate(
     completeCandidateArtifactSha256:
       artifacts.completeCandidate.artifactSha256,
   });
+  const declaredBatterHand = observationDeclaredBatterHand(observation);
   const details: JsonObject = Object.freeze({
     offerType: offer.offerType,
     providerMarketKey: offer.providerMarketKey,
@@ -908,6 +1033,13 @@ export function createFrozenBatterHitsProbabilityCandidate(
     sourceSnapshotSha256: offer.sourceSnapshotSha256,
     lineupStatus: observation.lineupStatus,
     lineupSlot: observation.lineupSlot,
+    ...(observation.rawBatterBatsThrows === undefined
+      ? {}
+      : { rawBatterBatsThrows: observation.rawBatterBatsThrows }),
+    declaredBatterHand,
+    resolvedBatterSide: observation.batterSide,
+    batterPlatoonPath:
+      batterHitsPlatoonPathForDeclaredHand(declaredBatterHand),
     batterSide: observation.batterSide,
     opposingStarterPitcherId: observation.opposingStarterPitcherId,
     opposingStarterTeamId: observation.opposingStarterTeamId,

@@ -41,14 +41,19 @@ test('ranked CLI rows match the existing application ranking adapter exactly', a
     evidence.output.normalizedOfferCount,
     evidence.output.rankedRowCount + evidence.output.fixtureExclusionCount,
   );
-  assert.ok(evidence.output.fixtureExclusionCount > 0);
-  assert.ok(
-    evidence.output.fixtureExclusions.every(
-      (exclusion) =>
-        exclusion.reason === 'FIXTURE_HAND_NOT_RUNTIME_SUPPORTED' &&
-        /excluded rather than coerced/u.test(exclusion.explanation),
-    ),
+  assert.equal(evidence.output.fixtureExclusionCount, 0);
+  assert.deepEqual(evidence.output.fixtureExclusions, []);
+  assert.equal(
+    evidence.output.rankedRowCount,
+    evidence.output.normalizedOfferCount,
   );
+  for (const playerName of ['Ozzie Albies', 'Luis Rengifo']) {
+    assert.equal(
+      evidence.output.rows.filter((row) => row.playerName === playerName).length,
+      2,
+      `expected both fixture offers for ${playerName} to rank`,
+    );
+  }
 
   evidence.output.rows.forEach((row, index) => {
     const candidate = evidence.ranking.rankedCandidates[index];
