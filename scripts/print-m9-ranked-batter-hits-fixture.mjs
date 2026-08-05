@@ -1,7 +1,15 @@
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { rankPredictionCandidates } from '../dist/src/application/index.js';
+import {
+  indicativeImpliedProbabilityFromAmericanPrice,
+  selectHighProbabilityAltlinePropsV1,
+  selectHighProbabilityBaselinePropsV1,
+  selectOpportunityMinerFavoritesV1,
+  selectTopFiveV1,
+} from '../dist/src/categories/index.js';
 import {
   connectFrozenBatterHitsProbabilityOutput,
   PRODUCTION_REGISTRIES,
@@ -17,7 +25,20 @@ import {
 } from '../dist/test/helpers/m9-batter-hits-final-runtime-fixture.js';
 
 const OUTPUT_SCHEMA_VERSION = 1;
+const M10_OUTPUT_SCHEMA_VERSION = 1;
 const AUTHORIZATION_VERSION = 'm9-ranked-output-fixture-test-only-v1';
+const ARCHIVE_CAPTURE_KEY =
+  '20260805T160217812Z--235bac8c330999cccfe86b6037a1007eb06f8ec23d1aacdbc3131a70d18db353';
+const ARCHIVE_SHA256 =
+  'f817216794f98b3c842170507f10fa0c40526f67f1cdc08084188388e5ca5b26';
+const ARCHIVE_FILE_SHA256 =
+  'a7feb694ee125293aa9e16eadf4bc66085e9d43ea3cc1a9d9721644460c97144';
+const ARCHIVE_PRICE_PROJECTION_PATH = path.resolve(
+  'fixtures/sanitized/m10/opportunity-miner/20260805T160217812Z--235bac8c-price-projection.json',
+);
+const ARCHIVE_DIAGNOSTIC_PROJECTION_PATH = path.resolve(
+  'fixtures/sanitized/m10/category-output/20260805T160217812Z--235bac8c-diagnostic-projection.json',
+);
 const TABLE_COLUMNS = Object.freeze([
   'RANK',
   'PLAYER',
@@ -34,6 +55,21 @@ const TABLE_COLUMNS = Object.freeze([
   'MODEL',
   'DISTRIBUTION_BUILDER',
   'SETTLEMENT',
+]);
+const CATEGORY_TABLE_COLUMNS = Object.freeze([
+  'RANK',
+  'PLAYER',
+  'SIDE',
+  'LINE',
+  'OFFER TYPE',
+  'P(WIN|GRADES)',
+  'P(VOID)',
+  'P_BASE',
+  'CONTEXT_DELTA',
+  'AMERICAN PRICE',
+  'MULTIPLIER',
+  'POSTED IMPLIED PROBABILITY',
+  'PRICE EDGE [DIAGNOSTIC ONLY]',
 ]);
 
 function object(value, label) {
@@ -344,15 +380,325 @@ export function formatM9RankedFixtureTable(output) {
   return `${lines.join('\n')}\n`;
 }
 
-export async function main(args = process.argv.slice(2)) {
-  if (args.length > 1 || (args[0] !== undefined && args[0] !== '--json')) {
+async function readJsonFile(filePath, label) {
+  let parsed;
+  try {
+    parsed = JSON.parse(await readFile(filePath, 'utf8'));
+  } catch (error) {
     throw new Error(
-      'Usage: node scripts/print-m9-ranked-batter-hits-fixture.mjs [--json]',
+      `Unable to read ${label}: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
+  return object(parsed, label);
+}
+
+function assertExactArchiveIdentity(fixture, label) {
+  if (
+    fixture.synthetic !== false ||
+    fixture.sourceCaptureKey !== ARCHIVE_CAPTURE_KEY ||
+    fixture.sourceArchiveSha256 !== ARCHIVE_SHA256 ||
+    fixture.sourceFileSha256 !== ARCHIVE_FILE_SHA256
+  ) {
+    throw new Error(`${label} does not match the exact approved live archive.`);
+  }
+}
+
+function archiveCategoryCandidate(row, diagnostic) {
+  const [
+    sourceRank,
+    providerEventId,
+    providerGameId,
+    providerPlayerId,
+    playerName,
+    offerType,
+    selectedSide,
+    postedLine,
+    americanPrice,
+    multiplier,
+    pWin,
+    pLoss,
+    pVoid,
+    pWinGivenGrades,
+  ] = row;
+  if (offerType !== 'baseline' && offerType !== 'alternate') {
+    throw new Error(`Unsupported archive offer type at source rank ${sourceRank}.`);
+  }
+  if (selectedSide !== 'higher' && selectedSide !== 'lower') {
+    throw new Error(`Unsupported selected side at source rank ${sourceRank}.`);
+  }
+  const archivedPWin = finiteNumber(pWin, 'archive pWin');
+  const archivedPLoss = finiteNumber(pLoss, 'archive pLoss');
+  const archivedPVoid = finiteNumber(pVoid, 'archive pVoid');
+  const pFinal = finiteNumber(
+    pWinGivenGrades,
+    'archive P(Win | grades)',
+  );
+  if (Math.abs(archivedPWin + archivedPLoss + archivedPVoid - 1) > 1e-12) {
+    throw new Error(
+      `Archive probabilities do not conserve mass at source rank ${sourceRank}.`,
+    );
+  }
+  const candidate = Object.freeze({
+    eventId: nonemptyString(providerEventId, 'provider event ID'),
+    gameId: String(providerGameId),
+    playerId: String(providerPlayerId),
+    playerName: nonemptyString(playerName, 'player name'),
+    line: finiteNumber(postedLine, 'posted line'),
+    selectedSide,
+    eligibilityProbability: 1 - archivedPVoid,
+    pWin: archivedPWin,
+    pLoss: archivedPLoss,
+    pVoid: archivedPVoid,
+    pWinGivenGrades: pFinal,
+    sourceArchiveRank: sourceRank,
+  });
+  const postedImpliedProbability =
+    indicativeImpliedProbabilityFromAmericanPrice(americanPrice);
+  const priceEdge = pFinal - postedImpliedProbability;
+
+  return Object.freeze({
+    candidate,
+    offerType,
+    americanPrice,
+    multiplier,
+    postedImpliedProbability,
+    priceEdge,
+    pBase: diagnostic.pBase,
+    contextProbabilityDelta: diagnostic.contextProbabilityDelta,
+  });
+}
+
+async function readArchiveCategoryInputs() {
+  const priceProjection = await readJsonFile(
+    ARCHIVE_PRICE_PROJECTION_PATH,
+    'archive price projection',
+  );
+  const diagnosticProjection = await readJsonFile(
+    ARCHIVE_DIAGNOSTIC_PROJECTION_PATH,
+    'archive diagnostic projection',
+  );
+  assertExactArchiveIdentity(priceProjection, 'Archive price projection');
+  assertExactArchiveIdentity(
+    diagnosticProjection,
+    'Archive diagnostic projection',
+  );
+  if (
+    priceProjection.fixtureVersion !== 1 ||
+    priceProjection.evidenceType !== 'real-live-board-archive-price-projection' ||
+    diagnosticProjection.fixtureVersion !== 1 ||
+    diagnosticProjection.evidenceType !==
+      'real-live-board-archive-category-diagnostic-projection'
+  ) {
+    throw new Error('Unsupported archive category projection version.');
+  }
+  if (
+    !Array.isArray(priceProjection.rows) ||
+    !Array.isArray(diagnosticProjection.rows) ||
+    priceProjection.rows.length !== diagnosticProjection.rows.length
+  ) {
+    throw new Error('Archive category projections must have matching rows.');
+  }
+
+  const diagnosticsByRank = new Map();
+  for (const row of diagnosticProjection.rows) {
+    if (!Array.isArray(row) || row.length !== 3) {
+      throw new Error('Malformed archive diagnostic projection row.');
+    }
+    const [rank, pBase, contextProbabilityDelta] = row;
+    diagnosticsByRank.set(
+      rank,
+      Object.freeze({
+        pBase: finiteNumber(pBase, 'p_base'),
+        contextProbabilityDelta: finiteNumber(
+          contextProbabilityDelta,
+          'context probability delta',
+        ),
+      }),
+    );
+  }
+
+  return Object.freeze(
+    priceProjection.rows.map((row) => {
+      if (!Array.isArray(row) || row.length !== 14) {
+        throw new Error('Malformed archive price projection row.');
+      }
+      const sourceRank = row[0];
+      const diagnostic = diagnosticsByRank.get(sourceRank);
+      if (diagnostic === undefined) {
+        throw new Error(`Missing diagnostics for source rank ${sourceRank}.`);
+      }
+      return archiveCategoryCandidate(row, diagnostic);
+    }),
+  );
+}
+
+function outputCategoryRow(input, rank) {
+  return Object.freeze({
+    rank,
+    playerName: input.candidate.playerName,
+    selectedSide: input.candidate.selectedSide,
+    postedLine: input.candidate.line,
+    offerType: input.offerType,
+    pWinGivenGrades: input.candidate.pWinGivenGrades,
+    pVoid: input.candidate.pVoid,
+    pBase: input.pBase,
+    contextProbabilityDelta: input.contextProbabilityDelta,
+    americanPrice: input.americanPrice,
+    multiplier: input.multiplier,
+    postedImpliedProbability: input.postedImpliedProbability,
+    priceEdgeLabel: 'DIAGNOSTIC ONLY',
+    priceEdge: input.priceEdge,
+    sourceArchiveRank: input.candidate.sourceArchiveRank,
+  });
+}
+
+function categoryOutput(categoryId, title, inputs) {
+  return Object.freeze({
+    categoryId,
+    title,
+    eligibleCount: inputs.length,
+    topFiveCount: Math.min(inputs.length, 5),
+    rows: Object.freeze(
+      selectTopFiveV1(inputs).map((input, index) =>
+        outputCategoryRow(input, index + 1),
+      ),
+    ),
+  });
+}
+
+export async function buildM10ArchivedCategoryEvidence() {
+  assertProductionRankingDisabled();
+  const registryBefore = JSON.stringify(PRODUCTION_REGISTRIES);
+  const inputs = await readArchiveCategoryInputs();
+
+  const opportunitySelection = selectOpportunityMinerFavoritesV1(
+    inputs.map((input) =>
+      Object.freeze({
+        candidate: input.candidate,
+        americanPrice: input.americanPrice,
+        multiplier: input.multiplier,
+      }),
+    ),
+  );
+  const bySourceRank = new Map(
+    inputs.map((input) => [input.candidate.sourceArchiveRank, input]),
+  );
+  const opportunityInputs = opportunitySelection.eligibleCandidates.map(
+    (candidate) => {
+      const input = bySourceRank.get(candidate.sourceArchiveRank);
+      if (input === undefined) {
+        throw new Error('Opportunity Miner output lost archive row identity.');
+      }
+      return input;
+    },
+  );
+  const baselineSelection = selectHighProbabilityBaselinePropsV1(inputs);
+  const altlineSelection = selectHighProbabilityAltlinePropsV1(inputs);
+
+  assertProductionRankingDisabled();
+  if (JSON.stringify(PRODUCTION_REGISTRIES) !== registryBefore) {
+    throw new Error('The category CLI mutated the production registries.');
+  }
+
+  const categories = Object.freeze([
+    categoryOutput(
+      opportunitySelection.categoryId,
+      'Opportunity Miner Favorites',
+      opportunityInputs,
+    ),
+    categoryOutput(
+      baselineSelection.categoryId,
+      'High Probability Baseline Props',
+      baselineSelection.eligibleCandidates,
+    ),
+    categoryOutput(
+      altlineSelection.categoryId,
+      'High Probability Altline Props',
+      altlineSelection.eligibleCandidates,
+    ),
+  ]);
+
+  return Object.freeze({
+    output: Object.freeze({
+      schemaVersion: M10_OUTPUT_SCHEMA_VERSION,
+      title: 'M10 Category Top Five — Real Archived Board',
+      sourceCaptureKey: ARCHIVE_CAPTURE_KEY,
+      sourceArchiveSha256: ARCHIVE_SHA256,
+      sourceFileSha256: ARCHIVE_FILE_SHA256,
+      sourceOfferCount: inputs.length,
+      productionRankingEnabled: false,
+      notice:
+        'Production ranking is DISABLED. priceEdge is DIAGNOSTIC ONLY and never affects category order.',
+      categories,
+    }),
+    inputs,
+  });
+}
+
+export function formatM10ArchivedCategoryTable(output) {
+  const lines = [
+    output.title,
+    'PRODUCTION RANKING: DISABLED',
+    `SOURCE CAPTURE: ${output.sourceCaptureKey}`,
+    `SOURCE ARCHIVE SHA-256: ${output.sourceArchiveSha256}`,
+    `SOURCE OFFERS: ${output.sourceOfferCount}`,
+    'PRICE EDGE: DIAGNOSTIC ONLY — NEVER A RANKING OR TIEBREAK QUANTITY',
+  ];
+
+  for (const category of output.categories) {
+    lines.push(
+      '',
+      category.title,
+      `ELIGIBLE: ${category.eligibleCount} | TOP FIVE RETURNED: ${category.topFiveCount}`,
+      CATEGORY_TABLE_COLUMNS.join('\t'),
+    );
+    for (const row of category.rows) {
+      lines.push(
+        [
+          row.rank,
+          row.playerName,
+          row.selectedSide,
+          row.postedLine,
+          row.offerType,
+          formatProbability(row.pWinGivenGrades),
+          formatProbability(row.pVoid),
+          formatProbability(row.pBase),
+          formatProbability(row.contextProbabilityDelta),
+          row.americanPrice,
+          row.multiplier,
+          formatProbability(row.postedImpliedProbability),
+          formatProbability(row.priceEdge),
+        ].join('\t'),
+      );
+    }
+  }
+
+  return `${lines.join('\n')}\n`;
+}
+
+export async function main(args = process.argv.slice(2)) {
+  const mode = args[0];
+  if (
+    args.length > 1 ||
+    ![undefined, '--json', '--categories', '--categories-json'].includes(mode)
+  ) {
+    throw new Error(
+      'Usage: node scripts/print-m9-ranked-batter-hits-fixture.mjs [--json|--categories|--categories-json]',
+    );
+  }
+  if (mode === '--categories' || mode === '--categories-json') {
+    const evidence = await buildM10ArchivedCategoryEvidence();
+    process.stdout.write(
+      mode === '--categories-json'
+        ? `${JSON.stringify(evidence.output, null, 2)}\n`
+        : formatM10ArchivedCategoryTable(evidence.output),
+    );
+    return;
+  }
+
   const evidence = await buildM9RankedFixtureEvidence();
   process.stdout.write(
-    args[0] === '--json'
+    mode === '--json'
       ? `${JSON.stringify(evidence.output, null, 2)}\n`
       : formatM9RankedFixtureTable(evidence.output),
   );
