@@ -92,12 +92,9 @@ function gradePick(
   pick: SavedRunPickSnapshotV1,
   evidence: BallDontLieOfficialFinalHitsEvidenceV1,
 ): SavedRunPickGradeV1 {
-  if (
-    pick.baseMarketKey !== 'batter-hits' ||
-    pick.settlementStatistic !== 'hits'
-  ) {
+  if (pick.settlementStatistic !== 'hits') {
     throw new Error(
-      `Saved pick ${pick.snapshotId} is not an exact Batter Hits settlement.`,
+      `Saved pick ${pick.snapshotId} is not an exact Hits settlement.`,
     );
   }
   const observed = settleObservedDiscreteStatisticV1({
