@@ -18,7 +18,6 @@ import {
 
 const OUTPUT_SCHEMA_VERSION = 1;
 const AUTHORIZATION_VERSION = 'm9-ranked-output-fixture-test-only-v1';
-const UNSUPPORTED_FIXTURE_HAND_ERROR = 'fixture hand must be explicit L or R';
 const TABLE_COLUMNS = Object.freeze([
   'RANK',
   'PLAYER',
@@ -165,20 +164,6 @@ function batterHitsDetails(candidate) {
   );
 }
 
-function unsupportedFixtureHandExclusion(offer) {
-  return Object.freeze({
-    reason: 'FIXTURE_HAND_NOT_RUNTIME_SUPPORTED',
-    explanation:
-      'The committed lineup reports a non-L/R batting or throwing hand, while the frozen runtime contract accepts only explicit L/R inputs. The offer is excluded rather than coerced.',
-    playerName: offer.playerName,
-    market: 'Batter Hits',
-    selectedSide: offer.selectedSide,
-    postedLine: offer.line,
-    offerType: offer.offerType,
-    providerPlayerId: offer.providerPlayerId,
-  });
-}
-
 export function rankedOutputRow(candidate, rank) {
   const details = batterHitsDetails(candidate);
   const offerType = nonemptyString(details.offerType, 'offer type');
@@ -227,20 +212,7 @@ export async function buildM9RankedFixtureEvidence() {
   const fixtureExclusions = [];
 
   for (const offer of board.offers) {
-    let probabilityInput;
-    try {
-      probabilityInput = await m9FinalProbabilityInput(board, offer);
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === UNSUPPORTED_FIXTURE_HAND_ERROR
-      ) {
-        fixtureExclusions.push(unsupportedFixtureHandExclusion(offer));
-        continue;
-      }
-      throw error;
-    }
-
+    const probabilityInput = await m9FinalProbabilityInput(board, offer);
     const result = await connectFrozenBatterHitsProbabilityOutput(
       probabilityInput,
     );

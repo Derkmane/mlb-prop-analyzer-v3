@@ -3,10 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { connectPregameBatterHitsBoard } from '../../src/composition/index.js';
-import type {
-  BatterHitsPlayerIdentity,
-  BatterHitsRuntimeObservation,
-  NormalizedBatterHitsBoardOffer,
+import {
+  resolveBatterSideAgainstVerifiedStarter,
+  type BatterHitsDeclaredBatterHand,
+  type BatterHitsPlayerIdentity,
+  type BatterHitsRuntimeObservation,
+  type NormalizedBatterHitsBoardOffer,
 } from '../../src/features/batter-hits/index.js';
 import { m9FinalGameEnvironmentResolutionInput } from './m9-final-probability-resolution.js';
 
@@ -118,12 +120,53 @@ export function m9PregameBoard(
   });
 }
 
-function explicitHand(value: string, index: number): Hand {
-  const hand = value.split('/')[index];
-  if (hand !== 'L' && hand !== 'R') {
-    throw new Error('fixture hand must be explicit L or R');
+function batsThrowsComponents(
+  value: string,
+  label: string,
+): readonly [string, string] {
+  const components = value.split('/');
+  if (components.length !== 2) {
+    throw new Error(`${label} must preserve the provider bats_throws pair.`);
   }
-  return hand;
+  const batting = components[0];
+  const throwing = components[1];
+  if (batting === undefined || throwing === undefined) {
+    throw new Error(`${label} must preserve the provider bats_throws pair.`);
+  }
+  return Object.freeze([batting, throwing]);
+}
+
+function explicitPitcherHand(value: string): Hand {
+  const [, throwing] = batsThrowsComponents(value, 'fixture pitcher hand');
+  if (throwing !== 'L' && throwing !== 'R') {
+    throw new Error('fixture pitcher hand must be explicit L or R');
+  }
+  return throwing;
+}
+
+export function m9ResolveBatterHandedness(
+  rawBatterBatsThrows: string,
+  opposingStarterHand: unknown,
+): Readonly<{
+  rawBatterBatsThrows: string;
+  declaredBatterHand: BatterHitsDeclaredBatterHand;
+  batterSide: Hand;
+}> {
+  const [declared] = batsThrowsComponents(
+    rawBatterBatsThrows,
+    'fixture batter hand',
+  );
+  if (declared !== 'L' && declared !== 'R' && declared !== 'B') {
+    throw new Error('fixture batter hand must be explicit L, R, or B');
+  }
+  return Object.freeze({
+    rawBatterBatsThrows,
+    declaredBatterHand: declared,
+    batterSide: resolveBatterSideAgainstVerifiedStarter(
+      declared,
+      opposingStarterHand,
+    ),
+  });
 }
 
 export function m9ObservationFor(
@@ -167,6 +210,13 @@ export function m9ObservationFor(
         ? 'away'
         : null;
   assert.ok(teamSide !== null);
+  const opposingStarterHand = explicitPitcherHand(
+    starter.player.bats_throws,
+  );
+  const batterHandedness = m9ResolveBatterHandedness(
+    hitter.player.bats_throws,
+    opposingStarterHand,
+  );
 
   return Object.freeze({
     lineupStatus,
@@ -176,10 +226,10 @@ export function m9ObservationFor(
     teamSide,
     ...(game.venue === undefined ? {} : { venue: game.venue }),
     lineupSlot: hitter.batting_order as BatterHitsRuntimeObservation['lineupSlot'],
-    batterSide: explicitHand(hitter.player.bats_throws, 0),
+    ...batterHandedness,
     opposingStarterPitcherId: starter.player.id,
     opposingStarterTeamId: starter.team.id,
-    opposingStarterHand: explicitHand(starter.player.bats_throws, 1),
+    opposingStarterHand,
     eligibilityProbability: 1,
     lineupSourceCapturedAt: M9_SOURCE_CAPTURED_AT,
     lineupSourceSnapshotSha256: M9_LINEUP_SOURCE_SNAPSHOT_SHA256,
