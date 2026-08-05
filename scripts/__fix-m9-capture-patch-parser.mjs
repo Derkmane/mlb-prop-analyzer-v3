@@ -20,9 +20,12 @@ const overescapedBacktick = '\\\\`';
 const escapedBacktick = '\\`';
 const normalizeOrdinaryTemplates = (value) =>
   value.replaceAll(overescapedBacktick, escapedBacktick);
+const rawBlock = source
+  .slice(rawStart, rawEnd)
+  .replaceAll('${', '\\${');
 const corrected =
   normalizeOrdinaryTemplates(source.slice(0, rawStart)) +
-  source.slice(rawStart, rawEnd) +
+  rawBlock +
   normalizeOrdinaryTemplates(source.slice(rawEnd));
 const correctedCount =
   source.slice(0, rawStart).split(overescapedBacktick).length - 1 +
@@ -31,6 +34,9 @@ if (correctedCount < 8) {
   throw new Error(
     `Expected at least eight ordinary generated backticks to normalize; found ${correctedCount}.`,
   );
+}
+if (!rawBlock.includes('\\${label}')) {
+  throw new Error('The raw funnel block did not preserve literal interpolation markers.');
 }
 await writeFile(filePath, corrected);
 execFileSync(process.execPath, ['--check', filePath], { stdio: 'inherit' });
