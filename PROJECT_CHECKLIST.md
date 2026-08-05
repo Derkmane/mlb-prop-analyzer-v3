@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 3.8
+**Version:** 3.9
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -430,17 +430,17 @@ M8.5 is closed. This closure authorizes the next M9 ranking milestone only; it d
 
 ## M10 — Categories, saved runs, grading, and presentation
 
-- [ ] Opportunity Miner eligibility.
-- [ ] High Probability Baseline eligibility.
-- [ ] High Probability Altline eligibility.
-- [ ] One prop per player per category.
-- [ ] Category overlap allowed.
-- [ ] Sort only by final `p_final=P(Win | grades)`, then `P(Void)`; base probability, softness margin, context delta, price, multiplier, and discovery labels cannot alter order.
-- [ ] Top Five selection.
-- [ ] Complete immutable saved-run storage.
-- [ ] Atomic persistence.
-- [ ] Historical-only rendering.
-- [ ] Versioned grading.
+- [x] Opportunity Miner eligibility — implemented in commit `c00c4f98b84890093ef35678c82f8a8120a6cc4c`; verified at commit `d8681e71819607bccc756eb9dac8be3c8c8e3d64` by GitHub Actions run 747.
+- [x] High Probability Baseline eligibility — commit `5625df541b2b94bdb603318156abe5830fd80c62`; GitHub Actions run 749.
+- [x] High Probability Altline eligibility — commit `bc7cc1485b9e52b6e3a51383cdaeeef111d20c93`; GitHub Actions run 750.
+- [x] One prop per player per category — commits `c00c4f98b84890093ef35678c82f8a8120a6cc4c`, `5625df541b2b94bdb603318156abe5830fd80c62`, and `bc7cc1485b9e52b6e3a51383cdaeeef111d20c93`; verified by runs 747, 749, 750, and real-archive run 759 at commit `9b55267b23ab9632cf0522530afb0c3f913ed497`.
+- [x] Category overlap allowed — commit `b1b038c5264125c9e22a5719e377c2be7b67402a`; verified by runs 751 and 759 at commit `9b55267b23ab9632cf0522530afb0c3f913ed497`.
+- [x] Sort only by final `p_final=P(Win | grades)`, then `P(Void)`; base probability, softness margin, context delta, price, multiplier, and discovery labels cannot alter order — commits `d8681e71819607bccc756eb9dac8be3c8c8e3d64`, `5625df541b2b94bdb603318156abe5830fd80c62`, and `bc7cc1485b9e52b6e3a51383cdaeeef111d20c93`; verified by runs 747, 749, 750, and 759.
+- [x] Top Five selection — commit `b1b038c5264125c9e22a5719e377c2be7b67402a`; verified by run 751 and real-archive run 759 at commit `9b55267b23ab9632cf0522530afb0c3f913ed497`.
+- [x] Complete immutable saved-run storage — commits `1c46ce7a884b27e2c9a83e7f4642aef141701b72` and `764a48bc97553e9d5148bc8ce3cb2188626ab9c6`; GitHub Actions run 761 passed 560 of 560 tests.
+- [x] Atomic persistence — commits `1c46ce7a884b27e2c9a83e7f4642aef141701b72` and `764a48bc97553e9d5148bc8ce3cb2188626ab9c6`; run 761 verified exact bytes, overwrite refusal, directory and file synchronization, and zero surviving temporary files.
+- [x] Historical-only rendering — commit `08df180bfd05dc45d81365cc36948a191611ecc3`; GitHub Actions run 762 passed 562 of 562 tests with zero active-feature imports.
+- [x] Versioned grading — final corrective commit `ecf02030ad0108fd53e3772de119abdd5114d77a`; GitHub Actions run 765 passed 567 of 567 tests. Grading has been exercised only against sanitized deterministic test evidence and has not yet graded a real archived board.
 - [ ] API entrypoints.
 - [ ] UI display with no probability logic in the UI.
 - [ ] Deployment and public-link verification.
@@ -474,6 +474,14 @@ These are intended investigations, not abandoned markets. No empty feature folde
 ---
 
 ## Changelog
+
+### Version 3.9 — 2026-08-05
+
+- Closed Opportunity Miner, High Probability Baseline, High Probability Altline, one-prop-per-player, overlap, canonical final-probability sorting, and Top Five using commits `c00c4f98b84890093ef35678c82f8a8120a6cc4c`, `d8681e71819607bccc756eb9dac8be3c8c8e3d64`, `5625df541b2b94bdb603318156abe5830fd80c62`, `bc7cc1485b9e52b6e3a51383cdaeeef111d20c93`, `b1b038c5264125c9e22a5719e377c2be7b67402a`, and `9b55267b23ab9632cf0522530afb0c3f913ed497`; GitHub Actions runs 747, 749, 750, 751, and 759 supplied the direct gates.
+- Closed complete immutable saved-run storage and atomic persistence at commits `1c46ce7a884b27e2c9a83e7f4642aef141701b72` and `764a48bc97553e9d5148bc8ce3cb2188626ab9c6`; run 761 passed 560 of 560 tests.
+- Closed feature-independent historical-only rendering at commit `08df180bfd05dc45d81365cc36948a191611ecc3`; run 762 passed 562 of 562 tests.
+- Closed the versioned grading implementation at final corrective commit `ecf02030ad0108fd53e3772de119abdd5114d77a`; run 765 passed 567 of 567 tests. The grading path has been exercised only with sanitized deterministic test evidence and has not yet produced a real archived-board grade report.
+- Left API entrypoints, UI display, deployment, and public-link verification open. Production and ranking remain disabled, and no July 31 recovery work was performed.
 
 ### Version 3.8 — 2026-08-04
 
