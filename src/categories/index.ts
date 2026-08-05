@@ -30,3 +30,4 @@ export {
   type CategoryOfferType,
   type OfferTypeCategorySelectionV1,
 } from './offer-type-category.js';
+export { selectTopFiveV1, TOP_FIVE_LIMIT } from './top-five.js';
