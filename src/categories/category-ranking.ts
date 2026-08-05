@@ -1,9 +1,22 @@
 import { compareSettlementResultsForRanking } from '../core/index.js';
-import type { PredictionCandidate } from '../domain/prediction-candidate.js';
+import type { EligibilityProbability, Probability } from '../domain/probability.js';
+import type { SelectedSide } from '../domain/selected-side.js';
 import type { SettlementResult } from '../domain/settlement.js';
 
+/** Minimum immutable fields a category is permitted to inspect for ranking. */
+export interface CategoryRankableCandidate {
+  readonly playerId: string;
+  readonly eligibilityProbability: EligibilityProbability;
+  readonly line: number;
+  readonly selectedSide: SelectedSide;
+  readonly pWin: Probability;
+  readonly pLoss: Probability;
+  readonly pVoid: Probability;
+  readonly pWinGivenGrades: Probability | null;
+}
+
 function settlementView(
-  candidate: PredictionCandidate<unknown>,
+  candidate: CategoryRankableCandidate,
 ): SettlementResult {
   return Object.freeze({
     eligibilityProbability: candidate.eligibilityProbability,
@@ -22,8 +35,8 @@ function settlementView(
  * introduce a second ranking rule or alter candidate probabilities.
  */
 export function comparePredictionCandidatesForCategory(
-  left: PredictionCandidate<unknown>,
-  right: PredictionCandidate<unknown>,
+  left: CategoryRankableCandidate,
+  right: CategoryRankableCandidate,
 ): number {
   return compareSettlementResultsForRanking(
     settlementView(left),
@@ -33,7 +46,7 @@ export function comparePredictionCandidatesForCategory(
 
 /** Deduplicates to one prop per player and applies the canonical ordering. */
 export function deduplicateAndSortPredictionCandidatesForCategory<
-  TCandidate extends PredictionCandidate<unknown>,
+  TCandidate extends CategoryRankableCandidate,
 >(candidates: readonly TCandidate[]): readonly TCandidate[] {
   const bestByPlayer = new Map<string, TCandidate>();
   for (const candidate of candidates) {
