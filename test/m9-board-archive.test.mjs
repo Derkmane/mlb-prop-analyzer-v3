@@ -12,13 +12,23 @@ import {
   sha256Bytes,
 } from '../scripts/m9-board-archive-utils.mjs';
 import { buildM9RankedFixtureEvidence } from '../scripts/print-m9-ranked-batter-hits-fixture.mjs';
-import {
-  M9_GAMES_FIXTURE_PATH,
-  M9_LINEUPS_FIXTURE_PATH,
-  M9_ODDS_FIXTURE_PATH,
-} from '../dist/test/helpers/m9-batter-hits-final-runtime-fixture.js';
 
 const FIXED_CAPTURED_AT = '2026-07-23T15:12:25.190Z';
+const FIXTURE_DIRECTORY = path.resolve(
+  'fixtures/sanitized/provider-capabilities/2026-07-23/player-identity',
+);
+const M9_ODDS_FIXTURE_PATH = path.join(
+  FIXTURE_DIRECTORY,
+  'the-odds-api-22fc220be6958e93fba4354054d8fd16-underdog-batter-hits.json',
+);
+const M9_GAMES_FIXTURE_PATH = path.join(
+  FIXTURE_DIRECTORY,
+  'balldontlie-games-2026-07-23.json',
+);
+const M9_LINEUPS_FIXTURE_PATH = path.join(
+  FIXTURE_DIRECTORY,
+  'balldontlie-lineups-5059315.json',
+);
 
 function snapshot({ provider, label, filePath, pathname }) {
   return readFile(filePath).then((rawBodyBytes) =>
@@ -133,10 +143,7 @@ test('a fixture-backed archive preserves every required offer, probability, line
     first.lineage.finalDistributionSha256,
     sourceDetails.finalDistributionSha256,
   );
-  assert.equal(
-    first.lineage.lineupStatus,
-    sourceDetails.lineupStatus,
-  );
+  assert.equal(first.lineage.lineupStatus, sourceDetails.lineupStatus);
   assert.equal(
     first.lineage.lineupSourceSnapshotSha256,
     sourceDetails.lineupSourceSnapshotSha256,
@@ -182,7 +189,7 @@ test('re-archiving an existing date fails closed without overwriting even identi
   }
 });
 
-test('raw provider bytes and their SHA-256 survive unchanged', async () => {
+test('raw provider bytes and their SHA-256 survive unchanged', () => {
   const rawBodyBytes = Buffer.from(' {\n  "data": [{"id": 7}]\n}\n', 'utf8');
   const rawSnapshot = createM9RawProviderSnapshot({
     provider: 'fixture provider',
@@ -220,10 +227,7 @@ test('the archive layer copies existing outputs and contains no probability, set
     );
   });
 
-  const source = await readFile(
-    'scripts/m9-board-archive-utils.mjs',
-    'utf8',
-  );
+  const source = await readFile('scripts/m9-board-archive-utils.mjs', 'utf8');
   assert.doesNotMatch(source, /compareSettlementResultsForRanking/u);
   assert.doesNotMatch(source, /rankPredictionCandidates/u);
   assert.doesNotMatch(source, /settle[A-Z]|Poisson|convol/u);
