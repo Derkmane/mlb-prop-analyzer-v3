@@ -1,0 +1,76 @@
+name: M10 grade saved Batter Hits archive
+
+on:
+  workflow_dispatch:
+    inputs:
+      capture_key:
+        description: Exact immutable archive capture key
+        required: true
+        default: 20260805T160217812Z--235bac8c330999cccfe86b6037a1007eb06f8ec23d1aacdbc3131a70d18db353
+        type: string
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/m10-grade-saved-archive.yml
+      - scripts/grade-m10-saved-archive.mjs
+      - scripts/m10-grade-saved-archive-utils.mjs
+      - test/m10-real-archive-grading.test.mjs
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m10-grade-saved-archive-${{ github.event.inputs.capture_key || '20260805T160217812Z' }}
+  cancel-in-progress: false
+
+jobs:
+  grade:
+    name: Grade exact saved Batter Hits archive
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+      M10_CAPTURE_KEY: ${{ github.event.inputs.capture_key || '20260805T160217812Z--235bac8c330999cccfe86b6037a1007eb06f8ec23d1aacdbc3131a70d18db353' }}
+      M10_GRADE_ATTEMPT_ID: github-run-${{ github.run_id }}
+      M10_BDL_MIN_REQUEST_INTERVAL_MS: '13000'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Build project
+        run: npm run build
+
+      - name: Grade exact archived board
+        run: |
+          mkdir -p artifacts/workflow-logs
+          set -o pipefail
+          node scripts/grade-m10-saved-archive.mjs 2>&1 | tee artifacts/workflow-logs/m10-saved-archive-grade.log
+
+      - name: Upload immutable grade report and provider evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m10-saved-archive-grade-report-${{ github.run_id }}
+          if-no-files-found: warn
+          retention-days: 90
+          path: artifacts/board-archives/batter-hits/**
+
+      - name: Upload full grading log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m10-saved-archive-grade-log-${{ github.run_id }}
+          if-no-files-found: error
+          retention-days: 90
+          path: artifacts/workflow-logs/m10-saved-archive-grade.log
