@@ -6,6 +6,12 @@ export {
   mixProbabilityMassFunctions,
   poissonBinomialProbabilityMassFunction,
 } from './distributions.js';
+export {
+  OBSERVED_DISCRETE_SETTLEMENT_VERSION,
+  settleObservedDiscreteStatisticV1,
+  type ObservedDiscreteSettlementV1,
+  type ObservedSettlementOutcome,
+} from './observed-settlement.js';
 export { compareSettlementResultsForRanking } from './ranking.js';
 export {
   createProbabilityMassFunction,

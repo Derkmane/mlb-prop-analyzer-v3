@@ -24,6 +24,23 @@ export type {
 } from './contracts.js';
 
 export {
+  BALLDONTLIE_FINAL_HITS_EVIDENCE_VERSION,
+  BALLDONTLIE_GAMES_ENDPOINT_PATH,
+  BALLDONTLIE_STATS_ENDPOINT_PATH,
+  normalizeBallDontLieOfficialFinalHitsV1,
+  rawBallDontLiePlayerGameStatSchema,
+  rawBallDontLiePlayerGameStatsResponseSchema,
+} from './official-final-hits.js';
+
+export type {
+  BallDontLieExpectedFinalHitsIdentityV1,
+  BallDontLieOfficialFinalHitsEvidenceV1,
+  BallDontLieRawSnapshotInputV1,
+  RawBallDontLiePlayerGameStat,
+  RawBallDontLiePlayerGameStatsResponse,
+} from './official-final-hits.js';
+
+export {
   BALLDONTLIE_BATTER_DISPOSITIONS,
   BALLDONTLIE_TERMINAL_PA_UNRESOLVED_REASONS,
   ballDontLieTerminalPaMappingInputSchema,
