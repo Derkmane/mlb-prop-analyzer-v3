@@ -1,0 +1,45 @@
+name: apply-m9-commence-time-join
+
+on:
+  push:
+    branches:
+      - agent/m9-board-archiving
+    paths:
+      - scripts/__apply-m9-commence-time-join.mjs
+      - .github/workflows/__apply-m9-commence-time-join.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out correction branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/m9-board-archiving
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate guarded transform
+        run: node --check scripts/__apply-m9-commence-time-join.mjs
+      - name: Apply exact team-and-commence correction
+        run: node scripts/__apply-m9-commence-time-join.mjs
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+      - name: Build before focused tests
+        run: npm run build
+      - name: Run focused commence-time and funnel tests
+        run: node --test test/m9-board-archive-live-boundary.test.mjs test/m9-board-archive-funnel.test.mjs
+      - name: Remove temporary transport files
+        run: rm scripts/__apply-m9-commence-time-join.mjs .github/workflows/__apply-m9-commence-time-join.yml
+      - name: Commit and push scoped correction
+        run: |
+          git config user.name "Derkmane"
+          git config user.email "153403266+Derkmane@users.noreply.github.com"
+          git add scripts/archive-m9-batter-hits-board.mjs test/m9-board-archive-live-boundary.test.mjs scripts/__apply-m9-commence-time-join.mjs .github/workflows/__apply-m9-commence-time-join.yml
+          git commit -m "Match M9 games by team and observed commence tolerance"
+          git push origin HEAD:agent/m9-board-archiving
