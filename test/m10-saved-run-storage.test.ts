@@ -19,6 +19,12 @@ import {
   type SavedRunSnapshotV1,
 } from '../src/domain/saved-run.js';
 
+type DeepMutable<T> = T extends readonly (infer TItem)[]
+  ? DeepMutable<TItem>[]
+  : T extends object
+    ? { -readonly [TKey in keyof T]: DeepMutable<T[TKey]> }
+    : T;
+
 const SNAPSHOT_ID = 'odds-archive-20260805';
 const SNAPSHOT_SHA = 'a'.repeat(64);
 
@@ -26,7 +32,7 @@ function pick(
   categoryId: SavedRunCategoryId,
   categoryRank: number,
   identity: number,
-): SavedRunPickSnapshotV1 {
+): DeepMutable<SavedRunPickSnapshotV1> {
   const baseFinal = 0.58 + identity * 0.001;
   const final = baseFinal + 0.01;
   return {
@@ -42,7 +48,10 @@ function pick(
     playerName: `Player ${identity}`,
     baseMarketKey: 'batter-hits',
     marketLabel: 'Batter Hits',
-    offerType: categoryId === 'high-probability-baseline-props' ? 'baseline' : 'alternate',
+    offerType:
+      categoryId === 'high-probability-baseline-props'
+        ? 'baseline'
+        : 'alternate',
     line: 0.5,
     selectedSide: identity % 2 === 0 ? 'lower' : 'higher',
     settlementStatistic: 'hits',
@@ -102,7 +111,9 @@ function pick(
   };
 }
 
-function run(runId = 'm10-run-20260805-160217812'): SavedRunSnapshotV1 {
+function run(
+  runId = 'm10-run-20260805-160217812',
+): DeepMutable<SavedRunSnapshotV1> {
   return {
     schemaVersion: SAVED_RUN_SCHEMA_VERSION,
     runId,
@@ -135,8 +146,11 @@ test('saved run preserves complete immutable lineage for every category pick', (
   const saved = createSavedRunSnapshotV1(source);
 
   source.providerSnapshots[0]!.snapshotId = 'mutated';
-  source.categories[0]!.picks[0]!.context.factorArtifactVersions['park'] = 'mutated';
-  source.categories[0]!.picks[0]!.featureData.values['preservedOnlyForHistory'] = false;
+  source.categories[0]!.picks[0]!.context.factorArtifactVersions['park'] =
+    'mutated';
+  source.categories[0]!.picks[0]!.featureData.values[
+    'preservedOnlyForHistory'
+  ] = false;
 
   assert.equal(saved.providerSnapshots[0]!.snapshotId, SNAPSHOT_ID);
   assert.equal(
@@ -144,12 +158,18 @@ test('saved run preserves complete immutable lineage for every category pick', (
     'm8-5-park-frozen-artifact-v1',
   );
   assert.equal(
-    saved.categories[0]!.picks[0]!.featureData.values['preservedOnlyForHistory'],
+    saved.categories[0]!.picks[0]!.featureData.values[
+      'preservedOnlyForHistory'
+    ],
     true,
   );
   assert.ok(Object.isFrozen(saved));
   assert.ok(Object.isFrozen(saved.categories));
-  assert.ok(Object.isFrozen(saved.categories[0]!.picks[0]!.finalStatisticDistribution));
+  assert.ok(
+    Object.isFrozen(
+      saved.categories[0]!.picks[0]!.finalStatisticDistribution,
+    ),
+  );
   assert.deepEqual(
     saved.categories.map((category) => category.categoryId),
     [...SAVED_RUN_CATEGORY_IDS],
@@ -159,23 +179,38 @@ test('saved run preserves complete immutable lineage for every category pick', (
 test('saved-run validation fails closed on missing lineage, unknown evidence, and category duplicates', () => {
   const missingProvider = run('missing-provider');
   missingProvider.categories[0]!.picks[0]!.providerSnapshotIds[0] = 'unknown';
-  assert.throws(() => createSavedRunSnapshotV1(missingProvider), /unknown provider snapshot/u);
+  assert.throws(
+    () => createSavedRunSnapshotV1(missingProvider),
+    /unknown provider snapshot/u,
+  );
 
   const driftedDelta = run('drifted-delta');
   driftedDelta.categories[0]!.picks[0]!.context.probabilityDelta = 0.2;
-  assert.throws(() => createSavedRunSnapshotV1(driftedDelta), /final minus base/u);
+  assert.throws(
+    () => createSavedRunSnapshotV1(driftedDelta),
+    /final minus base/u,
+  );
 
   const duplicatePlayer = run('duplicate-player');
   const first = duplicatePlayer.categories[0]!.picks[0]!;
-  duplicatePlayer.categories[0]!.picks = [first, { ...first, snapshotId: 'second', categoryRank: 2 }];
-  assert.throws(() => createSavedRunSnapshotV1(duplicatePlayer), /one prop per player/u);
+  duplicatePlayer.categories[0]!.picks = [
+    first,
+    { ...first, snapshotId: 'second', categoryRank: 2 },
+  ];
+  assert.throws(
+    () => createSavedRunSnapshotV1(duplicatePlayer),
+    /one prop per player/u,
+  );
 });
 
 test('atomic persistence publishes exact bytes, refuses overwrite, and leaves no temporary file', async () => {
   const rootDirectory = await mkdtemp(path.join(tmpdir(), 'm10-saved-run-'));
   try {
     const saved = createSavedRunSnapshotV1(run());
-    const result = await persistImmutableSavedRunV1({ rootDirectory, run: saved });
+    const result = await persistImmutableSavedRunV1({
+      rootDirectory,
+      run: saved,
+    });
     const expectedPath = savedRunFilePath(rootDirectory, saved.runId);
     const persistedText = await readFile(expectedPath, 'utf8');
     const loaded = await readImmutableSavedRunV1(expectedPath);
@@ -197,7 +232,12 @@ test('atomic persistence publishes exact bytes, refuses overwrite, and leaves no
     process.stdout.write(`BYTE LENGTH: ${result.byteLength}\n`);
     process.stdout.write(`FILE SHA-256: ${result.fileSha256}\n`);
     process.stdout.write(`CATEGORIES: ${saved.categories.length}\n`);
-    process.stdout.write(`PICKS: ${saved.categories.reduce((sum, category) => sum + category.picks.length, 0)}\n`);
+    process.stdout.write(
+      `PICKS: ${saved.categories.reduce(
+        (sum, category) => sum + category.picks.length,
+        0,
+      )}\n`,
+    );
     process.stdout.write('LINEAGE: COMPLETE\n');
     process.stdout.write('ATOMIC OVERWRITE: REFUSED\n');
     process.stdout.write('TEMP FILES: 0\n');
