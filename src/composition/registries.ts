@@ -3,6 +3,16 @@ import type { FeatureRegistration } from '../domain/feature-status.js';
 import type { ImplementedMarketRegistration, PlannedMarketDefinition } from '../domain/market.js';
 import type { SettlementRegistry } from '../domain/settlement-rule.js';
 import {
+  BATTER_HHR_ALTERNATE_PROVIDER_MARKET_KEY,
+  BATTER_HHR_BASELINE_PROVIDER_MARKET_KEY,
+  BATTER_HHR_FEATURE_ID,
+  BATTER_HHR_MARKET_KEY,
+} from '../features/batter-hhr/manifest.js';
+import {
+  BATTER_HHR_DISTRIBUTION_BUILDER_VERSION,
+  BATTER_HHR_SETTLEMENT_RULE_VERSION,
+} from '../features/batter-hhr/contracts.js';
+import {
   BATTER_HITS_FEATURE_ID,
   BATTER_HITS_MARKET_KEY,
 } from '../features/batter-hits/manifest.js';
@@ -26,6 +36,32 @@ const implementedMarketRegistrations = [
     blocker:
       'Batter Hits is synthetic-test-only; no provider contract, production distribution fit, validated settlement rule, or production prediction authorization exists.',
   },
+  {
+    baseMarketKey: BATTER_HHR_MARKET_KEY,
+    providerMarketKeys: Object.freeze([
+      BATTER_HHR_BASELINE_PROVIDER_MARKET_KEY,
+      BATTER_HHR_ALTERNATE_PROVIDER_MARKET_KEY,
+    ]),
+    featureId: BATTER_HHR_FEATURE_ID,
+    officialSettlementStatistic: 'hits+runs+rbis',
+    mathematicalFamily: 'directly-fitted-composite',
+    requiredNormalizedInputs: Object.freeze([
+      'context-adjusted-terminal-outcome-vector',
+      'expected-plate-appearances',
+      'lineup-slot',
+    ]),
+    requiredSharedScenarioFields: Object.freeze([
+      'context-adjusted-terminal-outcome-vector',
+      'expected-plate-appearances',
+      'lineup-slot',
+    ]),
+    distributionBuilderVersion: BATTER_HHR_DISTRIBUTION_BUILDER_VERSION,
+    distributionBuilderValidated: false,
+    settlementRuleVersion: BATTER_HHR_SETTLEMENT_RULE_VERSION,
+    status: 'model-under-development',
+    blocker:
+      'M11 step 3 box-score verification, per-line calibration including deep-line buckets, and production authorization are incomplete.',
+  },
 ] satisfies readonly ImplementedMarketRegistration[];
 
 export const IMPLEMENTED_MARKET_REGISTRY: readonly ImplementedMarketRegistration[] =
@@ -38,6 +74,11 @@ export const IMPLEMENTED_MARKET_REGISTRY: readonly ImplementedMarketRegistration
 const featureRegistrations = [
   {
     featureId: BATTER_HITS_FEATURE_ID,
+    enabled: false,
+    status: 'model-under-development',
+  },
+  {
+    featureId: BATTER_HHR_FEATURE_ID,
     enabled: false,
     status: 'model-under-development',
   },
