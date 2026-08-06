@@ -3,7 +3,7 @@ name: M11 step 2 executor
 on:
   push:
     branches:
-      - agent/m11-step2-hhr-direct-composite
+      - agent/m11-step2-executor-paused
 
 permissions:
   contents: write
