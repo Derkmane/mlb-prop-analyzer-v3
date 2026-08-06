@@ -1,0 +1,37 @@
+name: M11 step 2 historical source probe
+
+on:
+  push:
+    branches:
+      - agent/m11-step2-hhr-respecification
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Verify historical team totals source
+        env:
+          THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
+        run: node scripts/probe-m11-hhr-historical-team-totals.mjs
+      - name: Remove temporary probe machinery
+        run: rm .github/workflows/m11-step2-source-probe.yml scripts/probe-m11-hhr-historical-team-totals.mjs
+      - name: Commit retained provider contract
+        run: |
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "Verify historical HHR team totals source"
+          git push origin HEAD:agent/m11-step2-hhr-respecification
