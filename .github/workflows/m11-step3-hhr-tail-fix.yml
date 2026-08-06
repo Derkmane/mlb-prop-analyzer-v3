@@ -6,6 +6,8 @@ on:
       - agent/m11-step3-hhr-box-score-verification
     paths:
       - .github/workflows/m11-step3-hhr-tail-fix.yml
+  pull_request:
+    types: [reopened]
 
 permissions:
   contents: write
@@ -18,6 +20,7 @@ jobs:
       - name: Check out exact branch head
         uses: actions/checkout@v6
         with:
+          ref: agent/m11-step3-hhr-box-score-verification
           fetch-depth: 0
 
       - name: Set up Node.js
