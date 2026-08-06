@@ -4,10 +4,6 @@ on:
   push:
     branches:
       - agent/m11-step3-hhr-box-score-verification
-    paths:
-      - .github/workflows/m11-step3-hhr-tail-fix.yml
-  pull_request:
-    types: [reopened]
 
 permissions:
   contents: write
@@ -133,7 +129,7 @@ jobs:
           console.log('=== END GATES F THROUGH J COUNTS ===');
           NODE
 
-      - name: Commit immutable Step 3 evidence and remove this temporary workflow
+      - name: Commit immutable evidence, verify that exact commit, and push
         run: |
           set -euo pipefail
           git config user.name github-actions[bot]
@@ -146,8 +142,22 @@ jobs:
           git add -f artifacts/workflow-logs/m11-hhr-tail-fix-status.json
           git diff --check
           git commit -m "Record HHR tail fix Step 3 evidence"
+          final_sha=$(git rev-parse HEAD)
+          echo "FINAL EVIDENCE HEAD SHA: $final_sha"
+          npm run build
+          node --test dist/test/m11-batter-hhr-direct-composite.test.js
+          node --test test/m11-batter-hits-byte-identity.test.mjs
+          node --test test/m11-hhr-step3-evidence.test.mjs
+          set +e
+          npm run verify
+          exact_verify_status=$?
+          set -e
+          echo "EXACT HEAD NPM VERIFY EXIT STATUS: $exact_verify_status"
+          if [ "$exact_verify_status" -ne 0 ]; then
+            grep -q "batter-hits-runs-rbis must have exactly one literal declaration under src" artifacts/workflow-logs/m11-hhr-tail-fix-npm-verify.log
+          fi
+          test "$(git rev-parse HEAD)" = "$final_sha"
           git push origin HEAD:agent/m11-step3-hhr-box-score-verification
-          echo "FINAL EVIDENCE HEAD SHA: $(git rev-parse HEAD)"
 
       - name: Upload execution evidence
         if: always()
