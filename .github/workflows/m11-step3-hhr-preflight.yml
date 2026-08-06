@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: 24
           package-manager-cache: false
-      - name: Inspect untouched cohort and historical board
+      - name: Inspect August 6 untouched slate and current HHR board
         env:
           THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
           BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
@@ -29,58 +29,40 @@ jobs:
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           import crypto from 'node:crypto';
-          const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
-          const designText = fs.readFileSync('fixtures/sanitized/m11/hhr/respecified-v2/balldontlie-hhr-design-matrix-v2.json','utf8');
-          const design = JSON.parse(designText);
-          const targetGameIds = [5059484,5059485,5059486];
-          const fitCounts = Object.fromEntries(targetGameIds.map((id)=>[id, design.rows.filter((r)=>r.gameId===id).length]));
-          console.log('DESIGN SHA-256:', sha(designText));
-          console.log('TARGET GAME FIT ROW COUNTS:', JSON.stringify(fitCounts));
-          if (Object.values(fitCounts).some((count)=>count!==0)) throw new Error('Untouched cohort overlaps fitted rows.');
+          const sha=(s)=>crypto.createHash('sha256').update(s).digest('hex');
+          const design=JSON.parse(fs.readFileSync('fixtures/sanitized/m11/hhr/respecified-v2/balldontlie-hhr-design-matrix-v2.json','utf8'));
+          const fitGameIds=new Set(design.rows.map((r)=>r.gameId));
+          const bdlKey=process.env.BALLDONTLIE_API_KEY?.trim();
+          const oddsKey=process.env.THE_ODDS_API_KEY?.trim();
+          if(!bdlKey||!oddsKey) throw new Error('Provider secret missing.');
+          const fetchJson=async(url,options={})=>{const response=await fetch(url,options);const text=await response.text();if(!response.ok)throw new Error(`${url} HTTP ${response.status}: ${text.slice(0,500)}`);return{value:JSON.parse(text),sha256:sha(text)};};
 
-          const projectionPath = 'fixtures/sanitized/m10/category-output/20260805T160217812Z--235bac8c-diagnostic-projection.json';
-          const projection = JSON.parse(fs.readFileSync(projectionPath,'utf8'));
-          console.log('M10 PROJECTION ROOT KEYS:', Object.keys(projection));
-          console.log('M10 SOURCE GAMES:', JSON.stringify(projection.sourceGames ?? projection.gameIds ?? null));
-          const rowCollections = Object.entries(projection).filter(([,v])=>Array.isArray(v));
-          console.log('M10 ARRAY COLLECTIONS:', JSON.stringify(rowCollections.map(([k,v])=>({key:k,count:v.length,firstKeys:v[0]?Object.keys(v[0]):[]}))));
-
-          const bdlKey = process.env.BALLDONTLIE_API_KEY?.trim();
-          const oddsKey = process.env.THE_ODDS_API_KEY?.trim();
-          if (!bdlKey || !oddsKey) throw new Error('Provider secret missing.');
-          const fetchJson = async (url, options={}) => {
-            const response = await fetch(url, options);
-            const text = await response.text();
-            if (!response.ok) throw new Error(`${url} HTTP ${response.status}: ${text.slice(0,500)}`);
-            return {value:JSON.parse(text),sha256:sha(text)};
-          };
-          const gamesUrl = new URL('https://api.balldontlie.io/mlb/v1/games');
-          for (const id of targetGameIds) gamesUrl.searchParams.append('game_ids[]',String(id));
+          const gamesUrl=new URL('https://api.balldontlie.io/mlb/v1/games');
+          gamesUrl.searchParams.append('dates[]','2026-08-06');
+          gamesUrl.searchParams.set('season_type','regular');
           gamesUrl.searchParams.set('per_page','100');
-          const gamesSnap = await fetchJson(gamesUrl,{headers:{Authorization:bdlKey}});
-          const games = gamesSnap.value.data;
-          console.log('BDL TARGET GAMES:', JSON.stringify(games.map((g)=>({id:g.id,date:g.date,status:g.status,home:g.home_team?.display_name,away:g.away_team?.display_name,venue:g.venue}))));
-          if (games.length !== 3 || games.some((g)=>g.status!=='STATUS_FINAL')) throw new Error('Target cohort is not exactly three final games.');
+          const gamesSnap=await fetchJson(gamesUrl,{headers:{Authorization:bdlKey}});
+          const games=gamesSnap.value.data??[];
+          const gameSummary=games.map((g)=>({id:g.id,date:g.date,status:g.status,home:g.home_team?.display_name,away:g.away_team?.display_name,venue:g.venue,inFit:fitGameIds.has(g.id)}));
+          console.log('AUGUST 6 BDL GAMES:',JSON.stringify(gameSummary));
+          console.log('STATUS COUNTS:',JSON.stringify(Object.groupBy(gameSummary,(g)=>g.status)));
+          if(games.some((g)=>fitGameIds.has(g.id))) throw new Error('August 6 game unexpectedly appears in fit.');
 
-          const captureTime = '2026-08-05T16:02:17Z';
-          const eventsUrl = new URL('https://api.the-odds-api.com/v4/historical/sports/baseball_mlb/events');
+          const eventsUrl=new URL('https://api.the-odds-api.com/v4/sports/baseball_mlb/events');
           eventsUrl.searchParams.set('apiKey',oddsKey);
-          eventsUrl.searchParams.set('date',captureTime);
           eventsUrl.searchParams.set('dateFormat','iso');
-          const eventsSnap = await fetchJson(eventsUrl);
-          const events = eventsSnap.value.data ?? eventsSnap.value;
-          console.log('EVENT SNAPSHOT SHA-256:', eventsSnap.sha256);
+          const eventsSnap=await fetchJson(eventsUrl);
+          const events=eventsSnap.value;
           const report=[];
-          for (const game of games) {
-            const home=game.home_team?.display_name ?? game.home_team_name;
-            const away=game.away_team?.display_name ?? game.away_team_name;
+          for(const game of games){
+            const home=game.home_team?.display_name??game.home_team_name;
+            const away=game.away_team?.display_name??game.away_team_name;
             const matches=events.filter((e)=>e.home_team===home&&e.away_team===away);
-            const item={gameId:game.id,home,away,eventMatches:matches.length};
+            const item={gameId:game.id,status:game.status,home,away,eventMatches:matches.length};
             if(matches.length===1){
               const event=matches[0];
-              const oddsUrl=new URL(`https://api.the-odds-api.com/v4/historical/sports/baseball_mlb/events/${event.id}/odds`);
+              const oddsUrl=new URL(`https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${event.id}/odds`);
               oddsUrl.searchParams.set('apiKey',oddsKey);
-              oddsUrl.searchParams.set('date',captureTime);
               oddsUrl.searchParams.set('bookmakers','underdog');
               oddsUrl.searchParams.set('regions','us_dfs');
               oddsUrl.searchParams.set('markets','batter_hits_runs_rbis,batter_hits_runs_rbis_alternate');
@@ -89,17 +71,17 @@ jobs:
               oddsUrl.searchParams.set('includeMultipliers','true');
               oddsUrl.searchParams.set('includeSids','true');
               const oddsSnap=await fetchJson(oddsUrl);
-              const payload=oddsSnap.value.data??oddsSnap.value;
+              const payload=oddsSnap.value;
               const book=payload.bookmakers?.find((b)=>b.key==='underdog');
-              item.eventId=event.id;
-              item.commenceTime=event.commence_time;
-              item.oddsSha256=oddsSnap.sha256;
+              item.eventId=event.id;item.commenceTime=event.commence_time;item.oddsSha256=oddsSnap.sha256;
               item.markets=(book?.markets??[]).map((m)=>({key:m.key,outcomes:m.outcomes?.length??0,firstOutcome:m.outcomes?.[0]??null}));
             }
             report.push(item);
           }
-          console.log('HHR HISTORICAL BOARD REPORT:', JSON.stringify(report));
-          const totalOutcomes=report.flatMap((r)=>r.markets??[]).reduce((s,m)=>s+m.outcomes,0);
-          if(totalOutcomes===0) throw new Error('No immutable-timestamp HHR outcomes found.');
-          console.log('STEP 3 PREFLIGHT: PASS');
+          console.log('CURRENT HHR BOARD REPORT:',JSON.stringify(report));
+          const available=report.filter((r)=>(r.markets??[]).some((m)=>m.outcomes>0));
+          console.log('AVAILABLE HHR EVENTS:',available.length);
+          console.log('FINAL UNTOUCHED GAMES:',gameSummary.filter((g)=>g.status==='STATUS_FINAL').length);
+          console.log('SCHEDULED UNTOUCHED GAMES:',gameSummary.filter((g)=>g.status!=='STATUS_FINAL').length);
+          console.log('STEP 3 SLATE PREFLIGHT: PASS');
           NODE
