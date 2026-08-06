@@ -29,10 +29,10 @@ const REQUIRED_INPUTS = [
   'context-adjusted-terminal-outcome-vector','expected-plate-appearances','lineup-slot','platoon-split-cell',
   'opposing-starter-pooling','team-implied-run-total','preceding-lineup-slots-on-base-quality',
 ] as const;
-// This convergence threshold is the second-smallest positive binary64 value.
-// It discards no recurrence term larger than the minimum positive subnormal and
-// is not used as a tolerance for the analytic-tail validity guard.
-const BATTER_HHR_TAIL_TERM_EPSILON = Number.MIN_VALUE * 2;
+// Tail terms below this convergence threshold are omitted from the collapsed
+// tail. Their combined mass remains far below the named PMF binary64
+// accumulation tolerance, and this is not a validity-guard tolerance.
+const BATTER_HHR_TAIL_TERM_EPSILON = 1e-30;
 const BATTER_HHR_MAXIMUM_TAIL_EXTENSION_TERMS = 4096;
 
 function assertFinite(value: number, label: string): number {
@@ -93,14 +93,12 @@ function negativeBinomialSettlementDistribution(mean: number, dispersionAlpha: n
   const successProbability = size / (size + mean);
   const continuationProbability = mean / (size + mean);
   const probabilities: number[] = [successProbability ** size];
-  let cumulative = probabilities[0] ?? 0;
   for (let count = 1; count < BATTER_HHR_TAIL_COLLAPSE_AT; count += 1) {
     const previous = probabilities[count - 1];
     if (previous === undefined) throw new Error('Batter HHR recurrence indexing failure.');
     const mass = previous * ((count - 1 + size) / count) * continuationProbability;
     if (!Number.isFinite(mass) || mass < 0) throw new Error('Batter HHR negative-binomial recurrence failed.');
     probabilities.push(mass);
-    cumulative += mass;
   }
   let previous = probabilities[BATTER_HHR_TAIL_COLLAPSE_AT - 1];
   if (previous === undefined) throw new Error('Batter HHR recurrence indexing failure.');
