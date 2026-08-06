@@ -53,8 +53,8 @@ jobs:
 
       - name: Grade exact archived board
         run: |
+          set -euo pipefail
           mkdir -p artifacts/workflow-logs
-          set -o pipefail
           node scripts/grade-m10-saved-archive.mjs 2>&1 | tee artifacts/workflow-logs/m10-saved-archive-grade.log
 
       - name: Upload immutable grade report and provider evidence
