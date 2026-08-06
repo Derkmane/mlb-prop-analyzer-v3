@@ -1,0 +1,48 @@
+name: M11 step 2 executor
+
+on:
+  push:
+    branches:
+      - agent/m11-step2-hhr-direct-composite
+
+permissions:
+  contents: write
+
+jobs:
+  execute:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+      - name: Capture approved-source HHR evidence
+        env:
+          THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
+          BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+        run: node scripts/capture-m11-step2-evidence.mjs
+      - name: Fit direct HHR composite artifact
+        run: node scripts/fit-m11-batter-hhr-direct-composite.mjs
+      - name: Run literal complete verification
+        run: npm run verify
+      - name: Re-run Batter Hits byte-identity proof
+        run: node --test test/m11-batter-hits-byte-identity.test.mjs
+      - name: Print HHR worked example
+        run: node scripts/report-m11-batter-hhr-worked-example.mjs
+      - name: Remove temporary execution machinery
+        run: rm .github/workflows/m11-step2-executor.yml scripts/capture-m11-step2-evidence.mjs
+      - name: Verify final diff and commit
+        run: |
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "Build direct Batter HHR distribution"
+          git push origin HEAD:agent/m11-step2-hhr-direct-composite
