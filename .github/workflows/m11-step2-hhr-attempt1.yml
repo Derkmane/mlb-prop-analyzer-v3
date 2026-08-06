@@ -1,0 +1,497 @@
+name: M11 HHR leakage-safe attempt 1
+
+on:
+  push:
+    branches:
+      - agent/m11-step2-hhr-respecification
+    paths:
+      - .github/workflows/m11-step2-hhr-attempt1.yml
+
+permissions:
+  contents: write
+
+jobs:
+  attempt-one:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Extract shared starter recovery and wire HHR capture
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const starterPath = 'scripts/m8-starter-bullpen-transition-utils.mjs';
+          let starter = fs.readFileSync(starterPath, 'utf8');
+          const starterStart = starter.indexOf('function recoverTeamSide(periodId, key, rawRows) {');
+          const starterEnd = starter.indexOf('\n\nexport function buildM8StarterBullpenDataset', starterStart);
+          if (starterStart < 0 || starterEnd < 0) throw new Error('M8 starter recovery anchor drifted.');
+          const sharedRecovery = `export function recoverM8ActualStarterFromOrderedPitcherAppearances(rawRows) {
+            const rows = array(rawRows, 'ordered pitcher appearances')
+              .map((rawRow, index) => {
+                const row = object(rawRow, \`ordered pitcher appearance \${index}\`);
+                const hand = typeof row.normalizedPitcherHand === 'string'
+                  ? row.normalizedPitcherHand.trim().toUpperCase()
+                  : null;
+                return Object.freeze({
+                  ...row,
+                  providerPaNumber: positiveInteger(row.providerPaNumber, 'plate appearance number'),
+                  providerPitcherId: positiveInteger(row.providerPitcherId, 'pitcher id'),
+                  normalizedPitcherHand: hand === 'L' || hand === 'R' ? hand : null,
+                });
+              })
+              .sort((left, right) => left.providerPaNumber - right.providerPaNumber);
+            if (rows.length === 0) {
+              return Object.freeze({ starter: null, exclusion: 'no-pitcher-appearances' });
+            }
+            const starterPitcherId = rows[0].providerPitcherId;
+            const starterPitcherHand = rows[0].normalizedPitcherHand;
+            let starterBattersFaced = 0;
+            let bullpenStarted = false;
+            const bullpenRows = [];
+            for (const row of rows) {
+              if (!bullpenStarted && row.providerPitcherId === starterPitcherId) {
+                starterBattersFaced += 1;
+                continue;
+              }
+              bullpenStarted = true;
+              if (row.providerPitcherId === starterPitcherId) {
+                return Object.freeze({ starter: null, exclusion: 'starter-reappeared-after-bullpen' });
+              }
+              bullpenRows.push(row);
+            }
+            const totalBattersFaced = rows.length;
+            const bullpenBattersFaced = bullpenRows.length;
+            if (starterBattersFaced + bullpenBattersFaced !== totalBattersFaced) {
+              throw new Error('starter and bullpen batters faced do not conserve team plate appearances.');
+            }
+            return Object.freeze({
+              starter: Object.freeze({
+                providerPitcherId: starterPitcherId,
+                normalizedPitcherHand: starterPitcherHand,
+                starterBattersFaced,
+                bullpenBattersFaced,
+                totalBattersFaced,
+                bullpenRows: Object.freeze(bullpenRows),
+              }),
+              exclusion: null,
+            });
+          }
+
+          function recoverTeamSide(periodId, key, rawRows) {
+            const rows = [...rawRows].sort(
+              (left, right) => left.providerPaNumber - right.providerPaNumber,
+            );
+            const unresolved = rows.filter((row) => row.mappingStatus === 'unresolved');
+            if (unresolved.length > 0) {
+              return Object.freeze({ row: null, exclusion: 'unresolved-terminal-row' });
+            }
+            const terminalRows = rows.filter((row) => row.mappingStatus === 'classified-terminal');
+            if (terminalRows.length === 0) {
+              return Object.freeze({ row: null, exclusion: 'no-classified-terminal-rows' });
+            }
+            const recovered = recoverM8ActualStarterFromOrderedPitcherAppearances(terminalRows);
+            if (recovered.starter === null) {
+              return Object.freeze({ row: null, exclusion: recovered.exclusion });
+            }
+            const [observedDate, gameIdText, side] = key.split(':');
+            return Object.freeze({
+              row: Object.freeze({
+                rowId: \`\${periodId}:\${key}\`,
+                periodId,
+                observedDate,
+                gameId: positiveInteger(Number(gameIdText), 'game id'),
+                side,
+                starterPitcherId: recovered.starter.providerPitcherId,
+                starterBattersFaced: recovered.starter.starterBattersFaced,
+                bullpenBattersFaced: recovered.starter.bullpenBattersFaced,
+                totalBattersFaced: recovered.starter.totalBattersFaced,
+                bullpenRows: Object.freeze(
+                  recovered.starter.bullpenRows.map((row) =>
+                    Object.freeze({
+                      providerPitcherId: row.providerPitcherId,
+                      normalizedPitcherHand: row.normalizedPitcherHand,
+                      normalizedBatterSide: row.normalizedBatterSide,
+                      terminalCategory: row.terminalCategory,
+                    }),
+                  ),
+                ),
+              }),
+              exclusion: null,
+            });
+          }`;
+          starter = starter.slice(0, starterStart) + sharedRecovery + starter.slice(starterEnd);
+          fs.writeFileSync(starterPath, starter);
+
+          const capturePath = 'scripts/capture-m11-hhr-respecified-evidence.mjs';
+          let capture = fs.readFileSync(capturePath, 'utf8');
+          const importAnchor = "import path from 'node:path';\n";
+          if (!capture.includes('recoverM8ActualStarterFromOrderedPitcherAppearances')) {
+            if (!capture.includes(importAnchor)) throw new Error('HHR import anchor drifted.');
+            capture = capture.replace(
+              importAnchor,
+              `${importAnchor}\nimport { recoverM8ActualStarterFromOrderedPitcherAppearances } from './m8-starter-bullpen-transition-utils.mjs';\n`,
+            );
+          }
+
+          const normalizeAnchor = '\n\nfunction normalizeVector(raw, label) {';
+          if (!capture.includes('async function fetchBdlGamePlateAppearances')) {
+            const insertAt = capture.indexOf(normalizeAnchor);
+            if (insertAt < 0) throw new Error('HHR plate-appearance fetch anchor drifted.');
+            const fetcher = `
+
+          async function fetchBdlGamePlateAppearances(gameId) {
+            const url = new URL('https://api.balldontlie.io/mlb/v1/plate_appearances');
+            url.searchParams.set('game_id', String(gameId));
+            const snapshot = await fetchSnapshot(url, \`plate appearances game \${gameId}\`, {
+              headers: { Authorization: bdlKey }, bdl: true,
+            });
+            if (!Array.isArray(snapshot.body?.data)) {
+              throw new Error(\`plate appearances game \${gameId} response data must be an array.\`);
+            }
+            return snapshot;
+          }`;
+            capture = capture.slice(0, insertAt) + fetcher + capture.slice(insertAt);
+          }
+
+          const lineupStart = capture.indexOf('const gameById = new Map(games.map((game) => [game.gameId, game]));');
+          const lineupEnd = capture.indexOf('\n\nconst totalsByGame = new Map();', lineupStart);
+          if (lineupStart < 0 || lineupEnd < 0) throw new Error('HHR lineup/starter block anchor drifted.');
+          const replacement = `const gameById = new Map(games.map((game) => [game.gameId, game]));
+          const hittersByGameTeam = new Map();
+          const teamByGamePlayer = new Map();
+          for (const row of lineups) {
+            const gameId = row?.game_id;
+            const playerId = row?.player?.id;
+            const teamId = row?.team?.id;
+            if (!Number.isInteger(gameId) || !Number.isInteger(playerId) || !Number.isInteger(teamId)) continue;
+            teamByGamePlayer.set(\`\${gameId}:\${playerId}\`, teamId);
+            if (!Number.isInteger(row?.batting_order) || row.batting_order < 1 || row.batting_order > 9) continue;
+            const key = \`\${gameId}:\${teamId}\`;
+            const teamRows = hittersByGameTeam.get(key) ?? new Map();
+            teamRows.set(row.batting_order, {
+              playerId, lineupSlot: row.batting_order, declaredHand: declaredHand(row.player?.bats_throws),
+              rawBatsThrows: row.player?.bats_throws,
+            });
+            hittersByGameTeam.set(key, teamRows);
+          }
+
+          const starterByGameTeam = new Map();
+          const starterRecoveryExclusionByGameTeam = new Map();
+          for (const game of games.filter((row) => FIT_DATES.includes(row.date))) {
+            const snapshot = await fetchBdlGamePlateAppearances(game.gameId);
+            sourceSnapshots.push({
+              endpoint: 'plate_appearances',
+              gameIds: [game.gameId],
+              rawBodySha256: snapshot.rawBodySha256,
+            });
+            const sides = [
+              { halfInning: 'top', pitchingTeamId: game.homeTeamId },
+              { halfInning: 'bottom', pitchingTeamId: game.awayTeamId },
+            ];
+            for (const side of sides) {
+              const orderedAppearances = snapshot.body.data
+                .filter((row) => String(row?.half_inning ?? '').trim().toLowerCase() === side.halfInning)
+                .map((row) => ({
+                  providerPaNumber: row?.pa_number,
+                  providerPitcherId: row?.pitcher_id,
+                  normalizedPitcherHand: row?.pitcher_hand,
+                }));
+              const key = \`\${game.gameId}:\${side.pitchingTeamId}\`;
+              const recovered = recoverM8ActualStarterFromOrderedPitcherAppearances(orderedAppearances);
+              if (recovered.starter === null) {
+                starterRecoveryExclusionByGameTeam.set(key, recovered.exclusion);
+                continue;
+              }
+              starterByGameTeam.set(key, {
+                playerId: recovered.starter.providerPitcherId,
+                hand: recovered.starter.normalizedPitcherHand,
+                recovery: {
+                  mechanism: 'shared-m8-pa-order-import',
+                  starterBattersFaced: recovered.starter.starterBattersFaced,
+                  bullpenBattersFaced: recovered.starter.bullpenBattersFaced,
+                  totalBattersFaced: recovered.starter.totalBattersFaced,
+                },
+              });
+            }
+          }`;
+          capture = capture.slice(0, lineupStart) + replacement + capture.slice(lineupEnd);
+
+          const exclusionsOld = `  'warmup_history_only','missing_game','missing_player_identity','missing_team_identity','invalid_box_score',
+            'missing_lineup_slot','missing_opposing_starter','invalid_handedness','missing_park_effect','missing_team_bullpen',
+            'missing_team_total','missing_preceding_lineup','duplicate_player_game','invalid_m8_conditioning',`;
+          const exclusionsNew = `  'warmup_history_only','missing_game','missing_player_identity','missing_team_identity','invalid_box_score',
+            'missing_lineup_slot','missing_opposing_starter','starter_reappeared_after_bullpen',
+            'starter_absent_from_pitcher_allowed','invalid_handedness','missing_park_effect','missing_team_bullpen',
+            'missing_team_total','missing_preceding_lineup','duplicate_player_game','invalid_m8_conditioning',`;
+          if (!capture.includes("'starter_reappeared_after_bullpen'")) {
+            if (!capture.includes(exclusionsOld)) throw new Error('HHR exclusion-list anchor drifted.');
+            capture = capture.replace(exclusionsOld, exclusionsNew);
+          }
+
+          const teamOld = `  const teamId = stat?.team?.id;
+            if (!Number.isInteger(teamId) || (teamId !== game.homeTeamId && teamId !== game.awayTeamId)) { exclude('missing_team_identity'); continue; }`;
+          const teamNew = `  const providerTeamId = stat?.team?.id;
+            const lineupTeamId = teamByGamePlayer.get(\`\${game.gameId}:\${playerId}\`);
+            const statTeamName = typeof stat?.team_name === 'string' ? stat.team_name.trim() : null;
+            const namedTeamId = statTeamName === game.homeTeamName
+              ? game.homeTeamId
+              : statTeamName === game.awayTeamName
+                ? game.awayTeamId
+                : null;
+            const teamId = Number.isInteger(providerTeamId)
+              ? providerTeamId
+              : Number.isInteger(lineupTeamId)
+                ? lineupTeamId
+                : namedTeamId;
+            if (!Number.isInteger(teamId) || (teamId !== game.homeTeamId && teamId !== game.awayTeamId)) { exclude('missing_team_identity'); continue; }`;
+          if (capture.includes(teamOld)) capture = capture.replace(teamOld, teamNew);
+          else if (!capture.includes('const lineupTeamId = teamByGamePlayer.get')) throw new Error('HHR team identity anchor drifted.');
+
+          const starterOld = `  const opposingTeamId = teamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId;
+            const starter = starterByGameTeam.get(\`\${game.gameId}:\${opposingTeamId}\`);
+            if (!starter || !Number.isInteger(starter.playerId)) { exclude('missing_opposing_starter'); continue; }
+            if (!hitter.declaredHand || !starter.hand) { exclude('invalid_handedness'); continue; }`;
+          const starterNew = `  const opposingTeamId = teamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId;
+            const starterKey = \`\${game.gameId}:\${opposingTeamId}\`;
+            const recoveryExclusion = starterRecoveryExclusionByGameTeam.get(starterKey);
+            if (recoveryExclusion === 'starter-reappeared-after-bullpen') {
+              exclude('starter_reappeared_after_bullpen');
+              continue;
+            }
+            const starter = starterByGameTeam.get(starterKey);
+            if (!starter || !Number.isInteger(starter.playerId)) { exclude('missing_opposing_starter'); continue; }
+            const frozenStarterAllowed = terminal.pitcherAllowed[String(starter.playerId)];
+            if (!frozenStarterAllowed) { exclude('starter_absent_from_pitcher_allowed'); continue; }
+            if (!hitter.declaredHand || !starter.hand) { exclude('invalid_handedness'); continue; }`;
+          if (capture.includes(starterOld)) capture = capture.replace(starterOld, starterNew);
+          else if (!capture.includes('const frozenStarterAllowed = terminal.pitcherAllowed')) throw new Error('HHR starter lookup anchor drifted.');
+
+          const fallbackOld = `terminal, overallBatter, terminal.pitcherAllowed[String(starter.playerId)] ?? terminal.unseenPitcher,`;
+          const fallbackNew = `terminal, overallBatter, frozenStarterAllowed,`;
+          if (capture.includes(fallbackOld)) capture = capture.replace(fallbackOld, fallbackNew);
+          if (capture.includes('terminal.pitcherAllowed[String(starter.playerId)] ?? terminal.unseenPitcher')) {
+            throw new Error('HHR frozen starter fallback remains after source swap.');
+          }
+
+          const lineageOld = `        opposingStarterPitcherId: starter.playerId, opposingStarterHand: starter.hand,
+                venue: game.venue, precedingPlayerIds: preceding.map((row) => row.playerId),`;
+          const lineageNew = `        opposingStarterPitcherId: starter.playerId, opposingStarterHand: starter.hand,
+                opposingStarterRecovery: starter.recovery,
+                venue: game.venue, precedingPlayerIds: preceding.map((row) => row.playerId),`;
+          if (capture.includes(lineageOld)) capture = capture.replace(lineageOld, lineageNew);
+
+          const fixtureAnchor = `const fixture = {
+            schemaVersion: 2,`;
+          const fixtureReplacement = `const fixture = {
+            schemaVersion: 2,
+            starterRecoveryContract: {
+              mechanism: 'extraction-and-import',
+              sharedFunction: 'recoverM8ActualStarterFromOrderedPitcherAppearances',
+              sharedModule: 'scripts/m8-starter-bullpen-transition-utils.mjs',
+              endpoint: 'GET /mlb/v1/plate_appearances?game_id={gameId}',
+              orderField: 'pa_number',
+              pitcherIdField: 'pitcher_id',
+              pitcherHandField: 'pitcher_hand',
+              noFallbackVector: true,
+            },
+            lookaheadAudit: {
+              pitcherAllowedDataStartDate: '2026-03-26',
+              pitcherAllowedDataEndDate: '2026-07-05',
+              hhrWarmupStartDate: WARMUP_DATES[0],
+              hhrWarmupEndDate: WARMUP_DATES.at(-1),
+              hhrFitStartDate: FIT_DATES[0],
+              hhrFitEndDate: FIT_DATES.at(-1),
+              overlap: false,
+            },`;
+          if (!capture.includes('starterRecoveryContract:')) {
+            if (!capture.includes(fixtureAnchor)) throw new Error('HHR fixture metadata anchor drifted.');
+            capture = capture.replace(fixtureAnchor, fixtureReplacement);
+          }
+
+          if (/is_probable_pitcher\s*===\s*true/u.test(capture)) {
+            throw new Error('Pregame probable-pitcher lookup remains in HHR historical capture.');
+          }
+          fs.writeFileSync(capturePath, capture);
+
+          const testPath = 'test/m8-starter-bullpen-transition.test.mjs';
+          let testText = fs.readFileSync(testPath, 'utf8');
+          if (!testText.includes('recoverM8ActualStarterFromOrderedPitcherAppearances,')) {
+            testText = testText.replace(
+              '  evaluateM8StarterBullpenTransition,\n',
+              '  evaluateM8StarterBullpenTransition,\n  recoverM8ActualStarterFromOrderedPitcherAppearances,\n',
+            );
+          }
+          const directTestAnchor = "test('a starter who reappears after the bullpen is rejected instead of repaired', () => {";
+          if (!testText.includes("shared ordered-appearance recovery is the single starter source")) {
+            const insertAt = testText.indexOf(directTestAnchor);
+            if (insertAt < 0) throw new Error('M8 focused test anchor drifted.');
+            const directTest = `test('shared ordered-appearance recovery is the single starter source', () => {
+              const appearances = [
+                { providerPaNumber: 3, providerPitcherId: 20, normalizedPitcherHand: 'L' },
+                { providerPaNumber: 1, providerPitcherId: 10, normalizedPitcherHand: 'R' },
+                { providerPaNumber: 2, providerPitcherId: 10, normalizedPitcherHand: 'R' },
+              ];
+              const recovered = recoverM8ActualStarterFromOrderedPitcherAppearances(appearances);
+              assert.equal(recovered.exclusion, null);
+              assert.equal(recovered.starter.providerPitcherId, 10);
+              assert.equal(recovered.starter.normalizedPitcherHand, 'R');
+              assert.equal(recovered.starter.starterBattersFaced, 2);
+              assert.equal(recovered.starter.bullpenBattersFaced, 1);
+              assert.equal(recovered.starter.totalBattersFaced, 3);
+
+              const reappearance = recoverM8ActualStarterFromOrderedPitcherAppearances([
+                { providerPaNumber: 1, providerPitcherId: 10, normalizedPitcherHand: 'R' },
+                { providerPaNumber: 2, providerPitcherId: 20, normalizedPitcherHand: 'L' },
+                { providerPaNumber: 3, providerPitcherId: 10, normalizedPitcherHand: 'R' },
+              ]);
+              assert.equal(reappearance.starter, null);
+              assert.equal(reappearance.exclusion, 'starter-reappeared-after-bullpen');
+            });
+
+            `;
+            testText = testText.slice(0, insertAt) + directTest + testText.slice(insertAt);
+          }
+          fs.writeFileSync(testPath, testText);
+          NODE
+
+          cat > test/m11-hhr-starter-source-contract.test.mjs <<'TEST'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import test from 'node:test';
+
+          const source = fs.readFileSync('scripts/capture-m11-hhr-respecified-evidence.mjs', 'utf8');
+
+          test('HHR historical starter source imports the shared M8 PA-order recovery and fails closed', () => {
+            assert.match(source, /import \{ recoverM8ActualStarterFromOrderedPitcherAppearances \} from '\.\/m8-starter-bullpen-transition-utils\.mjs'/u);
+            assert.match(source, /recoverM8ActualStarterFromOrderedPitcherAppearances\(orderedAppearances\)/u);
+            assert.doesNotMatch(source, /is_probable_pitcher\s*===\s*true/u);
+            assert.match(source, /starter_reappeared_after_bullpen/u);
+            assert.match(source, /starter_absent_from_pitcher_allowed/u);
+            assert.match(source, /const frozenStarterAllowed = terminal\.pitcherAllowed\[String\(starter\.playerId\)\]/u);
+            assert.doesNotMatch(source, /terminal\.pitcherAllowed\[String\(starter\.playerId\)\]\s*\?\?\s*terminal\.unseenPitcher/u);
+            assert.match(source, /pitcherAllowedDataEndDate: '2026-07-05'/u);
+            assert.match(source, /hhrFitStartDate: FIT_DATES\[0\]/u);
+            assert.match(source, /overlap: false/u);
+          });
+          TEST
+
+      - name: Verify shared starter source before provider capture
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts
+          node --check scripts/m8-starter-bullpen-transition-utils.mjs
+          node --check scripts/capture-m11-hhr-respecified-evidence.mjs
+          node --test test/m8-starter-bullpen-transition.test.mjs test/m11-hhr-starter-source-contract.test.mjs
+          node --test test/m11-batter-hits-byte-identity.test.mjs
+          npm run typecheck
+          npm run check:scripts
+          git diff --check
+          echo 'STARTER RECOVERY MECHANISM: extraction-and-import'
+          echo 'PITCHER_ALLOWED DATA RANGE: 2026-03-26 through 2026-07-05'
+          echo 'HHR WARMUP RANGE: 2026-07-13 through 2026-07-19'
+          echo 'HHR FIT RANGE: 2026-07-20 through 2026-07-25'
+          echo 'LOOKAHEAD OVERLAP: false'
+          echo 'GATE D BATTER HITS BYTE IDENTITY: PASS'
+
+      - name: Commit source swap and focused tests
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add scripts/m8-starter-bullpen-transition-utils.mjs scripts/capture-m11-hhr-respecified-evidence.mjs test/m8-starter-bullpen-transition.test.mjs test/m11-hhr-starter-source-contract.test.mjs
+          git commit -m "Reuse M8 actual-starter recovery for HHR"
+          git push origin HEAD:agent/m11-step2-hhr-respecification
+
+      - name: Capture leakage-safe HHR evidence
+        id: capture
+        continue-on-error: true
+        env:
+          THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
+          BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/workflow-logs
+          set +e
+          node scripts/capture-m11-hhr-respecified-evidence.mjs 2>&1 | tee artifacts/workflow-logs/m11-hhr-attempt1-capture.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
+      - name: Fit direct NB2 HHR model
+        id: fit
+        if: steps.capture.outcome == 'success'
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/workflow-logs
+          set +e
+          node scripts/fit-m11-batter-hhr-respecified.mjs 2>&1 | tee artifacts/workflow-logs/m11-hhr-attempt1-fit.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
+      - name: Run literal repository verification
+        id: verify
+        if: steps.capture.outcome == 'success' && steps.fit.outcome == 'success'
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/workflow-logs
+          set +e
+          npm run verify 2>&1 | tee artifacts/workflow-logs/m11-hhr-attempt1-npm-verify.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
+      - name: Persist attempt 1 evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/workflow-logs
+          cat > artifacts/workflow-logs/m11-hhr-attempt1-status.json <<JSON
+          {
+            "attempt": 1,
+            "attemptLimit": 2,
+            "sourceHead": "${GITHUB_SHA}",
+            "captureOutcome": "${{ steps.capture.outcome }}",
+            "captureStatus": "${{ steps.capture.outputs.status }}",
+            "fitOutcome": "${{ steps.fit.outcome }}",
+            "fitStatus": "${{ steps.fit.outputs.status }}",
+            "verifyOutcome": "${{ steps.verify.outcome }}",
+            "verifyStatus": "${{ steps.verify.outputs.status }}",
+            "lookaheadOverlap": false,
+            "productionEnabled": false,
+            "rankingEnabled": false
+          }
+          JSON
+          git add -A scripts test fixtures/sanitized/m11/hhr/respecified-v1 model-artifacts || true
+          git add -f artifacts/workflow-logs/m11-hhr-attempt1-*.log artifacts/workflow-logs/m11-hhr-attempt1-status.json || true
+          if git diff --cached --quiet; then
+            echo 'No attempt evidence changes to commit.'
+          else
+            git commit -m "Record HHR attempt 1 evidence"
+            git push origin HEAD:agent/m11-step2-hhr-respecification
+          fi
+
+      - name: Enforce attempt result
+        if: always()
+        run: |
+          set -euo pipefail
+          test "${{ steps.capture.outcome }}" = "success"
+          test "${{ steps.fit.outcome }}" = "success"
+          test "${{ steps.verify.outcome }}" = "success"
+          echo 'M11 HHR ATTEMPT 1: PASS'
