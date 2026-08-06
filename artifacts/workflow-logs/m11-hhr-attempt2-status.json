@@ -1,13 +1,52 @@
 {
   "attempt": 2,
   "attemptLimit": 2,
-  "sourceHead": "7e1dc34dcbc278246fd36a1d9a8800b52051da3c",
-  "captureOutcome": "skipped",
-  "captureStatus": "",
-  "fitOutcome": "skipped",
-  "fitStatus": "",
-  "verifyOutcome": "skipped",
-  "verifyStatus": "",
+  "sourceHead": "23749e0b4faa22cad8a6c50e326deac19332d409",
+  "captureOutcome": "success",
+  "captureStatus": "0",
+  "fitOutcome": "failure",
+  "fitStatus": "1",
+  "verifyOutcome": "failure",
+  "verifyStatus": "1",
+  "lookaheadAudit": {
+    "pitcherAllowedDataStartDate": "2026-03-26",
+    "pitcherAllowedDataEndDate": "2026-07-05",
+    "hhrWarmupStartDate": "2026-03-26",
+    "hhrWarmupEndDate": "2026-07-05",
+    "hhrFitStartDate": "2026-07-06",
+    "hhrFitEndDate": "2026-08-05",
+    "overlap": false,
+    "fittedRowsOnOrBeforePitcherAllowedEndDate": 0
+  },
+  "gates": {
+    "vif": {
+      "threshold": 5,
+      "maximumObserved": 1.251836750000704,
+      "passed": true
+    },
+    "lineupSlotMagnitude": {
+      "coefficientPerStandardDeviation": -0.020936466017687415,
+      "absoluteCoefficient": 0.020936466017687415,
+      "thresholdExclusive": 0.15,
+      "requirement": "|coefficient| < 0.15 per standard deviation",
+      "passed": true
+    },
+    "batterQualitySpread": {
+      "thresholdRatio": 1.1,
+      "oldIllustrativeRatio": 1.0264815010195374,
+      "minimumObservedRatio": 1.089422372562007,
+      "passed": false
+    }
+  },
+  "confidenceIntervalsExcludingZero": {
+    "count": 3,
+    "coefficientNames": [
+      "intercept",
+      "contextHitQualityLogit",
+      "teamImpliedRunTotal"
+    ],
+    "diagnosticOnly": true
+  },
   "productionEnabled": false,
   "rankingEnabled": false
 }

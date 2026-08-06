@@ -1,11 +1,337 @@
 {
   "attempt": 2,
-  "fitWindow": null,
-  "lookaheadAudit": null,
-  "rowCount": null,
-  "gameCount": null,
-  "exclusionCounts": null,
-  "exclusionExamples": null,
+  "fitWindow": {
+    "startDate": "2026-07-06",
+    "endDate": "2026-08-05",
+    "scanEndDate": "2026-08-05",
+    "latestCompleteDate": "2026-08-05",
+    "fittedDateCount": 31
+  },
+  "lookaheadAudit": {
+    "pitcherAllowedDataStartDate": "2026-03-26",
+    "pitcherAllowedDataEndDate": "2026-07-05",
+    "hhrWarmupStartDate": "2026-03-26",
+    "hhrWarmupEndDate": "2026-07-05",
+    "hhrFitStartDate": "2026-07-06",
+    "hhrFitEndDate": "2026-08-05",
+    "overlap": false,
+    "fittedRowsOnOrBeforePitcherAllowedEndDate": 0
+  },
+  "rowCount": 5964,
+  "gameCount": 340,
+  "attempt1RowCount": 783,
+  "rowExpansionFactor": 7.616858237547893,
+  "exclusionCounts": {
+    "warmup_history_only": 0,
+    "missing_game": 0,
+    "missing_player_identity": 0,
+    "missing_team_identity": 191,
+    "invalid_box_score": 3370,
+    "missing_lineup_slot": 840,
+    "missing_opposing_starter": 0,
+    "starter_reappeared_after_bullpen": 0,
+    "starter_absent_from_pitcher_allowed": 171,
+    "invalid_handedness": 0,
+    "missing_park_effect": 0,
+    "missing_team_bullpen": 0,
+    "missing_team_total": 558,
+    "missing_preceding_lineup": 0,
+    "duplicate_player_game": 0,
+    "invalid_m8_conditioning": 0
+  },
+  "exclusionExamples": {
+    "invalid_box_score": [
+      {
+        "date": "2026-07-06",
+        "gameId": 9543886,
+        "playerId": 429,
+        "playerName": "Ranger Suarez",
+        "teamId": 4,
+        "rawBoxScore": {
+          "hits": {
+            "value": null,
+            "type": "null"
+          },
+          "runs": {
+            "value": null,
+            "type": "null"
+          },
+          "rbi": {
+            "value": null,
+            "type": "null"
+          },
+          "plateAppearances": {
+            "value": null,
+            "type": "null"
+          }
+        },
+        "parsedBoxScore": {
+          "hits": 0,
+          "runs": 0,
+          "rbi": 0,
+          "plateAppearances": 0
+        },
+        "reasons": [
+          "plate-appearances-not-positive-integer"
+        ]
+      },
+      {
+        "date": "2026-07-06",
+        "gameId": 9543886,
+        "playerId": 203988,
+        "playerName": "Ryan Johnson",
+        "teamId": 13,
+        "rawBoxScore": {
+          "hits": {
+            "value": null,
+            "type": "null"
+          },
+          "runs": {
+            "value": null,
+            "type": "null"
+          },
+          "rbi": {
+            "value": null,
+            "type": "null"
+          },
+          "plateAppearances": {
+            "value": null,
+            "type": "null"
+          }
+        },
+        "parsedBoxScore": {
+          "hits": 0,
+          "runs": 0,
+          "rbi": 0,
+          "plateAppearances": 0
+        },
+        "reasons": [
+          "plate-appearances-not-positive-integer"
+        ]
+      },
+      {
+        "date": "2026-07-06",
+        "gameId": 9543886,
+        "playerId": 377,
+        "playerName": "Greg Weissert",
+        "teamId": 4,
+        "rawBoxScore": {
+          "hits": {
+            "value": null,
+            "type": "null"
+          },
+          "runs": {
+            "value": null,
+            "type": "null"
+          },
+          "rbi": {
+            "value": null,
+            "type": "null"
+          },
+          "plateAppearances": {
+            "value": null,
+            "type": "null"
+          }
+        },
+        "parsedBoxScore": {
+          "hits": 0,
+          "runs": 0,
+          "rbi": 0,
+          "plateAppearances": 0
+        },
+        "reasons": [
+          "plate-appearances-not-positive-integer"
+        ]
+      }
+    ],
+    "missing_lineup_slot": [
+      {
+        "date": "2026-07-06",
+        "gameId": 9543886,
+        "playerId": 4202,
+        "playerName": "Donovan Walton",
+        "teamId": 13,
+        "lineupTeamId": null,
+        "availableStartingLineup": [
+          {
+            "playerId": 670,
+            "lineupSlot": 1
+          },
+          {
+            "playerId": 3443137,
+            "lineupSlot": 2
+          },
+          {
+            "playerId": 445,
+            "lineupSlot": 3
+          },
+          {
+            "playerId": 774,
+            "lineupSlot": 4
+          },
+          {
+            "playerId": 4775,
+            "lineupSlot": 5
+          },
+          {
+            "playerId": 1501,
+            "lineupSlot": 6
+          },
+          {
+            "playerId": 202,
+            "lineupSlot": 7
+          },
+          {
+            "playerId": 631,
+            "lineupSlot": 8
+          },
+          {
+            "playerId": 196,
+            "lineupSlot": 9
+          }
+        ]
+      },
+      {
+        "date": "2026-07-06",
+        "gameId": 9543886,
+        "playerId": 145,
+        "playerName": "Wade Meckler",
+        "teamId": 13,
+        "lineupTeamId": null,
+        "availableStartingLineup": [
+          {
+            "playerId": 670,
+            "lineupSlot": 1
+          },
+          {
+            "playerId": 3443137,
+            "lineupSlot": 2
+          },
+          {
+            "playerId": 445,
+            "lineupSlot": 3
+          },
+          {
+            "playerId": 774,
+            "lineupSlot": 4
+          },
+          {
+            "playerId": 4775,
+            "lineupSlot": 5
+          },
+          {
+            "playerId": 1501,
+            "lineupSlot": 6
+          },
+          {
+            "playerId": 202,
+            "lineupSlot": 7
+          },
+          {
+            "playerId": 631,
+            "lineupSlot": 8
+          },
+          {
+            "playerId": 196,
+            "lineupSlot": 9
+          }
+        ]
+      },
+      {
+        "date": "2026-07-06",
+        "gameId": 5059128,
+        "playerId": 491,
+        "playerName": "Garrett Stubbs",
+        "teamId": 21,
+        "lineupTeamId": null,
+        "availableStartingLineup": [
+          {
+            "playerId": 570,
+            "lineupSlot": 1
+          },
+          {
+            "playerId": 654,
+            "lineupSlot": 2
+          },
+          {
+            "playerId": 515,
+            "lineupSlot": 3
+          },
+          {
+            "playerId": 495,
+            "lineupSlot": 4
+          },
+          {
+            "playerId": 608,
+            "lineupSlot": 5
+          },
+          {
+            "playerId": 545,
+            "lineupSlot": 6
+          },
+          {
+            "playerId": 557,
+            "lineupSlot": 7
+          },
+          {
+            "playerId": 483,
+            "lineupSlot": 8
+          },
+          {
+            "playerId": 567,
+            "lineupSlot": 9
+          }
+        ]
+      }
+    ],
+    "missing_team_total": [
+      {
+        "date": "2026-07-07",
+        "gameId": 5059137,
+        "playerId": 122,
+        "playerName": "Jonah Heim",
+        "teamId": 20,
+        "teamName": "Oakland Athletics",
+        "diagnostic": {
+          "reason": "historical-event-not-unique-or-missing",
+          "gameId": 5059137,
+          "date": "2026-07-07",
+          "homeTeamName": "Detroit Tigers",
+          "awayTeamName": "Oakland Athletics"
+        }
+      },
+      {
+        "date": "2026-07-07",
+        "gameId": 5059137,
+        "playerId": 283,
+        "playerName": "Zach McKinstry",
+        "teamId": 10,
+        "teamName": "Detroit Tigers",
+        "diagnostic": {
+          "reason": "historical-event-not-unique-or-missing",
+          "gameId": 5059137,
+          "date": "2026-07-07",
+          "homeTeamName": "Detroit Tigers",
+          "awayTeamName": "Oakland Athletics"
+        }
+      },
+      {
+        "date": "2026-07-07",
+        "gameId": 5059137,
+        "playerId": 359,
+        "playerName": "Matt Vierling",
+        "teamId": 10,
+        "teamName": "Detroit Tigers",
+        "diagnostic": {
+          "reason": "historical-event-not-unique-or-missing",
+          "gameId": 5059137,
+          "date": "2026-07-07",
+          "homeTeamName": "Detroit Tigers",
+          "awayTeamName": "Oakland Athletics"
+        }
+      }
+    ]
+  },
   "duplicateMarketDeclaration": {
     "status": "reported-not-fixed",
     "literalBaseMarketKey": "batter-hits-runs-rbis",
@@ -18,7 +344,7 @@
       {
         "path": "src/features/batter-hhr/contracts.ts",
         "literal": "readonly baseMarketKey: 'batter-hits-runs-rbis';",
-        "disposition": "duplicate-type-literal-to-remove-later-not-fixed-in-attempt-2"
+        "disposition": "duplicate-type-literal-reported-not-fixed"
       }
     ],
     "correctOwner": "src/features/batter-hhr/manifest.ts"

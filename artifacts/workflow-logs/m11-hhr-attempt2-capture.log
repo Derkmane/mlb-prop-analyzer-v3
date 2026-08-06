@@ -1,0 +1,34 @@
+=== M11 HHR RESPECIFIED EVIDENCE ===
+WARMUP HISTORY: 2026-03-26 through 2026-07-05 (artifact-backed, not fitted)
+FIT: 2026-07-06 through 2026-08-05
+LATEST COMPLETE DATE: 2026-08-05
+ROW EXPANSION FACTOR VS ATTEMPT 1: 7.616858237547893
+ROWS: 5964
+GAMES: 340
+EXCLUDED: 5130
+EXCLUSION warmup_history_only: 0
+EXCLUSION missing_game: 0
+EXCLUSION missing_player_identity: 0
+EXCLUSION missing_team_identity: 191
+EXCLUSION invalid_box_score: 3370
+EXCLUSION missing_lineup_slot: 840
+EXCLUSION missing_opposing_starter: 0
+EXCLUSION starter_reappeared_after_bullpen: 0
+EXCLUSION starter_absent_from_pitcher_allowed: 171
+EXCLUSION invalid_handedness: 0
+EXCLUSION missing_park_effect: 0
+EXCLUSION missing_team_bullpen: 0
+EXCLUSION missing_team_total: 558
+EXCLUSION missing_preceding_lineup: 0
+EXCLUSION duplicate_player_game: 0
+EXCLUSION invalid_m8_conditioning: 0
+EXCLUSION EXAMPLES invalid_box_score: [{"date":"2026-07-06","gameId":9543886,"playerId":429,"playerName":"Ranger Suarez","teamId":4,"rawBoxScore":{"hits":{"value":null,"type":"null"},"runs":{"value":null,"type":"null"},"rbi":{"value":null,"type":"null"},"plateAppearances":{"value":null,"type":"null"}},"parsedBoxScore":{"hits":0,"runs":0,"rbi":0,"plateAppearances":0},"reasons":["plate-appearances-not-positive-integer"]},{"date":"2026-07-06","gameId":9543886,"playerId":203988,"playerName":"Ryan Johnson","teamId":13,"rawBoxScore":{"hits":{"value":null,"type":"null"},"runs":{"value":null,"type":"null"},"rbi":{"value":null,"type":"null"},"plateAppearances":{"value":null,"type":"null"}},"parsedBoxScore":{"hits":0,"runs":0,"rbi":0,"plateAppearances":0},"reasons":["plate-appearances-not-positive-integer"]},{"date":"2026-07-06","gameId":9543886,"playerId":377,"playerName":"Greg Weissert","teamId":4,"rawBoxScore":{"hits":{"value":null,"type":"null"},"runs":{"value":null,"type":"null"},"rbi":{"value":null,"type":"null"},"plateAppearances":{"value":null,"type":"null"}},"parsedBoxScore":{"hits":0,"runs":0,"rbi":0,"plateAppearances":0},"reasons":["plate-appearances-not-positive-integer"]}]
+EXCLUSION EXAMPLES missing_lineup_slot: [{"date":"2026-07-06","gameId":9543886,"playerId":4202,"playerName":"Donovan Walton","teamId":13,"lineupTeamId":null,"availableStartingLineup":[{"playerId":670,"lineupSlot":1},{"playerId":3443137,"lineupSlot":2},{"playerId":445,"lineupSlot":3},{"playerId":774,"lineupSlot":4},{"playerId":4775,"lineupSlot":5},{"playerId":1501,"lineupSlot":6},{"playerId":202,"lineupSlot":7},{"playerId":631,"lineupSlot":8},{"playerId":196,"lineupSlot":9}]},{"date":"2026-07-06","gameId":9543886,"playerId":145,"playerName":"Wade Meckler","teamId":13,"lineupTeamId":null,"availableStartingLineup":[{"playerId":670,"lineupSlot":1},{"playerId":3443137,"lineupSlot":2},{"playerId":445,"lineupSlot":3},{"playerId":774,"lineupSlot":4},{"playerId":4775,"lineupSlot":5},{"playerId":1501,"lineupSlot":6},{"playerId":202,"lineupSlot":7},{"playerId":631,"lineupSlot":8},{"playerId":196,"lineupSlot":9}]},{"date":"2026-07-06","gameId":5059128,"playerId":491,"playerName":"Garrett Stubbs","teamId":21,"lineupTeamId":null,"availableStartingLineup":[{"playerId":570,"lineupSlot":1},{"playerId":654,"lineupSlot":2},{"playerId":515,"lineupSlot":3},{"playerId":495,"lineupSlot":4},{"playerId":608,"lineupSlot":5},{"playerId":545,"lineupSlot":6},{"playerId":557,"lineupSlot":7},{"playerId":483,"lineupSlot":8},{"playerId":567,"lineupSlot":9}]}]
+EXCLUSION EXAMPLES missing_team_total: [{"date":"2026-07-07","gameId":5059137,"playerId":122,"playerName":"Jonah Heim","teamId":20,"teamName":"Oakland Athletics","diagnostic":{"reason":"historical-event-not-unique-or-missing","gameId":5059137,"date":"2026-07-07","homeTeamName":"Detroit Tigers","awayTeamName":"Oakland Athletics"}},{"date":"2026-07-07","gameId":5059137,"playerId":283,"playerName":"Zach McKinstry","teamId":10,"teamName":"Detroit Tigers","diagnostic":{"reason":"historical-event-not-unique-or-missing","gameId":5059137,"date":"2026-07-07","homeTeamName":"Detroit Tigers","awayTeamName":"Oakland Athletics"}},{"date":"2026-07-07","gameId":5059137,"playerId":359,"playerName":"Matt Vierling","teamId":10,"teamName":"Detroit Tigers","diagnostic":{"reason":"historical-event-not-unique-or-missing","gameId":5059137,"date":"2026-07-07","homeTeamName":"Detroit Tigers","awayTeamName":"Oakland Athletics"}}]
+EXCLUSION SUM: 5130
+DESIGN SHA-256: dd90dae634b7eebb111e0cb2c9f6188ab7952ef68265d6c028f96d5f921decf7
+BOARD SHA-256: 8d2b73c4b7d99a108698de58542592651ab31f1521072b868c3fd55b907603f5
+ALL SEVEN CONDITIONING INPUTS: true
+RAW HITS/PA PREDICTOR: false
+PA OFFSET FIXED AT 1: true
+=== END M11 HHR RESPECIFIED EVIDENCE ===
