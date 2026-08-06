@@ -1,0 +1,62 @@
+name: M11 step 2 timestamp normalization
+
+on:
+  push:
+    branches:
+      - agent/m11-step2-hhr-respecification
+
+permissions:
+  contents: write
+
+jobs:
+  correct:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Apply exact evidence-based timestamp correction
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const file = 'scripts/capture-m11-hhr-respecified-evidence.mjs';
+          let text = fs.readFileSync(file, 'utf8');
+          const replacements = [
+            [
+              "  '2026-07-13','2026-07-14','2026-07-15','2026-07-16','2026-07-17','2026-07-18','2026-07-19','2026-07-20',",
+              "  '2026-07-13','2026-07-14','2026-07-15','2026-07-16','2026-07-17','2026-07-18','2026-07-19',",
+            ],
+            [
+              "  '2026-07-21','2026-07-22','2026-07-23','2026-07-24','2026-07-25',",
+              "  '2026-07-20','2026-07-21','2026-07-22','2026-07-23','2026-07-24','2026-07-25',",
+            ],
+            [
+              "  const snapshotTime = new Date(Date.parse(game.commenceTime) - 60 * 60 * 1000).toISOString();",
+              "  const snapshotTime = new Date(Date.parse(game.commenceTime) - 60 * 60 * 1000)\n    .toISOString()\n    .replace(/\\.\\d{3}Z$/u, 'Z');",
+            ],
+          ];
+          for (const [before, after] of replacements) {
+            const count = text.split(before).length - 1;
+            if (count !== 1) throw new Error(`Expected one exact replacement; found ${count}: ${before}`);
+            text = text.replace(before, after);
+          }
+          fs.writeFileSync(file, text);
+          NODE
+          node --check scripts/capture-m11-hhr-respecified-evidence.mjs
+          grep -n "snapshotTime\|WARMUP_DATES\|FIT_DATES" scripts/capture-m11-hhr-respecified-evidence.mjs | head -20
+      - name: Remove temporary correction workflow
+        run: rm .github/workflows/m11-step2-timestamp-normalization.yml
+      - name: Commit focused correction
+        run: |
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "Normalize HHR historical timestamps"
+          git push origin HEAD:agent/m11-step2-hhr-respecification
