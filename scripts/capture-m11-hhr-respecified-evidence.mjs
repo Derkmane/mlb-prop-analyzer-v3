@@ -8,10 +8,10 @@ if (!oddsKey) throw new Error('Missing THE_ODDS_API_KEY.');
 if (!bdlKey) throw new Error('Missing BALLDONTLIE_API_KEY.');
 
 const WARMUP_DATES = Object.freeze([
-  '2026-07-13','2026-07-14','2026-07-15','2026-07-16','2026-07-17','2026-07-18','2026-07-19',
+  '2026-07-13','2026-07-14','2026-07-15','2026-07-16','2026-07-17','2026-07-18','2026-07-19','2026-07-20',
 ]);
 const FIT_DATES = Object.freeze([
-  '2026-07-20','2026-07-21','2026-07-22','2026-07-23','2026-07-24','2026-07-25',
+  '2026-07-21','2026-07-22','2026-07-23','2026-07-24','2026-07-25',
 ]);
 const ALL_DATES = Object.freeze([...WARMUP_DATES, ...FIT_DATES]);
 const OUTPUT_DIRECTORY = path.resolve('fixtures/sanitized/m11/hhr/respecified-v1');
