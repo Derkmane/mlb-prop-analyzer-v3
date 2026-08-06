@@ -67,21 +67,21 @@ export function normalizeUnderdogBatterHhrCapture(
   captureInput: unknown,
 ): readonly NormalizedBatterHhrOffer[] {
   const capture = asRecord(captureInput, 'HHR provider capture');
-  if (capture.captureVersion !== 1) {
+  if (capture['captureVersion'] !== 1) {
     throw new Error('HHR provider captureVersion must equal 1.');
   }
-  const request = asRecord(capture.request, 'HHR capture request');
-  if (request.provider !== 'The Odds API') {
+  const request = asRecord(capture['request'], 'HHR capture request');
+  if (request['provider'] !== 'The Odds API') {
     throw new Error('HHR provider must be The Odds API.');
   }
-  if (request.bookmaker !== 'underdog') {
+  if (request['bookmaker'] !== 'underdog') {
     throw new Error('HHR bookmaker must be underdog.');
   }
-  if (request.region !== 'us_dfs') {
+  if (request['region'] !== 'us_dfs') {
     throw new Error('HHR region must be us_dfs.');
   }
   if (
-    JSON.stringify(request.marketKeys) !==
+    JSON.stringify(request['marketKeys']) !==
     JSON.stringify([
       BATTER_HHR_BASELINE_PROVIDER_MARKET_KEY,
       BATTER_HHR_ALTERNATE_PROVIDER_MARKET_KEY,
@@ -90,53 +90,53 @@ export function normalizeUnderdogBatterHhrCapture(
     throw new Error('HHR capture must request the exact baseline and alternate keys.');
   }
   const sourceSnapshotSha256 = asString(
-    capture.sourceSnapshotSha256,
+    capture['sourceSnapshotSha256'],
     'HHR sourceSnapshotSha256',
   );
   if (!SHA256_PATTERN.test(sourceSnapshotSha256)) {
     throw new Error('HHR sourceSnapshotSha256 must be lowercase SHA-256.');
   }
 
-  const response = asRecord(capture.response, 'HHR provider response');
-  const eventId = asString(response.id, 'HHR event id');
+  const response = asRecord(capture['response'], 'HHR provider response');
+  const eventId = asString(response['id'], 'HHR event id');
   const commenceTime = asTimestamp(
-    response.commence_time,
+    response['commence_time'],
     'HHR commence time',
   );
-  const homeTeam = asString(response.home_team, 'HHR home team');
-  const awayTeam = asString(response.away_team, 'HHR away team');
-  if (!Array.isArray(response.bookmakers)) {
+  const homeTeam = asString(response['home_team'], 'HHR home team');
+  const awayTeam = asString(response['away_team'], 'HHR away team');
+  if (!Array.isArray(response['bookmakers'])) {
     throw new TypeError('HHR response bookmakers must be an array.');
   }
-  const underdogRows = response.bookmakers
+  const underdogRows = response['bookmakers']
     .map((value, index) => asRecord(value, `HHR bookmaker[${index}]`))
-    .filter((bookmaker) => bookmaker.key === 'underdog');
+    .filter((bookmaker) => bookmaker['key'] === 'underdog');
   if (underdogRows.length !== 1) {
     throw new Error('HHR response must contain exactly one underdog bookmaker.');
   }
   const underdog = underdogRows[0];
-  if (underdog === undefined || !Array.isArray(underdog.markets)) {
+  if (underdog === undefined || !Array.isArray(underdog['markets'])) {
     throw new TypeError('HHR underdog markets must be an array.');
   }
 
   const normalized: NormalizedBatterHhrOffer[] = [];
-  for (const [marketIndex, marketValue] of underdog.markets.entries()) {
+  for (const [marketIndex, marketValue] of underdog['markets'].entries()) {
     const market = asRecord(marketValue, `HHR market[${marketIndex}]`);
-    const key = providerMarketKey(market.key);
+    const key = providerMarketKey(market['key']);
     const marketLastUpdate = asTimestamp(
-      market.last_update,
+      market['last_update'],
       `HHR market[${marketIndex}].last_update`,
     );
-    if (!Array.isArray(market.outcomes)) {
+    if (!Array.isArray(market['outcomes'])) {
       throw new TypeError(`HHR market[${marketIndex}].outcomes must be an array.`);
     }
-    for (const [outcomeIndex, outcomeValue] of market.outcomes.entries()) {
+    for (const [outcomeIndex, outcomeValue] of market['outcomes'].entries()) {
       const outcome = asRecord(
         outcomeValue,
         `HHR market[${marketIndex}].outcome[${outcomeIndex}]`,
       );
       const line = asFiniteNumber(
-        outcome.point,
+        outcome['point'],
         `HHR outcome[${outcomeIndex}].point`,
       );
       if (line < 0) {
@@ -152,7 +152,7 @@ export function normalizeUnderdogBatterHhrCapture(
           homeTeam,
           awayTeam,
           playerName: asString(
-            outcome.description,
+            outcome['description'],
             `HHR outcome[${outcomeIndex}].description`,
           ),
           providerMarketKey: key,
@@ -162,20 +162,20 @@ export function normalizeUnderdogBatterHhrCapture(
               ? 'baseline'
               : 'alternate',
           selectedSide: selectedSide(
-            outcome.name,
+            outcome['name'],
             `HHR outcome[${outcomeIndex}].name`,
           ),
           line,
           price: asNullableNumber(
-            outcome.price,
+            outcome['price'],
             `HHR outcome[${outcomeIndex}].price`,
           ),
           multiplier: asNullableNumber(
-            outcome.multiplier,
+            outcome['multiplier'],
             `HHR outcome[${outcomeIndex}].multiplier`,
           ),
           providerSid: asNullableString(
-            outcome.sid,
+            outcome['sid'],
             `HHR outcome[${outcomeIndex}].sid`,
           ),
           marketLastUpdate,
