@@ -1,6 +1,6 @@
 # MLB Prop Analyzer --- Project Rules
 
-**Version:** 2.9\
+**Version:** 2.10\
 **Status:** Canonical project rules\
 **Applies to:** MLB Prop Analyzer V3\
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
@@ -557,9 +557,25 @@ PLANNED
 
 Not yet production-validated does not mean abandoned.
 
-Hits + Runs + RBIs remains an intended market and must be investigated
-for approved-source data sufficiency and a tagged-player base-out joint
-model.
+Hits + Runs + RBIs is the primary V1 market. It must be
+investigated for approved-source data sufficiency and modeled
+under an approved family recorded in the CANONICAL_MATH_SPEC.md
+Section 12.2 registry. Its active family is Family B, the
+directly fitted composite distribution defined in
+CANONICAL_MATH_SPEC.md Section 8.3.2. Family A, the
+tagged-player base-out joint model, remains approved and may
+later replace Family B through the normal canonical revision
+process.
+
+Batter Runs is a V1 market under the same Family B assignment.
+
+Under either family, constructing Hits + Runs + RBIs by
+convolving independent Hits, Runs, and RBI marginal
+distributions is prohibited.
+
+CANONICAL_MATH_SPEC.md controls model-family requirements. Where
+this document names a specific family for a market, it is a
+pointer to the registry, not an independent authority.
 
 Pitcher Strikeouts remains an intended market and requires the canonical
 sequential joint workload-and-outcome process. It may not use the hitter
@@ -1114,6 +1130,24 @@ There is no separate Project Knowledge deliverable.
 ------------------------------------------------------------------------
 
 ## Changelog
+
+### Version 2.10 — 2026-08-05
+
+- Updated the Section 15 Hits + Runs + RBIs requirement to
+  reference the CANONICAL_MATH_SPEC.md Section 12.2 market
+  registry rather than mandating a fixed model family.
+- Recorded Hits + Runs + RBIs as the primary V1 market and
+  Batter Runs as a V1 market, both assigned Family B, the
+  directly fitted composite distribution defined in
+  CANONICAL_MATH_SPEC.md Section 8.3.2.
+- Retained Family A, the tagged-player base-out joint model,
+  as approved and available to replace Family B through the
+  normal canonical revision process.
+- Preserved without change the prohibition on constructing
+  Hits + Runs + RBIs from independent marginal convolution.
+- Clarified that CANONICAL_MATH_SPEC.md controls model-family
+  requirements and that family names in PROJECT_RULES.md are
+  pointers to the registry, not independent authority.
 
 ### Version 2.9 --- 2026-08-03
 

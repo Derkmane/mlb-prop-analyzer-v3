@@ -1,6 +1,6 @@
 # MLB Prop Analyzer — Canonical Math & Statistics Reference
 
-**Version:** 1.7
+**Version:** 1.8
 **Status:** Canonical probability mathematics
 **Empirical status:** Mathematical framework verified where marked; predictive accuracy not yet validated
 
@@ -386,9 +386,18 @@ removal state
 
 Pitcher market distributions are marginals of that joint distribution. Do not first fit an unconditional batters-faced distribution and then convolve outcomes as though workload were independent of those outcomes.
 
-### 8.3 Tagged-player base-out markets
+### 8.3 Tagged-player and composite game-state markets
 
-Runs, RBIs, and Hits + Runs + RBIs require a tagged-player base-out and lineup-state model.
+Runs, RBIs, and Hits + Runs + RBIs depend on lineup and
+base-out state. They may not be modeled as self-contained
+hitter PA markets.
+
+Two model families are approved. Each market's active
+family is recorded in the versioned market registry in
+Section 12.2. No module may infer or substitute a family
+at runtime.
+
+#### 8.3.1 Family A — tagged-player base-out joint model
 
 The state must preserve at least:
 
@@ -401,20 +410,74 @@ lineup position
 score context when required
 ```
 
-Hits + Runs + RBIs must come from the joint distribution:
+Hits + Runs + RBIs under Family A comes from the joint
+distribution:
 
-```text
 P(H = h, R = r, RBI = b)
-```
 
 and then:
 
-```text
 P(H + R + RBI = t)
   = Σ_(h+r+b=t) P(H=h, R=r, RBI=b)
-```
 
-Never convolve independent marginal Hits, Runs, and RBI distributions.
+#### 8.3.2 Family B — directly fitted composite distribution
+
+A market may instead be modeled as a single distribution
+fitted directly over its own official settlement statistic,
+conditioned on context-adjusted baseball inputs.
+
+Under Family B:
+
+1. The distribution is fitted directly over the settlement
+   statistic — T = H+R+RBI for Hits+Runs+RBIs, R for Batter
+   Runs. The triple joint P(H=h,R=r,RBI=b) is NOT formed
+   and is not required.
+
+2. Conditioning inputs must be baseball-unit quantities
+   only: context-adjusted terminal outcome vector, expected
+   plate appearances, lineup slot, platoon split cell,
+   opposing starter pooling, team implied run total, and
+   on-base quality of preceding lineup slots. Context
+   factors act only on these inputs. No context factor may
+   adjust a probability directly, and no factor may read
+   the selected side.
+
+3. Runtime evaluation must be exact and analytic.
+   No Monte Carlo.
+
+4. Baseline and alternate offers settle off the same fitted
+   distribution. Alternate lines are settled independently
+   at their own posted line. Never interpolate between
+   lines. Never substitute a standard line when an
+   alternate is unavailable.
+
+5. INDEPENDENT MARGINAL CONVOLUTION REMAINS PROHIBITED.
+   A Family B distribution may not be constructed by
+   convolving separate Hits, Runs, and RBI distributions.
+   Family B is a direct fit of one statistic, not a
+   combination of marginals. This prohibition is unchanged
+   from Version 1.7.
+
+6. Calibration must be reported separately at each posted
+   line, with lines at 2.5 and above bucketed separately
+   from 0.5 and 1.5. Aggregate calibration that passes only
+   because shallow lines dominate the sample is not
+   acceptance.
+
+7. When two or more Family B markets are fitted separately
+   over related statistics, a cross-market coherence
+   diagnostic must be computed and reported. Deviation
+   beyond the declared versioned tolerance fails closed.
+
+8. A Family B distribution that fails its calibration gate
+   fails closed. It may not be replaced by a shallower
+   line, a standard line, a Family A approximation, or any
+   fallback.
+
+Family B is an approved production family, not a
+provisional shortcut. Family A remains approved and may
+later replace Family B for any market through the normal
+canonical revision process.
 
 ### 8.4 Official-scoring reconstruction markets
 
@@ -789,10 +852,11 @@ The initial V3 planned market catalog is:
 
 | Base market | Mathematical family | Initial status |
 |---|---|---|
-| Batter Hits | self-contained hitter PA | PLANNED; first vertical slice; production fit not yet validated |
-| Batter Total Bases | self-contained hitter PA using the same terminal PA vectors as Hits | PLANNED; requires the shared categorical fit and validation |
-| Batter Hits + Runs + RBIs | tagged-player base-out joint distribution | PLANNED; approved-source data sufficiency and joint model validation required |
-| Pitcher Strikeouts | joint pitcher workload-and-outcome | PLANNED; sequential workload/removal model and validation required |
+| Batter Hits | self-contained hitter PA | BUILT; production fit validation ongoing |
+| Batter Hits + Runs + RBIs | Family B directly fitted composite (8.3.2) | PLANNED; primary V1 market; approved-source data sufficiency and per-line calibration validation required |
+| Batter Runs | Family B directly fitted composite (8.3.2) | PLANNED; approved-source data sufficiency and per-line calibration validation required |
+| Batter Total Bases | self-contained hitter PA using the same terminal PA vectors as Hits | PLANNED; post-V1; requires the shared categorical fit and validation |
+| Pitcher Strikeouts | joint pitcher workload-and-outcome | PLANNED; post-V1; sequential workload/removal model and validation required |
 
 An observed provider market not listed in the approved registry is ineligible for production ranking.
 
@@ -1153,7 +1217,12 @@ Before ranking any real prop:
 27. Pitcher Strikeouts cannot use the self-contained hitter opportunity-mixture adapter in production.
 28. Pitcher state propagation conserves probability mass across continue and remove transitions.
 29. Pitcher outcome marginals are coherent with the same joint workload paths.
-30. Hits + Runs + RBIs is derived from a joint distribution, never independent marginal convolution.
+30. Hits + Runs + RBIs is derived from either a
+    tagged-player base-out joint distribution (Family A) or
+    a directly fitted composite distribution over the
+    settlement statistic (Family B), never from independent
+    marginal convolution of separate Hits, Runs, and RBI
+    distributions.
 31. Walk markets verify whether intentional walks are included and require a game-state component when they are.
 32. Every market-specific eligibility event `A` is linked to a versioned settlement rule.
 33. Baseline and alternate offers for the same base market use the same statistic distribution and differ only by posted offer attributes and settlement.
@@ -1176,6 +1245,21 @@ Before ranking any real prop:
 41. Projected-lineup diagnostics cannot change model probabilities,
     eligibility, void, confidence, category access, or ranking solely
     because lineup status is projected.
+42. Every Family B market reports calibration separately at
+    each posted line, with lines at 2.5 and above bucketed
+    separately. Aggregate calibration passing on
+    shallow-line volume alone is not acceptance.
+43. Family B cross-market coherence is computed and
+    reported for related statistics fitted separately.
+    Deviation beyond the declared versioned tolerance fails
+    closed rather than being silently accepted.
+44. A Family B distribution failing its calibration gate
+    fails closed and cannot reach ranking. It may not be
+    replaced by a shallower line, a standard line, a Family
+    A approximation, or any fallback distribution.
+45. Every market's mathematical family is read from the
+    versioned registry in §12.2. No module infers,
+    defaults, or substitutes a family at runtime.
 
 ---
 
@@ -1215,8 +1299,16 @@ The following must be fitted, documented, versioned, and validated before real-p
 
 ### Game-state and settlement components
 
-- tagged-player base-out model for Runs, RBIs, and H+R+RBI
+- tagged-player base-out model for any market assigned
+  Family A in the §12.2 registry
+- for any market assigned Family B: the versioned direct
+  composite fit, its conditioning input contract, its
+  per-line calibration report including separate deep-line
+  buckets, its cross-market coherence tolerance, and its
+  fail-closed gate
 - runner-identity and advancement data sufficiency
+  (required for Family A; for Family B, required only to
+  the extent it feeds the declared conditioning inputs)
 - intentional-walk settlement handling for any Walk market
 - market-specific eligibility event `P(A)`
 - versioned settlement rules and effective dates
@@ -1282,8 +1374,21 @@ Hits:
 Total Bases:
 1·1B+2·2B+3·3B+4·HR
 
-H+R+RBI:
+H+R+RBI — Family A (tagged-player base-out, §8.3.1):
 P(T=t) = Σ_(h+r+b=t) P(H=h,R=r,RBI=b)
+
+H+R+RBI — Family B (directly fitted composite, §8.3.2):
+P(T=t) = fitted directly over the settlement statistic T,
+         conditioned on the declared baseball-unit inputs.
+         The triple joint P(H=h,R=r,RBI=b) is not formed.
+
+Batter Runs — Family B (§8.3.2):
+P(R=r) = fitted directly over the settlement statistic R,
+         conditioned on the declared baseball-unit inputs.
+
+Active family per market is read from the §12.2 registry.
+Neither family may be constructed by convolving independent
+Hits, Runs, and RBI marginals.
 
 Fail closed:
 no validated distribution → no ranked prop
@@ -1292,6 +1397,46 @@ no validated distribution → no ranked prop
 ---
 
 ## Changelog
+
+### Version 1.8 — 2026-08-05
+
+- Restructured Section 8.3 into two approved model families
+  for lineup- and base-out-dependent markets.
+- Family A retains the tagged-player base-out joint model
+  unchanged.
+- Added Family B, a directly fitted composite distribution
+  over a market's own official settlement statistic,
+  conditioned on context-adjusted baseball-unit inputs, as
+  an approved production family.
+- Recorded that Family B fits the settlement statistic
+  directly and does not form the triple joint
+  P(H=h,R=r,RBI=b).
+- Preserved without change the prohibition on constructing
+  Hits + Runs + RBIs from independent marginal convolution.
+  Family B is a single direct fit, not a combination of
+  marginals.
+- Required per-line calibration for Family B markets with
+  lines at 2.5 and above bucketed separately, on the
+  grounds that the conditional independence assumption
+  compresses distribution tails and can make deep alternate
+  lines read as safer than they are.
+- Required a cross-market coherence diagnostic with a
+  declared versioned tolerance when related statistics are
+  fitted separately under Family B.
+- Required Family B calibration failure to fail closed with
+  no fallback to shallower lines, standard lines, or a
+  Family A approximation.
+- Assigned Batter Hits + Runs + RBIs and Batter Runs to
+  Family B in the §12.2 registry.
+- Added Batter Runs to the §12.2 market registry. It was
+  absent in Version 1.7, which would have rendered the
+  market ineligible for production ranking.
+- Moved Batter Total Bases and Pitcher Strikeouts to
+  post-V1 status per the V1 scope section of
+  PROJECT_CHECKLIST.md.
+- Replaced Section 17 item 30 and appended items 42-45.
+- Replaced the Section 18 game-state component requirement
+  to be family-conditional.
 
 ### Version 1.7 — 2026-08-03
 
