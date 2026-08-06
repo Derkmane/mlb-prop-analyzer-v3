@@ -25,9 +25,9 @@ jobs:
         env:
           THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
         run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const path = require('node:path');
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
           const apiKey = process.env.THE_ODDS_API_KEY?.trim();
           if (!apiKey) throw new Error('Missing THE_ODDS_API_KEY.');
           const timestamps = [
