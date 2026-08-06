@@ -14,6 +14,10 @@ export {
 } from './observed-settlement.js';
 export { compareSettlementResultsForRanking } from './ranking.js';
 export {
+  sumPerPaOutcomeProbability,
+  validatePerPaOutcomeVector,
+} from './per-pa-outcome.js';
+export {
   createProbabilityMassFunction,
   PROBABILITY_TOLERANCE,
   validateProbability,
