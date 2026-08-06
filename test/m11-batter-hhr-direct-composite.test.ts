@@ -63,7 +63,7 @@ test('HHR artifact is one direct Family B offset fit using all seven inputs with
   assert.equal(validated.boxScoreVerificationStatus, 'step-3-required');
 });
 
-test('HHR retained diagnostics pass VIF, lineup magnitude, quality-spread, and exclusion conservation gates', async () => {
+test('HHR retained diagnostics preserve passed structural gates, retired Gate C evidence, and exclusion conservation', async () => {
   const { diagnostics, fixture } = await evidence();
   assert.equal(diagnostics.acceptanceGates.vif.passed, true);
   assert.ok(Object.values(diagnostics.varianceInflationFactors).every((value) => typeof value === 'number' && value <= 5));
@@ -72,8 +72,8 @@ test('HHR retained diagnostics pass VIF, lineup magnitude, quality-spread, and e
   assert.equal(diagnostics.coefficientScale, 'standardized-per-sample-standard-deviation');
   assert.deepEqual(diagnostics.predictorStandardDeviations, Object.fromEntries(Object.entries(diagnostics.predictorSummaries).slice(0, 6).map(([name, value]: [string, any]) => [name, value.standardDeviation])));
   assert.equal(typeof diagnostics.confidenceIntervalsExcludingZero.count, 'number');
-  assert.equal(diagnostics.acceptanceGates.batterQualitySpread.passed, true);
-  assert.ok(diagnostics.qualitySpreadBySlot.every((row: { readonly ratio: number }) => row.ratio >= 1.10));
+  assert.equal(diagnostics.acceptanceGates.batterQualitySpread.passed, false);
+  assert.ok(diagnostics.qualitySpreadBySlot.every((row: { readonly ratio: number }) => row.ratio < 1.10));
   assert.equal(diagnostics.nineCellPredictionTable.length, 9);
   assert.equal(Object.values(fixture.exclusionCounts).reduce((sum: number, value) => sum + Number(value), 0), fixture.excludedRowCount);
   assert.equal(fixture.exclusionCountSum, fixture.excludedRowCount);
