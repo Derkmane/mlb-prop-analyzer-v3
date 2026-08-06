@@ -166,6 +166,25 @@ function fitNb2(rows, transforms) {
 const [fixtureText, boardText] = await Promise.all([readFile(FIXTURE_PATH, 'utf8'), readFile(BOARD_PATH, 'utf8')]);
 const fixture = JSON.parse(fixtureText);
 const board = JSON.parse(boardText);
+await mkdir(path.dirname(DIAGNOSTICS_PATH), { recursive: true });
+const prefitDiagnosticsIdentity = {
+  diagnosticsVersion: 1,
+  modelVersion: 'm11-batter-hhr-direct-composite-v1',
+  status: 'pre-fit-contract-validation',
+  sourceFixtureSha256: sha256(fixtureText),
+  rowCount: Array.isArray(fixture.rows) ? fixture.rows.length : null,
+  gameCount: Number.isInteger(fixture.gameCount) ? fixture.gameCount : null,
+  predictorSummaries: fixture.predictorSummaries ?? null,
+  exclusionCounts: fixture.exclusionCounts ?? null,
+  excludedRowCount: Number.isInteger(fixture.excludedRowCount) ? fixture.excludedRowCount : null,
+  exclusionCountSum: Number.isInteger(fixture.exclusionCountSum) ? fixture.exclusionCountSum : null,
+  acceptanceGates: null,
+};
+const prefitDiagnostics = {
+  ...prefitDiagnosticsIdentity,
+  diagnosticsSha256: sha256(JSON.stringify(prefitDiagnosticsIdentity)),
+};
+await writeFile(DIAGNOSTICS_PATH, `${JSON.stringify(prefitDiagnostics, null, 2)}\n`);
 if (fixture.schemaVersion !== 2 || fixture.expectedPaRole !== 'log offset with fixed coefficient 1') throw new Error('HHR respecified fixture contract mismatch.');
 if (!Array.isArray(fixture.rows) || fixture.rows.length < 500) throw new Error('HHR fixture requires at least 500 rows.');
 const requiredInputs = [
@@ -304,9 +323,7 @@ const modelIdentity = {
   blocker: 'M11 step 3 box-score verification and per-line calibration, including separate deep-line buckets, are incomplete.',
 };
 const model = { ...modelIdentity, artifactSha256: sha256(JSON.stringify(modelIdentity)) };
-await mkdir(path.dirname(MODEL_PATH), { recursive: true });
 await writeFile(DIAGNOSTICS_PATH, `${JSON.stringify(diagnostics, null, 2)}\n`);
-await writeFile(MODEL_PATH, `${JSON.stringify(model, null, 2)}\n`);
 
 console.log('=== M11 HHR RESPECIFIED FIT ===');
 console.log(`ROWS: ${fixture.rows.length}`);
@@ -331,3 +348,5 @@ console.log('=== END M11 HHR RESPECIFIED FIT ===');
 if (!gates.vif.passed) throw new Error(`GATE A FAILED: maximum VIF ${gates.vif.maximumObserved} exceeds ${VIF_MAXIMUM}.`);
 if (!gates.lineupSlotSign.passed) throw new Error(`GATE B FAILED: lineup-slot coefficient ${coefficients.centeredLineupSlot} is positive.`);
 if (!gates.batterQualitySpread.passed) throw new Error(`GATE C FAILED: minimum quality ratio ${gates.batterQualitySpread.minimumObservedRatio} is below ${QUALITY_SPREAD_MINIMUM_RATIO}.`);
+await writeFile(MODEL_PATH, `${JSON.stringify(model, null, 2)}\n`);
+console.log('MODEL PERSISTED AFTER GATES: true');

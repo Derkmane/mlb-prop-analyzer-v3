@@ -246,6 +246,32 @@ function median(values) {
   return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
 }
 
+function diagnosticSummary(values) {
+  if (values.length === 0) {
+    return Object.freeze({
+      count: 0, min: null, max: null, mean: null, standardDeviation: null,
+      p10: null, p50: null, p90: null,
+    });
+  }
+  const sorted = [...values].sort((left, right) => left - right);
+  const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+  const standardDeviation = values.length === 1
+    ? 0
+    : Math.sqrt(values.reduce((sum, value) => sum + (value - average) ** 2, 0) / (values.length - 1));
+  const quantile = (probability) => {
+    const index = (sorted.length - 1) * probability;
+    const lower = Math.floor(index);
+    const upper = Math.ceil(index);
+    return lower === upper
+      ? sorted[lower]
+      : sorted[lower] + (sorted[upper] - sorted[lower]) * (index - lower);
+  };
+  return Object.freeze({
+    count: values.length, min: sorted[0], max: sorted.at(-1), mean: average, standardDeviation,
+    p10: quantile(0.10), p50: quantile(0.50), p90: quantile(0.90),
+  });
+}
+
 async function historicalEvent(game) {
   const snapshotTime = new Date(Date.parse(game.commenceTime) - 60 * 60 * 1000)
     .toISOString()
@@ -524,11 +550,16 @@ for (const stat of stats) {
   }
 }
 rows.sort((left, right) => left.date.localeCompare(right.date) || left.gameId - right.gameId || left.playerId - right.playerId);
-if (rows.length < 500) throw new Error(`Respecified HHR fit requires at least 500 complete rows; received ${rows.length}.`);
 const excludedRowCount = Object.values(exclusionCounts).reduce((sum, count) => sum + count, 0);
-if (excludedRowCount + rows.length !== stats.length) {
-  throw new Error(`Exclusion conservation failed: ${excludedRowCount} + ${rows.length} != ${stats.length}.`);
-}
+const predictorSummaries = Object.freeze({
+  contextHitQualityLogit: diagnosticSummary(rows.map((row) => row.derivedPredictors.contextHitQualityLogit)),
+  centeredLineupSlot: diagnosticSummary(rows.map((row) => row.derivedPredictors.centeredLineupSlot)),
+  platoonSplitCell: diagnosticSummary(rows.map((row) => row.conditioningInputs.platoonSplitCell)),
+  opposingStarterPooling: diagnosticSummary(rows.map((row) => row.conditioningInputs.opposingStarterPooling)),
+  teamImpliedRunTotal: diagnosticSummary(rows.map((row) => row.conditioningInputs.teamImpliedRunTotal)),
+  precedingLineupSlotsOnBaseQuality: diagnosticSummary(rows.map((row) => row.conditioningInputs.precedingLineupSlotsOnBaseQuality)),
+  expectedPlateAppearances: diagnosticSummary(rows.map((row) => row.conditioningInputs.expectedPlateAppearances)),
+});
 
 const fixture = {
   schemaVersion: 2,
@@ -548,6 +579,7 @@ const fixture = {
   excludedRowCount,
   exclusionCounts,
   exclusionCountSum: excludedRowCount,
+  predictorSummaries,
   sourceArtifacts: {
     terminalOutcome: { path: 'model-artifacts/m8-terminal-pa-outcome-v1.json', fileSha256: terminalFile.sha256, artifactSha256: terminal.artifactSha256 },
     sharedEnvironment: { path: 'model-artifacts/m8-shared-offensive-environment-v2.json', fileSha256: sharedFile.sha256, artifactSha256: shared.artifactSha256 },
@@ -576,3 +608,10 @@ console.log('ALL SEVEN CONDITIONING INPUTS: true');
 console.log('RAW HITS/PA PREDICTOR: false');
 console.log('PA OFFSET FIXED AT 1: true');
 console.log('=== END M11 HHR RESPECIFIED EVIDENCE ===');
+
+if (excludedRowCount + rows.length !== stats.length) {
+  throw new Error(`Exclusion conservation failed after diagnostic persistence: ${excludedRowCount} + ${rows.length} != ${stats.length}.`);
+}
+if (rows.length < 500) {
+  throw new Error(`Respecified HHR fit requires at least 500 complete rows after diagnostic persistence; received ${rows.length}.`);
+}
