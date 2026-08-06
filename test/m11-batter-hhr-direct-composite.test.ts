@@ -13,10 +13,10 @@ import {
   type BatterHhrDistributionInput,
 } from '../src/features/batter-hhr/index.js';
 
-const MODEL_PATH = path.resolve('model-artifacts/m11-batter-hhr-direct-composite-v1.json');
-const DIAGNOSTICS_PATH = path.resolve('model-artifacts/m11-batter-hhr-direct-composite-diagnostics-v1.json');
-const FIXTURE_PATH = path.resolve('fixtures/sanitized/m11/hhr/respecified-v1/balldontlie-hhr-design-matrix-v1.json');
-const BOARD_PATH = path.resolve('fixtures/sanitized/m11/hhr/respecified-v1/the-odds-api-underdog-hhr-board-v1.json');
+const MODEL_PATH = path.resolve('model-artifacts/m11-batter-hhr-direct-composite-v2.json');
+const DIAGNOSTICS_PATH = path.resolve('model-artifacts/m11-batter-hhr-direct-composite-diagnostics-v2.json');
+const FIXTURE_PATH = path.resolve('fixtures/sanitized/m11/hhr/respecified-v2/balldontlie-hhr-design-matrix-v2.json');
+const BOARD_PATH = path.resolve('fixtures/sanitized/m11/hhr/respecified-v2/the-odds-api-underdog-hhr-board-v2.json');
 const REQUIRED_INPUTS = [
   'context-adjusted-terminal-outcome-vector','expected-plate-appearances','lineup-slot','platoon-split-cell',
   'opposing-starter-pooling','team-implied-run-total','preceding-lineup-slots-on-base-quality',
@@ -53,6 +53,7 @@ test('HHR artifact is one direct Family B offset fit using all seven inputs with
   assert.equal(validated.mathematicalFamily, 'directly-fitted-composite');
   assert.equal(validated.fittingDetails.expectedPlateAppearancesRole, 'offset');
   assert.equal(validated.fittingDetails.expectedPlateAppearancesCoefficient, 1);
+  assert.equal(validated.fittingDetails.coefficientScale, 'standardized-per-sample-standard-deviation');
   assert.deepEqual(validated.usedConditioningInputs, REQUIRED_INPUTS);
   assert.deepEqual(validated.excludedConditioningInputs, []);
   assert.equal(validated.fittingDetails.independentMarginalConvolution, false);
@@ -62,12 +63,15 @@ test('HHR artifact is one direct Family B offset fit using all seven inputs with
   assert.equal(validated.boxScoreVerificationStatus, 'step-3-required');
 });
 
-test('HHR retained diagnostics pass VIF, lineup sign, quality-spread, and exclusion conservation gates', async () => {
+test('HHR retained diagnostics pass VIF, lineup magnitude, quality-spread, and exclusion conservation gates', async () => {
   const { diagnostics, fixture } = await evidence();
   assert.equal(diagnostics.acceptanceGates.vif.passed, true);
   assert.ok(Object.values(diagnostics.varianceInflationFactors).every((value) => typeof value === 'number' && value <= 5));
-  assert.equal(diagnostics.acceptanceGates.lineupSlotSign.passed, true);
-  assert.ok(diagnostics.coefficientInference.centeredLineupSlot.estimate <= 0);
+  assert.equal(diagnostics.acceptanceGates.lineupSlotMagnitude.passed, true);
+  assert.ok(Math.abs(diagnostics.coefficientInference.centeredLineupSlot.estimate) < 0.15);
+  assert.equal(diagnostics.coefficientScale, 'standardized-per-sample-standard-deviation');
+  assert.deepEqual(diagnostics.predictorStandardDeviations, Object.fromEntries(Object.entries(diagnostics.predictorSummaries).slice(0, 6).map(([name, value]: [string, any]) => [name, value.standardDeviation])));
+  assert.equal(typeof diagnostics.confidenceIntervalsExcludingZero.count, 'number');
   assert.equal(diagnostics.acceptanceGates.batterQualitySpread.passed, true);
   assert.ok(diagnostics.qualitySpreadBySlot.every((row: { readonly ratio: number }) => row.ratio >= 1.10));
   assert.equal(diagnostics.nineCellPredictionTable.length, 9);

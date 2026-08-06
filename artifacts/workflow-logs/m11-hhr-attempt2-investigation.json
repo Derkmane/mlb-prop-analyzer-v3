@@ -1,0 +1,26 @@
+{
+  "attempt": 2,
+  "fitWindow": null,
+  "lookaheadAudit": null,
+  "rowCount": null,
+  "gameCount": null,
+  "exclusionCounts": null,
+  "exclusionExamples": null,
+  "duplicateMarketDeclaration": {
+    "status": "reported-not-fixed",
+    "literalBaseMarketKey": "batter-hits-runs-rbis",
+    "sites": [
+      {
+        "path": "src/features/batter-hhr/manifest.ts",
+        "literal": "export const BATTER_HHR_MARKET_KEY = 'batter-hits-runs-rbis';",
+        "disposition": "correct-canonical-owner"
+      },
+      {
+        "path": "src/features/batter-hhr/contracts.ts",
+        "literal": "readonly baseMarketKey: 'batter-hits-runs-rbis';",
+        "disposition": "duplicate-type-literal-to-remove-later-not-fixed-in-attempt-2"
+      }
+    ],
+    "correctOwner": "src/features/batter-hhr/manifest.ts"
+  }
+}

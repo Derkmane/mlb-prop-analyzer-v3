@@ -1,0 +1,13 @@
+{
+  "attempt": 2,
+  "attemptLimit": 2,
+  "sourceHead": "7e1dc34dcbc278246fd36a1d9a8800b52051da3c",
+  "captureOutcome": "skipped",
+  "captureStatus": "",
+  "fitOutcome": "skipped",
+  "fitStatus": "",
+  "verifyOutcome": "skipped",
+  "verifyStatus": "",
+  "productionEnabled": false,
+  "rankingEnabled": false
+}

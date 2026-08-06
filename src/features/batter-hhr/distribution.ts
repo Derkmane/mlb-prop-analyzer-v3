@@ -53,12 +53,13 @@ function assertNoForbiddenModelKeys(value: unknown, path = 'artifact'): void {
 export function validateBatterHhrDirectCompositeArtifact(
   artifact: BatterHhrDirectCompositeArtifact,
 ): BatterHhrDirectCompositeArtifact {
-  if (artifact.artifactVersion !== 1 || artifact.modelVersion !== BATTER_HHR_MODEL_VERSION) throw new Error('Batter HHR artifact identity mismatch.');
+  if (artifact.artifactVersion !== 2 || artifact.modelVersion !== BATTER_HHR_MODEL_VERSION) throw new Error('Batter HHR artifact identity mismatch.');
   if (artifact.distributionBuilderVersion !== BATTER_HHR_DISTRIBUTION_BUILDER_VERSION) throw new Error('Batter HHR distributionBuilderVersion mismatch.');
   if (artifact.mathematicalFamily !== BATTER_HHR_MATHEMATICAL_FAMILY || artifact.officialSettlementStatistic !== 'hits+runs+rbis') throw new Error('Batter HHR mathematical contract mismatch.');
   if (artifact.activeSeason !== 2026 || artifact.productionEnabled !== false || artifact.validationStatus !== 'not-production-validated') throw new Error('Batter HHR artifact must remain disabled and not production validated.');
   if (artifact.fittingMethod !== 'negative-binomial-log-link-irls-offset-v1') throw new Error('Batter HHR fitting method mismatch.');
   if (artifact.fittingDetails.expectedPlateAppearancesRole !== 'offset' || artifact.fittingDetails.expectedPlateAppearancesCoefficient !== 1) throw new Error('Batter HHR expected PA must be a fixed unit offset.');
+  if (artifact.fittingDetails.coefficientScale !== 'standardized-per-sample-standard-deviation') throw new Error('Batter HHR coefficient scale must be explicit and standardized.');
   if (artifact.fittingDetails.independentMarginalConvolution !== false || artifact.fittingDetails.tripleJointFormed !== false || artifact.fittingDetails.monteCarloRuntime !== false) throw new Error('Batter HHR Family B runtime contract mismatch.');
   if (JSON.stringify(artifact.usedConditioningInputs) !== JSON.stringify(REQUIRED_INPUTS) || artifact.excludedConditioningInputs.length !== 0) throw new Error('Batter HHR must use all seven canonical conditioning inputs.');
   assertFinite(artifact.coefficients.intercept, 'artifact intercept');
@@ -67,6 +68,7 @@ export function validateBatterHhrDirectCompositeArtifact(
     const transform = artifact.predictorTransforms[predictor];
     assertFinite(transform.mean, `artifact transform mean ${predictor}`);
     assertPositive(transform.standardDeviation, `artifact transform standard deviation ${predictor}`);
+    if (artifact.fittingDetails.predictorStandardDeviations[predictor] !== transform.standardDeviation) throw new Error(`Batter HHR predictor SD drift for ${predictor}.`);
   }
   assertPositive(artifact.dispersionAlpha, 'artifact dispersionAlpha');
   if (artifact.tailCollapseAt !== BATTER_HHR_TAIL_COLLAPSE_AT || artifact.maximumExactPostedLine !== BATTER_HHR_MAXIMUM_EXACT_POSTED_LINE) throw new Error('Batter HHR exact-settlement support mismatch.');

@@ -9,16 +9,23 @@ const bdlKey = process.env.BALLDONTLIE_API_KEY?.trim();
 if (!oddsKey) throw new Error('Missing THE_ODDS_API_KEY.');
 if (!bdlKey) throw new Error('Missing BALLDONTLIE_API_KEY.');
 
-const WARMUP_DATES = Object.freeze([
-  '2026-07-13','2026-07-14','2026-07-15','2026-07-16','2026-07-17','2026-07-18','2026-07-19',
-]);
-const FIT_DATES = Object.freeze([
-  '2026-07-20','2026-07-21','2026-07-22','2026-07-23','2026-07-24','2026-07-25',
-]);
-const ALL_DATES = Object.freeze([...WARMUP_DATES, ...FIT_DATES]);
-const OUTPUT_DIRECTORY = path.resolve('fixtures/sanitized/m11/hhr/respecified-v1');
-const DESIGN_PATH = path.join(OUTPUT_DIRECTORY, 'balldontlie-hhr-design-matrix-v1.json');
-const BOARD_PATH = path.join(OUTPUT_DIRECTORY, 'the-odds-api-underdog-hhr-board-v1.json');
+const FROZEN_HISTORY_START_DATE = '2026-03-26';
+const FROZEN_HISTORY_END_DATE = '2026-07-05';
+const FIT_START_DATE = '2026-07-06';
+const FIT_SCAN_END_DATE = '2026-08-05';
+const ATTEMPT_1_ROW_COUNT = 783;
+function enumerateIsoDates(startDate, endDate) {
+  const dates = [];
+  for (let value = Date.parse(`${startDate}T00:00:00Z`); value <= Date.parse(`${endDate}T00:00:00Z`); value += 86_400_000) {
+    dates.push(new Date(value).toISOString().slice(0, 10));
+  }
+  return Object.freeze(dates);
+}
+const FIT_SCAN_DATES = enumerateIsoDates(FIT_START_DATE, FIT_SCAN_END_DATE);
+let FIT_DATES = Object.freeze([]);
+const OUTPUT_DIRECTORY = path.resolve('fixtures/sanitized/m11/hhr/respecified-v2');
+const DESIGN_PATH = path.join(OUTPUT_DIRECTORY, 'balldontlie-hhr-design-matrix-v2.json');
+const BOARD_PATH = path.join(OUTPUT_DIRECTORY, 'the-odds-api-underdog-hhr-board-v2.json');
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const TERMINAL_CATEGORIES = Object.freeze([
@@ -393,14 +400,41 @@ const parkByVenueHand = parkMultiplierMap(parkFile.value);
 const bullpenByTeamHand = teamBullpenMap(bullpenFile.value);
 if (JSON.stringify(terminal.categories) !== JSON.stringify(TERMINAL_CATEGORIES)) throw new Error('M8 terminal categories drifted.');
 
-const gamesUrl = new URL('https://api.balldontlie.io/mlb/v1/games');
-for (const date of ALL_DATES) gamesUrl.searchParams.append('dates[]', date);
-gamesUrl.searchParams.set('season_type', 'regular');
-gamesUrl.searchParams.set('per_page', '100');
-const gamesSnapshot = await fetchSnapshot(gamesUrl, 'BDL HHR respecified games', { headers: { Authorization: bdlKey }, bdl: true });
-if (!Array.isArray(gamesSnapshot.body?.data)) throw new Error('BDL games data must be an array.');
-const games = gamesSnapshot.body.data
-  .filter((game) => game?.status === 'STATUS_FINAL' && ALL_DATES.includes(String(game.date).slice(0, 10)))
+const rawGameRows = [];
+const gameSourceSnapshots = [];
+for (const date of FIT_SCAN_DATES) {
+  const gamesUrl = new URL('https://api.balldontlie.io/mlb/v1/games');
+  gamesUrl.searchParams.append('dates[]', date);
+  gamesUrl.searchParams.set('season_type', 'regular');
+  gamesUrl.searchParams.set('per_page', '100');
+  const snapshot = await fetchSnapshot(gamesUrl, `BDL HHR attempt 2 games ${date}`, {
+    headers: { Authorization: bdlKey }, bdl: true,
+  });
+  if (!Array.isArray(snapshot.body?.data)) throw new Error(`BDL games ${date} data must be an array.`);
+  rawGameRows.push(...snapshot.body.data);
+  gameSourceSnapshots.push({ endpoint: 'games', dates: [date], rawBodySha256: snapshot.rawBodySha256 });
+}
+const rawGamesByDate = new Map();
+for (const game of rawGameRows) {
+  const date = String(game?.date ?? '').slice(0, 10);
+  if (!FIT_SCAN_DATES.includes(date)) continue;
+  const dateRows = rawGamesByDate.get(date) ?? [];
+  dateRows.push(game);
+  rawGamesByDate.set(date, dateRows);
+}
+const completeDates = [...rawGamesByDate.entries()]
+  .filter(([, dateRows]) => dateRows.length > 0 && dateRows.every((game) => game?.status === 'STATUS_FINAL'))
+  .map(([date]) => date)
+  .sort();
+const latestCompleteDate = completeDates.at(-1);
+if (!latestCompleteDate || latestCompleteDate < FIT_START_DATE) {
+  throw new Error('No complete HHR fitted date exists after the frozen pitcherAllowed range.');
+}
+FIT_DATES = Object.freeze(FIT_SCAN_DATES.filter((date) => date <= latestCompleteDate));
+const lookaheadOverlap = FIT_DATES.some((date) => date <= FROZEN_HISTORY_END_DATE);
+if (lookaheadOverlap) throw new Error('HHR attempt 2 lookahead overlap detected before fitting.');
+const games = rawGameRows
+  .filter((game) => game?.status === 'STATUS_FINAL' && FIT_DATES.includes(String(game.date).slice(0, 10)))
   .map((game) => ({
     gameId: game.id,
     date: String(game.date).slice(0, 10),
@@ -417,7 +451,7 @@ if (games.length < 20) throw new Error(`HHR capture requires at least 20 final g
 
 const stats = [];
 const lineups = [];
-const sourceSnapshots = [{ endpoint: 'games', rawBodySha256: gamesSnapshot.rawBodySha256 }];
+const sourceSnapshots = [...gameSourceSnapshots];
 for (const batch of chunks(games.map((game) => game.gameId), 10)) {
   const statsPages = await fetchBdlCursor('stats', batch);
   const lineupPages = await fetchBdlCursor('lineups', batch);
@@ -489,12 +523,34 @@ for (const game of games.filter((row) => FIT_DATES.includes(row.date))) {
 }
 
 const totalsByGame = new Map();
+const teamTotalDiagnosticsByGame = new Map();
 let boardFixture = null;
-for (const game of games.filter((row) => FIT_DATES.includes(row.date))) {
+for (const game of games) {
   const event = await historicalEvent(game);
-  if (!event) continue;
+  if (!event) {
+    teamTotalDiagnosticsByGame.set(game.gameId, Object.freeze({
+      reason: 'historical-event-not-unique-or-missing',
+      gameId: game.gameId,
+      date: game.date,
+      homeTeamName: game.homeTeamName,
+      awayTeamName: game.awayTeamName,
+    }));
+    continue;
+  }
   const totals = await historicalTeamTotals(game, event);
-  if (totals) totalsByGame.set(game.gameId, totals);
+  if (totals) {
+    totalsByGame.set(game.gameId, totals);
+  } else {
+    teamTotalDiagnosticsByGame.set(game.gameId, Object.freeze({
+      reason: 'historical-team-totals-did-not-expose-both-exact-team-points',
+      gameId: game.gameId,
+      date: game.date,
+      eventId: event.event.id,
+      requestedAt: event.snapshotTime,
+      homeTeamName: game.homeTeamName,
+      awayTeamName: game.awayTeamName,
+    }));
+  }
   if (!boardFixture) boardFixture = await captureHistoricalHhrBoard(game, event);
 }
 if (!boardFixture) throw new Error('No historical pregame Underdog event exposed both HHR baseline and alternate markets.');
@@ -505,14 +561,20 @@ const exclusionCounts = Object.fromEntries([
   'starter_absent_from_pitcher_allowed','invalid_handedness','missing_park_effect','missing_team_bullpen',
   'missing_team_total','missing_preceding_lineup','duplicate_player_game','invalid_m8_conditioning',
 ].map((key) => [key, 0]));
+const EXAMPLE_RULES = Object.freeze(['invalid_box_score','missing_lineup_slot','missing_team_total']);
+const exclusionExamples = Object.fromEntries(EXAMPLE_RULES.map((key) => [key, []]));
 const rows = [];
 const seen = new Set();
-function exclude(rule) { exclusionCounts[rule] += 1; }
+function exclude(rule, example = null) {
+  exclusionCounts[rule] += 1;
+  if (example !== null && EXAMPLE_RULES.includes(rule) && exclusionExamples[rule].length < 3) {
+    exclusionExamples[rule].push(Object.freeze(example));
+  }
+}
 
 for (const stat of stats) {
   const game = gameById.get(stat?.game_id);
   if (!game) { exclude('missing_game'); continue; }
-  if (WARMUP_DATES.includes(game.date)) { exclude('warmup_history_only'); continue; }
   const playerId = stat?.player?.id;
   if (!Number.isInteger(playerId)) { exclude('missing_player_identity'); continue; }
   const providerTeamId = stat?.team?.id;
@@ -529,14 +591,48 @@ for (const stat of stats) {
       ? lineupTeamId
       : namedTeamId;
   if (!Number.isInteger(teamId) || (teamId !== game.homeTeamId && teamId !== game.awayTeamId)) { exclude('missing_team_identity'); continue; }
-  const hits = Number(stat?.hits), runs = Number(stat?.runs), rbi = Number(stat?.rbi), pa = Number(stat?.plate_appearances);
-  if (![hits,runs,rbi,pa].every(Number.isInteger) || hits < 0 || runs < 0 || rbi < 0 || pa <= 0) { exclude('invalid_box_score'); continue; }
+  const rawBoxScore = {
+    hits: stat?.hits,
+    runs: stat?.runs,
+    rbi: stat?.rbi,
+    plateAppearances: stat?.plate_appearances,
+  };
+  const hits = Number(rawBoxScore.hits), runs = Number(rawBoxScore.runs), rbi = Number(rawBoxScore.rbi), pa = Number(rawBoxScore.plateAppearances);
+  const invalidBoxReasons = [];
+  if (!Number.isInteger(hits) || hits < 0) invalidBoxReasons.push('hits-not-nonnegative-integer');
+  if (!Number.isInteger(runs) || runs < 0) invalidBoxReasons.push('runs-not-nonnegative-integer');
+  if (!Number.isInteger(rbi) || rbi < 0) invalidBoxReasons.push('rbi-not-nonnegative-integer');
+  if (!Number.isInteger(pa) || pa <= 0) invalidBoxReasons.push('plate-appearances-not-positive-integer');
+  if (invalidBoxReasons.length > 0) {
+    exclude('invalid_box_score', {
+      date: game.date,
+      gameId: game.gameId,
+      playerId,
+      playerName: stat?.player?.full_name ?? null,
+      teamId,
+      rawBoxScore: Object.fromEntries(Object.entries(rawBoxScore).map(([key, value]) => [key, { value: value ?? null, type: value === null ? 'null' : typeof value }])),
+      parsedBoxScore: { hits, runs, rbi, plateAppearances: pa },
+      reasons: invalidBoxReasons,
+    });
+    continue;
+  }
   const identity = `${game.gameId}:${playerId}`;
   if (seen.has(identity)) { exclude('duplicate_player_game'); continue; }
   seen.add(identity);
   const teamRows = hittersByGameTeam.get(`${game.gameId}:${teamId}`);
   const hitter = teamRows ? [...teamRows.values()].find((row) => row.playerId === playerId) : null;
-  if (!hitter) { exclude('missing_lineup_slot'); continue; }
+  if (!hitter) {
+    exclude('missing_lineup_slot', {
+      date: game.date,
+      gameId: game.gameId,
+      playerId,
+      playerName: stat?.player?.full_name ?? null,
+      teamId,
+      lineupTeamId: teamByGamePlayer.get(`${game.gameId}:${playerId}`) ?? null,
+      availableStartingLineup: teamRows ? [...teamRows.values()].map((row) => ({ playerId: row.playerId, lineupSlot: row.lineupSlot })) : [],
+    });
+    continue;
+  }
   const opposingTeamId = teamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId;
   const starterKey = `${game.gameId}:${opposingTeamId}`;
   const recoveryExclusion = starterRecoveryExclusionByGameTeam.get(starterKey);
@@ -559,7 +655,18 @@ for (const stat of stats) {
   const totals = totalsByGame.get(game.gameId);
   const teamName = teamId === game.homeTeamId ? game.homeTeamName : game.awayTeamName;
   const teamTotal = totals?.byTeam.get(teamName);
-  if (!Number.isFinite(teamTotal)) { exclude('missing_team_total'); continue; }
+  if (!Number.isFinite(teamTotal)) {
+    exclude('missing_team_total', {
+      date: game.date,
+      gameId: game.gameId,
+      playerId,
+      playerName: stat?.player?.full_name ?? null,
+      teamId,
+      teamName,
+      diagnostic: teamTotalDiagnosticsByGame.get(game.gameId) ?? { reason: 'team-total-map-missing-request-diagnostic' },
+    });
+    continue;
+  }
   const precedingSlots = [1,2,3].map((distance) => ((hitter.lineupSlot - distance - 1 + 9) % 9) + 1);
   const preceding = precedingSlots.map((slot) => teamRows?.get(slot));
   if (preceding.some((row) => !row?.declaredHand)) { exclude('missing_preceding_lineup'); continue; }
@@ -632,7 +739,8 @@ const predictorSummaries = Object.freeze({
 });
 
 const fixture = {
-  schemaVersion: 2,
+  schemaVersion: 3,
+  attempt: 2,
   starterRecoveryContract: {
     mechanism: 'extraction-and-import',
     sharedFunction: 'recoverM8ActualStarterFromOrderedPitcherAppearances',
@@ -644,20 +752,32 @@ const fixture = {
     noFallbackVector: true,
   },
   lookaheadAudit: {
-    pitcherAllowedDataStartDate: '2026-03-26',
-    pitcherAllowedDataEndDate: '2026-07-05',
-    hhrWarmupStartDate: WARMUP_DATES[0],
-    hhrWarmupEndDate: WARMUP_DATES.at(-1),
+    pitcherAllowedDataStartDate: FROZEN_HISTORY_START_DATE,
+    pitcherAllowedDataEndDate: FROZEN_HISTORY_END_DATE,
+    hhrWarmupStartDate: FROZEN_HISTORY_START_DATE,
+    hhrWarmupEndDate: FROZEN_HISTORY_END_DATE,
     hhrFitStartDate: FIT_DATES[0],
     hhrFitEndDate: FIT_DATES.at(-1),
-    overlap: false,
+    overlap: lookaheadOverlap,
+    fittedRowsOnOrBeforePitcherAllowedEndDate: rows.filter((row) => row.date <= FROZEN_HISTORY_END_DATE).length,
   },
   provider: 'BALLDONTLIE MLB API',
   activeSeason: 2026,
   seasonType: 'regular',
-  warmupWindow: { startDate: WARMUP_DATES[0], endDate: WARMUP_DATES.at(-1), fitted: false },
-  fitWindow: { startDate: FIT_DATES[0], endDate: FIT_DATES.at(-1) },
-  chronology: 'frozen M8/M8.5 artifacts end validation 2026-07-05; HHR warmup and fit occur strictly later',
+  warmupWindow: {
+    startDate: FROZEN_HISTORY_START_DATE,
+    endDate: FROZEN_HISTORY_END_DATE,
+    fitted: false,
+    mechanism: 'frozen M8/M8.5 current-season history artifacts',
+  },
+  fitWindow: {
+    startDate: FIT_DATES[0],
+    endDate: FIT_DATES.at(-1),
+    scanEndDate: FIT_SCAN_END_DATE,
+    latestCompleteDate,
+    fittedDateCount: FIT_DATES.length,
+  },
+  chronology: 'frozen pitcherAllowed history ends 2026-07-05; every fitted row is dated 2026-07-06 or later',
   conditioningInputContract: [
     'context-adjusted-terminal-outcome-vector','expected-plate-appearances','lineup-slot','platoon-split-cell',
     'opposing-starter-pooling','team-implied-run-total','preceding-lineup-slots-on-base-quality',
@@ -667,7 +787,10 @@ const fixture = {
   rowCount: rows.length,
   excludedRowCount,
   exclusionCounts,
+  exclusionExamples,
   exclusionCountSum: excludedRowCount,
+  attempt1RowCount: ATTEMPT_1_ROW_COUNT,
+  rowExpansionFactor: rows.length / ATTEMPT_1_ROW_COUNT,
   predictorSummaries,
   sourceArtifacts: {
     terminalOutcome: { path: 'model-artifacts/m8-terminal-pa-outcome-v1.json', fileSha256: terminalFile.sha256, artifactSha256: terminal.artifactSha256 },
@@ -684,12 +807,15 @@ await mkdir(OUTPUT_DIRECTORY, { recursive: true });
 await writeFile(DESIGN_PATH, `${JSON.stringify(fixture, null, 2)}\n`);
 await writeFile(BOARD_PATH, `${JSON.stringify(boardFixture, null, 2)}\n`);
 console.log('=== M11 HHR RESPECIFIED EVIDENCE ===');
-console.log(`WARMUP: ${WARMUP_DATES[0]} through ${WARMUP_DATES.at(-1)}`);
+console.log(`WARMUP HISTORY: ${FROZEN_HISTORY_START_DATE} through ${FROZEN_HISTORY_END_DATE} (artifact-backed, not fitted)`);
 console.log(`FIT: ${FIT_DATES[0]} through ${FIT_DATES.at(-1)}`);
+console.log(`LATEST COMPLETE DATE: ${latestCompleteDate}`);
+console.log(`ROW EXPANSION FACTOR VS ATTEMPT 1: ${rows.length / ATTEMPT_1_ROW_COUNT}`);
 console.log(`ROWS: ${rows.length}`);
 console.log(`GAMES: ${fixture.gameCount}`);
 console.log(`EXCLUDED: ${excludedRowCount}`);
 for (const [rule, count] of Object.entries(exclusionCounts)) console.log(`EXCLUSION ${rule}: ${count}`);
+for (const rule of EXAMPLE_RULES) console.log(`EXCLUSION EXAMPLES ${rule}: ${JSON.stringify(exclusionExamples[rule])}`);
 console.log(`EXCLUSION SUM: ${fixture.exclusionCountSum}`);
 console.log(`DESIGN SHA-256: ${sha256(`${JSON.stringify(fixture, null, 2)}\n`)}`);
 console.log(`BOARD SHA-256: ${sha256(`${JSON.stringify(boardFixture, null, 2)}\n`)}`);
@@ -701,6 +827,9 @@ console.log('=== END M11 HHR RESPECIFIED EVIDENCE ===');
 if (excludedRowCount + rows.length !== stats.length) {
   throw new Error(`Exclusion conservation failed after diagnostic persistence: ${excludedRowCount} + ${rows.length} != ${stats.length}.`);
 }
-if (rows.length < 500) {
-  throw new Error(`Respecified HHR fit requires at least 500 complete rows after diagnostic persistence; received ${rows.length}.`);
+if (rows.length <= ATTEMPT_1_ROW_COUNT) {
+  throw new Error(`Attempt 2 must materially exceed attempt 1's ${ATTEMPT_1_ROW_COUNT} fitted rows; received ${rows.length}.`);
+}
+if (fixture.lookaheadAudit.fittedRowsOnOrBeforePitcherAllowedEndDate !== 0) {
+  throw new Error('Attempt 2 fitted rows overlap the frozen pitcherAllowed source range.');
 }

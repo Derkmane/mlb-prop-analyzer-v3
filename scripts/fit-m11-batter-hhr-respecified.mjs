@@ -2,10 +2,10 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const FIXTURE_PATH = path.resolve('fixtures/sanitized/m11/hhr/respecified-v1/balldontlie-hhr-design-matrix-v1.json');
-const BOARD_PATH = path.resolve('fixtures/sanitized/m11/hhr/respecified-v1/the-odds-api-underdog-hhr-board-v1.json');
-const MODEL_PATH = path.resolve('model-artifacts/m11-batter-hhr-direct-composite-v1.json');
-const DIAGNOSTICS_PATH = path.resolve('model-artifacts/m11-batter-hhr-direct-composite-diagnostics-v1.json');
+const FIXTURE_PATH = path.resolve('fixtures/sanitized/m11/hhr/respecified-v2/balldontlie-hhr-design-matrix-v2.json');
+const BOARD_PATH = path.resolve('fixtures/sanitized/m11/hhr/respecified-v2/the-odds-api-underdog-hhr-board-v2.json');
+const MODEL_PATH = path.resolve('model-artifacts/m11-batter-hhr-direct-composite-v2.json');
+const DIAGNOSTICS_PATH = path.resolve('model-artifacts/m11-batter-hhr-direct-composite-diagnostics-v2.json');
 const PREDICTOR_ORDER = Object.freeze([
   'contextHitQualityLogit',
   'centeredLineupSlot',
@@ -16,6 +16,7 @@ const PREDICTOR_ORDER = Object.freeze([
 ]);
 const QUALITY_SPREAD_MINIMUM_RATIO = 1.10;
 const VIF_MAXIMUM = 5;
+const LINEUP_SLOT_ABSOLUTE_MAXIMUM = 0.15;
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 
 function finite(value, label) {
@@ -168,8 +169,8 @@ const fixture = JSON.parse(fixtureText);
 const board = JSON.parse(boardText);
 await mkdir(path.dirname(DIAGNOSTICS_PATH), { recursive: true });
 const prefitDiagnosticsIdentity = {
-  diagnosticsVersion: 1,
-  modelVersion: 'm11-batter-hhr-direct-composite-v1',
+  diagnosticsVersion: 2,
+  modelVersion: 'm11-batter-hhr-direct-composite-v2',
   status: 'pre-fit-contract-validation',
   sourceFixtureSha256: sha256(fixtureText),
   rowCount: Array.isArray(fixture.rows) ? fixture.rows.length : null,
@@ -185,8 +186,8 @@ const prefitDiagnostics = {
   diagnosticsSha256: sha256(JSON.stringify(prefitDiagnosticsIdentity)),
 };
 await writeFile(DIAGNOSTICS_PATH, `${JSON.stringify(prefitDiagnostics, null, 2)}\n`);
-if (fixture.schemaVersion !== 2 || fixture.expectedPaRole !== 'log offset with fixed coefficient 1') throw new Error('HHR respecified fixture contract mismatch.');
-if (!Array.isArray(fixture.rows) || fixture.rows.length < 500) throw new Error('HHR fixture requires at least 500 rows.');
+if (fixture.schemaVersion !== 3 || fixture.expectedPaRole !== 'log offset with fixed coefficient 1') throw new Error('HHR respecified fixture contract mismatch.');
+if (!Array.isArray(fixture.rows) || fixture.rows.length <= 783) throw new Error('HHR attempt 2 fixture must materially exceed 783 rows.');
 const requiredInputs = [
   'context-adjusted-terminal-outcome-vector','expected-plate-appearances','lineup-slot','platoon-split-cell',
   'opposing-starter-pooling','team-implied-run-total','preceding-lineup-slots-on-base-quality',
@@ -218,6 +219,21 @@ const coefficientInference = Object.fromEntries(coefficientNames.map((name, inde
     confidenceInterval95: [fit.beta[index] - 1.959963984540054 * standardError, fit.beta[index] + 1.959963984540054 * standardError],
   }];
 }));
+const confidenceIntervalsExcludingZero = coefficientNames.filter((name) => {
+  const [lower, upper] = coefficientInference[name].confidenceInterval95;
+  return lower > 0 || upper < 0;
+});
+const predictorStandardDeviations = Object.freeze(Object.fromEntries(
+  PREDICTOR_ORDER.map((name) => [name, transforms[name].standardDeviation]),
+));
+const standardizedCoefficientTable = Object.freeze(Object.fromEntries(
+  PREDICTOR_ORDER.map((name) => [name, Object.freeze({
+    estimatePerStandardDeviation: coefficients[name],
+    predictorStandardDeviation: transforms[name].standardDeviation,
+    standardError: coefficientInference[name].standardError,
+    confidenceInterval95: coefficientInference[name].confidenceInterval95,
+  })]),
+));
 
 function predictMean(raw) {
   const linear = coefficients.intercept + PREDICTOR_ORDER.reduce((sum, name) =>
@@ -248,10 +264,12 @@ const gates = {
     maximumObserved: Math.max(...Object.values(varianceInflationFactors)),
     passed: Object.values(varianceInflationFactors).every((value) => value <= VIF_MAXIMUM),
   },
-  lineupSlotSign: {
-    coefficient: coefficients.centeredLineupSlot,
-    requirement: 'coefficient <= 0',
-    passed: coefficients.centeredLineupSlot <= 0,
+  lineupSlotMagnitude: {
+    coefficientPerStandardDeviation: coefficients.centeredLineupSlot,
+    absoluteCoefficient: Math.abs(coefficients.centeredLineupSlot),
+    thresholdExclusive: LINEUP_SLOT_ABSOLUTE_MAXIMUM,
+    requirement: '|coefficient| < 0.15 per standard deviation',
+    passed: Math.abs(coefficients.centeredLineupSlot) < LINEUP_SLOT_ABSOLUTE_MAXIMUM,
   },
   batterQualitySpread: {
     thresholdRatio: QUALITY_SPREAD_MINIMUM_RATIO,
@@ -262,17 +280,25 @@ const gates = {
 };
 
 const diagnosticsIdentity = {
-  diagnosticsVersion: 1,
-  modelVersion: 'm11-batter-hhr-direct-composite-v1',
+  diagnosticsVersion: 2,
+  modelVersion: 'm11-batter-hhr-direct-composite-v2',
   sourceFixtureSha256: sha256(fixtureText),
   rowCount: fixture.rows.length,
   gameCount: fixture.gameCount,
   predictorOrder: PREDICTOR_ORDER,
+  coefficientScale: 'standardized-per-sample-standard-deviation',
+  predictorStandardDeviations,
+  standardizedCoefficientTable,
   predictorSummaries,
   pairwiseCorrelationMatrix: correlationMatrix,
   varianceInflationFactors,
   coefficientCovarianceMatrix: fit.covariance,
   coefficientInference,
+  confidenceIntervalsExcludingZero: {
+    count: confidenceIntervalsExcludingZero.length,
+    coefficientNames: confidenceIntervalsExcludingZero,
+    diagnosticOnly: true,
+  },
   expectedPlateAppearancesSummary: summary(fixture.rows.map((row) => row.conditioningInputs.expectedPlateAppearances)),
   exclusionCounts: fixture.exclusionCounts,
   excludedRowCount: fixture.excludedRowCount,
@@ -283,8 +309,8 @@ const diagnosticsIdentity = {
 };
 const diagnostics = { ...diagnosticsIdentity, diagnosticsSha256: sha256(JSON.stringify(diagnosticsIdentity)) };
 const modelIdentity = {
-  artifactVersion: 1,
-  modelVersion: 'm11-batter-hhr-direct-composite-v1',
+  artifactVersion: 2,
+  modelVersion: 'm11-batter-hhr-direct-composite-v2',
   distributionBuilderVersion: 'm11-batter-hhr-negative-binomial-v1',
   mathematicalFamily: 'directly-fitted-composite',
   officialSettlementStatistic: 'hits+runs+rbis',
@@ -295,6 +321,7 @@ const modelIdentity = {
   fittingDetails: {
     response: 'T=hits+runs+rbi', link: 'log', variance: 'mu+alpha*mu^2',
     expectedPlateAppearancesRole: 'offset', expectedPlateAppearancesCoefficient: 1,
+    coefficientScale: 'standardized-per-sample-standard-deviation', predictorStandardDeviations,
     predictorOrder: coefficientNames, numericalRidge: fit.numericalRidge,
     independentMarginalConvolution: false, tripleJointFormed: false, monteCarloRuntime: false,
   },
@@ -330,14 +357,18 @@ console.log(`ROWS: ${fixture.rows.length}`);
 console.log(`GAMES: ${fixture.gameCount}`);
 console.log('EXPECTED PA ROLE: offset');
 console.log('EXPECTED PA COEFFICIENT: 1');
+console.log('COEFFICIENT SCALE: standardized-per-sample-standard-deviation');
+for (const name of PREDICTOR_ORDER) console.log(`PREDICTOR SD ${name}: ${predictorStandardDeviations[name]}`);
 console.log(`COEFFICIENTS: ${JSON.stringify(coefficients)}`);
 console.log(`DISPERSION ALPHA: ${fit.alpha}`);
 for (const name of PREDICTOR_ORDER) console.log(`VIF ${name}: ${varianceInflationFactors[name]}`);
 for (const row of nineCellPredictionTable) console.log(`PREDICTION slot=${row.lineupSlot} quality=${row.qualityPercentile}: ${row.predictedMeanHhr}`);
 for (const row of qualitySpreadBySlot) console.log(`QUALITY SPREAD slot=${row.lineupSlot}: ratio=${row.ratio} difference=${row.absoluteDifference}`);
 console.log(`GATE A VIF <= ${VIF_MAXIMUM}: ${gates.vif.passed}`);
-console.log(`GATE B LINEUP SLOT NON-POSITIVE: ${gates.lineupSlotSign.passed}`);
+console.log(`GATE B PRIME |LINEUP SLOT| < ${LINEUP_SLOT_ABSOLUTE_MAXIMUM} PER SD: ${gates.lineupSlotMagnitude.passed}`);
 console.log(`GATE C QUALITY RATIO >= ${QUALITY_SPREAD_MINIMUM_RATIO}: ${gates.batterQualitySpread.passed}`);
+console.log(`GATE E CI EXCLUDING ZERO COUNT [DIAGNOSTIC]: ${confidenceIntervalsExcludingZero.length}`);
+console.log(`GATE E CI EXCLUDING ZERO NAMES [DIAGNOSTIC]: ${JSON.stringify(confidenceIntervalsExcludingZero)}`);
 console.log(`EXCLUSION SUM: ${fixture.exclusionCountSum}`);
 console.log(`MODEL SHA-256: ${model.artifactSha256}`);
 console.log(`DIAGNOSTICS SHA-256: ${diagnostics.diagnosticsSha256}`);
@@ -346,7 +377,7 @@ console.log('RANKING ENABLED: false');
 console.log('=== END M11 HHR RESPECIFIED FIT ===');
 
 if (!gates.vif.passed) throw new Error(`GATE A FAILED: maximum VIF ${gates.vif.maximumObserved} exceeds ${VIF_MAXIMUM}.`);
-if (!gates.lineupSlotSign.passed) throw new Error(`GATE B FAILED: lineup-slot coefficient ${coefficients.centeredLineupSlot} is positive.`);
+if (!gates.lineupSlotMagnitude.passed) throw new Error(`GATE B PRIME FAILED: absolute lineup-slot coefficient ${Math.abs(coefficients.centeredLineupSlot)} is not below ${LINEUP_SLOT_ABSOLUTE_MAXIMUM} per SD.`);
 if (!gates.batterQualitySpread.passed) throw new Error(`GATE C FAILED: minimum quality ratio ${gates.batterQualitySpread.minimumObservedRatio} is below ${QUALITY_SPREAD_MINIMUM_RATIO}.`);
 await writeFile(MODEL_PATH, `${JSON.stringify(model, null, 2)}\n`);
 console.log('MODEL PERSISTED AFTER GATES: true');

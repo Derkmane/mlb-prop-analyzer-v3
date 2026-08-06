@@ -3,7 +3,7 @@ import type { ProbabilityMassFunction } from '../../domain/probability.js';
 import type { SelectedSide } from '../../domain/selected-side.js';
 import type { SettlementResult } from '../../domain/settlement.js';
 
-export const BATTER_HHR_MODEL_VERSION = 'm11-batter-hhr-direct-composite-v1' as const;
+export const BATTER_HHR_MODEL_VERSION = 'm11-batter-hhr-direct-composite-v2' as const;
 export const BATTER_HHR_DISTRIBUTION_BUILDER_VERSION = 'm11-batter-hhr-negative-binomial-v1' as const;
 export const BATTER_HHR_SETTLEMENT_RULE_VERSION = 'underdog-batter-hhr-settlement-v1' as const;
 export const BATTER_HHR_MATHEMATICAL_FAMILY = 'directly-fitted-composite' as const;
@@ -23,7 +23,7 @@ export type BatterHhrPredictorName = (typeof BATTER_HHR_PREDICTOR_ORDER)[number]
 export interface BatterHhrPredictorTransform { readonly mean: number; readonly standardDeviation: number; }
 
 export interface BatterHhrDirectCompositeArtifact {
-  readonly artifactVersion: 1;
+  readonly artifactVersion: 2;
   readonly modelVersion: typeof BATTER_HHR_MODEL_VERSION;
   readonly distributionBuilderVersion: typeof BATTER_HHR_DISTRIBUTION_BUILDER_VERSION;
   readonly mathematicalFamily: typeof BATTER_HHR_MATHEMATICAL_FAMILY;
@@ -38,6 +38,8 @@ export interface BatterHhrDirectCompositeArtifact {
     readonly variance: 'mu+alpha*mu^2';
     readonly expectedPlateAppearancesRole: 'offset';
     readonly expectedPlateAppearancesCoefficient: 1;
+    readonly coefficientScale: 'standardized-per-sample-standard-deviation';
+    readonly predictorStandardDeviations: Readonly<Record<BatterHhrPredictorName, number>>;
     readonly predictorOrder: readonly string[];
     readonly numericalRidge: number;
     readonly independentMarginalConvolution: false;
