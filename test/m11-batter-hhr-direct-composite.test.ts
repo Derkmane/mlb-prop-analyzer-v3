@@ -69,12 +69,12 @@ test('HHR retained diagnostics pass VIF, lineup sign, quality-spread, and exclus
   assert.equal(diagnostics.acceptanceGates.lineupSlotSign.passed, true);
   assert.ok(diagnostics.coefficientInference.centeredLineupSlot.estimate <= 0);
   assert.equal(diagnostics.acceptanceGates.batterQualitySpread.passed, true);
-  assert.ok(diagnostics.qualitySpreadBySlot.every((row) => row.ratio >= 1.10));
+  assert.ok(diagnostics.qualitySpreadBySlot.every((row: { readonly ratio: number }) => row.ratio >= 1.10));
   assert.equal(diagnostics.nineCellPredictionTable.length, 9);
   assert.equal(Object.values(fixture.exclusionCounts).reduce((sum: number, value) => sum + Number(value), 0), fixture.excludedRowCount);
   assert.equal(fixture.exclusionCountSum, fixture.excludedRowCount);
   assert.equal(fixture.expectedPaRole, 'log offset with fixed coefficient 1');
-  assert.equal(fixture.rows.some((row) => 'terminalHitProbability' in row.derivedPredictors), false);
+  assert.equal(fixture.rows.some((row: { readonly derivedPredictors: Readonly<Record<string, unknown>> }) => 'terminalHitProbability' in row.derivedPredictors), false);
 });
 
 test('HHR direct analytic distribution conserves mass and remains side independent', async () => {
@@ -97,8 +97,8 @@ test('HHR Higher falls and Lower rises across the 0.5 through 3.5 ladder', async
   const higher = lines.map((line) => settleBatterHhrDistribution(distribution, 'higher', line).winProbability);
   const lower = lines.map((line) => settleBatterHhrDistribution(distribution, 'lower', line).winProbability);
   for (let index = 1; index < lines.length; index += 1) {
-    assert.ok(higher[index] <= higher[index - 1]);
-    assert.ok(lower[index] >= lower[index - 1]);
+    assert.ok(higher[index]! <= higher[index - 1]!);
+    assert.ok(lower[index]! >= lower[index - 1]!);
   }
 });
 
