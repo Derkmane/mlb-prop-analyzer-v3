@@ -12,7 +12,10 @@ test('HHR historical starter source imports the shared M8 PA-order recovery and 
   assert.match(source, /starter_absent_from_pitcher_allowed/u);
   assert.match(source, /const frozenStarterAllowed = terminal\.pitcherAllowed\[String\(starter\.playerId\)\]/u);
   assert.doesNotMatch(source, /terminal\.pitcherAllowed\[String\(starter\.playerId\)\]\s*\?\?\s*terminal\.unseenPitcher/u);
-  assert.match(source, /pitcherAllowedDataEndDate: '2026-07-05'/u);
+  assert.match(source, /const FROZEN_HISTORY_END_DATE = '2026-07-05'/u);
+  assert.match(source, /pitcherAllowedDataEndDate: FROZEN_HISTORY_END_DATE/u);
+  assert.match(source, /const FIT_START_DATE = '2026-07-06'/u);
   assert.match(source, /hhrFitStartDate: FIT_DATES\[0\]/u);
-  assert.match(source, /overlap: false/u);
+  assert.match(source, /overlap: lookaheadOverlap/u);
+  assert.match(source, /if \(lookaheadOverlap\) throw new Error\('HHR attempt 2 lookahead overlap detected before fitting\.'\)/u);
 });
