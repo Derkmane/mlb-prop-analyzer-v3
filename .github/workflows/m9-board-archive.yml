@@ -77,8 +77,8 @@ jobs:
 
       - name: Run immutable M9 board archiver
         run: |
+          set -euo pipefail
           mkdir -p artifacts/workflow-logs
-          set -o pipefail
           node scripts/archive-m9-batter-hits-board.mjs 2>&1 | tee artifacts/workflow-logs/m9-board-archive.log
 
       - name: Save verified current-season shards
