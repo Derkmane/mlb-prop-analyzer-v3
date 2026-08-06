@@ -1,4 +1,4 @@
-name: M11 step 2 source trace and fail-closed fixes
+name: M11 step 2 publish verified script fixes
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  audit-and-fix:
+  publish-scripts:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -25,135 +25,11 @@ jobs:
           node-version: 24
           package-manager-cache: false
 
-      - name: Inspect existing BALLDONTLIE per-game stats schema
-        env:
-          BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
-        run: |
-          set -euo pipefail
-          node --input-type=module <<'NODE'
-          const apiKey = process.env.BALLDONTLIE_API_KEY?.trim();
-          if (!apiKey) throw new Error('Missing BALLDONTLIE_API_KEY.');
-          const url = new URL('https://api.balldontlie.io/mlb/v1/stats');
-          url.searchParams.append('game_ids[]', '5059313');
-          url.searchParams.set('per_page', '100');
-          const response = await fetch(url, { headers: { Authorization: apiKey } });
-          const text = await response.text();
-          if (!response.ok) throw new Error(`BALLDONTLIE stats returned HTTP ${response.status}: ${text.slice(0, 500)}`);
-          const body = JSON.parse(text);
-          if (!Array.isArray(body?.data)) throw new Error('BALLDONTLIE stats data must be an array.');
-          const rows = body.data;
-          const unionKeys = [...new Set(rows.flatMap((row) => Object.keys(row ?? {})))].sort();
-          const relevantPattern = /(pitch|start|appear|order|inning|throw|win|loss|save|hold|era|whip|strikeout|earned|batter.*faced)/iu;
-          const relevantPaths = new Set();
-          function walk(value, prefix = '') {
-            if (value === null || typeof value !== 'object') return;
-            if (Array.isArray(value)) {
-              for (const item of value.slice(0, 3)) walk(item, `${prefix}[]`);
-              return;
-            }
-            for (const [key, child] of Object.entries(value)) {
-              const path = prefix ? `${prefix}.${key}` : key;
-              if (relevantPattern.test(path)) relevantPaths.add(path);
-              walk(child, path);
-            }
-          }
-          for (const row of rows) walk(row);
-          console.log('=== BALLDONTLIE COMPLETED-GAME STATS SCHEMA ===');
-          console.log('REQUEST: GET /mlb/v1/stats?game_ids[]=5059313&per_page=100');
-          console.log(`ROW COUNT: ${rows.length}`);
-          console.log(`ROOT ROW KEYS: ${unionKeys.join(',')}`);
-          console.log(`RELEVANT PATHS: ${[...relevantPaths].sort().join(',') || 'NONE'}`);
-          const samples = rows.slice(0, 3).map((row) => ({
-            game_id: row?.game_id ?? null,
-            player_id: row?.player?.id ?? null,
-            player_name: row?.player?.full_name ?? null,
-            player_bats_throws: row?.player?.bats_throws ?? null,
-            team_id: row?.team?.id ?? null,
-            relevant: Object.fromEntries(Object.entries(row ?? {}).filter(([key]) => relevantPattern.test(key))),
-          }));
-          console.log(`SAMPLE ROWS: ${JSON.stringify(samples)}`);
-          console.log('=== END BALLDONTLIE COMPLETED-GAME STATS SCHEMA ===');
-          NODE
-
-      - name: Audit and fix workflow pipe handling and diagnostic retention
+      - name: Apply verified diagnostic-retention changes
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
-          import path from 'node:path';
-
-          const workflowDirectory = '.github/workflows';
-          const workflowFiles = fs.readdirSync(workflowDirectory)
-            .filter((name) => /\.ya?ml$/u.test(name))
-            .map((name) => path.join(workflowDirectory, name))
-            .filter((file) => !file.endsWith('m11-step2-source-trace-failclosed-fixes.yml'))
-            .sort();
-
-          function shellRunBlocks(text) {
-            const lines = text.split('\n');
-            const blocks = [];
-            for (let index = 0; index < lines.length; index += 1) {
-              const match = /^(\s*)run:\s*\|\s*$/u.exec(lines[index]);
-              if (!match) continue;
-              const runIndent = match[1].length;
-              let end = index + 1;
-              while (end < lines.length) {
-                const line = lines[end];
-                if (line.trim() === '') { end += 1; continue; }
-                const indent = /^\s*/u.exec(line)[0].length;
-                if (indent <= runIndent) break;
-                end += 1;
-              }
-              blocks.push({ lines, start: index, end, runIndent });
-              index = end - 1;
-            }
-            return blocks;
-          }
-
-          function blockHasPipeline(lines, start, end) {
-            return lines.slice(start + 1, end).some((line) => {
-              const command = line.trim();
-              if (!command || command.startsWith('#')) return false;
-              return /\s\|\s/u.test(command) || /\|\s*(tee|grep|head|tail|sed|awk|xargs)\b/u.test(command);
-            });
-          }
-
-          const occurrences = [];
-          for (const file of workflowFiles) {
-            const original = fs.readFileSync(file, 'utf8');
-            const lines = original.split('\n');
-            const blocks = shellRunBlocks(original).reverse();
-            for (const block of blocks) {
-              if (!blockHasPipeline(lines, block.start, block.end)) continue;
-              const commandIndent = ' '.repeat(block.runIndent + 2);
-              const commands = lines.slice(block.start + 1, block.end);
-              const pipelineLines = commands
-                .map((line, offset) => ({ line: line.trim(), number: block.start + 2 + offset }))
-                .filter(({ line }) => /\s\|\s/u.test(line) || /\|\s*(tee|grep|head|tail|sed|awk|xargs)\b/u.test(line));
-              occurrences.push({ file, runLine: block.start + 1, pipelineLines });
-              const filtered = commands.filter((line) => {
-                const trimmed = line.trim();
-                return trimmed !== 'set -o pipefail' && trimmed !== 'set -euo pipefail';
-              });
-              lines.splice(
-                block.start + 1,
-                block.end - block.start - 1,
-                `${commandIndent}set -euo pipefail`,
-                ...filtered,
-              );
-            }
-            fs.writeFileSync(file, lines.join('\n'));
-          }
-
-          console.log('=== WORKFLOW PIPE AUDIT ===');
-          console.log(`WORKFLOW FILES AUDITED: ${workflowFiles.length}`);
-          console.log(`PIPELINE RUN BLOCKS FOUND: ${occurrences.length}`);
-          for (const occurrence of occurrences) {
-            console.log(`PIPELINE BLOCK: ${occurrence.file}:${occurrence.runLine}`);
-            for (const pipeline of occurrence.pipelineLines) {
-              console.log(`  PIPE: ${occurrence.file}:${pipeline.number}: ${pipeline.line}`);
-            }
-          }
 
           const capturePath = 'scripts/capture-m11-hhr-respecified-evidence.mjs';
           let capture = fs.readFileSync(capturePath, 'utf8');
@@ -188,11 +64,10 @@ jobs:
           let fit = fs.readFileSync(fitPath, 'utf8');
           const parseAnchor = `const fixture = JSON.parse(fixtureText);\nconst board = JSON.parse(boardText);\n`;
           const prefitBlock = `${parseAnchor}await mkdir(path.dirname(DIAGNOSTICS_PATH), { recursive: true });\nconst prefitDiagnosticsIdentity = {\n  diagnosticsVersion: 1,\n  modelVersion: 'm11-batter-hhr-direct-composite-v1',\n  status: 'pre-fit-contract-validation',\n  sourceFixtureSha256: sha256(fixtureText),\n  rowCount: Array.isArray(fixture.rows) ? fixture.rows.length : null,\n  gameCount: Number.isInteger(fixture.gameCount) ? fixture.gameCount : null,\n  predictorSummaries: fixture.predictorSummaries ?? null,\n  exclusionCounts: fixture.exclusionCounts ?? null,\n  excludedRowCount: Number.isInteger(fixture.excludedRowCount) ? fixture.excludedRowCount : null,\n  exclusionCountSum: Number.isInteger(fixture.exclusionCountSum) ? fixture.exclusionCountSum : null,\n  acceptanceGates: null,\n};\nconst prefitDiagnostics = {\n  ...prefitDiagnosticsIdentity,\n  diagnosticsSha256: sha256(JSON.stringify(prefitDiagnosticsIdentity)),\n};\nawait writeFile(DIAGNOSTICS_PATH, \`${'${JSON.stringify(prefitDiagnostics, null, 2)}'}\\n\`);\n`;
-          if (!fit.includes('status: \'pre-fit-contract-validation\'')) {
+          if (!fit.includes("status: 'pre-fit-contract-validation'")) {
             if (!fit.includes(parseAnchor)) throw new Error('Fit prefit-diagnostics anchor drifted.');
             fit = fit.replace(parseAnchor, prefitBlock);
           }
-
           const oldFitPersistence = `await mkdir(path.dirname(MODEL_PATH), { recursive: true });\nawait writeFile(DIAGNOSTICS_PATH, \`${'${JSON.stringify(diagnostics, null, 2)}'}\\n\`);\nawait writeFile(MODEL_PATH, \`${'${JSON.stringify(model, null, 2)}'}\\n\`);\n\nconsole.log('=== M11 HHR RESPECIFIED FIT ===');`;
           const newFitPersistence = `await writeFile(DIAGNOSTICS_PATH, \`${'${JSON.stringify(diagnostics, null, 2)}'}\\n\`);\n\nconsole.log('=== M11 HHR RESPECIFIED FIT ===');`;
           if (fit.includes(oldFitPersistence)) {
@@ -206,43 +81,9 @@ jobs:
             fit = fit.replace(finalGate, `${finalGate}\nawait writeFile(MODEL_PATH, \`${'${JSON.stringify(model, null, 2)}'}\\n\`);\nconsole.log('MODEL PERSISTED AFTER GATES: true');`);
           }
           fs.writeFileSync(fitPath, fit);
-
-          for (const file of workflowFiles) {
-            const text = fs.readFileSync(file, 'utf8');
-            for (const block of shellRunBlocks(text)) {
-              if (!blockHasPipeline(block.lines, block.start, block.end)) continue;
-              const firstCommand = block.lines.slice(block.start + 1, block.end)
-                .map((line) => line.trim())
-                .find((line) => line && !line.startsWith('#'));
-              if (firstCommand !== 'set -euo pipefail') {
-                throw new Error(`Workflow pipeline block is not fail-closed: ${file}:${block.start + 1}`);
-              }
-            }
-          }
-
-          const persistedCapture = fs.readFileSync(capturePath, 'utf8');
-          if (!(persistedCapture.indexOf('await writeFile(DESIGN_PATH') < persistedCapture.indexOf('after diagnostic persistence; received'))) {
-            throw new Error('Capture minimum still precedes design-matrix persistence.');
-          }
-          const persistedFit = fs.readFileSync(fitPath, 'utf8');
-          if (!(persistedFit.indexOf("status: 'pre-fit-contract-validation'") < persistedFit.indexOf('fixture.rows.length < 500'))) {
-            throw new Error('Fit prefit diagnostics still follow the row minimum.');
-          }
-          if (!(persistedFit.lastIndexOf('await writeFile(DIAGNOSTICS_PATH') < persistedFit.indexOf('if (!gates.vif.passed)'))) {
-            throw new Error('Full fit diagnostics do not precede acceptance gates.');
-          }
-          if (!(persistedFit.indexOf('if (!gates.batterQualitySpread.passed)') < persistedFit.lastIndexOf('await writeFile(MODEL_PATH'))) {
-            throw new Error('Model artifact persistence still precedes Gate C.');
-          }
-          console.log('WORKFLOW PIPE BLOCKS FAIL-CLOSED: true');
-          console.log('CAPTURE DIAGNOSTICS BEFORE MINIMUM: true');
-          console.log('FIT PREFIT DIAGNOSTICS BEFORE MINIMUM: true');
-          console.log('FIT FULL DIAGNOSTICS BEFORE GATES: true');
-          console.log('MODEL PERSISTENCE AFTER GATES: true');
-          console.log('=== END WORKFLOW PIPE AUDIT ===');
           NODE
 
-      - name: Verify focused changes without capture or fit
+      - name: Verify script changes without capture or fit
         run: |
           set -euo pipefail
           npm install --ignore-scripts
@@ -251,15 +92,25 @@ jobs:
           npm run typecheck
           npm run check:scripts
           git diff --check
-          git diff -- .github/workflows scripts/capture-m11-hhr-respecified-evidence.mjs scripts/fit-m11-batter-hhr-respecified.mjs
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const capture = fs.readFileSync('scripts/capture-m11-hhr-respecified-evidence.mjs', 'utf8');
+          const fit = fs.readFileSync('scripts/fit-m11-batter-hhr-respecified.mjs', 'utf8');
+          if (!(capture.indexOf('await writeFile(DESIGN_PATH') < capture.indexOf('after diagnostic persistence; received'))) throw new Error('Capture minimum precedes persistence.');
+          if (!(fit.indexOf("status: 'pre-fit-contract-validation'") < fit.indexOf('fixture.rows.length < 500'))) throw new Error('Fit preflight diagnostics follow minimum.');
+          if (!(fit.lastIndexOf('await writeFile(DIAGNOSTICS_PATH') < fit.indexOf('if (!gates.vif.passed)'))) throw new Error('Full diagnostics follow gates.');
+          if (!(fit.indexOf('if (!gates.batterQualitySpread.passed)') < fit.lastIndexOf('await writeFile(MODEL_PATH'))) throw new Error('Model persists before Gate C.');
+          console.log('CAPTURE DIAGNOSTICS BEFORE MINIMUM: true');
+          console.log('FIT PREFIT DIAGNOSTICS BEFORE MINIMUM: true');
+          console.log('FIT FULL DIAGNOSTICS BEFORE GATES: true');
+          console.log('MODEL PERSISTENCE AFTER GATES: true');
+          NODE
 
-      - name: Remove temporary workflow and commit fixes
+      - name: Commit verified script changes
         run: |
           set -euo pipefail
-          rm .github/workflows/m11-step2-source-trace-failclosed-fixes.yml
-          git diff --check
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add .github/workflows scripts/capture-m11-hhr-respecified-evidence.mjs scripts/fit-m11-batter-hhr-respecified.mjs
-          git commit -m "Harden HHR diagnostics and workflow failures"
+          git add scripts/capture-m11-hhr-respecified-evidence.mjs scripts/fit-m11-batter-hhr-respecified.mjs
+          git commit -m "Persist HHR diagnostics before gates"
           git push origin HEAD:agent/m11-step2-hhr-respecification
