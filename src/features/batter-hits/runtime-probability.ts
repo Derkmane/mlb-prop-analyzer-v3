@@ -3,11 +3,14 @@ import {
   mixBernoulliOutcomesOverCountDistribution,
   mixProbabilityMassFunctions,
   settleDiscreteStatistic,
+  sumPerPaOutcomeProbability,
   validateProbability,
+  validatePerPaOutcomeVector,
   validateProbabilityMassFunction,
   validateProbabilityVector,
   validateUnitIntervalVector,
 } from '../../core/index.js';
+import type { PerPaOutcomeVector } from '../../domain/per-pa-outcome.js';
 import type { PredictionCandidate } from '../../domain/prediction-candidate.js';
 import type { ProbabilityMassFunction } from '../../domain/probability.js';
 import type { JsonObject } from '../../domain/saved-prediction.js';
@@ -46,7 +49,7 @@ export type BatterHitsDeclaredBatterHand =
   (typeof VALID_DECLARED_BATTER_HANDS)[number];
 export type BatterHitsPlatoonPath = 'selected-platoon' | 'coherent-overall';
 export type BatterHitsRuntimeLineupStatus = 'projected' | 'confirmed';
-type CategoryVector = Readonly<Record<string, number>>;
+type CategoryVector = PerPaOutcomeVector<string>;
 
 interface FrozenSharedScenarioSide {
   readonly meanPa: number;
@@ -356,14 +359,7 @@ function validateCategoryVector(
   categories: readonly string[],
   label: string,
 ): CategoryVector {
-  const keys = Object.keys(vector).sort();
-  const expected = [...categories].sort();
-  if (JSON.stringify(keys) !== JSON.stringify(expected)) {
-    throw new Error(`${label} must contain every and only modeled category.`);
-  }
-  const values = categories.map((category) => vector[category] ?? Number.NaN);
-  validateProbabilityVector(values, label);
-  return vector;
+  return validatePerPaOutcomeVector(vector, categories, label);
 }
 
 function validateArtifactSeal(value: { readonly productionEnabled: false; readonly activeSeason: 2026; readonly untouchedTestReservation: { readonly rowsIncluded: false } }, label: string): void {
@@ -630,8 +626,9 @@ function hitProbability(
   vector: CategoryVector,
   hitCategories: readonly string[],
 ): number {
-  return validateProbability(
-    hitCategories.reduce((sum, category) => sum + (vector[category] ?? 0), 0),
+  return sumPerPaOutcomeProbability(
+    vector,
+    hitCategories,
     'Batter Hits per-opportunity probability',
   );
 }
