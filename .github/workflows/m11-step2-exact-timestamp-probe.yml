@@ -1,0 +1,136 @@
+name: M11 step 2 exact timestamp probe
+
+on:
+  push:
+    branches:
+      - agent/m11-step2-hhr-respecification
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Compare exact and second-precision timestamps
+        env:
+          THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
+          BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const oddsKey = process.env.THE_ODDS_API_KEY?.trim();
+          const bdlKey = process.env.BALLDONTLIE_API_KEY?.trim();
+          if (!oddsKey) throw new Error('Missing THE_ODDS_API_KEY.');
+          if (!bdlKey) throw new Error('Missing BALLDONTLIE_API_KEY.');
+
+          const targetIds = new Set([5059270, 5059278]);
+          const gamesUrl = new URL('https://api.balldontlie.io/mlb/v1/games');
+          for (const date of ['2026-07-20', '2026-07-21', '2026-07-22']) {
+            gamesUrl.searchParams.append('dates[]', date);
+          }
+          gamesUrl.searchParams.set('season_type', 'regular');
+          gamesUrl.searchParams.set('per_page', '100');
+          const gamesResponse = await fetch(gamesUrl, {
+            headers: { Authorization: bdlKey },
+          });
+          const gamesText = await gamesResponse.text();
+          if (!gamesResponse.ok) {
+            throw new Error(`BALLDONTLIE games returned HTTP ${gamesResponse.status}: ${gamesText.slice(0, 500)}`);
+          }
+          const gamesBody = JSON.parse(gamesText);
+          if (!Array.isArray(gamesBody?.data)) throw new Error('BALLDONTLIE games data must be an array.');
+          const games = gamesBody.data.filter((game) => targetIds.has(game?.id));
+          if (games.length !== targetIds.size) {
+            throw new Error(`Expected ${targetIds.size} target games; found ${games.length}: ${games.map((game) => game.id).join(',')}`);
+          }
+
+          async function probeTimestamp(timestamp) {
+            const url = new URL('https://api.the-odds-api.com/v4/historical/sports/baseball_mlb/events');
+            url.searchParams.set('apiKey', oddsKey);
+            url.searchParams.set('date', timestamp);
+            url.searchParams.set('dateFormat', 'iso');
+            const response = await fetch(url);
+            const text = await response.text();
+            let body = null;
+            try { body = JSON.parse(text); } catch {}
+            const data = Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : null;
+            return {
+              requestedTimestamp: timestamp,
+              httpStatus: response.status,
+              valid: response.ok,
+              eventCount: data?.length ?? null,
+              returnedTimestamp: body?.timestamp ?? null,
+              errorCode: body?.error_code ?? null,
+              message: body?.message ?? null,
+            };
+          }
+
+          const results = [];
+          for (const game of games.sort((left, right) => left.id - right.id)) {
+            const rawCommence = game.date ?? game.datetime ?? null;
+            const parsed = Date.parse(rawCommence);
+            if (!Number.isFinite(parsed)) throw new Error(`Game ${game.id} has unparseable commence value ${rawCommence}.`);
+            const currentComputed = new Date(parsed - 60 * 60 * 1000).toISOString();
+            const secondPrecision = currentComputed.replace(/\.\d{3}Z$/u, 'Z');
+            const flooredFiveMinute = new Date(
+              Math.floor((parsed - 60 * 60 * 1000) / (5 * 60 * 1000)) * 5 * 60 * 1000,
+            ).toISOString().replace(/\.\d{3}Z$/u, 'Z');
+            const variants = [...new Set([currentComputed, secondPrecision, flooredFiveMinute])];
+            const probes = [];
+            for (const variant of variants) probes.push(await probeTimestamp(variant));
+            const row = {
+              gameId: game.id,
+              rawProviderFields: {
+                date: game.date ?? null,
+                datetime: game.datetime ?? null,
+                status: game.status ?? null,
+                homeTeam: game.home_team?.display_name ?? game.home_team_name ?? null,
+                awayTeam: game.away_team?.display_name ?? game.away_team_name ?? null,
+              },
+              parsedEpochMilliseconds: parsed,
+              currentComputedTimestamp: currentComputed,
+              secondPrecisionTimestamp: secondPrecision,
+              flooredFiveMinuteTimestamp: flooredFiveMinute,
+              probes,
+            };
+            results.push(row);
+            for (const probe of probes) {
+              console.log(`${game.id}\t${rawCommence}\t${probe.requestedTimestamp}\t${probe.httpStatus}\t${probe.errorCode ?? 'OK'}\t${probe.eventCount ?? 'n/a'}`);
+            }
+          }
+
+          const report = {
+            schemaVersion: 1,
+            purpose: 'Identify the exact timestamp representation causing the two pre-fit HHR capture failures.',
+            providers: ['BALLDONTLIE MLB API', 'The Odds API'],
+            probedAt: new Date().toISOString(),
+            targetGameIds: [...targetIds],
+            bdlGamesResponseSha256: await crypto.subtle.digest('SHA-256', new TextEncoder().encode(gamesText)).then((buffer) => Buffer.from(buffer).toString('hex')),
+            results,
+          };
+          const output = 'fixtures/sanitized/m11/hhr/provider-contracts/exact-failed-timestamp-probe.json';
+          fs.mkdirSync(path.dirname(output), { recursive: true });
+          fs.writeFileSync(output, `${JSON.stringify(report, null, 2)}\n`);
+          NODE
+      - name: Remove temporary probe workflow
+        run: rm .github/workflows/m11-step2-exact-timestamp-probe.yml
+      - name: Commit retained timestamp evidence
+        run: |
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "Record exact failed HHR timestamps"
+          git push origin HEAD:agent/m11-step2-hhr-respecification
