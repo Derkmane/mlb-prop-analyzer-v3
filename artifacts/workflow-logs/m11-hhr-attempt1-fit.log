@@ -1,0 +1,42 @@
+=== M11 HHR RESPECIFIED FIT ===
+ROWS: 783
+GAMES: 44
+EXPECTED PA ROLE: offset
+EXPECTED PA COEFFICIENT: 1
+COEFFICIENTS: {"intercept":-0.8119134570309817,"contextHitQualityLogit":0.0326877266414706,"centeredLineupSlot":0.014714339481325476,"platoonSplitCell":-0.022886970354068337,"opposingStarterPooling":0.06262902736714811,"teamImpliedRunTotal":-0.0005292053336087539,"precedingLineupSlotsOnBaseQuality":0.06934918925459048}
+DISPERSION ALPHA: 0.5554225110137618
+VIF contextHitQualityLogit: 1.266755070015145
+VIF centeredLineupSlot: 1.151717555150673
+VIF platoonSplitCell: 1.0916445346009873
+VIF opposingStarterPooling: 1.1886999484016783
+VIF teamImpliedRunTotal: 1.2598966230317568
+VIF precedingLineupSlotsOnBaseQuality: 1.0448455342781433
+PREDICTION slot=1 quality=p10: 1.703914295471308
+PREDICTION slot=1 quality=p50: 1.7661086690090977
+PREDICTION slot=1 quality=p90: 1.8389144848480774
+PREDICTION slot=5 quality=p10: 1.7431763310628616
+PREDICTION slot=5 quality=p50: 1.8068038035035274
+PREDICTION slot=5 quality=p90: 1.8812872298539864
+PREDICTION slot=9 quality=p10: 1.7833430526723029
+PREDICTION slot=9 quality=p50: 1.8484366458528474
+PREDICTION slot=9 quality=p90: 1.9246363386517569
+QUALITY SPREAD slot=1: ratio=1.079229448180331 difference=0.1350001893767694
+QUALITY SPREAD slot=5: ratio=1.079229448180331 difference=0.13811089879112481
+QUALITY SPREAD slot=9: ratio=1.0792294481803313 difference=0.141293285979454
+GATE A VIF <= 5: true
+GATE B LINEUP SLOT NON-POSITIVE: false
+GATE C QUALITY RATIO >= 1.1: false
+EXCLUSION SUM: 2082
+MODEL SHA-256: 41acaa4fd39406e610ca49ff0047f7f71d56c1dd49681cb0f9c5c73982416021
+DIAGNOSTICS SHA-256: 21a01f5168c4b37c8b2b72416fd7c987badad4a0a9fc5f5e81bba4b30c5dfb8c
+PRODUCTION ENABLED: false
+RANKING ENABLED: false
+=== END M11 HHR RESPECIFIED FIT ===
+file:///home/runner/work/mlb-prop-analyzer-v3/mlb-prop-analyzer-v3/scripts/fit-m11-batter-hhr-respecified.mjs:349
+if (!gates.lineupSlotSign.passed) throw new Error(`GATE B FAILED: lineup-slot coefficient ${coefficients.centeredLineupSlot} is positive.`);
+                                        ^
+
+Error: GATE B FAILED: lineup-slot coefficient 0.014714339481325476 is positive.
+    at file:///home/runner/work/mlb-prop-analyzer-v3/mlb-prop-analyzer-v3/scripts/fit-m11-batter-hhr-respecified.mjs:349:41
+
+Node.js v24.18.0

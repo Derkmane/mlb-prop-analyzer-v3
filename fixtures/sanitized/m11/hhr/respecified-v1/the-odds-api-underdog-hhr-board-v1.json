@@ -1,0 +1,339 @@
+{
+  "captureVersion": 1,
+  "capturedAt": "2026-07-20T21:40:00Z",
+  "captureMode": "historical-pregame",
+  "request": {
+    "provider": "The Odds API",
+    "bookmaker": "underdog",
+    "region": "us_dfs",
+    "marketKeys": [
+      "batter_hits_runs_rbis",
+      "batter_hits_runs_rbis_alternate"
+    ],
+    "dateFormat": "iso",
+    "oddsFormat": "american",
+    "includeMultipliers": true,
+    "includeSids": true
+  },
+  "sourceSnapshotSha256": "c231ad8066628a7695ff3a41ad4717191249c7d1a8dc1109e07cd72884883780",
+  "response": {
+    "id": "ed99d6d31957cf5543b0733a49085559",
+    "sport_key": "baseball_mlb",
+    "sport_title": "MLB",
+    "commence_time": "2026-07-20T22:41:00Z",
+    "home_team": "Cleveland Guardians",
+    "away_team": "Minnesota Twins",
+    "bookmakers": [
+      {
+        "key": "underdog",
+        "title": "Underdog",
+        "last_update": "2026-07-20T21:33:44Z",
+        "sid": null,
+        "markets": [
+          {
+            "key": "batter_hits_runs_rbis",
+            "last_update": "2026-07-20T21:34:55Z",
+            "sid": null,
+            "outcomes": [
+              {
+                "name": "Over",
+                "description": "Chase DeLauter",
+                "price": -137,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1
+              },
+              {
+                "name": "Under",
+                "description": "Chase DeLauter",
+                "price": -137,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1
+              },
+              {
+                "name": "Over",
+                "description": "Trevor Larnach",
+                "price": -137,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1
+              },
+              {
+                "name": "Under",
+                "description": "Trevor Larnach",
+                "price": -137,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1
+              },
+              {
+                "name": "Over",
+                "description": "Kody Clemens",
+                "price": -137,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1
+              },
+              {
+                "name": "Under",
+                "description": "Kody Clemens",
+                "price": -137,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1
+              }
+            ]
+          },
+          {
+            "key": "batter_hits_runs_rbis_alternate",
+            "last_update": "2026-07-20T21:34:55Z",
+            "sid": null,
+            "outcomes": [
+              {
+                "name": "Over",
+                "description": "Byron Buxton",
+                "price": -120,
+                "point": 2.5,
+                "sid": null,
+                "multiplier": 1.06
+              },
+              {
+                "name": "Under",
+                "description": "Byron Buxton",
+                "price": -220,
+                "point": 2.5,
+                "sid": null,
+                "multiplier": 0.84
+              },
+              {
+                "name": "Over",
+                "description": "Steven Kwan",
+                "price": -128,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1.03
+              },
+              {
+                "name": "Under",
+                "description": "Steven Kwan",
+                "price": -191,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 0.88
+              },
+              {
+                "name": "Over",
+                "description": "Royce Lewis",
+                "price": -113,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1.09
+              },
+              {
+                "name": "Under",
+                "description": "Royce Lewis",
+                "price": -229,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 0.83
+              },
+              {
+                "name": "Over",
+                "description": "Josh Bell",
+                "price": -128,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1.03
+              },
+              {
+                "name": "Under",
+                "description": "Josh Bell",
+                "price": -159,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 0.94
+              },
+              {
+                "name": "Over",
+                "description": "Rhys Hoskins",
+                "price": -220,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 0.84
+              },
+              {
+                "name": "Under",
+                "description": "Rhys Hoskins",
+                "price": -117,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 1.07
+              },
+              {
+                "name": "Over",
+                "description": "Brooks Lee",
+                "price": -128,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1.03
+              },
+              {
+                "name": "Under",
+                "description": "Brooks Lee",
+                "price": -238,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 0.82
+              },
+              {
+                "name": "Over",
+                "description": "Victor Caratini",
+                "price": -115,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1.08
+              },
+              {
+                "name": "Under",
+                "description": "Victor Caratini",
+                "price": -229,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 0.83
+              },
+              {
+                "name": "Over",
+                "description": "Brayan Rocchio",
+                "price": -120,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1.06
+              },
+              {
+                "name": "Under",
+                "description": "Brayan Rocchio",
+                "price": -204,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 0.86
+              },
+              {
+                "name": "Over",
+                "description": "Patrick Bailey",
+                "price": -212,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 0.85
+              },
+              {
+                "name": "Under",
+                "description": "Patrick Bailey",
+                "price": -122,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 1.05
+              },
+              {
+                "name": "Over",
+                "description": "Daniel Schneemann",
+                "price": -259,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 0.8
+              },
+              {
+                "name": "Under",
+                "description": "Daniel Schneemann",
+                "price": -120,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 1.06
+              },
+              {
+                "name": "Over",
+                "description": "David Fry",
+                "price": -238,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 0.82
+              },
+              {
+                "name": "Under",
+                "description": "David Fry",
+                "price": -128,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 1.03
+              },
+              {
+                "name": "Over",
+                "description": "Alan Roden",
+                "price": -238,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 0.82
+              },
+              {
+                "name": "Under",
+                "description": "Alan Roden",
+                "price": -113,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 1.09
+              },
+              {
+                "name": "Over",
+                "description": "Ryan Kreidler",
+                "price": -248,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 0.81
+              },
+              {
+                "name": "Under",
+                "description": "Ryan Kreidler",
+                "price": -122,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 1.05
+              },
+              {
+                "name": "Over",
+                "description": "Travis Bazzana",
+                "price": -120,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1.06
+              },
+              {
+                "name": "Under",
+                "description": "Travis Bazzana",
+                "price": -220,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 0.84
+              },
+              {
+                "name": "Over",
+                "description": "Petey Halpin",
+                "price": -204,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 0.86
+              },
+              {
+                "name": "Under",
+                "description": "Petey Halpin",
+                "price": -120,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 1.06
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

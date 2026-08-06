@@ -1,0 +1,388 @@
+{
+  "diagnosticsVersion": 1,
+  "modelVersion": "m11-batter-hhr-direct-composite-v1",
+  "sourceFixtureSha256": "f712edfc6e9224a5cefeb3e89ff20cd35ea8355f2d4a1dcead53fd4740330e13",
+  "rowCount": 783,
+  "gameCount": 44,
+  "predictorOrder": [
+    "contextHitQualityLogit",
+    "centeredLineupSlot",
+    "platoonSplitCell",
+    "opposingStarterPooling",
+    "teamImpliedRunTotal",
+    "precedingLineupSlotsOnBaseQuality"
+  ],
+  "predictorSummaries": {
+    "contextHitQualityLogit": {
+      "min": -1.555606038012141,
+      "max": -0.9564609529267026,
+      "mean": -1.2697357330391894,
+      "standardDeviation": 0.09427361666632872,
+      "p10": -1.3784207731202684,
+      "p50": -1.2750254946987805,
+      "p90": -1.158518361510113
+    },
+    "centeredLineupSlot": {
+      "min": -1,
+      "max": 1,
+      "mean": 0,
+      "standardDeviation": 0.6459098145182876,
+      "p10": -1,
+      "p50": 0,
+      "p90": 1
+    },
+    "platoonSplitCell": {
+      "min": -0.07640991193174251,
+      "max": 0.05239441004710654,
+      "mean": 0.00040902945356068656,
+      "standardDeviation": 0.02248146413855215,
+      "p10": -0.027801037478629942,
+      "p50": 0,
+      "p90": 0.02726002418559048
+    },
+    "opposingStarterPooling": {
+      "min": -0.2500747648046999,
+      "max": 0.23230390598598039,
+      "mean": 0.0014031576743550153,
+      "standardDeviation": 0.06884026801093016,
+      "p10": -0.08103302908396834,
+      "p50": 0.000997932435641724,
+      "p90": 0.0879841896227482
+    },
+    "teamImpliedRunTotal": {
+      "min": 2.5,
+      "max": 6.5,
+      "mean": 4.120689655172414,
+      "standardDeviation": 0.7918582079297583,
+      "p10": 3.5,
+      "p50": 4.5,
+      "p90": 4.5
+    },
+    "precedingLineupSlotsOnBaseQuality": {
+      "min": 0.31695241925297685,
+      "max": 0.3893037769196668,
+      "mean": 0.34957553211144277,
+      "standardDeviation": 0.012506170145445944,
+      "p10": 0.33407948715864355,
+      "p50": 0.349006734622537,
+      "p90": 0.36661782604661897
+    }
+  },
+  "pairwiseCorrelationMatrix": {
+    "contextHitQualityLogit": {
+      "contextHitQualityLogit": 1,
+      "centeredLineupSlot": -0.34858006942031816,
+      "platoonSplitCell": 0.27310259068831405,
+      "opposingStarterPooling": 0.06601466599121217,
+      "teamImpliedRunTotal": 0.1916190196909596,
+      "precedingLineupSlotsOnBaseQuality": 0.10710035910124872
+    },
+    "centeredLineupSlot": {
+      "contextHitQualityLogit": -0.34858006942031816,
+      "centeredLineupSlot": 1,
+      "platoonSplitCell": -0.1490213594937253,
+      "opposingStarterPooling": -0.007281834246814031,
+      "teamImpliedRunTotal": 5.551548854823414e-19,
+      "precedingLineupSlotsOnBaseQuality": -0.08242362763190698
+    },
+    "platoonSplitCell": {
+      "contextHitQualityLogit": 0.27310259068831405,
+      "centeredLineupSlot": -0.1490213594937253,
+      "platoonSplitCell": 1,
+      "opposingStarterPooling": 0.009711034281338501,
+      "teamImpliedRunTotal": -0.009126629079672882,
+      "precedingLineupSlotsOnBaseQuality": 0.070462814393143
+    },
+    "opposingStarterPooling": {
+      "contextHitQualityLogit": 0.06601466599121217,
+      "centeredLineupSlot": -0.007281834246814031,
+      "platoonSplitCell": 0.009711034281338501,
+      "opposingStarterPooling": 1,
+      "teamImpliedRunTotal": 0.38687395869210933,
+      "precedingLineupSlotsOnBaseQuality": -0.03471735201885141
+    },
+    "teamImpliedRunTotal": {
+      "contextHitQualityLogit": 0.1916190196909596,
+      "centeredLineupSlot": 5.551548854823414e-19,
+      "platoonSplitCell": -0.009126629079672882,
+      "opposingStarterPooling": 0.38687395869210933,
+      "teamImpliedRunTotal": 1,
+      "precedingLineupSlotsOnBaseQuality": 0.14469645354291336
+    },
+    "precedingLineupSlotsOnBaseQuality": {
+      "contextHitQualityLogit": 0.10710035910124872,
+      "centeredLineupSlot": -0.08242362763190698,
+      "platoonSplitCell": 0.070462814393143,
+      "opposingStarterPooling": -0.03471735201885141,
+      "teamImpliedRunTotal": 0.14469645354291336,
+      "precedingLineupSlotsOnBaseQuality": 1
+    }
+  },
+  "varianceInflationFactors": {
+    "contextHitQualityLogit": 1.266755070015145,
+    "centeredLineupSlot": 1.151717555150673,
+    "platoonSplitCell": 1.0916445346009873,
+    "opposingStarterPooling": 1.1886999484016783,
+    "teamImpliedRunTotal": 1.2598966230317568,
+    "precedingLineupSlotsOnBaseQuality": 1.0448455342781433
+  },
+  "coefficientCovarianceMatrix": [
+    [
+      0.0014233429027920622,
+      -0.000022576802737949797,
+      0.000047385399345669164,
+      0.0000155167598012262,
+      -0.00004404712846993644,
+      0.000003061951411106525,
+      -0.00005403751500498123
+    ],
+    [
+      -0.00002257680273794979,
+      0.001781249847374942,
+      0.0005640448977099643,
+      -0.0003944519674866668,
+      0.00002277616785824503,
+      -0.00034495044733526747,
+      -0.00006492602818669249
+    ],
+    [
+      0.00004738539934566917,
+      0.0005640448977099643,
+      0.0016604939965207362,
+      0.0000810541903149779,
+      0.00002603394004659304,
+      -0.00013276708538804093,
+      0.00007468238792480881
+    ],
+    [
+      0.000015516759801226196,
+      -0.00039445196748666666,
+      0.00008105419031497781,
+      0.0015186547834199267,
+      -0.00003495573443428953,
+      0.0001099783273147459,
+      -0.00007741485009020308
+    ],
+    [
+      -0.000044047128469936444,
+      0.00002277616785824505,
+      0.000026033940046593037,
+      -0.000034955734434289494,
+      0.0016755976144713844,
+      -0.0006819223135173787,
+      0.0001548150564167782
+    ],
+    [
+      0.000003061951411106532,
+      -0.0003449504473352675,
+      -0.00013276708538804096,
+      0.0001099783273147459,
+      -0.0006819223135173787,
+      0.001751441881780921,
+      -0.0002555604485617656
+    ],
+    [
+      -0.00005403751500498124,
+      -0.00006492602818669256,
+      0.00007468238792480881,
+      -0.00007741485009020304,
+      0.00015481505641677822,
+      -0.00025556044856176553,
+      0.0014735591317736171
+    ]
+  ],
+  "coefficientInference": {
+    "intercept": {
+      "estimate": -0.8119134570309817,
+      "standardError": 0.03772721700300808,
+      "confidenceInterval95": [
+        -0.8858574435938047,
+        -0.7379694704681588
+      ]
+    },
+    "contextHitQualityLogit": {
+      "estimate": 0.0326877266414706,
+      "standardError": 0.042204855732189656,
+      "confidenceInterval95": [
+        -0.05003227056632997,
+        0.11540772384927117
+      ]
+    },
+    "centeredLineupSlot": {
+      "estimate": 0.014714339481325476,
+      "standardError": 0.040749159457843256,
+      "confidenceInterval95": [
+        -0.06515254545632702,
+        0.09458122441897797
+      ]
+    },
+    "platoonSplitCell": {
+      "estimate": -0.022886970354068337,
+      "standardError": 0.03896992152185999,
+      "confidenceInterval95": [
+        -0.09926661301726625,
+        0.053492672309129574
+      ]
+    },
+    "opposingStarterPooling": {
+      "estimate": 0.06262902736714811,
+      "standardError": 0.040934064231045814,
+      "confidenceInterval95": [
+        -0.017600264266550952,
+        0.14285831900084717
+      ]
+    },
+    "teamImpliedRunTotal": {
+      "estimate": -0.0005292053336087539,
+      "standardError": 0.04185023156185544,
+      "confidenceInterval95": [
+        -0.08255415193950687,
+        0.08149574127228935
+      ]
+    },
+    "precedingLineupSlotsOnBaseQuality": {
+      "estimate": 0.06934918925459048,
+      "standardError": 0.038386965649470355,
+      "confidenceInterval95": [
+        -0.005887880894147615,
+        0.1445862594033286
+      ]
+    }
+  },
+  "expectedPlateAppearancesSummary": {
+    "min": 3.461207908752641,
+    "max": 4.611949599320853,
+    "mean": 4.0767781983616125,
+    "standardDeviation": 0.3358054458280956,
+    "p10": 3.59913863157678,
+    "p50": 4.067037988715989,
+    "p90": 4.517280804568198
+  },
+  "exclusionCounts": {
+    "warmup_history_only": 1419,
+    "missing_game": 0,
+    "missing_player_identity": 0,
+    "missing_team_identity": 20,
+    "invalid_box_score": 434,
+    "missing_lineup_slot": 110,
+    "missing_opposing_starter": 0,
+    "starter_reappeared_after_bullpen": 0,
+    "starter_absent_from_pitcher_allowed": 18,
+    "invalid_handedness": 0,
+    "missing_park_effect": 0,
+    "missing_team_bullpen": 0,
+    "missing_team_total": 81,
+    "missing_preceding_lineup": 0,
+    "duplicate_player_game": 0,
+    "invalid_m8_conditioning": 0
+  },
+  "excludedRowCount": 2082,
+  "exclusionCountSum": 2082,
+  "nineCellPredictionTable": [
+    {
+      "lineupSlot": 1,
+      "qualityPercentile": "p10",
+      "qualityValue": -1.3784207731202684,
+      "expectedPlateAppearances": 4.0767781983616125,
+      "predictedMeanHhr": 1.703914295471308
+    },
+    {
+      "lineupSlot": 1,
+      "qualityPercentile": "p50",
+      "qualityValue": -1.2750254946987805,
+      "expectedPlateAppearances": 4.0767781983616125,
+      "predictedMeanHhr": 1.7661086690090977
+    },
+    {
+      "lineupSlot": 1,
+      "qualityPercentile": "p90",
+      "qualityValue": -1.158518361510113,
+      "expectedPlateAppearances": 4.0767781983616125,
+      "predictedMeanHhr": 1.8389144848480774
+    },
+    {
+      "lineupSlot": 5,
+      "qualityPercentile": "p10",
+      "qualityValue": -1.3784207731202684,
+      "expectedPlateAppearances": 4.0767781983616125,
+      "predictedMeanHhr": 1.7431763310628616
+    },
+    {
+      "lineupSlot": 5,
+      "qualityPercentile": "p50",
+      "qualityValue": -1.2750254946987805,
+      "expectedPlateAppearances": 4.0767781983616125,
+      "predictedMeanHhr": 1.8068038035035274
+    },
+    {
+      "lineupSlot": 5,
+      "qualityPercentile": "p90",
+      "qualityValue": -1.158518361510113,
+      "expectedPlateAppearances": 4.0767781983616125,
+      "predictedMeanHhr": 1.8812872298539864
+    },
+    {
+      "lineupSlot": 9,
+      "qualityPercentile": "p10",
+      "qualityValue": -1.3784207731202684,
+      "expectedPlateAppearances": 4.0767781983616125,
+      "predictedMeanHhr": 1.7833430526723029
+    },
+    {
+      "lineupSlot": 9,
+      "qualityPercentile": "p50",
+      "qualityValue": -1.2750254946987805,
+      "expectedPlateAppearances": 4.0767781983616125,
+      "predictedMeanHhr": 1.8484366458528474
+    },
+    {
+      "lineupSlot": 9,
+      "qualityPercentile": "p90",
+      "qualityValue": -1.158518361510113,
+      "expectedPlateAppearances": 4.0767781983616125,
+      "predictedMeanHhr": 1.9246363386517569
+    }
+  ],
+  "qualitySpreadBySlot": [
+    {
+      "lineupSlot": 1,
+      "p10": 1.703914295471308,
+      "p90": 1.8389144848480774,
+      "ratio": 1.079229448180331,
+      "absoluteDifference": 0.1350001893767694
+    },
+    {
+      "lineupSlot": 5,
+      "p10": 1.7431763310628616,
+      "p90": 1.8812872298539864,
+      "ratio": 1.079229448180331,
+      "absoluteDifference": 0.13811089879112481
+    },
+    {
+      "lineupSlot": 9,
+      "p10": 1.7833430526723029,
+      "p90": 1.9246363386517569,
+      "ratio": 1.0792294481803313,
+      "absoluteDifference": 0.141293285979454
+    }
+  ],
+  "acceptanceGates": {
+    "vif": {
+      "threshold": 5,
+      "maximumObserved": 1.266755070015145,
+      "passed": true
+    },
+    "lineupSlotSign": {
+      "coefficient": 0.014714339481325476,
+      "requirement": "coefficient <= 0",
+      "passed": false
+    },
+    "batterQualitySpread": {
+      "thresholdRatio": 1.1,
+      "oldIllustrativeRatio": 1.0264815010195374,
+      "minimumObservedRatio": 1.079229448180331,
+      "passed": false
+    }
+  },
+  "diagnosticsSha256": "21a01f5168c4b37c8b2b72416fd7c987badad4a0a9fc5f5e81bba4b30c5dfb8c"
+}
