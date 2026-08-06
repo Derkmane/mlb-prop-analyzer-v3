@@ -91,9 +91,9 @@ test('HHR artifact is one direct Family B fit with production and step-3 gates c
   assert.equal(artifact.calibrationStatus, 'step-3-required');
   assert.equal(artifact.boxScoreVerificationStatus, 'step-3-required');
   const details = (artifact as unknown as { fittingDetails: Record<string, unknown> }).fittingDetails;
-  assert.equal(details.independentMarginalConvolution, false);
-  assert.equal(details.tripleJointFormed, false);
-  assert.equal(details.monteCarloRuntime, false);
+  assert.equal(details['independentMarginalConvolution'], false);
+  assert.equal(details['tripleJointFormed'], false);
+  assert.equal(details['monteCarloRuntime'], false);
   assert.deepEqual(artifact.usedConditioningInputs, [
     'context-adjusted-terminal-outcome-vector',
     'expected-plate-appearances',
