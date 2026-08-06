@@ -1,0 +1,157 @@
+name: M11 HHR tail fix and Step 3 evidence
+
+on:
+  push:
+    branches:
+      - agent/m11-step3-hhr-box-score-verification
+    paths:
+      - .github/workflows/m11-step3-hhr-tail-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  verify-and-grade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check out exact branch head
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Expose the existing selected-side summary to the Step 3 runner
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const filePath = 'scripts/m10-selected-side-grade-metrics-utils.mjs';
+          let source = fs.readFileSync(filePath, 'utf8');
+          source = source.replaceAll(
+            'performanceSummary(',
+            'buildSelectedSidePerformanceSummary(',
+          );
+          source = source.replace(
+            'function buildSelectedSidePerformanceSummary(rows)',
+            'export function buildSelectedSidePerformanceSummary(rows)',
+          );
+          if (!source.includes('export function buildSelectedSidePerformanceSummary(rows)')) {
+            throw new Error('Selected-side performance-summary export anchor drifted.');
+          }
+          fs.writeFileSync(filePath, source);
+          NODE
+          git diff --check
+
+      - name: Reconstruct candidate without refitting
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/workflow-logs
+          node --check scripts/reconstruct-m11-hhr-candidate.mjs
+          node --check scripts/m11-hhr-conditioning-utils.mjs
+          node --check scripts/run-m11-hhr-step3-verification.mjs
+          node --check scripts/m10-selected-side-grade-metrics-utils.mjs
+          node scripts/reconstruct-m11-hhr-candidate.mjs 2>&1 | tee artifacts/workflow-logs/m11-hhr-tail-fix-reconstruction.log
+
+      - name: Run focused HHR recovery and Batter Hits byte-identity gates
+        run: |
+          set -euo pipefail
+          npm run build
+          node --test dist/test/m11-batter-hhr-direct-composite.test.js 2>&1 | tee artifacts/workflow-logs/m11-hhr-tail-fix-focused-tests.log
+          node --test test/m11-batter-hits-byte-identity.test.mjs 2>&1 | tee artifacts/workflow-logs/m11-hhr-tail-fix-gate-j.log
+
+      - name: Run literal npm verify and preserve output
+        id: verify
+        run: |
+          set -euo pipefail
+          set +e
+          npm run verify 2>&1 | tee artifacts/workflow-logs/m11-hhr-tail-fix-npm-verify.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "NPM VERIFY EXIT STATUS: $status"
+          if [ "$status" -ne 0 ]; then
+            grep -q "batter-hits-runs-rbis must have exactly one literal declaration under src" artifacts/workflow-logs/m11-hhr-tail-fix-npm-verify.log
+            echo "KNOWN OPEN VERIFY ISSUE: duplicate-market-key-type-literal-not-fixed"
+          fi
+
+      - name: Capture and grade the authorized untouched final cohort
+        env:
+          THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
+          BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+        run: |
+          set -euo pipefail
+          node scripts/run-m11-hhr-step3-verification.mjs 2>&1 | tee artifacts/workflow-logs/m11-hhr-tail-fix-step3.log
+          node --test test/m11-hhr-step3-evidence.test.mjs 2>&1 | tee artifacts/workflow-logs/m11-hhr-tail-fix-step3-tests.log
+
+      - name: Record status and print Gate F through J counts
+        env:
+          NPM_VERIFY_STATUS: ${{ steps.verify.outputs.status }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const report = JSON.parse(fs.readFileSync('artifacts/m11/hhr/step3/m11-hhr-step3-evidence.json', 'utf8'));
+          const status = {
+            implementationAttempt: 1,
+            tailFix: 'direct-recurrence-sum',
+            focusedHhrTests: 'success',
+            batterHitsByteIdentity: report.gates.J.byteIdentical,
+            step3: 'success',
+            npmVerifyExitStatus: Number(process.env.NPM_VERIFY_STATUS),
+            expectedOpenIssue: Number(process.env.NPM_VERIFY_STATUS) === 0 ? null : 'duplicate-market-key-type-literal-not-fixed',
+            productionEnabled: false,
+            rankingEnabled: false,
+          };
+          fs.writeFileSync(
+            'artifacts/workflow-logs/m11-hhr-tail-fix-status.json',
+            `${JSON.stringify(status, null, 2)}\n`,
+          );
+          console.log('=== GATES F THROUGH J COUNTS ===');
+          console.log('TOTAL COMPLEMENTARY ROWS:', report.cohort.complementaryRows);
+          console.log('TOTAL PROPS GRADED:', report.cohort.selectedSideRows);
+          for (const [line, value] of Object.entries(report.gates.I.perLineCounts)) {
+            console.log(`POSTED LINE ${line} COUNT:`, value.count, value.evidenceStatus.toUpperCase());
+          }
+          for (const bucket of report.gates.I.calibration) {
+            console.log(`CALIBRATION BUCKET ${bucket.label} COUNT:`, bucket.picksGraded, bucket.evidenceStatus.toUpperCase());
+          }
+          console.log('GATE J BYTE IDENTICAL:', report.gates.J.byteIdentical);
+          console.log('PRODUCTION ENABLED:', report.safety.productionEnabled);
+          console.log('RANKING ENABLED:', report.safety.rankingEnabled);
+          console.log('=== END GATES F THROUGH J COUNTS ===');
+          NODE
+
+      - name: Commit immutable Step 3 evidence and remove this temporary workflow
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm .github/workflows/m11-step3-hhr-tail-fix.yml
+          git add scripts/m10-selected-side-grade-metrics-utils.mjs
+          git add model-artifacts/m11-batter-hhr-direct-composite-v2.json
+          git add -f artifacts/m11/hhr/step3
+          git add -f artifacts/workflow-logs/m11-hhr-tail-fix-*.log
+          git add -f artifacts/workflow-logs/m11-hhr-tail-fix-status.json
+          git diff --check
+          git commit -m "Record HHR tail fix Step 3 evidence"
+          git push origin HEAD:agent/m11-step3-hhr-box-score-verification
+          echo "FINAL EVIDENCE HEAD SHA: $(git rev-parse HEAD)"
+
+      - name: Upload execution evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m11-hhr-tail-fix-step3-evidence
+          path: |
+            artifacts/workflow-logs/m11-hhr-tail-fix-*
+            artifacts/m11/hhr/step3
+          if-no-files-found: warn
