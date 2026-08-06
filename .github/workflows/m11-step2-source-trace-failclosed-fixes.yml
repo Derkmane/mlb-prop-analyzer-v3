@@ -113,4 +113,6 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add scripts/capture-m11-hhr-respecified-evidence.mjs scripts/fit-m11-batter-hhr-respecified.mjs
           git commit -m "Persist HHR diagnostics before gates"
+          git fetch origin agent/m11-step2-hhr-respecification
+          git rebase origin/agent/m11-step2-hhr-respecification
           git push origin HEAD:agent/m11-step2-hhr-respecification
