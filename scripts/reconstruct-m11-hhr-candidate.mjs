@@ -51,7 +51,12 @@ if (!alphaMatch) throw new Error('Persisted fit log does not contain one dispers
 const dispersionAlpha = Number(alphaMatch[1]);
 if (!(dispersionAlpha > 0) || !Number.isFinite(dispersionAlpha)) throw new Error('Persisted dispersion alpha is invalid.');
 const printedDiagnosticsHash = fitLog.match(/^DIAGNOSTICS SHA-256: ([a-f0-9]{64})$/mu)?.[1];
-if (printedDiagnosticsHash !== diagnosticsFile.sha256) throw new Error('Persisted diagnostics bytes do not match the Attempt 2 fit log hash.');
+const diagnosticsIdentity = { ...diagnostics };
+delete diagnosticsIdentity.diagnosticsSha256;
+const recomputedDiagnosticsIdentitySha256 = sha256(JSON.stringify(diagnosticsIdentity));
+if (printedDiagnosticsHash !== diagnostics.diagnosticsSha256 || recomputedDiagnosticsIdentitySha256 !== printedDiagnosticsHash) {
+  throw new Error('Persisted diagnostics identity does not match the Attempt 2 fit log hash.');
+}
 
 const predictorTransforms = Object.fromEntries(PREDICTOR_ORDER.map((name) => {
   const summary = diagnostics.predictorSummaries?.[name];
@@ -139,7 +144,7 @@ const artifactWithoutHash = {
     gameCount: diagnostics.gameCount,
     rowCount: diagnostics.rowCount,
     excludedRowCount,
-    diagnosticsSha256: diagnosticsFile.sha256,
+    diagnosticsSha256: diagnostics.diagnosticsSha256,
   },
   providerBoardEvidence: {
     provider: 'The Odds API',
@@ -152,7 +157,8 @@ const artifactWithoutHash = {
   reconstructionEvidence: {
     method: 'hash-verified-reconstruction-without-refit',
     sourceAttemptHead: '5278d63f123207772a76f25c482c5cecbb919331',
-    diagnosticsSha256: diagnosticsFile.sha256,
+    diagnosticsFileSha256: diagnosticsFile.sha256,
+    diagnosticsIdentitySha256: diagnostics.diagnosticsSha256,
     fitLogSha256: sha256(fitLog),
     statusSha256: statusFile.sha256,
     investigationSha256: investigationFile.sha256,
@@ -175,7 +181,8 @@ const artifact = { ...artifactWithoutHash, artifactSha256 };
 await writeFile(OUTPUT_PATH, jsonBytes(artifact));
 
 console.log('=== M11 HHR CANDIDATE RECONSTRUCTION ===');
-console.log('DIAGNOSTICS SHA-256:', diagnosticsFile.sha256);
+console.log('DIAGNOSTICS FILE SHA-256:', diagnosticsFile.sha256);
+console.log('DIAGNOSTICS IDENTITY SHA-256:', diagnostics.diagnosticsSha256);
 console.log('FIT LOG SHA-256:', sha256(fitLog));
 console.log('SOURCE COEFFICIENT BLOCK SHA-256:', sourceCoefficientBlockSha256);
 console.log('RECONSTRUCTED COEFFICIENT BLOCK SHA-256:', reconstructedCoefficientBlockSha256);
