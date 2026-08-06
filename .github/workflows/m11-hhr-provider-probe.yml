@@ -1,0 +1,20 @@
+name: M11 HHR provider probe
+
+on:
+  push:
+    branches:
+      - agent/m11-step2-provider-probe
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe live Underdog HHR markets
+        env:
+          THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
+        run: node scripts/probe-m11-hhr-underdog.mjs
