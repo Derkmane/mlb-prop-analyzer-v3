@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "provider": "The Odds API",
+  "endpoint": "/v4/historical/sports/baseball_mlb/events",
+  "probedAt": "2026-08-06T04:24:49.383Z",
+  "results": [
+    {
+      "timestamp": "2026-07-19T23:00:00Z",
+      "httpStatus": 200,
+      "valid": true,
+      "eventCount": 20,
+      "returnedTimestamp": "2026-07-19T22:55:37Z",
+      "errorCode": null,
+      "message": null,
+      "requestsLast": "1",
+      "requestsRemaining": "99855"
+    },
+    {
+      "timestamp": "2026-07-20T00:00:00Z",
+      "httpStatus": 200,
+      "valid": true,
+      "eventCount": 16,
+      "returnedTimestamp": "2026-07-19T23:55:37Z",
+      "errorCode": null,
+      "message": null,
+      "requestsLast": "1",
+      "requestsRemaining": "99854"
+    },
+    {
+      "timestamp": "2026-07-20T06:00:00Z",
+      "httpStatus": 200,
+      "valid": true,
+      "eventCount": 15,
+      "returnedTimestamp": "2026-07-20T05:55:37Z",
+      "errorCode": null,
+      "message": null,
+      "requestsLast": "1",
+      "requestsRemaining": "99853"
+    },
+    {
+      "timestamp": "2026-07-20T12:00:00Z",
+      "httpStatus": 200,
+      "valid": true,
+      "eventCount": 15,
+      "returnedTimestamp": "2026-07-20T11:55:37Z",
+      "errorCode": null,
+      "message": null,
+      "requestsLast": "1",
+      "requestsRemaining": "99852"
+    },
+    {
+      "timestamp": "2026-07-20T17:00:00Z",
+      "httpStatus": 200,
+      "valid": true,
+      "eventCount": 15,
+      "returnedTimestamp": "2026-07-20T16:55:37Z",
+      "errorCode": null,
+      "message": null,
+      "requestsLast": "1",
+      "requestsRemaining": "99851"
+    },
+    {
+      "timestamp": "2026-07-20T18:00:00Z",
+      "httpStatus": 200,
+      "valid": true,
+      "eventCount": 15,
+      "returnedTimestamp": "2026-07-20T17:55:37Z",
+      "errorCode": null,
+      "message": null,
+      "requestsLast": "1",
+      "requestsRemaining": "99850"
+    },
+    {
+      "timestamp": "2026-07-20T23:00:00Z",
+      "httpStatus": 200,
+      "valid": true,
+      "eventCount": 27,
+      "returnedTimestamp": "2026-07-20T22:55:37Z",
+      "errorCode": null,
+      "message": null,
+      "requestsLast": "1",
+      "requestsRemaining": "99849"
+    },
+    {
+      "timestamp": "2026-07-21T00:00:00Z",
+      "httpStatus": 200,
+      "valid": true,
+      "eventCount": 27,
+      "returnedTimestamp": "2026-07-20T23:55:37Z",
+      "errorCode": null,
+      "message": null,
+      "requestsLast": "1",
+      "requestsRemaining": "99848"
+    },
+    {
+      "timestamp": "2026-07-21T06:00:00Z",
+      "httpStatus": 200,
+      "valid": true,
+      "eventCount": 15,
+      "returnedTimestamp": "2026-07-21T05:55:37Z",
+      "errorCode": null,
+      "message": null,
+      "requestsLast": "1",
+      "requestsRemaining": "99847"
+    },
+    {
+      "timestamp": "2026-07-21T12:00:00Z",
+      "httpStatus": 200,
+      "valid": true,
+      "eventCount": 15,
+      "returnedTimestamp": "2026-07-21T11:55:37Z",
+      "errorCode": null,
+      "message": null,
+      "requestsLast": "1",
+      "requestsRemaining": "99846"
+    },
+    {
+      "timestamp": "2026-07-21T17:00:00Z",
+      "httpStatus": 200,
+      "valid": true,
+      "eventCount": 15,
+      "returnedTimestamp": "2026-07-21T16:55:37Z",
+      "errorCode": null,
+      "message": null,
+      "requestsLast": "1",
+      "requestsRemaining": "99845"
+    },
+    {
+      "timestamp": "2026-07-22T00:00:00Z",
+      "httpStatus": 200,
+      "valid": true,
+      "eventCount": 25,
+      "returnedTimestamp": "2026-07-21T23:55:37Z",
+      "errorCode": null,
+      "message": null,
+      "requestsLast": "1",
+      "requestsRemaining": "99844"
+    }
+  ],
+  "earliestValidTimestampInGrid": "2026-07-19T23:00:00Z",
+  "latestValidTimestampInGrid": "2026-07-22T00:00:00Z"
+}
