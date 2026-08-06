@@ -453,20 +453,48 @@ M8.5 is closed. This closure authorizes the next M9 ranking milestone only; it d
 
 These are intended investigations, not abandoned markets. No empty feature folders are created before implementation begins.
 
-### Batter Total Bases
+### Hits + Runs + RBIs — V1 PRIMARY MARKET (M11)
+
+Model family: Family B, directly fitted composite
+(CANONICAL_MATH_SPEC.md §8.3.2). The tagged-player base-out
+requirement is SUPERSEDED as of Version 1.8 by owner
+decision. Do not raise it as a conflict.
+
+- [ ] Verify Underdog baseline and alternate offers.
+- [ ] Verify approved-source data sufficiency for the
+      declared Family B conditioning inputs.
+- [ ] Build the directly fitted composite distribution over
+      T = H+R+RBI.
+- [ ] Prohibit independent marginal convolution. PRESERVED
+      AND UNCHANGED.
+- [ ] Settle every alternate line independently off the
+      same fitted distribution.
+- [ ] Report per-line calibration with 2.5+ bucketed
+      separately.
+- [ ] Fail closed on calibration failure with no fallback.
+
+### Batter Runs — V1 MARKET (M11)
+
+Model family: Family B, directly fitted composite.
+Designated cut if M11 drags.
+
+- [ ] Verify Underdog baseline and alternate offers.
+- [ ] Build the directly fitted composite distribution
+      over R.
+- [ ] Report cross-market coherence against HHR within the
+      declared tolerance.
+- [ ] Report per-line calibration.
+- [ ] Fail closed on calibration failure.
+
+### POST-V1
+
+#### Batter Total Bases
 
 - [ ] Reuse the validated terminal PA vector.
 - [ ] Build the base-value distribution from the same categorical outcomes.
 - [ ] Validate baseline and alternate tails.
 
-### Hits + Runs + RBIs
-
-- [ ] Verify Underdog baseline and alternate offers.
-- [ ] Verify runner identity, advancement, lineup, base-out, score, and official-stat data sufficiency.
-- [ ] Build a tagged-player base-out joint model.
-- [ ] Prohibit independent marginal convolution.
-
-### Pitcher Strikeouts
+#### Pitcher Strikeouts
 
 - [ ] Verify required pitcher state and pitch-count data.
 - [ ] Build sequential joint workload-and-outcome state propagation.
