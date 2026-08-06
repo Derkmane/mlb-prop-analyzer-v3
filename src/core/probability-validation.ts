@@ -3,6 +3,9 @@ import type {
   ProbabilityMassFunction,
 } from '../domain/probability.js';
 
+// Binary64 accumulation across probability vectors, including PMFs with roughly
+// 64 explicit terms, can differ from 1 by a few ULPs. This validates only that
+// representation error; it does not clamp, renormalize, or alter probabilities.
 export const PROBABILITY_TOLERANCE = 1e-12;
 
 export function validateProbability(

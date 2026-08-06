@@ -29,6 +29,11 @@ const REQUIRED_INPUTS = [
   'context-adjusted-terminal-outcome-vector','expected-plate-appearances','lineup-slot','platoon-split-cell',
   'opposing-starter-pooling','team-implied-run-total','preceding-lineup-slots-on-base-quality',
 ] as const;
+// This convergence threshold is the second-smallest positive binary64 value.
+// It discards no recurrence term larger than the minimum positive subnormal and
+// is not used as a tolerance for the analytic-tail validity guard.
+const BATTER_HHR_TAIL_TERM_EPSILON = Number.MIN_VALUE * 2;
+const BATTER_HHR_MAXIMUM_TAIL_EXTENSION_TERMS = 4096;
 
 function assertFinite(value: number, label: string): number {
   if (!Number.isFinite(value)) throw new RangeError(`${label} must be finite.`);
@@ -97,7 +102,22 @@ function negativeBinomialSettlementDistribution(mean: number, dispersionAlpha: n
     probabilities.push(mass);
     cumulative += mass;
   }
-  const tail = 1 - cumulative;
+  let previous = probabilities[BATTER_HHR_TAIL_COLLAPSE_AT - 1];
+  if (previous === undefined) throw new Error('Batter HHR recurrence indexing failure.');
+  let tail = 0;
+  let tailConverged = false;
+  for (let extension = 0; extension < BATTER_HHR_MAXIMUM_TAIL_EXTENSION_TERMS; extension += 1) {
+    const count = BATTER_HHR_TAIL_COLLAPSE_AT + extension;
+    const mass = previous * ((count - 1 + size) / count) * continuationProbability;
+    if (!Number.isFinite(mass) || mass < 0) throw new Error('Batter HHR negative-binomial recurrence failed.');
+    if (mass < BATTER_HHR_TAIL_TERM_EPSILON) {
+      tailConverged = true;
+      break;
+    }
+    tail += mass;
+    previous = mass;
+  }
+  if (!tailConverged) throw new Error('Batter HHR analytic tail extension did not converge.');
   if (!Number.isFinite(tail) || tail < 0 || tail > 1) throw new Error('Batter HHR analytic tail mass is invalid.');
   probabilities.push(tail);
   return createProbabilityMassFunction(probabilities, 'Batter HHR direct negative-binomial settlement distribution');
