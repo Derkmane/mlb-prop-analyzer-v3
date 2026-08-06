@@ -38,13 +38,15 @@ jobs:
           const oddsKey=process.env.THE_ODDS_API_KEY?.trim();
           if(!bdlKey||!oddsKey) throw new Error('Provider secret missing.');
           const fetchJson=async(url,options={})=>{const response=await fetch(url,options);const text=await response.text();if(!response.ok)throw new Error(`${url} HTTP ${response.status}: ${text.slice(0,500)}`);return{value:JSON.parse(text),sha256:sha(text)};};
-          async function bdl(endpoint){const url=new URL(`https://api.balldontlie.io/mlb/v1/${endpoint}`);for(const id of targetIds)url.searchParams.append('game_ids[]',String(id));url.searchParams.set('per_page','100');return fetchJson(url,{headers:{Authorization:bdlKey}});}
-          const gamesSnap=await bdl('games');
-          const lineupSnap=await bdl('lineups');
-          const statsSnap=await bdl('stats');
-          const games=gamesSnap.value.data??[];
+          async function bdlRows(endpoint){const url=new URL(`https://api.balldontlie.io/mlb/v1/${endpoint}`);for(const id of targetIds)url.searchParams.append('game_ids[]',String(id));url.searchParams.set('per_page','100');return fetchJson(url,{headers:{Authorization:bdlKey}});}
+          const gamesUrl=new URL('https://api.balldontlie.io/mlb/v1/games');gamesUrl.searchParams.append('dates[]','2026-08-06');gamesUrl.searchParams.set('season_type','regular');gamesUrl.searchParams.set('per_page','100');
+          const gamesSnap=await fetchJson(gamesUrl,{headers:{Authorization:bdlKey}});
+          const lineupSnap=await bdlRows('lineups');
+          const statsSnap=await bdlRows('stats');
+          const games=(gamesSnap.value.data??[]).filter((g)=>targetIds.includes(g.id));
           const lineups=lineupSnap.value.data??[];
           const stats=statsSnap.value.data??[];
+          if(games.length!==2||games.some((g)=>g.status!=='STATUS_FINAL')) throw new Error('Expected exactly two final untouched games.');
           console.log('FINAL GAMES:',JSON.stringify(games.map((g)=>({id:g.id,date:g.date,status:g.status,home:g.home_team?.display_name,away:g.away_team?.display_name,venue:g.venue}))));
           console.log('LINEUP ROWS:',lineups.length);
           console.log('PROBABLE PITCHER ROWS:',JSON.stringify(lineups.filter((r)=>r.is_probable_pitcher===true).map((r)=>({gameId:r.game_id,playerId:r.player?.id,name:r.player?.full_name,teamId:r.team?.id,batsThrows:r.player?.bats_throws,battingOrder:r.batting_order}))));
@@ -55,8 +57,7 @@ jobs:
             const home=game.home_team?.display_name??game.home_team_name;
             const away=game.away_team?.display_name??game.away_team_name;
             const snapshotTime=new Date(Date.parse(game.date)-60*60*1000).toISOString().replace(/\.\d{3}Z$/u,'Z');
-            const eventsUrl=new URL('https://api.the-odds-api.com/v4/historical/sports/baseball_mlb/events');
-            eventsUrl.searchParams.set('apiKey',oddsKey);eventsUrl.searchParams.set('date',snapshotTime);eventsUrl.searchParams.set('dateFormat','iso');
+            const eventsUrl=new URL('https://api.the-odds-api.com/v4/historical/sports/baseball_mlb/events');eventsUrl.searchParams.set('apiKey',oddsKey);eventsUrl.searchParams.set('date',snapshotTime);eventsUrl.searchParams.set('dateFormat','iso');
             const eventsSnap=await fetchJson(eventsUrl);const events=eventsSnap.value.data??eventsSnap.value;
             const matches=events.filter((e)=>e.home_team===home&&e.away_team===away&&Math.abs(Date.parse(e.commence_time)-Date.parse(game.date))<=6*60*60*1000);
             const item={gameId:game.id,snapshotTime,eventMatches:matches.length,eventsSha256:eventsSnap.sha256};
