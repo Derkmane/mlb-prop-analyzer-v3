@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import { recoverM8ActualStarterFromOrderedPitcherAppearances } from './m8-starter-bullpen-transition-utils.mjs';
+
 const oddsKey = process.env.THE_ODDS_API_KEY?.trim();
 const bdlKey = process.env.BALLDONTLIE_API_KEY?.trim();
 if (!oddsKey) throw new Error('Missing THE_ODDS_API_KEY.');
@@ -80,6 +82,18 @@ async function fetchBdlCursor(endpoint, gameIds) {
     cursor = next;
   } while (true);
   return pages;
+}
+
+async function fetchBdlGamePlateAppearances(gameId) {
+  const url = new URL('https://api.balldontlie.io/mlb/v1/plate_appearances');
+  url.searchParams.set('game_id', String(gameId));
+  const snapshot = await fetchSnapshot(url, `plate appearances game ${gameId}`, {
+    headers: { Authorization: bdlKey }, bdl: true,
+  });
+  if (!Array.isArray(snapshot.body?.data)) {
+    throw new Error(`plate appearances game ${gameId} response data must be an array.`);
+  }
+  return snapshot;
 }
 
 function normalizeVector(raw, label) {
@@ -417,18 +431,13 @@ for (const batch of chunks(games.map((game) => game.gameId), 10)) {
 
 const gameById = new Map(games.map((game) => [game.gameId, game]));
 const hittersByGameTeam = new Map();
-const starterByGameTeam = new Map();
+const teamByGamePlayer = new Map();
 for (const row of lineups) {
   const gameId = row?.game_id;
   const playerId = row?.player?.id;
   const teamId = row?.team?.id;
   if (!Number.isInteger(gameId) || !Number.isInteger(playerId) || !Number.isInteger(teamId)) continue;
-  if (row?.is_probable_pitcher === true) {
-    starterByGameTeam.set(`${gameId}:${teamId}`, {
-      playerId, hand: throwingHand(row.player?.bats_throws), rawBatsThrows: row.player?.bats_throws,
-    });
-    continue;
-  }
+  teamByGamePlayer.set(`${gameId}:${playerId}`, teamId);
   if (!Number.isInteger(row?.batting_order) || row.batting_order < 1 || row.batting_order > 9) continue;
   const key = `${gameId}:${teamId}`;
   const teamRows = hittersByGameTeam.get(key) ?? new Map();
@@ -437,6 +446,46 @@ for (const row of lineups) {
     rawBatsThrows: row.player?.bats_throws,
   });
   hittersByGameTeam.set(key, teamRows);
+}
+
+const starterByGameTeam = new Map();
+const starterRecoveryExclusionByGameTeam = new Map();
+for (const game of games.filter((row) => FIT_DATES.includes(row.date))) {
+  const snapshot = await fetchBdlGamePlateAppearances(game.gameId);
+  sourceSnapshots.push({
+    endpoint: 'plate_appearances',
+    gameIds: [game.gameId],
+    rawBodySha256: snapshot.rawBodySha256,
+  });
+  const sides = [
+    { halfInning: 'top', pitchingTeamId: game.homeTeamId },
+    { halfInning: 'bottom', pitchingTeamId: game.awayTeamId },
+  ];
+  for (const side of sides) {
+    const orderedAppearances = snapshot.body.data
+      .filter((row) => String(row?.half_inning ?? '').trim().toLowerCase() === side.halfInning)
+      .map((row) => ({
+        providerPaNumber: row?.pa_number,
+        providerPitcherId: row?.pitcher_id,
+        normalizedPitcherHand: row?.pitcher_hand,
+      }));
+    const key = `${game.gameId}:${side.pitchingTeamId}`;
+    const recovered = recoverM8ActualStarterFromOrderedPitcherAppearances(orderedAppearances);
+    if (recovered.starter === null) {
+      starterRecoveryExclusionByGameTeam.set(key, recovered.exclusion);
+      continue;
+    }
+    starterByGameTeam.set(key, {
+      playerId: recovered.starter.providerPitcherId,
+      hand: recovered.starter.normalizedPitcherHand,
+      recovery: {
+        mechanism: 'shared-m8-pa-order-import',
+        starterBattersFaced: recovered.starter.starterBattersFaced,
+        bullpenBattersFaced: recovered.starter.bullpenBattersFaced,
+        totalBattersFaced: recovered.starter.totalBattersFaced,
+      },
+    });
+  }
 }
 
 const totalsByGame = new Map();
@@ -452,7 +501,8 @@ if (!boardFixture) throw new Error('No historical pregame Underdog event exposed
 
 const exclusionCounts = Object.fromEntries([
   'warmup_history_only','missing_game','missing_player_identity','missing_team_identity','invalid_box_score',
-  'missing_lineup_slot','missing_opposing_starter','invalid_handedness','missing_park_effect','missing_team_bullpen',
+  'missing_lineup_slot','missing_opposing_starter','starter_reappeared_after_bullpen',
+  'starter_absent_from_pitcher_allowed','invalid_handedness','missing_park_effect','missing_team_bullpen',
   'missing_team_total','missing_preceding_lineup','duplicate_player_game','invalid_m8_conditioning',
 ].map((key) => [key, 0]));
 const rows = [];
@@ -465,7 +515,19 @@ for (const stat of stats) {
   if (WARMUP_DATES.includes(game.date)) { exclude('warmup_history_only'); continue; }
   const playerId = stat?.player?.id;
   if (!Number.isInteger(playerId)) { exclude('missing_player_identity'); continue; }
-  const teamId = stat?.team?.id;
+  const providerTeamId = stat?.team?.id;
+  const lineupTeamId = teamByGamePlayer.get(`${game.gameId}:${playerId}`);
+  const statTeamName = typeof stat?.team_name === 'string' ? stat.team_name.trim() : null;
+  const namedTeamId = statTeamName === game.homeTeamName
+    ? game.homeTeamId
+    : statTeamName === game.awayTeamName
+      ? game.awayTeamId
+      : null;
+  const teamId = Number.isInteger(providerTeamId)
+    ? providerTeamId
+    : Number.isInteger(lineupTeamId)
+      ? lineupTeamId
+      : namedTeamId;
   if (!Number.isInteger(teamId) || (teamId !== game.homeTeamId && teamId !== game.awayTeamId)) { exclude('missing_team_identity'); continue; }
   const hits = Number(stat?.hits), runs = Number(stat?.runs), rbi = Number(stat?.rbi), pa = Number(stat?.plate_appearances);
   if (![hits,runs,rbi,pa].every(Number.isInteger) || hits < 0 || runs < 0 || rbi < 0 || pa <= 0) { exclude('invalid_box_score'); continue; }
@@ -476,8 +538,16 @@ for (const stat of stats) {
   const hitter = teamRows ? [...teamRows.values()].find((row) => row.playerId === playerId) : null;
   if (!hitter) { exclude('missing_lineup_slot'); continue; }
   const opposingTeamId = teamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId;
-  const starter = starterByGameTeam.get(`${game.gameId}:${opposingTeamId}`);
+  const starterKey = `${game.gameId}:${opposingTeamId}`;
+  const recoveryExclusion = starterRecoveryExclusionByGameTeam.get(starterKey);
+  if (recoveryExclusion === 'starter-reappeared-after-bullpen') {
+    exclude('starter_reappeared_after_bullpen');
+    continue;
+  }
+  const starter = starterByGameTeam.get(starterKey);
   if (!starter || !Number.isInteger(starter.playerId)) { exclude('missing_opposing_starter'); continue; }
+  const frozenStarterAllowed = terminal.pitcherAllowed[String(starter.playerId)];
+  if (!frozenStarterAllowed) { exclude('starter_absent_from_pitcher_allowed'); continue; }
   if (!hitter.declaredHand || !starter.hand) { exclude('invalid_handedness'); continue; }
   const batterSide = resolvedBatterHand(hitter.declaredHand, starter.hand);
   const parkHand = batterSide;
@@ -511,7 +581,7 @@ for (const stat of stats) {
     const platoonBatter = platoonBatterVector(terminal, playerId, hitter.declaredHand, batterSide, starter.hand);
     const platoonVector = applyPark(coherentVector(terminal, platoonBatter, terminal.unseenPitcher), park);
     const starterVector = applyPark(coherentVector(
-      terminal, overallBatter, terminal.pitcherAllowed[String(starter.playerId)] ?? terminal.unseenPitcher,
+      terminal, overallBatter, frozenStarterAllowed,
     ), park);
     const precedingQuality = preceding.reduce((sum, row) => {
       const vector = applyPark(coherentVector(
@@ -563,6 +633,25 @@ const predictorSummaries = Object.freeze({
 
 const fixture = {
   schemaVersion: 2,
+  starterRecoveryContract: {
+    mechanism: 'extraction-and-import',
+    sharedFunction: 'recoverM8ActualStarterFromOrderedPitcherAppearances',
+    sharedModule: 'scripts/m8-starter-bullpen-transition-utils.mjs',
+    endpoint: 'GET /mlb/v1/plate_appearances?game_id={gameId}',
+    orderField: 'pa_number',
+    pitcherIdField: 'pitcher_id',
+    pitcherHandField: 'pitcher_hand',
+    noFallbackVector: true,
+  },
+  lookaheadAudit: {
+    pitcherAllowedDataStartDate: '2026-03-26',
+    pitcherAllowedDataEndDate: '2026-07-05',
+    hhrWarmupStartDate: WARMUP_DATES[0],
+    hhrWarmupEndDate: WARMUP_DATES.at(-1),
+    hhrFitStartDate: FIT_DATES[0],
+    hhrFitEndDate: FIT_DATES.at(-1),
+    overlap: false,
+  },
   provider: 'BALLDONTLIE MLB API',
   activeSeason: 2026,
   seasonType: 'regular',
