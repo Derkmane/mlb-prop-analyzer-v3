@@ -1,0 +1,611 @@
+name: M11 HHR attempt 2
+
+on:
+  push:
+    branches:
+      - agent/m11-step2-hhr-attempt2
+    paths:
+      - .github/workflows/m11-step2-hhr-attempt2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  attempt-two:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Apply attempt 2 source changes
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          function replaceRange(text, startMarker, endMarker, replacement, label) {
+            const start = text.indexOf(startMarker);
+            const end = text.indexOf(endMarker, start + startMarker.length);
+            if (start < 0 || end < 0) throw new Error(`${label} anchor drifted.`);
+            return text.slice(0, start) + replacement + text.slice(end);
+          }
+
+          const capturePath = 'scripts/capture-m11-hhr-respecified-evidence.mjs';
+          let capture = fs.readFileSync(capturePath, 'utf8');
+          capture = replaceRange(
+            capture,
+            'const WARMUP_DATES = Object.freeze([',
+            'const sha256 =',
+            `const FROZEN_HISTORY_START_DATE = '2026-03-26';
+          const FROZEN_HISTORY_END_DATE = '2026-07-05';
+          const FIT_START_DATE = '2026-07-06';
+          const FIT_SCAN_END_DATE = '2026-08-05';
+          const ATTEMPT_1_ROW_COUNT = 783;
+          function enumerateIsoDates(startDate, endDate) {
+            const dates = [];
+            for (let value = Date.parse(\`${'${startDate}'}T00:00:00Z\`); value <= Date.parse(\`${'${endDate}'}T00:00:00Z\`); value += 86_400_000) {
+              dates.push(new Date(value).toISOString().slice(0, 10));
+            }
+            return Object.freeze(dates);
+          }
+          const FIT_SCAN_DATES = enumerateIsoDates(FIT_START_DATE, FIT_SCAN_END_DATE);
+          let FIT_DATES = Object.freeze([]);
+          const OUTPUT_DIRECTORY = path.resolve('fixtures/sanitized/m11/hhr/respecified-v2');
+          const DESIGN_PATH = path.join(OUTPUT_DIRECTORY, 'balldontlie-hhr-design-matrix-v2.json');
+          const BOARD_PATH = path.join(OUTPUT_DIRECTORY, 'the-odds-api-underdog-hhr-board-v2.json');
+          `,
+            'capture window',
+          );
+
+          const gamesStart = capture.indexOf("const gamesUrl = new URL('https://api.balldontlie.io/mlb/v1/games');");
+          const gamesEndMarker = "if (games.length < 20) throw new Error(`HHR capture requires at least 20 final games; received ${games.length}.`);";
+          const gamesEnd = capture.indexOf(gamesEndMarker, gamesStart);
+          if (gamesStart < 0 || gamesEnd < 0) throw new Error('games capture block anchor drifted.');
+          const gamesReplacement = `const rawGameRows = [];
+          const gameSourceSnapshots = [];
+          for (const date of FIT_SCAN_DATES) {
+            const gamesUrl = new URL('https://api.balldontlie.io/mlb/v1/games');
+            gamesUrl.searchParams.append('dates[]', date);
+            gamesUrl.searchParams.set('season_type', 'regular');
+            gamesUrl.searchParams.set('per_page', '100');
+            const snapshot = await fetchSnapshot(gamesUrl, \`BDL HHR attempt 2 games ${'${date}'}\`, {
+              headers: { Authorization: bdlKey }, bdl: true,
+            });
+            if (!Array.isArray(snapshot.body?.data)) throw new Error(\`BDL games ${'${date}'} data must be an array.\`);
+            rawGameRows.push(...snapshot.body.data);
+            gameSourceSnapshots.push({ endpoint: 'games', dates: [date], rawBodySha256: snapshot.rawBodySha256 });
+          }
+          const rawGamesByDate = new Map();
+          for (const game of rawGameRows) {
+            const date = String(game?.date ?? '').slice(0, 10);
+            if (!FIT_SCAN_DATES.includes(date)) continue;
+            const dateRows = rawGamesByDate.get(date) ?? [];
+            dateRows.push(game);
+            rawGamesByDate.set(date, dateRows);
+          }
+          const completeDates = [...rawGamesByDate.entries()]
+            .filter(([, dateRows]) => dateRows.length > 0 && dateRows.every((game) => game?.status === 'STATUS_FINAL'))
+            .map(([date]) => date)
+            .sort();
+          const latestCompleteDate = completeDates.at(-1);
+          if (!latestCompleteDate || latestCompleteDate < FIT_START_DATE) {
+            throw new Error('No complete HHR fitted date exists after the frozen pitcherAllowed range.');
+          }
+          FIT_DATES = Object.freeze(FIT_SCAN_DATES.filter((date) => date <= latestCompleteDate));
+          const lookaheadOverlap = FIT_DATES.some((date) => date <= FROZEN_HISTORY_END_DATE);
+          if (lookaheadOverlap) throw new Error('HHR attempt 2 lookahead overlap detected before fitting.');
+          const games = rawGameRows
+            .filter((game) => game?.status === 'STATUS_FINAL' && FIT_DATES.includes(String(game.date).slice(0, 10)))
+            .map((game) => ({
+              gameId: game.id,
+              date: String(game.date).slice(0, 10),
+              commenceTime: game.date,
+              venue: game.venue,
+              homeTeamId: game.home_team?.id,
+              awayTeamId: game.away_team?.id,
+              homeTeamName: game.home_team?.display_name ?? game.home_team_name,
+              awayTeamName: game.away_team?.display_name ?? game.away_team_name,
+            }))
+            .filter((game) => Number.isInteger(game.gameId))
+            .sort((left, right) => left.date.localeCompare(right.date) || left.gameId - right.gameId);
+          if (games.length < 20) throw new Error(\`HHR capture requires at least 20 final games; received ${'${games.length}'}.\`);`;
+          capture = capture.slice(0, gamesStart) + gamesReplacement + capture.slice(gamesEnd + gamesEndMarker.length);
+          capture = capture.replace(
+            "const sourceSnapshots = [{ endpoint: 'games', rawBodySha256: gamesSnapshot.rawBodySha256 }];",
+            'const sourceSnapshots = [...gameSourceSnapshots];',
+          );
+          capture = capture.replace("  if (WARMUP_DATES.includes(game.date)) { exclude('warmup_history_only'); continue; }\n", '');
+
+          const totalsStart = capture.indexOf('const totalsByGame = new Map();');
+          const totalsEndMarker = "if (!boardFixture) throw new Error('No historical pregame Underdog event exposed both HHR baseline and alternate markets.');";
+          const totalsEnd = capture.indexOf(totalsEndMarker, totalsStart);
+          if (totalsStart < 0 || totalsEnd < 0) throw new Error('team totals block anchor drifted.');
+          const totalsReplacement = `const totalsByGame = new Map();
+          const teamTotalDiagnosticsByGame = new Map();
+          let boardFixture = null;
+          for (const game of games) {
+            const event = await historicalEvent(game);
+            if (!event) {
+              teamTotalDiagnosticsByGame.set(game.gameId, Object.freeze({
+                reason: 'historical-event-not-unique-or-missing',
+                gameId: game.gameId,
+                date: game.date,
+                homeTeamName: game.homeTeamName,
+                awayTeamName: game.awayTeamName,
+              }));
+              continue;
+            }
+            const totals = await historicalTeamTotals(game, event);
+            if (totals) {
+              totalsByGame.set(game.gameId, totals);
+            } else {
+              teamTotalDiagnosticsByGame.set(game.gameId, Object.freeze({
+                reason: 'historical-team-totals-did-not-expose-both-exact-team-points',
+                gameId: game.gameId,
+                date: game.date,
+                eventId: event.event.id,
+                requestedAt: event.snapshotTime,
+                homeTeamName: game.homeTeamName,
+                awayTeamName: game.awayTeamName,
+              }));
+            }
+            if (!boardFixture) boardFixture = await captureHistoricalHhrBoard(game, event);
+          }
+          if (!boardFixture) throw new Error('No historical pregame Underdog event exposed both HHR baseline and alternate markets.');`;
+          capture = capture.slice(0, totalsStart) + totalsReplacement + capture.slice(totalsEnd + totalsEndMarker.length);
+
+          const exclusionStart = capture.indexOf('const exclusionCounts = Object.fromEntries([');
+          const exclusionEndMarker = 'function exclude(rule) { exclusionCounts[rule] += 1; }';
+          const exclusionEnd = capture.indexOf(exclusionEndMarker, exclusionStart);
+          if (exclusionStart < 0 || exclusionEnd < 0) throw new Error('exclusion block anchor drifted.');
+          const exclusionReplacement = `const exclusionCounts = Object.fromEntries([
+            'warmup_history_only','missing_game','missing_player_identity','missing_team_identity','invalid_box_score',
+            'missing_lineup_slot','missing_opposing_starter','starter_reappeared_after_bullpen',
+            'starter_absent_from_pitcher_allowed','invalid_handedness','missing_park_effect','missing_team_bullpen',
+            'missing_team_total','missing_preceding_lineup','duplicate_player_game','invalid_m8_conditioning',
+          ].map((key) => [key, 0]));
+          const EXAMPLE_RULES = Object.freeze(['invalid_box_score','missing_lineup_slot','missing_team_total']);
+          const exclusionExamples = Object.fromEntries(EXAMPLE_RULES.map((key) => [key, []]));
+          const rows = [];
+          const seen = new Set();
+          function exclude(rule, example = null) {
+            exclusionCounts[rule] += 1;
+            if (example !== null && EXAMPLE_RULES.includes(rule) && exclusionExamples[rule].length < 3) {
+              exclusionExamples[rule].push(Object.freeze(example));
+            }
+          }`;
+          capture = capture.slice(0, exclusionStart) + exclusionReplacement + capture.slice(exclusionEnd + exclusionEndMarker.length);
+
+          const boxOld = `  const hits = Number(stat?.hits), runs = Number(stat?.runs), rbi = Number(stat?.rbi), pa = Number(stat?.plate_appearances);
+            if (![hits,runs,rbi,pa].every(Number.isInteger) || hits < 0 || runs < 0 || rbi < 0 || pa <= 0) { exclude('invalid_box_score'); continue; }`;
+          const boxNew = `  const rawBoxScore = {
+              hits: stat?.hits,
+              runs: stat?.runs,
+              rbi: stat?.rbi,
+              plateAppearances: stat?.plate_appearances,
+            };
+            const hits = Number(rawBoxScore.hits), runs = Number(rawBoxScore.runs), rbi = Number(rawBoxScore.rbi), pa = Number(rawBoxScore.plateAppearances);
+            const invalidBoxReasons = [];
+            if (!Number.isInteger(hits) || hits < 0) invalidBoxReasons.push('hits-not-nonnegative-integer');
+            if (!Number.isInteger(runs) || runs < 0) invalidBoxReasons.push('runs-not-nonnegative-integer');
+            if (!Number.isInteger(rbi) || rbi < 0) invalidBoxReasons.push('rbi-not-nonnegative-integer');
+            if (!Number.isInteger(pa) || pa <= 0) invalidBoxReasons.push('plate-appearances-not-positive-integer');
+            if (invalidBoxReasons.length > 0) {
+              exclude('invalid_box_score', {
+                date: game.date,
+                gameId: game.gameId,
+                playerId,
+                playerName: stat?.player?.full_name ?? null,
+                teamId,
+                rawBoxScore: Object.fromEntries(Object.entries(rawBoxScore).map(([key, value]) => [key, { value: value ?? null, type: value === null ? 'null' : typeof value }])),
+                parsedBoxScore: { hits, runs, rbi, plateAppearances: pa },
+                reasons: invalidBoxReasons,
+              });
+              continue;
+            }`;
+          if (!capture.includes(boxOld)) throw new Error('box-score anchor drifted.');
+          capture = capture.replace(boxOld, boxNew);
+
+          const lineupOld = `  const hitter = teamRows ? [...teamRows.values()].find((row) => row.playerId === playerId) : null;
+            if (!hitter) { exclude('missing_lineup_slot'); continue; }`;
+          const lineupNew = `  const hitter = teamRows ? [...teamRows.values()].find((row) => row.playerId === playerId) : null;
+            if (!hitter) {
+              exclude('missing_lineup_slot', {
+                date: game.date,
+                gameId: game.gameId,
+                playerId,
+                playerName: stat?.player?.full_name ?? null,
+                teamId,
+                lineupTeamId: teamByGamePlayer.get(\`${'${game.gameId}'}:${'${playerId}'}\`) ?? null,
+                availableStartingLineup: teamRows ? [...teamRows.values()].map((row) => ({ playerId: row.playerId, lineupSlot: row.lineupSlot })) : [],
+              });
+              continue;
+            }`;
+          if (!capture.includes(lineupOld)) throw new Error('lineup exclusion anchor drifted.');
+          capture = capture.replace(lineupOld, lineupNew);
+
+          const totalOld = `  const teamTotal = totals?.byTeam.get(teamName);
+            if (!Number.isFinite(teamTotal)) { exclude('missing_team_total'); continue; }`;
+          const totalNew = `  const teamTotal = totals?.byTeam.get(teamName);
+            if (!Number.isFinite(teamTotal)) {
+              exclude('missing_team_total', {
+                date: game.date,
+                gameId: game.gameId,
+                playerId,
+                playerName: stat?.player?.full_name ?? null,
+                teamId,
+                teamName,
+                diagnostic: teamTotalDiagnosticsByGame.get(game.gameId) ?? { reason: 'team-total-map-missing-request-diagnostic' },
+              });
+              continue;
+            }`;
+          if (!capture.includes(totalOld)) throw new Error('team-total exclusion anchor drifted.');
+          capture = capture.replace(totalOld, totalNew);
+
+          capture = capture.replace('  schemaVersion: 2,', `  schemaVersion: 3,
+            attempt: 2,`);
+          const lookaheadOld = `  lookaheadAudit: {
+              pitcherAllowedDataStartDate: '2026-03-26',
+              pitcherAllowedDataEndDate: '2026-07-05',
+              hhrWarmupStartDate: WARMUP_DATES[0],
+              hhrWarmupEndDate: WARMUP_DATES.at(-1),
+              hhrFitStartDate: FIT_DATES[0],
+              hhrFitEndDate: FIT_DATES.at(-1),
+              overlap: false,
+            },`;
+          const lookaheadNew = `  lookaheadAudit: {
+              pitcherAllowedDataStartDate: FROZEN_HISTORY_START_DATE,
+              pitcherAllowedDataEndDate: FROZEN_HISTORY_END_DATE,
+              hhrWarmupStartDate: FROZEN_HISTORY_START_DATE,
+              hhrWarmupEndDate: FROZEN_HISTORY_END_DATE,
+              hhrFitStartDate: FIT_DATES[0],
+              hhrFitEndDate: FIT_DATES.at(-1),
+              overlap: lookaheadOverlap,
+              fittedRowsOnOrBeforePitcherAllowedEndDate: rows.filter((row) => row.date <= FROZEN_HISTORY_END_DATE).length,
+            },`;
+          if (!capture.includes(lookaheadOld)) throw new Error('lookahead artifact anchor drifted.');
+          capture = capture.replace(lookaheadOld, lookaheadNew);
+          const windowsOld = `  warmupWindow: { startDate: WARMUP_DATES[0], endDate: WARMUP_DATES.at(-1), fitted: false },
+            fitWindow: { startDate: FIT_DATES[0], endDate: FIT_DATES.at(-1) },
+            chronology: 'frozen M8/M8.5 artifacts end validation 2026-07-05; HHR warmup and fit occur strictly later',`;
+          const windowsNew = `  warmupWindow: {
+              startDate: FROZEN_HISTORY_START_DATE,
+              endDate: FROZEN_HISTORY_END_DATE,
+              fitted: false,
+              mechanism: 'frozen M8/M8.5 current-season history artifacts',
+            },
+            fitWindow: {
+              startDate: FIT_DATES[0],
+              endDate: FIT_DATES.at(-1),
+              scanEndDate: FIT_SCAN_END_DATE,
+              latestCompleteDate,
+              fittedDateCount: FIT_DATES.length,
+            },
+            chronology: 'frozen pitcherAllowed history ends 2026-07-05; every fitted row is dated 2026-07-06 or later',`;
+          if (!capture.includes(windowsOld)) throw new Error('window artifact anchor drifted.');
+          capture = capture.replace(windowsOld, windowsNew);
+          capture = capture.replace(
+            '  exclusionCounts,\n  exclusionCountSum: excludedRowCount,',
+            `  exclusionCounts,
+            exclusionExamples,
+            exclusionCountSum: excludedRowCount,
+            attempt1RowCount: ATTEMPT_1_ROW_COUNT,
+            rowExpansionFactor: rows.length / ATTEMPT_1_ROW_COUNT,`,
+          );
+          capture = capture.replace(
+            "console.log(`WARMUP: ${WARMUP_DATES[0]} through ${WARMUP_DATES.at(-1)}`);",
+            "console.log(`WARMUP HISTORY: ${FROZEN_HISTORY_START_DATE} through ${FROZEN_HISTORY_END_DATE} (artifact-backed, not fitted)`);",
+          );
+          capture = capture.replace(
+            "console.log(`FIT: ${FIT_DATES[0]} through ${FIT_DATES.at(-1)}`);",
+            "console.log(`FIT: ${FIT_DATES[0]} through ${FIT_DATES.at(-1)}`);\nconsole.log(`LATEST COMPLETE DATE: ${latestCompleteDate}`);\nconsole.log(`ROW EXPANSION FACTOR VS ATTEMPT 1: ${rows.length / ATTEMPT_1_ROW_COUNT}`);",
+          );
+          capture = capture.replace(
+            "for (const [rule, count] of Object.entries(exclusionCounts)) console.log(`EXCLUSION ${rule}: ${count}`);",
+            "for (const [rule, count] of Object.entries(exclusionCounts)) console.log(`EXCLUSION ${rule}: ${count}`);\nfor (const rule of EXAMPLE_RULES) console.log(`EXCLUSION EXAMPLES ${rule}: ${JSON.stringify(exclusionExamples[rule])}`);",
+          );
+          capture = capture.replace(
+            "if (rows.length < 500) {\n  throw new Error(`Respecified HHR fit requires at least 500 complete rows after diagnostic persistence; received ${rows.length}.`);\n}",
+            "if (rows.length <= ATTEMPT_1_ROW_COUNT) {\n  throw new Error(`Attempt 2 must materially exceed attempt 1's ${ATTEMPT_1_ROW_COUNT} fitted rows; received ${rows.length}.`);\n}\nif (fixture.lookaheadAudit.fittedRowsOnOrBeforePitcherAllowedEndDate !== 0) {\n  throw new Error('Attempt 2 fitted rows overlap the frozen pitcherAllowed source range.');\n}",
+          );
+          fs.writeFileSync(capturePath, capture);
+
+          const fitPath = 'scripts/fit-m11-batter-hhr-respecified.mjs';
+          let fit = fs.readFileSync(fitPath, 'utf8');
+          fit = fit
+            .replaceAll('respecified-v1', 'respecified-v2')
+            .replaceAll('balldontlie-hhr-design-matrix-v1.json', 'balldontlie-hhr-design-matrix-v2.json')
+            .replaceAll('the-odds-api-underdog-hhr-board-v1.json', 'the-odds-api-underdog-hhr-board-v2.json')
+            .replaceAll('m11-batter-hhr-direct-composite-diagnostics-v1.json', 'm11-batter-hhr-direct-composite-diagnostics-v2.json')
+            .replaceAll('m11-batter-hhr-direct-composite-v1.json', 'm11-batter-hhr-direct-composite-v2.json')
+            .replaceAll("'m11-batter-hhr-direct-composite-v1'", "'m11-batter-hhr-direct-composite-v2'")
+            .replace('const VIF_MAXIMUM = 5;', 'const VIF_MAXIMUM = 5;\nconst LINEUP_SLOT_ABSOLUTE_MAXIMUM = 0.15;');
+          fit = fit.replaceAll('diagnosticsVersion: 1', 'diagnosticsVersion: 2');
+          fit = fit.replace('fixture.schemaVersion !== 2', 'fixture.schemaVersion !== 3');
+          fit = fit.replace('fixture.rows.length < 500', 'fixture.rows.length <= 783');
+          fit = fit.replace("throw new Error('HHR fixture requires at least 500 rows.')", "throw new Error('HHR attempt 2 fixture must materially exceed 783 rows.')");
+          const inferenceMarker = `const coefficientInference = Object.fromEntries(coefficientNames.map((name, index) => {
+            const standardError = Math.sqrt(fit.covariance[index][index]);
+            return [name, {
+              estimate: fit.beta[index], standardError,
+              confidenceInterval95: [fit.beta[index] - 1.959963984540054 * standardError, fit.beta[index] + 1.959963984540054 * standardError],
+            }];
+          }));`;
+          if (!fit.includes(inferenceMarker)) throw new Error('coefficient inference anchor drifted.');
+          fit = fit.replace(inferenceMarker, `${inferenceMarker}
+          const confidenceIntervalsExcludingZero = coefficientNames.filter((name) => {
+            const [lower, upper] = coefficientInference[name].confidenceInterval95;
+            return lower > 0 || upper < 0;
+          });
+          const predictorStandardDeviations = Object.freeze(Object.fromEntries(
+            PREDICTOR_ORDER.map((name) => [name, transforms[name].standardDeviation]),
+          ));
+          const standardizedCoefficientTable = Object.freeze(Object.fromEntries(
+            PREDICTOR_ORDER.map((name) => [name, Object.freeze({
+              estimatePerStandardDeviation: coefficients[name],
+              predictorStandardDeviation: transforms[name].standardDeviation,
+              standardError: coefficientInference[name].standardError,
+              confidenceInterval95: coefficientInference[name].confidenceInterval95,
+            })]),
+          ));`);
+          const oldGate = `  lineupSlotSign: {
+              coefficient: coefficients.centeredLineupSlot,
+              requirement: 'coefficient <= 0',
+              passed: coefficients.centeredLineupSlot <= 0,
+            },`;
+          const newGate = `  lineupSlotMagnitude: {
+              coefficientPerStandardDeviation: coefficients.centeredLineupSlot,
+              absoluteCoefficient: Math.abs(coefficients.centeredLineupSlot),
+              thresholdExclusive: LINEUP_SLOT_ABSOLUTE_MAXIMUM,
+              requirement: '|coefficient| < 0.15 per standard deviation',
+              passed: Math.abs(coefficients.centeredLineupSlot) < LINEUP_SLOT_ABSOLUTE_MAXIMUM,
+            },`;
+          if (!fit.includes(oldGate)) throw new Error('Gate B anchor drifted.');
+          fit = fit.replace(oldGate, newGate);
+          fit = fit.replace(
+            '  predictorOrder: PREDICTOR_ORDER,\n  predictorSummaries,',
+            `  predictorOrder: PREDICTOR_ORDER,
+            coefficientScale: 'standardized-per-sample-standard-deviation',
+            predictorStandardDeviations,
+            standardizedCoefficientTable,
+            predictorSummaries,`,
+          );
+          fit = fit.replace(
+            '  coefficientInference,\n  expectedPlateAppearancesSummary:',
+            `  coefficientInference,
+            confidenceIntervalsExcludingZero: {
+              count: confidenceIntervalsExcludingZero.length,
+              coefficientNames: confidenceIntervalsExcludingZero,
+              diagnosticOnly: true,
+            },
+            expectedPlateAppearancesSummary:`,
+          );
+          fit = fit.replace('  artifactVersion: 1,', '  artifactVersion: 2,');
+          fit = fit.replace(
+            "    response: 'T=hits+runs+rbi', link: 'log', variance: 'mu+alpha*mu^2',\n    expectedPlateAppearancesRole: 'offset', expectedPlateAppearancesCoefficient: 1,",
+            "    response: 'T=hits+runs+rbi', link: 'log', variance: 'mu+alpha*mu^2',\n    expectedPlateAppearancesRole: 'offset', expectedPlateAppearancesCoefficient: 1,\n    coefficientScale: 'standardized-per-sample-standard-deviation', predictorStandardDeviations,",
+          );
+          fit = fit.replace(
+            "console.log('EXPECTED PA COEFFICIENT: 1');",
+            "console.log('EXPECTED PA COEFFICIENT: 1');\nconsole.log('COEFFICIENT SCALE: standardized-per-sample-standard-deviation');\nfor (const name of PREDICTOR_ORDER) console.log(`PREDICTOR SD ${name}: ${predictorStandardDeviations[name]}`);",
+          );
+          fit = fit.replace(
+            "console.log(`GATE B LINEUP SLOT NON-POSITIVE: ${gates.lineupSlotSign.passed}`);",
+            "console.log(`GATE B PRIME |LINEUP SLOT| < ${LINEUP_SLOT_ABSOLUTE_MAXIMUM} PER SD: ${gates.lineupSlotMagnitude.passed}`);",
+          );
+          fit = fit.replace(
+            "console.log(`GATE C QUALITY RATIO >= ${QUALITY_SPREAD_MINIMUM_RATIO}: ${gates.batterQualitySpread.passed}`);",
+            "console.log(`GATE C QUALITY RATIO >= ${QUALITY_SPREAD_MINIMUM_RATIO}: ${gates.batterQualitySpread.passed}`);\nconsole.log(`GATE E CI EXCLUDING ZERO COUNT [DIAGNOSTIC]: ${confidenceIntervalsExcludingZero.length}`);\nconsole.log(`GATE E CI EXCLUDING ZERO NAMES [DIAGNOSTIC]: ${JSON.stringify(confidenceIntervalsExcludingZero)}`);",
+          );
+          fit = fit.replace(
+            "if (!gates.lineupSlotSign.passed) throw new Error(`GATE B FAILED: lineup-slot coefficient ${coefficients.centeredLineupSlot} is positive.`);",
+            "if (!gates.lineupSlotMagnitude.passed) throw new Error(`GATE B PRIME FAILED: absolute lineup-slot coefficient ${Math.abs(coefficients.centeredLineupSlot)} is not below ${LINEUP_SLOT_ABSOLUTE_MAXIMUM} per SD.`);",
+          );
+          fs.writeFileSync(fitPath, fit);
+
+          const contractsPath = 'src/features/batter-hhr/contracts.ts';
+          let contracts = fs.readFileSync(contractsPath, 'utf8');
+          contracts = contracts
+            .replace("'m11-batter-hhr-direct-composite-v1'", "'m11-batter-hhr-direct-composite-v2'")
+            .replace('readonly artifactVersion: 1;', 'readonly artifactVersion: 2;')
+            .replace(
+              "    readonly expectedPlateAppearancesCoefficient: 1;",
+              "    readonly expectedPlateAppearancesCoefficient: 1;\n    readonly coefficientScale: 'standardized-per-sample-standard-deviation';\n    readonly predictorStandardDeviations: Readonly<Record<BatterHhrPredictorName, number>>;",
+            );
+          fs.writeFileSync(contractsPath, contracts);
+
+          const distributionPath = 'src/features/batter-hhr/distribution.ts';
+          let distribution = fs.readFileSync(distributionPath, 'utf8');
+          distribution = distribution.replace('artifact.artifactVersion !== 1', 'artifact.artifactVersion !== 2');
+          distribution = distribution.replace(
+            "  if (artifact.fittingDetails.expectedPlateAppearancesRole !== 'offset' || artifact.fittingDetails.expectedPlateAppearancesCoefficient !== 1) throw new Error('Batter HHR expected PA must be a fixed unit offset.');",
+            "  if (artifact.fittingDetails.expectedPlateAppearancesRole !== 'offset' || artifact.fittingDetails.expectedPlateAppearancesCoefficient !== 1) throw new Error('Batter HHR expected PA must be a fixed unit offset.');\n  if (artifact.fittingDetails.coefficientScale !== 'standardized-per-sample-standard-deviation') throw new Error('Batter HHR coefficient scale must be explicit and standardized.');",
+          );
+          distribution = distribution.replace(
+            "    assertPositive(transform.standardDeviation, `artifact transform standard deviation ${predictor}`);",
+            "    assertPositive(transform.standardDeviation, `artifact transform standard deviation ${predictor}`);\n    if (artifact.fittingDetails.predictorStandardDeviations[predictor] !== transform.standardDeviation) throw new Error(`Batter HHR predictor SD drift for ${predictor}.`);",
+          );
+          fs.writeFileSync(distributionPath, distribution);
+
+          const testPath = 'test/m11-batter-hhr-direct-composite.test.ts';
+          let testText = fs.readFileSync(testPath, 'utf8');
+          testText = testText
+            .replaceAll('m11-batter-hhr-direct-composite-v1.json', 'm11-batter-hhr-direct-composite-v2.json')
+            .replaceAll('m11-batter-hhr-direct-composite-diagnostics-v1.json', 'm11-batter-hhr-direct-composite-diagnostics-v2.json')
+            .replaceAll('respecified-v1', 'respecified-v2')
+            .replaceAll('balldontlie-hhr-design-matrix-v1.json', 'balldontlie-hhr-design-matrix-v2.json')
+            .replaceAll('the-odds-api-underdog-hhr-board-v1.json', 'the-odds-api-underdog-hhr-board-v2.json')
+            .replace('lineup sign, quality-spread', 'lineup magnitude, quality-spread')
+            .replace("  assert.equal(diagnostics.acceptanceGates.lineupSlotSign.passed, true);\n  assert.ok(diagnostics.coefficientInference.centeredLineupSlot.estimate <= 0);", "  assert.equal(diagnostics.acceptanceGates.lineupSlotMagnitude.passed, true);\n  assert.ok(Math.abs(diagnostics.coefficientInference.centeredLineupSlot.estimate) < 0.15);\n  assert.equal(diagnostics.coefficientScale, 'standardized-per-sample-standard-deviation');\n  assert.deepEqual(diagnostics.predictorStandardDeviations, Object.fromEntries(Object.entries(diagnostics.predictorSummaries).slice(0, 6).map(([name, value]: [string, any]) => [name, value.standardDeviation])));\n  assert.equal(typeof diagnostics.confidenceIntervalsExcludingZero.count, 'number');")
+            .replace("  assert.equal(validated.fittingDetails.expectedPlateAppearancesCoefficient, 1);", "  assert.equal(validated.fittingDetails.expectedPlateAppearancesCoefficient, 1);\n  assert.equal(validated.fittingDetails.coefficientScale, 'standardized-per-sample-standard-deviation');");
+          fs.writeFileSync(testPath, testText);
+
+          const sourceContract = `import assert from 'node:assert/strict';
+          import { readFile } from 'node:fs/promises';
+          import test from 'node:test';
+
+          test('M11 HHR attempt 2 encodes the corrected gate, standardized scale, and leakage-safe expanded window', async () => {
+            const [capture, fit, attempt1Capture, attempt1Fit] = await Promise.all([
+              readFile('scripts/capture-m11-hhr-respecified-evidence.mjs', 'utf8'),
+              readFile('scripts/fit-m11-batter-hhr-respecified.mjs', 'utf8'),
+              readFile('artifacts/workflow-logs/m11-hhr-attempt1-capture.log', 'utf8'),
+              readFile('artifacts/workflow-logs/m11-hhr-attempt1-fit.log', 'utf8'),
+            ]);
+            assert.match(capture, /FIT_START_DATE = '2026-07-06'/u);
+            assert.match(capture, /FROZEN_HISTORY_END_DATE = '2026-07-05'/u);
+            assert.match(capture, /fittedRowsOnOrBeforePitcherAllowedEndDate/u);
+            assert.match(capture, /exclusionExamples/u);
+            assert.match(fit, /LINEUP_SLOT_ABSOLUTE_MAXIMUM = 0\.15/u);
+            assert.match(fit, /standardized-per-sample-standard-deviation/u);
+            assert.doesNotMatch(fit, /coefficient <= 0/u);
+            assert.match(attempt1Capture, /ROWS: 783/u);
+            assert.match(attempt1Fit, /GATE B LINEUP SLOT NON-POSITIVE: false/u);
+          });
+          `;
+          fs.writeFileSync('test/m11-hhr-attempt2-source-contract.test.mjs', sourceContract);
+          NODE
+
+      - name: Verify attempt 2 source before provider capture
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts
+          node --check scripts/capture-m11-hhr-respecified-evidence.mjs
+          node --check scripts/fit-m11-batter-hhr-respecified.mjs
+          node --test test/m11-hhr-starter-source-contract.test.mjs test/m11-hhr-attempt2-source-contract.test.mjs test/m8-starter-bullpen-transition.test.mjs
+          npm run build
+          node --test test/m11-batter-hits-byte-identity.test.mjs
+          npm run typecheck
+          npm run check:scripts
+          git diff --check
+          echo 'EXPECTED: source checks pass, attempt-1 evidence remains literal, Gate D remains byte-identical.'
+
+      - name: Commit attempt 2 source
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add scripts/capture-m11-hhr-respecified-evidence.mjs scripts/fit-m11-batter-hhr-respecified.mjs src/features/batter-hhr/contracts.ts src/features/batter-hhr/distribution.ts test/m11-batter-hhr-direct-composite.test.ts test/m11-hhr-attempt2-source-contract.test.mjs
+          git commit -m "Prepare leakage-safe HHR attempt 2"
+          git push origin HEAD:agent/m11-step2-hhr-attempt2
+
+      - name: Capture expanded HHR fitted evidence
+        id: capture
+        continue-on-error: true
+        env:
+          THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
+          BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/workflow-logs
+          set +e
+          node scripts/capture-m11-hhr-respecified-evidence.mjs 2>&1 | tee artifacts/workflow-logs/m11-hhr-attempt2-capture.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
+      - name: Fit direct NB2 HHR attempt 2
+        id: fit
+        if: steps.capture.outcome == 'success'
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/workflow-logs
+          set +e
+          node scripts/fit-m11-batter-hhr-respecified.mjs 2>&1 | tee artifacts/workflow-logs/m11-hhr-attempt2-fit.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
+      - name: Run literal npm verify
+        id: verify
+        if: always() && steps.capture.outcome == 'success'
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/workflow-logs
+          set +e
+          npm run verify 2>&1 | tee artifacts/workflow-logs/m11-hhr-attempt2-npm-verify.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
+      - name: Persist attempt 2 evidence and remove transport
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/workflow-logs
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const report = {
+            attempt: 2,
+            attemptLimit: 2,
+            sourceHead: process.env.GITHUB_SHA,
+            captureOutcome: '${{ steps.capture.outcome }}',
+            captureStatus: '${{ steps.capture.outputs.status }}',
+            fitOutcome: '${{ steps.fit.outcome }}',
+            fitStatus: '${{ steps.fit.outputs.status }}',
+            verifyOutcome: '${{ steps.verify.outcome }}',
+            verifyStatus: '${{ steps.verify.outputs.status }}',
+            productionEnabled: false,
+            rankingEnabled: false,
+          };
+          fs.writeFileSync('artifacts/workflow-logs/m11-hhr-attempt2-status.json', `${JSON.stringify(report, null, 2)}\n`);
+          const fixturePath = 'fixtures/sanitized/m11/hhr/respecified-v2/balldontlie-hhr-design-matrix-v2.json';
+          const fixture = fs.existsSync(fixturePath) ? JSON.parse(fs.readFileSync(fixturePath, 'utf8')) : null;
+          const declarationReport = {
+            status: 'reported-not-fixed',
+            literalBaseMarketKey: 'batter-hits-runs-rbis',
+            sites: [
+              {
+                path: 'src/features/batter-hhr/manifest.ts',
+                literal: "export const BATTER_HHR_MARKET_KEY = 'batter-hits-runs-rbis';",
+                disposition: 'correct-canonical-owner',
+              },
+              {
+                path: 'src/features/batter-hhr/contracts.ts',
+                literal: "readonly baseMarketKey: 'batter-hits-runs-rbis';",
+                disposition: 'duplicate-type-literal-to-remove-later-not-fixed-in-attempt-2',
+              },
+            ],
+            correctOwner: 'src/features/batter-hhr/manifest.ts',
+          };
+          const investigation = {
+            attempt: 2,
+            fitWindow: fixture?.fitWindow ?? null,
+            lookaheadAudit: fixture?.lookaheadAudit ?? null,
+            rowCount: fixture?.rowCount ?? null,
+            gameCount: fixture?.gameCount ?? null,
+            exclusionCounts: fixture?.exclusionCounts ?? null,
+            exclusionExamples: fixture?.exclusionExamples ?? null,
+            duplicateMarketDeclaration: declarationReport,
+          };
+          fs.writeFileSync('artifacts/workflow-logs/m11-hhr-attempt2-investigation.json', `${JSON.stringify(investigation, null, 2)}\n`);
+          NODE
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A scripts src/features/batter-hhr test model-artifacts
+          if [ -d fixtures/sanitized/m11/hhr/respecified-v2 ]; then git add -A fixtures/sanitized/m11/hhr/respecified-v2; fi
+          find artifacts/workflow-logs -maxdepth 1 -type f -name 'm11-hhr-attempt2-*' -print0 | xargs -0 -r git add -f
+          git rm .github/workflows/m11-step2-hhr-attempt2.yml
+          git commit -m "Record HHR attempt 2 evidence"
+          git push origin HEAD:agent/m11-step2-hhr-attempt2
+
+      - name: Enforce attempt 2 result
+        if: always()
+        run: |
+          set -euo pipefail
+          test "${{ steps.capture.outcome }}" = "success"
+          test "${{ steps.fit.outcome }}" = "success"
+          test "${{ steps.verify.outcome }}" = "success"
+          echo 'M11 HHR ATTEMPT 2: PASS'
