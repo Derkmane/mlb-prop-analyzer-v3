@@ -1,0 +1,95 @@
+name: M11 step 2 fail-closed verification
+
+on:
+  push:
+    branches:
+      - agent/m11-step2-hhr-respecification
+    paths:
+      - .github/workflows/m11-step2-failclosed-verification.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Verify fail-closed workflow and diagnostic contracts
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts
+          node --check scripts/capture-m11-hhr-respecified-evidence.mjs
+          node --check scripts/fit-m11-batter-hhr-respecified.mjs
+          npm run typecheck
+          npm run check:scripts
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const temporary = '.github/workflows/m11-step2-failclosed-verification.yml';
+          const workflowFiles = fs.readdirSync('.github/workflows')
+            .filter((name) => /\.ya?ml$/u.test(name))
+            .map((name) => path.join('.github/workflows', name))
+            .filter((file) => file !== temporary)
+            .sort();
+
+          function runBlocks(text) {
+            const lines = text.split('\n');
+            const blocks = [];
+            for (let index = 0; index < lines.length; index += 1) {
+              const match = /^(\s*)run:\s*\|\s*$/u.exec(lines[index]);
+              if (!match) continue;
+              const indent = match[1].length;
+              let end = index + 1;
+              while (end < lines.length) {
+                if (lines[end].trim() === '') { end += 1; continue; }
+                if (/^\s*/u.exec(lines[end])[0].length <= indent) break;
+                end += 1;
+              }
+              blocks.push({ lines, start: index, end });
+              index = end - 1;
+            }
+            return blocks;
+          }
+
+          const pipelineBlocks = [];
+          for (const file of workflowFiles) {
+            const text = fs.readFileSync(file, 'utf8');
+            for (const block of runBlocks(text)) {
+              const commands = block.lines.slice(block.start + 1, block.end)
+                .map((line) => line.trim())
+                .filter((line) => line && !line.startsWith('#'));
+              const hasPipeline = commands.some((line) => /\s\|\s/u.test(line) || /\|\s*(tee|grep|head|tail|sed|awk|xargs)\b/u.test(line));
+              if (!hasPipeline) continue;
+              pipelineBlocks.push(`${file}:${block.start + 1}`);
+              if (commands[0] !== 'set -euo pipefail') {
+                throw new Error(`Pipeline block is not fail-closed: ${file}:${block.start + 1}`);
+              }
+            }
+          }
+
+          const capture = fs.readFileSync('scripts/capture-m11-hhr-respecified-evidence.mjs', 'utf8');
+          const fit = fs.readFileSync('scripts/fit-m11-batter-hhr-respecified.mjs', 'utf8');
+          if (!(capture.indexOf('await writeFile(DESIGN_PATH') < capture.indexOf('after diagnostic persistence; received'))) throw new Error('Capture minimum precedes persistence.');
+          if (!capture.includes('predictorSummaries,')) throw new Error('Capture predictor summaries are not retained.');
+          if (!(fit.indexOf("status: 'pre-fit-contract-validation'") < fit.indexOf('fixture.rows.length < 500'))) throw new Error('Fit preflight diagnostics follow minimum.');
+          if (!(fit.lastIndexOf('await writeFile(DIAGNOSTICS_PATH') < fit.indexOf('if (!gates.vif.passed)'))) throw new Error('Full diagnostics follow gates.');
+          if (!(fit.indexOf('if (!gates.batterQualitySpread.passed)') < fit.lastIndexOf('await writeFile(MODEL_PATH'))) throw new Error('Model persists before Gate C.');
+
+          console.log(`WORKFLOW FILES AUDITED: ${workflowFiles.length}`);
+          console.log(`PIPELINE RUN BLOCKS VERIFIED: ${pipelineBlocks.length}`);
+          for (const entry of pipelineBlocks) console.log(`PIPELINE BLOCK: ${entry}`);
+          console.log('WORKFLOW PIPE BLOCKS FAIL-CLOSED: true');
+          console.log('CAPTURE DIAGNOSTICS BEFORE MINIMUM: true');
+          console.log('FIT PREFIT DIAGNOSTICS BEFORE MINIMUM: true');
+          console.log('FIT FULL DIAGNOSTICS BEFORE GATES: true');
+          console.log('MODEL PERSISTENCE AFTER GATES: true');
+          console.log('CAPTURE OR FIT EXECUTED: false');
+          NODE
+          git diff --check
