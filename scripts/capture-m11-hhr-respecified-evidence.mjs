@@ -247,7 +247,7 @@ function median(values) {
 }
 
 async function historicalEvent(game) {
-  const snapshotTime = new Date(Date.parse(game.date) - 6 * 60 * 60 * 1000).toISOString();
+  const snapshotTime = new Date(Date.parse(game.commenceTime) - 60 * 60 * 1000).toISOString();
   const eventsUrl = new URL('https://api.the-odds-api.com/v4/historical/sports/baseball_mlb/events');
   eventsUrl.searchParams.set('apiKey', oddsKey);
   eventsUrl.searchParams.set('date', snapshotTime);
@@ -259,7 +259,7 @@ async function historicalEvent(game) {
     event?.home_team === game.homeTeamName &&
     event?.away_team === game.awayTeamName &&
     Number.isFinite(Date.parse(event?.commence_time)) &&
-    Math.abs(Date.parse(event.commence_time) - Date.parse(game.date)) <= 6 * 60 * 60 * 1000,
+    Math.abs(Date.parse(event.commence_time) - Date.parse(game.commenceTime)) <= 6 * 60 * 60 * 1000,
   );
   if (matches.length !== 1) return null;
   return { event: matches[0], snapshotTime, eventsSnapshotSha256: eventsSnapshot.rawBodySha256 };
