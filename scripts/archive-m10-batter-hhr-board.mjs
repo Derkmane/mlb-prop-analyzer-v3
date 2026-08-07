@@ -8,10 +8,7 @@ import {
   settleBatterHhrDistribution,
 } from '../dist/src/features/batter-hhr/index.js';
 import { persistImmutableJson } from './m10-grade-saved-archive-utils.mjs';
-import {
-  buildM10HhrProspectiveArchive,
-  canonicalJsonBytes as unusedCanonicalJsonBytes,
-} from './m10-hhr-evidence-utils.mjs';
+import { buildM10HhrProspectiveArchive } from './m10-hhr-evidence-utils.mjs';
 import {
   HHR_HIT_CATEGORIES,
   HHR_ON_BASE_CATEGORIES,
@@ -31,8 +28,6 @@ import {
   resolveBatterHand,
 } from './m11-hhr-conditioning-utils.mjs';
 import { resolveExactBallDontLieGameMatch } from './archive-m9-batter-hits-board.mjs';
-
-void unusedCanonicalJsonBytes;
 
 const oddsKey = process.env.THE_ODDS_API_KEY?.trim();
 const bdlKey = process.env.BALLDONTLIE_API_KEY?.trim();
@@ -363,7 +358,6 @@ for (const row of lineupRows) {
 
 const rows = [];
 for (const game of resolvedGames) {
-  const event = pregameEvents.find((entry) => entry.id === game.providerEventId);
   const boardSnapshot = boardSnapshots.get(game.providerEventId);
   const offers = normalizeUnderdogBatterHhrCapture(hhrCapture(boardSnapshot, capturedAt));
   const totals = teamTotals(game, totalSnapshots.get(game.providerEventId));
