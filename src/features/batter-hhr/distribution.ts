@@ -100,13 +100,13 @@ function negativeBinomialSettlementDistribution(mean: number, dispersionAlpha: n
     if (!Number.isFinite(mass) || mass < 0) throw new Error('Batter HHR negative-binomial recurrence failed.');
     probabilities.push(mass);
   }
-  let previous = probabilities[BATTER_HHR_TAIL_COLLAPSE_AT - 1];
+  let previous: number = probabilities[BATTER_HHR_TAIL_COLLAPSE_AT - 1]!;
   if (previous === undefined) throw new Error('Batter HHR recurrence indexing failure.');
   let tail = 0;
   let tailConverged = false;
   for (let extension = 0; extension < BATTER_HHR_MAXIMUM_TAIL_EXTENSION_TERMS; extension += 1) {
     const count = BATTER_HHR_TAIL_COLLAPSE_AT + extension;
-    const mass = previous * ((count - 1 + size) / count) * continuationProbability;
+    const mass: number = previous * ((count - 1 + size) / count) * continuationProbability;
     if (!Number.isFinite(mass) || mass < 0) throw new Error('Batter HHR negative-binomial recurrence failed.');
     if (mass < BATTER_HHR_TAIL_TERM_EPSILON) {
       tailConverged = true;
