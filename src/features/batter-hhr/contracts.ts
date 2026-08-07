@@ -2,6 +2,7 @@ import type { PerPaOutcomeVector } from '../../domain/per-pa-outcome.js';
 import type { ProbabilityMassFunction } from '../../domain/probability.js';
 import type { SelectedSide } from '../../domain/selected-side.js';
 import type { SettlementResult } from '../../domain/settlement.js';
+import type { BATTER_HHR_MARKET_KEY } from './manifest.js';
 
 export const BATTER_HHR_MODEL_VERSION = 'm11-batter-hhr-direct-composite-v2' as const;
 export const BATTER_HHR_DISTRIBUTION_BUILDER_VERSION = 'm11-batter-hhr-negative-binomial-v1' as const;
@@ -119,7 +120,7 @@ export interface NormalizedBatterHhrOffer {
   readonly eventId: string; readonly commenceTime: string; readonly homeTeam: string; readonly awayTeam: string;
   readonly playerName: string;
   readonly providerMarketKey: 'batter_hits_runs_rbis' | 'batter_hits_runs_rbis_alternate';
-  readonly baseMarketKey: 'batter-hits-runs-rbis'; readonly offerType: 'baseline' | 'alternate';
+  readonly baseMarketKey: typeof BATTER_HHR_MARKET_KEY; readonly offerType: 'baseline' | 'alternate';
   readonly selectedSide: SelectedSide; readonly line: number; readonly price: number | null;
   readonly multiplier: number | null; readonly providerSid: string | null;
   readonly marketLastUpdate: string; readonly sourceSnapshotSha256: string;
