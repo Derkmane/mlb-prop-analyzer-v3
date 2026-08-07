@@ -96,7 +96,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p artifacts/workflow-logs
-          node scripts/archive-m10-batter-hhr-board.mjs 2>&1 | tee artifacts/workflow-logs/m10-hhr-board-archive.log
+          node --import ./scripts/m10-hhr-raw-board-preload.mjs scripts/archive-m10-batter-hhr-board.mjs 2>&1 | tee artifacts/workflow-logs/m10-hhr-board-archive.log
 
       - name: Save verified current-season shards
         if: always()
