@@ -15,6 +15,20 @@ export {
   type HighProbabilityBaselineSelectionV1,
 } from './high-probability-baseline.js';
 export {
+  HHR_05_HIGHER_ALT_CATEGORY_ID,
+  HHR_05_HIGHER_ALT_CATEGORY_TITLE,
+  HHR_25_LOWER_ALT_CATEGORY_ID,
+  HHR_25_LOWER_ALT_CATEGORY_TITLE,
+  HHR_ALTLINE_CATEGORY_LIMIT,
+  selectHhr05HigherAltV1,
+  selectHhr25LowerAltV1,
+  type HhrAltlineCategoryExclusionCounts,
+  type HhrAltlineCategoryExclusionReason,
+  type HhrAltlineCategoryId,
+  type HhrAltlineCategoryOfferInput,
+  type HhrAltlineCategorySelectionV1,
+} from './hhr-altline-categories.js';
+export {
   createOpportunityMinerCandidateV1,
   indicativeImpliedProbabilityFromAmericanPrice,
   OPPORTUNITY_MINER_CATEGORY_ID,
