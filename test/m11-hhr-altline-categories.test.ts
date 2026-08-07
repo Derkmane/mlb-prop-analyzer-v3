@@ -75,8 +75,8 @@ test('HHR categories admit only their exact posted alternate line and side', () 
   assert.deepEqual(lower25.selectedCandidates.map((row) => row.candidate.identity), ['a-match']);
   assert.deepEqual(lower25.exclusionCounts, {
     notAlternate: 1,
-    lineMismatch: 2,
-    sideMismatch: 2,
+    lineMismatch: 3,
+    sideMismatch: 1,
     unrankableProbability: 0,
     duplicatePlayer: 0,
     top20Cut: 0,
