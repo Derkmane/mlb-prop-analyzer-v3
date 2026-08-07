@@ -165,11 +165,21 @@ test('lineupStatus and payout multiplier are display-only and cannot alter categ
     lineupStatus: 'confirmed',
     multiplier: 9,
   });
+  const confirmedLowChanged: DisplayOnlyInput = Object.freeze({
+    ...confirmedLow,
+    lineupStatus: 'projected',
+    multiplier: 0.01,
+  });
+  const projectedHighChanged: DisplayOnlyInput = Object.freeze({
+    ...projectedHigh,
+    lineupStatus: 'confirmed',
+    multiplier: 100,
+  });
 
   const first = selectHhr05HigherAltV1([confirmedLow, projectedHigh]);
   const second = selectHhr05HigherAltV1([
-    { ...confirmedLow, lineupStatus: 'projected', multiplier: 0.01 },
-    { ...projectedHigh, lineupStatus: 'confirmed', multiplier: 100 },
+    confirmedLowChanged,
+    projectedHighChanged,
   ]);
 
   assert.deepEqual(first.selectedCandidates.map((row) => row.candidate.identity), ['projected-high', 'confirmed-low']);
