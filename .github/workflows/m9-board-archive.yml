@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   archive:
-    name: Capture prospective Batter Hits board
+    name: Capture prospective Batter Hits and HHR boards
     runs-on: ubuntu-latest
     timeout-minutes: 330
     env:
@@ -33,6 +33,8 @@ jobs:
       M8_CAPTURE_START_DATE: '2026-07-08'
       M8_SHARD_OUTPUT_DIR: artifacts/m8-current-season-pa/shards-2026
       M8_CURRENT_SEASON_SHARD_ROOT: artifacts/m8-current-season-pa/shards-2026
+      M10_ARCHIVE_ROOT: artifacts/board-archives/batter-hits
+      M10_HHR_ARCHIVE_ROOT: artifacts/board-archives/batter-hhr
 
     steps:
       - name: Check out repository
@@ -59,7 +61,7 @@ jobs:
           restore-keys: |
             m8-current-season-shards-2026-
 
-      - name: Restore immutable board archive ledger
+      - name: Restore immutable Batter Hits archive ledger
         id: restore-board-archives
         uses: actions/cache/restore@v4
         with:
@@ -68,6 +70,15 @@ jobs:
           restore-keys: |
             m9-board-archive-ledger-
 
+      - name: Restore immutable HHR archive ledger
+        id: restore-hhr-board-archives
+        uses: actions/cache/restore@v4
+        with:
+          path: artifacts/board-archives/batter-hhr
+          key: m10-hhr-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            m10-hhr-board-archive-ledger-
+
       - name: Set history end date
         run: |
           node -e "const d=new Date();d.setUTCDate(d.getUTCDate()-1);process.stdout.write('M8_CAPTURE_END_DATE='+d.toISOString().slice(0,10)+'\n')" >> "$GITHUB_ENV"
@@ -75,11 +86,17 @@ jobs:
       - name: Capture or resume verified historical shards
         run: node scripts/capture-m8-current-season-pa-shards.mjs
 
-      - name: Run immutable M9 board archiver
+      - name: Run immutable M9 Batter Hits board archiver
         run: |
           set -euo pipefail
           mkdir -p artifacts/workflow-logs
           node scripts/archive-m9-batter-hits-board.mjs 2>&1 | tee artifacts/workflow-logs/m9-board-archive.log
+
+      - name: Run immutable HHR evidence archiver from the same prospective slate
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/workflow-logs
+          node scripts/archive-m10-batter-hhr-board.mjs 2>&1 | tee artifacts/workflow-logs/m10-hhr-board-archive.log
 
       - name: Save verified current-season shards
         if: always()
@@ -88,12 +105,19 @@ jobs:
           path: artifacts/m8-current-season-pa/shards-2026
           key: m8-current-season-shards-2026-${{ github.run_id }}-${{ github.run_attempt }}
 
-      - name: Save immutable board archive ledger
+      - name: Save immutable Batter Hits archive ledger
         if: always()
         uses: actions/cache/save@v4
         with:
           path: artifacts/board-archives/batter-hits
           key: m9-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Save immutable HHR archive ledger
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: artifacts/board-archives/batter-hhr
+          key: m10-hhr-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Upload archive and diagnostics
         if: always()
@@ -104,4 +128,5 @@ jobs:
           retention-days: 90
           path: |
             artifacts/board-archives/batter-hits/**
+            artifacts/board-archives/batter-hhr/**
             artifacts/workflow-logs/**
