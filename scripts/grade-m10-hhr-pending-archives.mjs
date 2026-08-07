@@ -198,10 +198,20 @@ await persistImmutableJson(cumulativeDiagnosticPath, {
 });
 console.log(`CUMULATIVE INPUT DIAGNOSTIC WRITTEN\t${cumulativeDiagnosticPath}`);
 
+const cumulativeGeneratedAt = [
+  step3Archive.generatedAt,
+  ...gradeReports.map((report) => report.gradedAt),
+]
+  .filter((value) => typeof value === 'string' && Number.isFinite(Date.parse(value)))
+  .sort()
+  .at(-1);
+if (cumulativeGeneratedAt === undefined) {
+  throw new Error('HHR cumulative sources do not expose a deterministic generatedAt timestamp.');
+}
 const cumulative = buildM10HhrCumulativeSelectedSideReport({
   step3Archive,
   gradeReports,
-  generatedAt: new Date().toISOString(),
+  generatedAt: cumulativeGeneratedAt,
 });
 const cumulativePath = path.join(
   ARCHIVE_ROOT,
