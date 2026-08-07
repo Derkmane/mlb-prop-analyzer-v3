@@ -25,6 +25,7 @@ jobs:
       BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
       M10_ARCHIVE_ROOT: artifacts/board-archives/batter-hits
       M10_HHR_ARCHIVE_ROOT: artifacts/board-archives/batter-hhr
+      M10_MULTI_MARKET_CUMULATIVE_ROOT: artifacts/board-archives/cumulative
       M10_ARCHIVE_BOOTSTRAP_ROOT: artifacts/bootstrap/m9-board-archive
       M10_GRADE_ATTEMPT_ID: github-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
       M10_BDL_MIN_REQUEST_INTERVAL_MS: '13000'
@@ -107,6 +108,11 @@ jobs:
           set -euo pipefail
           node scripts/build-m10-selected-side-cumulative-grades.mjs 2>&1 | tee artifacts/workflow-logs/m10-selected-side-cumulative-grade.log
 
+      - name: Build combined Batter Hits and HHR cumulative selected-side evidence
+        run: |
+          set -euo pipefail
+          node scripts/build-m10-multi-market-cumulative-grades.mjs 2>&1 | tee artifacts/workflow-logs/m10-multi-market-cumulative-grade.log
+
       - name: Save immutable Batter Hits archive and grade ledger
         if: always()
         uses: actions/cache/save@v4
@@ -131,6 +137,7 @@ jobs:
           path: |
             artifacts/board-archives/batter-hits/**
             artifacts/board-archives/batter-hhr/**
+            artifacts/board-archives/cumulative/**
 
       - name: Upload full grading logs
         if: always()
