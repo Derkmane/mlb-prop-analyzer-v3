@@ -1,0 +1,531 @@
+import { createHash } from 'node:crypto';
+
+import { settleObservedDiscreteStatisticV1 } from '../dist/src/core/index.js';
+import {
+  buildSelectedSideCalibration,
+  buildSelectedSidePerformanceSummary,
+  canonicalJsonBytes,
+  selectOneModelSidePerProp,
+  sha256Bytes,
+} from './m10-selected-side-grade-metrics-utils.mjs';
+
+export const M10_HHR_ARCHIVE_VERSION = 'm10-hhr-prospective-evidence-v1';
+export const M10_HHR_GRADE_VERSION = 'm10-hhr-final-grade-v1';
+export const M10_HHR_CUMULATIVE_VERSION = 'm10-hhr-cumulative-selected-side-v1';
+export const M10_HHR_MINIMUM_CALIBRATION_BUCKET_COUNT = 30;
+
+const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
+const CAPTURE_KEY_PATTERN = /^\d{8}T\d{9}Z--[a-f0-9]{64}$/u;
+const PROBABILITY_TOLERANCE = 1e-12;
+
+function object(value, label) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new TypeError(`${label} must be an object.`);
+  }
+  return value;
+}
+
+function array(value, label) {
+  if (!Array.isArray(value)) throw new TypeError(`${label} must be an array.`);
+  return value;
+}
+
+function nonemptyString(value, label) {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new TypeError(`${label} must be a nonempty string.`);
+  }
+  return value;
+}
+
+function finiteNumber(value, label) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new TypeError(`${label} must be finite.`);
+  }
+  return value;
+}
+
+function nonnegativeInteger(value, label) {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new TypeError(`${label} must be a nonnegative safe integer.`);
+  }
+  return value;
+}
+
+function positiveInteger(value, label) {
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new TypeError(`${label} must be a positive safe integer.`);
+  }
+  return value;
+}
+
+function probability(value, label) {
+  finiteNumber(value, label);
+  if (value < 0 || value > 1) throw new RangeError(`${label} must be in [0, 1].`);
+  return value;
+}
+
+function timestamp(value, label) {
+  nonemptyString(value, label);
+  if (!Number.isFinite(Date.parse(value))) {
+    throw new TypeError(`${label} must be an ISO timestamp.`);
+  }
+  return value;
+}
+
+function sha256(value, label) {
+  if (typeof value !== 'string' || !SHA256_PATTERN.test(value)) {
+    throw new TypeError(`${label} must be a lowercase SHA-256.`);
+  }
+  return value;
+}
+
+function stableJson(value) {
+  if (
+    value === null ||
+    typeof value === 'boolean' ||
+    typeof value === 'string' ||
+    typeof value === 'number'
+  ) {
+    if (typeof value === 'number' && !Number.isFinite(value)) {
+      throw new TypeError('Stable JSON values may contain only finite numbers.');
+    }
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  if (typeof value === 'object') {
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`)
+      .join(',')}}`;
+  }
+  throw new TypeError('Stable JSON values must be JSON-compatible.');
+}
+
+function archiveIdentity(archiveWithoutSha) {
+  return createHash('sha256').update(stableJson(archiveWithoutSha)).digest('hex');
+}
+
+function exactRowIdentity(row) {
+  return stableJson([
+    row.providerEventId,
+    row.providerGameId,
+    row.providerPlayerId,
+    row.providerMarketKey,
+    row.offerType,
+    row.selectedSide,
+    row.postedLine,
+  ]);
+}
+
+function validateEvidenceRow(raw, label, { graded }) {
+  const row = object(raw, label);
+  nonemptyString(row.providerEventId, `${label}.providerEventId`);
+  positiveInteger(row.providerGameId, `${label}.providerGameId`);
+  positiveInteger(row.providerPlayerId, `${label}.providerPlayerId`);
+  nonemptyString(row.playerName, `${label}.playerName`);
+  if (!['batter_hits_runs_rbis', 'batter_hits_runs_rbis_alternate'].includes(row.providerMarketKey)) {
+    throw new Error(`${label}.providerMarketKey is unsupported.`);
+  }
+  if (!['baseline', 'alternate'].includes(row.offerType)) {
+    throw new Error(`${label}.offerType is unsupported.`);
+  }
+  if (!['higher', 'lower'].includes(row.selectedSide)) {
+    throw new Error(`${label}.selectedSide is unsupported.`);
+  }
+  finiteNumber(row.postedLine, `${label}.postedLine`);
+  if (row.postedLine < 0 || row.postedLine > 63.5) {
+    throw new RangeError(`${label}.postedLine is outside the verified HHR runtime range.`);
+  }
+  const archivedPWin = probability(row.archivedPWin, `${label}.archivedPWin`);
+  const archivedPLoss = probability(row.archivedPLoss, `${label}.archivedPLoss`);
+  const archivedPVoid = probability(row.archivedPVoid, `${label}.archivedPVoid`);
+  const archivedPWinGivenGrades = probability(
+    row.archivedPWinGivenGrades,
+    `${label}.archivedPWinGivenGrades`,
+  );
+  if (Math.abs(archivedPWin + archivedPLoss + archivedPVoid - 1) > PROBABILITY_TOLERANCE) {
+    throw new Error(`${label} probability mass does not sum to one.`);
+  }
+  if (graded) {
+    nonnegativeInteger(row.officialHhr, `${label}.officialHhr`);
+    if (row.officialHits !== row.officialHhr) {
+      throw new Error(`${label}.officialHits compatibility alias must equal officialHhr.`);
+    }
+    if (!['win', 'loss', 'void'].includes(row.outcome)) {
+      throw new Error(`${label}.outcome is unsupported.`);
+    }
+    nonemptyString(row.settlementVersion, `${label}.settlementVersion`);
+  }
+  return Object.freeze({
+    ...row,
+    archivedPWin,
+    archivedPLoss,
+    archivedPVoid,
+    archivedPWinGivenGrades,
+  });
+}
+
+export function createM10HhrCaptureKey({ capturedAt, sourceSetSha256 }) {
+  timestamp(capturedAt, 'capturedAt');
+  sha256(sourceSetSha256, 'sourceSetSha256');
+  return `${new Date(capturedAt).toISOString().replace(/[-:.]/gu, '')}--${sourceSetSha256}`;
+}
+
+export function buildM10HhrProspectiveArchive({
+  capturedAt,
+  sourceSetSha256,
+  source,
+  games,
+  rows,
+  exclusions,
+  diagnosticsPath,
+}) {
+  timestamp(capturedAt, 'capturedAt');
+  sha256(sourceSetSha256, 'sourceSetSha256');
+  nonemptyString(diagnosticsPath, 'diagnosticsPath');
+  const safeRows = array(rows, 'rows').map((row, index) =>
+    validateEvidenceRow(row, `rows[${index}]`, { graded: false }),
+  );
+  const identities = new Set(safeRows.map(exactRowIdentity));
+  if (identities.size !== safeRows.length) {
+    throw new Error('HHR prospective archive contains duplicate exact offer identities.');
+  }
+  const captureKey = createM10HhrCaptureKey({ capturedAt, sourceSetSha256 });
+  const identity = {
+    archiveVersion: 1,
+    archiveContract: M10_HHR_ARCHIVE_VERSION,
+    captureKey,
+    capturedAt: new Date(capturedAt).toISOString(),
+    captureDateUtc: new Date(capturedAt).toISOString().slice(0, 10),
+    sourceSetSha256,
+    source: object(source, 'source'),
+    games: array(games, 'games'),
+    rows: safeRows,
+    exclusions: array(exclusions, 'exclusions'),
+    diagnosticsPath,
+    counts: {
+      games: games.length,
+      rows: safeRows.length,
+      baselineRows: safeRows.filter((row) => row.offerType === 'baseline').length,
+      alternateRows: safeRows.filter((row) => row.offerType === 'alternate').length,
+      exclusions: exclusions.length,
+    },
+    safety: {
+      productionEnabled: false,
+      rankingEnabled: false,
+      evidenceOnly: true,
+      gradingPerformed: false,
+      archiveModified: false,
+    },
+  };
+  return Object.freeze({ ...identity, archiveSha256: archiveIdentity(identity) });
+}
+
+export function verifyM10HhrArchiveBytes({ bytes, archivePath, expectedCaptureKey = null }) {
+  let parsed;
+  try {
+    parsed = JSON.parse(Buffer.from(bytes).toString('utf8'));
+  } catch (error) {
+    throw new Error(`HHR archive is not valid JSON: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  const archive = object(parsed, 'HHR archive');
+  if (archive.archiveContract !== M10_HHR_ARCHIVE_VERSION || archive.archiveVersion !== 1) {
+    throw new Error('HHR archive contract is unsupported.');
+  }
+  if (!CAPTURE_KEY_PATTERN.test(archive.captureKey)) {
+    throw new Error('HHR archive capture key is malformed.');
+  }
+  if (expectedCaptureKey !== null && archive.captureKey !== expectedCaptureKey) {
+    throw new Error('HHR archive capture identity drifted.');
+  }
+  timestamp(archive.capturedAt, 'HHR archive capturedAt');
+  sha256(archive.sourceSetSha256, 'HHR archive sourceSetSha256');
+  const safety = object(archive.safety, 'HHR archive safety');
+  if (
+    safety.productionEnabled !== false ||
+    safety.rankingEnabled !== false ||
+    safety.evidenceOnly !== true ||
+    safety.gradingPerformed !== false ||
+    safety.archiveModified !== false
+  ) {
+    throw new Error('HHR archive is not evidence-only and production-disabled.');
+  }
+  const { archiveSha256: claimedSha, ...identity } = archive;
+  sha256(claimedSha, 'HHR archive archiveSha256');
+  if (archiveIdentity(identity) !== claimedSha) {
+    throw new Error('HHR archive SHA-256 verification failed.');
+  }
+  const rows = array(archive.rows, 'HHR archive rows').map((row, index) =>
+    validateEvidenceRow(row, `HHR archive rows[${index}]`, { graded: false }),
+  );
+  const identities = new Set(rows.map(exactRowIdentity));
+  if (identities.size !== rows.length) {
+    throw new Error('HHR archive contains duplicate exact offer identities.');
+  }
+  return Object.freeze({
+    ...archive,
+    rows: Object.freeze(rows),
+    archivePath,
+    archiveFileSha256: sha256Bytes(bytes),
+  });
+}
+
+export function playersByGameForHhrArchive(archive) {
+  const result = new Map();
+  for (const row of archive.rows) {
+    const players = result.get(row.providerGameId) ?? new Set();
+    players.add(row.providerPlayerId);
+    result.set(row.providerGameId, players);
+  }
+  return result;
+}
+
+export function classifyHhrArchiveGameStatuses(archive, rawGames) {
+  const games = array(rawGames, 'rawGames');
+  const requiredIds = [...new Set(archive.rows.map((row) => row.providerGameId))].sort((a, b) => a - b);
+  const statusRows = requiredIds.map((gameId) => {
+    const matches = games.filter((game) => game?.id === gameId);
+    if (matches.length !== 1) {
+      return Object.freeze({ gameId, status: 'IDENTITY_COUNT_ERROR', matchCount: matches.length });
+    }
+    return Object.freeze({ gameId, status: matches[0]?.status ?? 'UNKNOWN', matchCount: 1 });
+  });
+  const nonFinalGames = statusRows.filter((row) => row.status !== 'STATUS_FINAL');
+  return Object.freeze({
+    requiredGameIds: Object.freeze(requiredIds),
+    games: Object.freeze(statusRows),
+    nonFinalGames: Object.freeze(nonFinalGames),
+    readyToGrade: requiredIds.length > 0 && nonFinalGames.length === 0,
+  });
+}
+
+export function buildM10HhrFinalGradeReport({ archive, statsRows, gradedAt, gameStatusEvidence }) {
+  timestamp(gradedAt, 'gradedAt');
+  const status = object(gameStatusEvidence, 'gameStatusEvidence');
+  if (status.readyToGrade !== true) {
+    throw new Error('HHR archive games are not all STATUS_FINAL.');
+  }
+  const officialByIdentity = new Map();
+  for (const [index, raw] of array(statsRows, 'statsRows').entries()) {
+    const gameId = raw?.game_id;
+    const playerId = raw?.player?.id;
+    if (!Number.isSafeInteger(gameId) || !Number.isSafeInteger(playerId)) continue;
+    const relevant = archive.rows.some(
+      (row) => row.providerGameId === gameId && row.providerPlayerId === playerId,
+    );
+    if (!relevant) continue;
+    const hits = raw?.hits;
+    const runs = raw?.runs;
+    const rbi = raw?.rbi;
+    if (![hits, runs, rbi].every((value) => Number.isSafeInteger(value) && value >= 0)) {
+      throw new Error(`HHR official stats row ${index} is malformed.`);
+    }
+    const key = `${gameId}:${playerId}`;
+    if (officialByIdentity.has(key)) {
+      throw new Error(`Duplicate official HHR stat identity ${key}.`);
+    }
+    officialByIdentity.set(key, Object.freeze({ hits, runs, rbi, officialHhr: hits + runs + rbi }));
+  }
+  const rows = archive.rows.map((row, index) => {
+    const official = officialByIdentity.get(`${row.providerGameId}:${row.providerPlayerId}`);
+    if (!official) {
+      throw new Error(`Missing official HHR stats for ${row.providerGameId}:${row.providerPlayerId}.`);
+    }
+    const settlement = settleObservedDiscreteStatisticV1({
+      observedStatistic: official.officialHhr,
+      line: row.postedLine,
+      selectedSide: row.selectedSide,
+    });
+    return validateEvidenceRow(
+      {
+        ...row,
+        officialHhr: official.officialHhr,
+        officialHits: official.officialHhr,
+        officialComponents: official,
+        outcome: settlement.outcome,
+        settlementVersion: settlement.version,
+      },
+      `graded rows[${index}]`,
+      { graded: true },
+    );
+  });
+  return Object.freeze({
+    reportVersion: 1,
+    reportType: M10_HHR_GRADE_VERSION,
+    gradedAt: new Date(gradedAt).toISOString(),
+    source: Object.freeze({
+      captureKey: archive.captureKey,
+      archiveSha256: archive.archiveSha256,
+      archiveFileSha256: archive.archiveFileSha256,
+      archivePath: archive.archivePath,
+      archiveModified: false,
+    }),
+    gameStatusEvidence: status,
+    rows: Object.freeze(rows),
+    summary: buildSelectedSidePerformanceSummary(
+      selectOneModelSidePerProp(rows).selectedRows,
+    ),
+    safety: Object.freeze({
+      productionEnabled: false,
+      rankingEnabled: false,
+      evidenceOnly: true,
+      archiveModified: false,
+      finalOnly: true,
+    }),
+  });
+}
+
+export function verifyM10HhrGradeReport(report) {
+  const value = object(report, 'HHR grade report');
+  if (value.reportType !== M10_HHR_GRADE_VERSION || value.reportVersion !== 1) {
+    throw new Error('HHR grade report contract is unsupported.');
+  }
+  timestamp(value.gradedAt, 'HHR grade report gradedAt');
+  const source = object(value.source, 'HHR grade report source');
+  nonemptyString(source.captureKey, 'HHR grade report source.captureKey');
+  sha256(source.archiveSha256, 'HHR grade report source.archiveSha256');
+  sha256(source.archiveFileSha256, 'HHR grade report source.archiveFileSha256');
+  if (source.archiveModified !== false) throw new Error('HHR grade report claims archive mutation.');
+  const safety = object(value.safety, 'HHR grade report safety');
+  if (
+    safety.productionEnabled !== false ||
+    safety.rankingEnabled !== false ||
+    safety.evidenceOnly !== true ||
+    safety.archiveModified !== false ||
+    safety.finalOnly !== true
+  ) {
+    throw new Error('HHR grade report safety boundary drifted.');
+  }
+  const rows = array(value.rows, 'HHR grade report rows').map((row, index) =>
+    validateEvidenceRow(row, `HHR grade report rows[${index}]`, { graded: true }),
+  );
+  return Object.freeze({ ...value, rows: Object.freeze(rows) });
+}
+
+function lineCohort(row) {
+  if (row.postedLine === 0.5) return '0.5';
+  if (row.postedLine === 1.5) return '1.5';
+  if (row.postedLine >= 2.5) return '2.5+';
+  throw new Error(`Unsupported HHR calibration line ${row.postedLine}.`);
+}
+
+function withEvidenceStatus(calibration) {
+  return calibration.map((bucket) =>
+    Object.freeze({
+      ...bucket,
+      evidenceStatus:
+        bucket.picksGraded >= M10_HHR_MINIMUM_CALIBRATION_BUCKET_COUNT
+          ? 'sufficient'
+          : 'insufficient',
+    }),
+  );
+}
+
+export function buildM10HhrCumulativeSelectedSideReport({
+  step3Archive,
+  gradeReports,
+  generatedAt,
+}) {
+  timestamp(generatedAt, 'generatedAt');
+  const sources = [];
+  const captures = new Set();
+  const allRows = [];
+
+  const seed = object(step3Archive, 'step3Archive');
+  const seedSafety = object(seed.safety, 'step3Archive.safety');
+  if (seedSafety.productionEnabled !== false || seedSafety.rankingEnabled !== false) {
+    throw new Error('Step 3 HHR seed is not production-disabled.');
+  }
+  nonemptyString(seed.captureKey, 'step3Archive.captureKey');
+  captures.add(seed.captureKey);
+  const seedRows = array(seed.rows, 'step3Archive.rows').map((row, index) =>
+    validateEvidenceRow(row, `step3Archive.rows[${index}]`, { graded: true }),
+  );
+  allRows.push(...seedRows);
+  sources.push(Object.freeze({
+    captureKey: seed.captureKey,
+    sourceType: 'm11-step3-seed',
+    rowCount: seedRows.length,
+  }));
+
+  for (const [index, rawReport] of array(gradeReports, 'gradeReports').entries()) {
+    const report = verifyM10HhrGradeReport(rawReport);
+    if (captures.has(report.source.captureKey)) {
+      throw new Error(`Duplicate cumulative capture ${report.source.captureKey}.`);
+    }
+    captures.add(report.source.captureKey);
+    allRows.push(...report.rows);
+    sources.push(Object.freeze({
+      captureKey: report.source.captureKey,
+      sourceType: 'm10-daily-hhr-grade',
+      archiveSha256: report.source.archiveSha256,
+      archiveFileSha256: report.source.archiveFileSha256,
+      rowCount: report.rows.length,
+    }));
+  }
+  const exactRows = new Set(allRows.map(exactRowIdentity));
+  if (exactRows.size !== allRows.length) {
+    throw new Error('Cumulative HHR evidence contains duplicate exact offer identities.');
+  }
+  const selectedRows = selectOneModelSidePerProp(allRows).selectedRows;
+  const perLine = {};
+  for (const cohort of ['0.5', '1.5', '2.5+']) {
+    const rows = selectedRows.filter((row) => lineCohort(row) === cohort);
+    perLine[cohort] = Object.freeze({
+      lineCohort: cohort,
+      summary: buildSelectedSidePerformanceSummary(rows),
+      calibration: Object.freeze(withEvidenceStatus(buildSelectedSideCalibration(rows))),
+      evidenceStatus:
+        rows.length >= M10_HHR_MINIMUM_CALIBRATION_BUCKET_COUNT
+          ? 'sufficient'
+          : 'insufficient',
+    });
+  }
+  sources.sort((left, right) => left.captureKey.localeCompare(right.captureKey));
+  const sourceSetSha256 = sha256Bytes(Buffer.from(stableJson(sources), 'utf8'));
+  return Object.freeze({
+    reportVersion: 1,
+    reportType: M10_HHR_CUMULATIVE_VERSION,
+    generatedAt: new Date(generatedAt).toISOString(),
+    sourceSetSha256,
+    archivesIncluded: sources.length,
+    sources: Object.freeze(sources),
+    selectedSide: Object.freeze({
+      summary: buildSelectedSidePerformanceSummary(selectedRows),
+      calibration: Object.freeze(withEvidenceStatus(buildSelectedSideCalibration(selectedRows))),
+      perLine: Object.freeze(perLine),
+    }),
+    safety: Object.freeze({
+      productionEnabled: false,
+      rankingEnabled: false,
+      evidenceOnly: true,
+      archivesModified: false,
+      deepLineCohort: '2.5+',
+      minimumCalibrationBucketCount: M10_HHR_MINIMUM_CALIBRATION_BUCKET_COUNT,
+    }),
+  });
+}
+
+export function hhrCumulativeInputDiagnostics({ step3Archive, gradeReports }) {
+  const reports = array(gradeReports, 'gradeReports');
+  const sourceRows = [
+    ...array(object(step3Archive, 'step3Archive').rows, 'step3Archive.rows'),
+    ...reports.flatMap((report) => array(object(report, 'gradeReport').rows, 'gradeReport.rows')),
+  ];
+  const selectedRows = selectOneModelSidePerProp(sourceRows).selectedRows;
+  const lineCounts = { '0.5': 0, '1.5': 0, '2.5+': 0 };
+  for (const row of selectedRows) lineCounts[lineCohort(row)] += 1;
+  const calibration = buildSelectedSideCalibration(selectedRows).map((bucket) => ({
+    label: bucket.label,
+    picksGraded: bucket.picksGraded,
+  }));
+  return Object.freeze({
+    diagnosticVersion: 1,
+    diagnosticType: 'm10-hhr-cumulative-input-counts-before-thresholds',
+    archiveCount: 1 + reports.length,
+    selectedSideRows: selectedRows.length,
+    lineCounts,
+    calibration,
+    thresholdsEvaluated: false,
+  });
+}
