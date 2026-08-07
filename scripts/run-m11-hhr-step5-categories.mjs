@@ -17,9 +17,46 @@ const BDL_KEY = process.env.BALLDONTLIE_API_KEY?.trim();
 if (!BDL_KEY) throw new Error('Missing BALLDONTLIE_API_KEY.');
 
 const BDL_MIN_REQUEST_INTERVAL_MS = 13_000;
+const EXPECTED_BOARD_MARKETS = Object.freeze([
+  'batter_hits_runs_rbis',
+  'batter_hits_runs_rbis_alternate',
+]);
 let lastBdlRequestAt = 0;
 
+function requireNonemptyString(value, label) {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`${label} must be a nonempty string.`);
+  }
+  return value;
+}
+
+function assertApprovedSourceSet(archive) {
+  const odds = archive.source?.theOddsApi;
+  const bdl = archive.source?.balldontlie;
+  if (
+    odds?.provider !== 'The Odds API' ||
+    odds?.boardBookmaker !== 'underdog' ||
+    odds?.boardRegion !== 'us_dfs' ||
+    JSON.stringify(odds?.boardMarkets) !== JSON.stringify(EXPECTED_BOARD_MARKETS)
+  ) {
+    throw new Error('Step 5 source archive does not preserve the approved Underdog HHR board contract.');
+  }
+  if (bdl?.provider !== 'BALLDONTLIE MLB API' || bdl?.activeSeason !== 2026) {
+    throw new Error('Step 5 source archive does not preserve the approved BALLDONTLIE current-season contract.');
+  }
+}
+
+function assertRequiredRowFields(row) {
+  requireNonemptyString(row.playerName, 'HHR evidence playerName');
+  requireNonemptyString(row.distributionIdentity?.modelVersion, 'HHR evidence modelVersion');
+  requireNonemptyString(
+    row.distributionIdentity?.distributionBuilderVersion,
+    'HHR evidence distributionBuilderVersion',
+  );
+}
+
 function candidateFromArchiveRow(row) {
+  assertRequiredRowFields(row);
   return Object.freeze({
     playerId: String(row.providerPlayerId),
     eligibilityProbability: row.archivedPWin + row.archivedPLoss,
@@ -71,6 +108,7 @@ async function verifiedArchivesNewestFirst() {
     const archivePath = path.join(captureDirectory, name);
     const bytes = await readFile(archivePath);
     const archive = verifyM10HhrArchiveBytes({ bytes, archivePath });
+    assertApprovedSourceSet(archive);
     archives.push(Object.freeze({ archive, selections: categorySelections(archive) }));
   }
   return archives;
@@ -215,8 +253,8 @@ function displayIdentity(row, games, lineups) {
     throw new Error(`Selected player ${row.playerName} has a BDL team outside archived game ${row.providerGameId}.`);
   }
   return Object.freeze({
-    team,
-    opponent,
+    team: requireNonemptyString(team, 'display team'),
+    opponent: requireNonemptyString(opponent, 'display opponent'),
     lineupStatus: 'confirmed',
   });
 }
@@ -270,8 +308,8 @@ function printCategory(selection, displayByRowKey) {
       formatNumber(row.archivedPWinGivenGrades),
       display.lineupStatus,
       row.multiplier ?? 'null',
-      row.distributionIdentity?.modelVersion ?? 'missing',
-      row.distributionIdentity?.distributionBuilderVersion ?? 'missing',
+      row.distributionIdentity.modelVersion,
+      row.distributionIdentity.distributionBuilderVersion,
       BATTER_HHR_SETTLEMENT_RULE_VERSION,
     ].join('\t'));
   });
@@ -299,11 +337,13 @@ console.log(`SOURCE CAPTURE KEY\t${evidence.archive.captureKey}`);
 console.log(`SOURCE CAPTURE DATE UTC\t${evidence.archive.captureDateUtc}`);
 console.log(`SOURCE ARCHIVE FILE SHA-256\t${evidence.archive.archiveFileSha256}`);
 console.log(`SOURCE ROWS\t${evidence.archive.rows.length}`);
+console.log(`SOURCE BOARD\tThe Odds API | bookmaker=underdog | region=us_dfs | markets=${EXPECTED_BOARD_MARKETS.join(',')}`);
+console.log('SOURCE MLB DATA\tBALLDONTLIE MLB API | activeSeason=2026');
 console.log(`ARCHIVE SELECTION POLICY\t${evidence.selectionPolicy}`);
 console.log(`UPSTREAM FAIL-CLOSED EXCLUSIONS BY RULE\t${JSON.stringify(exclusionCountsByRule(evidence.archive.exclusions))}`);
 console.log('PRODUCTION\tDISABLED');
 console.log('RANKING\tDISABLED');
-console.log('LINEUP STATUS POLICY\tDISPLAY ONLY; BDL confirmed lineup identity used only to populate team/opponent/status columns');
+console.log('LINEUP STATUS POLICY\tDISPLAY ONLY; category selection completes before BDL lineup enrichment');
 console.log('PAYOUT POLICY\tDISPLAY ONLY; multiplier is never passed to the category selector');
 console.log('---');
 printCategory(evidence.selections.lower25, displayByRowKey);
