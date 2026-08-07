@@ -1,0 +1,10 @@
+✔ candidate artifact is hash-verified reconstruction without refitting (2.000765ms)
+✔ Step 3 evidence uses final untouched games, both sides, per-line calibration, and insufficient labels (2.126342ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 72.112725

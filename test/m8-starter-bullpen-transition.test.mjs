@@ -6,6 +6,7 @@ import {
   buildM8StarterBullpenDataset,
   computeM8StarterBullpenNondominatedCandidateIds,
   evaluateM8StarterBullpenTransition,
+  recoverM8ActualStarterFromOrderedPitcherAppearances,
   selectM8StarterBullpenCandidate,
   verifyM8StarterBullpenEvaluation,
 } from '../scripts/m8-starter-bullpen-transition-utils.mjs';
@@ -101,7 +102,30 @@ test('recovers the starter block, conserves team PA, and selects one stable work
   );
 });
 
-test('a starter who reappears after the bullpen is rejected instead of repaired', () => {
+test('shared ordered-appearance recovery is the single starter source', () => {
+    const appearances = [
+      { providerPaNumber: 3, providerPitcherId: 20, normalizedPitcherHand: 'L' },
+      { providerPaNumber: 1, providerPitcherId: 10, normalizedPitcherHand: 'R' },
+      { providerPaNumber: 2, providerPitcherId: 10, normalizedPitcherHand: 'R' },
+    ];
+    const recovered = recoverM8ActualStarterFromOrderedPitcherAppearances(appearances);
+    assert.equal(recovered.exclusion, null);
+    assert.equal(recovered.starter.providerPitcherId, 10);
+    assert.equal(recovered.starter.normalizedPitcherHand, 'R');
+    assert.equal(recovered.starter.starterBattersFaced, 2);
+    assert.equal(recovered.starter.bullpenBattersFaced, 1);
+    assert.equal(recovered.starter.totalBattersFaced, 3);
+
+    const reappearance = recoverM8ActualStarterFromOrderedPitcherAppearances([
+      { providerPaNumber: 1, providerPitcherId: 10, normalizedPitcherHand: 'R' },
+      { providerPaNumber: 2, providerPitcherId: 20, normalizedPitcherHand: 'L' },
+      { providerPaNumber: 3, providerPitcherId: 10, normalizedPitcherHand: 'R' },
+    ]);
+    assert.equal(reappearance.starter, null);
+    assert.equal(reappearance.exclusion, 'starter-reappeared-after-bullpen');
+  });
+
+  test('a starter who reappears after the bullpen is rejected instead of repaired', () => {
   const source = dataset();
   const badGame = 100;
   source.periods.fit.rows.push(

@@ -10,6 +10,7 @@ export type MarketStatus = (typeof MARKET_STATUSES)[number];
 
 export const MATHEMATICAL_FAMILIES = [
   'self-contained-hitter-pa',
+  'directly-fitted-composite',
   'tagged-player-base-out',
   'joint-pitcher-workload-outcome',
 ] as const;

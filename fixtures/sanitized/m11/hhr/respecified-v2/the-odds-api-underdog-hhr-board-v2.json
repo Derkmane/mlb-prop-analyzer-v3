@@ -1,0 +1,339 @@
+{
+  "captureVersion": 1,
+  "capturedAt": "2026-07-06T17:10:00Z",
+  "captureMode": "historical-pregame",
+  "request": {
+    "provider": "The Odds API",
+    "bookmaker": "underdog",
+    "region": "us_dfs",
+    "marketKeys": [
+      "batter_hits_runs_rbis",
+      "batter_hits_runs_rbis_alternate"
+    ],
+    "dateFormat": "iso",
+    "oddsFormat": "american",
+    "includeMultipliers": true,
+    "includeSids": true
+  },
+  "sourceSnapshotSha256": "eab707376eeba21c261a2a2c5c4fb2d27d2fcbb85f18fe37c7e468328dbc8afe",
+  "response": {
+    "id": "caea4c3449e9f30ffe2c708a884e3296",
+    "sport_key": "baseball_mlb",
+    "sport_title": "MLB",
+    "commence_time": "2026-07-06T18:11:00Z",
+    "home_team": "Kansas City Royals",
+    "away_team": "Philadelphia Phillies",
+    "bookmakers": [
+      {
+        "key": "underdog",
+        "title": "Underdog",
+        "last_update": "2026-07-06T17:03:35Z",
+        "sid": null,
+        "markets": [
+          {
+            "key": "batter_hits_runs_rbis",
+            "last_update": "2026-07-06T17:04:52Z",
+            "sid": null,
+            "outcomes": [
+              {
+                "name": "Over",
+                "description": "Bryson Stott",
+                "price": -137,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1
+              },
+              {
+                "name": "Under",
+                "description": "Bryson Stott",
+                "price": -137,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1
+              },
+              {
+                "name": "Over",
+                "description": "Edmundo Sosa",
+                "price": -137,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1
+              },
+              {
+                "name": "Under",
+                "description": "Edmundo Sosa",
+                "price": -137,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1
+              }
+            ]
+          },
+          {
+            "key": "batter_hits_runs_rbis_alternate",
+            "last_update": "2026-07-06T17:04:52Z",
+            "sid": null,
+            "outcomes": [
+              {
+                "name": "Over",
+                "description": "Bobby Witt Jr.",
+                "price": -197,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 0.87
+              },
+              {
+                "name": "Under",
+                "description": "Bobby Witt Jr.",
+                "price": -125,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1.04
+              },
+              {
+                "name": "Over",
+                "description": "Kyle Schwarber",
+                "price": -117,
+                "point": 2.5,
+                "sid": null,
+                "multiplier": 1.07
+              },
+              {
+                "name": "Under",
+                "description": "Kyle Schwarber",
+                "price": -220,
+                "point": 2.5,
+                "sid": null,
+                "multiplier": 0.84
+              },
+              {
+                "name": "Over",
+                "description": "Bryce Harper",
+                "price": -120,
+                "point": 2.5,
+                "sid": null,
+                "multiplier": 1.06
+              },
+              {
+                "name": "Under",
+                "description": "Bryce Harper",
+                "price": -259,
+                "point": 2.5,
+                "sid": null,
+                "multiplier": 0.8
+              },
+              {
+                "name": "Over",
+                "description": "Trea Turner",
+                "price": -117,
+                "point": 2.5,
+                "sid": null,
+                "multiplier": 1.07
+              },
+              {
+                "name": "Under",
+                "description": "Trea Turner",
+                "price": -220,
+                "point": 2.5,
+                "sid": null,
+                "multiplier": 0.84
+              },
+              {
+                "name": "Over",
+                "description": "Salvador Perez",
+                "price": -120,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1.06
+              },
+              {
+                "name": "Under",
+                "description": "Salvador Perez",
+                "price": -259,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 0.8
+              },
+              {
+                "name": "Over",
+                "description": "Alec Bohm",
+                "price": -117,
+                "point": 2.5,
+                "sid": null,
+                "multiplier": 1.07
+              },
+              {
+                "name": "Under",
+                "description": "Alec Bohm",
+                "price": -238,
+                "point": 2.5,
+                "sid": null,
+                "multiplier": 0.82
+              },
+              {
+                "name": "Over",
+                "description": "Jac Caglianone",
+                "price": -122,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1.05
+              },
+              {
+                "name": "Under",
+                "description": "Jac Caglianone",
+                "price": -248,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 0.81
+              },
+              {
+                "name": "Over",
+                "description": "Brandon Marsh",
+                "price": -191,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 0.88
+              },
+              {
+                "name": "Under",
+                "description": "Brandon Marsh",
+                "price": -128,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1.03
+              },
+              {
+                "name": "Over",
+                "description": "Starling Marte",
+                "price": -259,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 0.8
+              },
+              {
+                "name": "Under",
+                "description": "Starling Marte",
+                "price": -117,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 1.07
+              },
+              {
+                "name": "Over",
+                "description": "Lane Thomas",
+                "price": -128,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1.03
+              },
+              {
+                "name": "Under",
+                "description": "Lane Thomas",
+                "price": -191,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 0.88
+              },
+              {
+                "name": "Over",
+                "description": "Josh Rojas",
+                "price": -300,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 0.77
+              },
+              {
+                "name": "Under",
+                "description": "Josh Rojas",
+                "price": -120,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 1.06
+              },
+              {
+                "name": "Over",
+                "description": "Derek Hill",
+                "price": -128,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1.03
+              },
+              {
+                "name": "Under",
+                "description": "Derek Hill",
+                "price": -285,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 0.78
+              },
+              {
+                "name": "Over",
+                "description": "Nick Loftin",
+                "price": -122,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1.05
+              },
+              {
+                "name": "Under",
+                "description": "Nick Loftin",
+                "price": -300,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 0.77
+              },
+              {
+                "name": "Over",
+                "description": "J.T. Realmuto",
+                "price": -191,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 0.88
+              },
+              {
+                "name": "Under",
+                "description": "J.T. Realmuto",
+                "price": -125,
+                "point": 1.5,
+                "sid": null,
+                "multiplier": 1.04
+              },
+              {
+                "name": "Over",
+                "description": "Tyler Tolbert",
+                "price": -197,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 0.87
+              },
+              {
+                "name": "Under",
+                "description": "Tyler Tolbert",
+                "price": -125,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 1.04
+              },
+              {
+                "name": "Over",
+                "description": "Luke Maile",
+                "price": -204,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 0.86
+              },
+              {
+                "name": "Under",
+                "description": "Luke Maile",
+                "price": -117,
+                "point": 0.5,
+                "sid": null,
+                "multiplier": 1.07
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

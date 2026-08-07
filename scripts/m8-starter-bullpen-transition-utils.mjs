@@ -83,6 +83,58 @@ function groupedRows(dataset, periodId) {
   return groups;
 }
 
+export function recoverM8ActualStarterFromOrderedPitcherAppearances(rawRows) {
+  const rows = array(rawRows, 'ordered pitcher appearances')
+    .map((rawRow, index) => {
+      const row = object(rawRow, `ordered pitcher appearance ${index}`);
+      const hand = typeof row.normalizedPitcherHand === 'string'
+        ? row.normalizedPitcherHand.trim().toUpperCase()
+        : null;
+      return Object.freeze({
+        ...row,
+        providerPaNumber: positiveInteger(row.providerPaNumber, 'plate appearance number'),
+        providerPitcherId: positiveInteger(row.providerPitcherId, 'pitcher id'),
+        normalizedPitcherHand: hand === 'L' || hand === 'R' ? hand : null,
+      });
+    })
+    .sort((left, right) => left.providerPaNumber - right.providerPaNumber);
+  if (rows.length === 0) {
+    return Object.freeze({ starter: null, exclusion: 'no-pitcher-appearances' });
+  }
+  const starterPitcherId = rows[0].providerPitcherId;
+  const starterPitcherHand = rows[0].normalizedPitcherHand;
+  let starterBattersFaced = 0;
+  let bullpenStarted = false;
+  const bullpenRows = [];
+  for (const row of rows) {
+    if (!bullpenStarted && row.providerPitcherId === starterPitcherId) {
+      starterBattersFaced += 1;
+      continue;
+    }
+    bullpenStarted = true;
+    if (row.providerPitcherId === starterPitcherId) {
+      return Object.freeze({ starter: null, exclusion: 'starter-reappeared-after-bullpen' });
+    }
+    bullpenRows.push(row);
+  }
+  const totalBattersFaced = rows.length;
+  const bullpenBattersFaced = bullpenRows.length;
+  if (starterBattersFaced + bullpenBattersFaced !== totalBattersFaced) {
+    throw new Error('starter and bullpen batters faced do not conserve team plate appearances.');
+  }
+  return Object.freeze({
+    starter: Object.freeze({
+      providerPitcherId: starterPitcherId,
+      normalizedPitcherHand: starterPitcherHand,
+      starterBattersFaced,
+      bullpenBattersFaced,
+      totalBattersFaced,
+      bullpenRows: Object.freeze(bullpenRows),
+    }),
+    exclusion: null,
+  });
+}
+
 function recoverTeamSide(periodId, key, rawRows) {
   const rows = [...rawRows].sort(
     (left, right) => left.providerPaNumber - right.providerPaNumber,
@@ -95,29 +147,9 @@ function recoverTeamSide(periodId, key, rawRows) {
   if (terminalRows.length === 0) {
     return Object.freeze({ row: null, exclusion: 'no-classified-terminal-rows' });
   }
-  const starterPitcherId = positiveInteger(
-    terminalRows[0].providerPitcherId,
-    'starter pitcher id',
-  );
-  let starterBattersFaced = 0;
-  let bullpenStarted = false;
-  const bullpenRows = [];
-  for (const row of terminalRows) {
-    const pitcherId = positiveInteger(row.providerPitcherId, 'pitcher id');
-    if (!bullpenStarted && pitcherId === starterPitcherId) {
-      starterBattersFaced += 1;
-      continue;
-    }
-    bullpenStarted = true;
-    if (pitcherId === starterPitcherId) {
-      return Object.freeze({ row: null, exclusion: 'starter-reappeared-after-bullpen' });
-    }
-    bullpenRows.push(row);
-  }
-  const totalBattersFaced = terminalRows.length;
-  const bullpenBattersFaced = bullpenRows.length;
-  if (starterBattersFaced + bullpenBattersFaced !== totalBattersFaced) {
-    throw new Error('starter and bullpen batters faced do not conserve team plate appearances.');
+  const recovered = recoverM8ActualStarterFromOrderedPitcherAppearances(terminalRows);
+  if (recovered.starter === null) {
+    return Object.freeze({ row: null, exclusion: recovered.exclusion });
   }
   const [observedDate, gameIdText, side] = key.split(':');
   return Object.freeze({
@@ -127,12 +159,12 @@ function recoverTeamSide(periodId, key, rawRows) {
       observedDate,
       gameId: positiveInteger(Number(gameIdText), 'game id'),
       side,
-      starterPitcherId,
-      starterBattersFaced,
-      bullpenBattersFaced,
-      totalBattersFaced,
+      starterPitcherId: recovered.starter.providerPitcherId,
+      starterBattersFaced: recovered.starter.starterBattersFaced,
+      bullpenBattersFaced: recovered.starter.bullpenBattersFaced,
+      totalBattersFaced: recovered.starter.totalBattersFaced,
       bullpenRows: Object.freeze(
-        bullpenRows.map((row) =>
+        recovered.starter.bullpenRows.map((row) =>
           Object.freeze({
             providerPitcherId: row.providerPitcherId,
             normalizedPitcherHand: row.normalizedPitcherHand,

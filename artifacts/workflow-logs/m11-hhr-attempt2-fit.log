@@ -1,0 +1,51 @@
+=== M11 HHR RESPECIFIED FIT ===
+ROWS: 5964
+GAMES: 340
+EXPECTED PA ROLE: offset
+EXPECTED PA COEFFICIENT: 1
+COEFFICIENT SCALE: standardized-per-sample-standard-deviation
+PREDICTOR SD contextHitQualityLogit: 0.0930312034773695
+PREDICTOR SD centeredLineupSlot: 0.6455675343016808
+PREDICTOR SD platoonSplitCell: 0.0219781242101735
+PREDICTOR SD opposingStarterPooling: 0.0651365391061964
+PREDICTOR SD teamImpliedRunTotal: 0.675313709670666
+PREDICTOR SD precedingLineupSlotsOnBaseQuality: 0.012506270039101005
+COEFFICIENTS: {"intercept":-0.8499721607645645,"contextHitQualityLogit":0.03523649199307825,"centeredLineupSlot":-0.020936466017687415,"platoonSplitCell":-0.012662565793679309,"opposingStarterPooling":0.02019953801350802,"teamImpliedRunTotal":0.0489153990665789,"precedingLineupSlotsOnBaseQuality":0.017107649990835982}
+DISPERSION ALPHA: 0.5833545509892685
+VIF contextHitQualityLogit: 1.251836750000704
+VIF centeredLineupSlot: 1.155188412073078
+VIF platoonSplitCell: 1.1075700482290451
+VIF opposingStarterPooling: 1.1609939117698216
+VIF teamImpliedRunTotal: 1.1772061628438375
+VIF precedingLineupSlotsOnBaseQuality: 1.0241358758585257
+PREDICTION slot=1 quality=p10: 1.7268731078330233
+PREDICTION slot=1 quality=p50: 1.7983570378021718
+PREDICTION slot=1 quality=p90: 1.8812941982489786
+PREDICTION slot=5 quality=p10: 1.6717671152209401
+PREDICTION slot=5 quality=p50: 1.740969932062034
+PREDICTION slot=5 quality=p90: 1.8212604970351385
+PREDICTION slot=9 quality=p10: 1.6184196017976222
+PREDICTION slot=9 quality=p50: 1.6854140977746743
+PREDICTION slot=9 quality=p90: 1.7631425223912243
+QUALITY SPREAD slot=1: ratio=1.089422372562007 difference=0.1544210904159553
+QUALITY SPREAD slot=5: ratio=1.089422372562007 difference=0.14949338181419836
+QUALITY SPREAD slot=9: ratio=1.0894223725620071 difference=0.14472292059360203
+GATE A VIF <= 5: true
+GATE B PRIME |LINEUP SLOT| < 0.15 PER SD: true
+GATE C QUALITY RATIO >= 1.1: false
+GATE E CI EXCLUDING ZERO COUNT [DIAGNOSTIC]: 3
+GATE E CI EXCLUDING ZERO NAMES [DIAGNOSTIC]: ["intercept","contextHitQualityLogit","teamImpliedRunTotal"]
+EXCLUSION SUM: 5130
+MODEL SHA-256: ea98056859ad272a42997b8dc5920c18ad99eae77bf07ad6a6b4dfd2f1c9c1bd
+DIAGNOSTICS SHA-256: 29b1d2b28065ce482474509405becb5900ef7351eeacbabdc434a5ec88b91331
+PRODUCTION ENABLED: false
+RANKING ENABLED: false
+=== END M11 HHR RESPECIFIED FIT ===
+file:///home/runner/work/mlb-prop-analyzer-v3/mlb-prop-analyzer-v3/scripts/fit-m11-batter-hhr-respecified.mjs:381
+if (!gates.batterQualitySpread.passed) throw new Error(`GATE C FAILED: minimum quality ratio ${gates.batterQualitySpread.minimumObservedRatio} is below ${QUALITY_SPREAD_MINIMUM_RATIO}.`);
+                                             ^
+
+Error: GATE C FAILED: minimum quality ratio 1.089422372562007 is below 1.1.
+    at file:///home/runner/work/mlb-prop-analyzer-v3/mlb-prop-analyzer-v3/scripts/fit-m11-batter-hhr-respecified.mjs:381:46
+
+Node.js v24.18.0

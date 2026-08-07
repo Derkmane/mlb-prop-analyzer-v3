@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Identify the exact timestamp representation causing the two pre-fit HHR capture failures.",
+  "providers": [
+    "BALLDONTLIE MLB API",
+    "The Odds API"
+  ],
+  "probedAt": "2026-08-06T04:27:03.567Z",
+  "targetGameIds": [
+    5059270,
+    5059278
+  ],
+  "bdlGamesResponseSha256": "5e6112d78631203578ec6edcb0c1635f9128bbe6c38c4e712e1ea0181d9893b4",
+  "results": [
+    {
+      "gameId": 5059270,
+      "rawProviderFields": {
+        "date": "2026-07-20T22:40:00.000Z",
+        "datetime": null,
+        "status": "STATUS_FINAL",
+        "homeTeam": "Cleveland Guardians",
+        "awayTeam": "Minnesota Twins"
+      },
+      "parsedEpochMilliseconds": 1784587200000,
+      "currentComputedTimestamp": "2026-07-20T21:40:00.000Z",
+      "secondPrecisionTimestamp": "2026-07-20T21:40:00Z",
+      "flooredFiveMinuteTimestamp": "2026-07-20T21:40:00Z",
+      "probes": [
+        {
+          "requestedTimestamp": "2026-07-20T21:40:00.000Z",
+          "httpStatus": 422,
+          "valid": false,
+          "eventCount": null,
+          "returnedTimestamp": null,
+          "errorCode": "INVALID_HISTORICAL_TIMESTAMP",
+          "message": "Invalid date parameter"
+        },
+        {
+          "requestedTimestamp": "2026-07-20T21:40:00Z",
+          "httpStatus": 200,
+          "valid": true,
+          "eventCount": 27,
+          "returnedTimestamp": "2026-07-20T21:35:37Z",
+          "errorCode": null,
+          "message": null
+        }
+      ]
+    },
+    {
+      "gameId": 5059278,
+      "rawProviderFields": {
+        "date": "2026-07-21T00:05:00.000Z",
+        "datetime": null,
+        "status": "STATUS_FINAL",
+        "homeTeam": "Texas Rangers",
+        "awayTeam": "Chicago White Sox"
+      },
+      "parsedEpochMilliseconds": 1784592300000,
+      "currentComputedTimestamp": "2026-07-20T23:05:00.000Z",
+      "secondPrecisionTimestamp": "2026-07-20T23:05:00Z",
+      "flooredFiveMinuteTimestamp": "2026-07-20T23:05:00Z",
+      "probes": [
+        {
+          "requestedTimestamp": "2026-07-20T23:05:00.000Z",
+          "httpStatus": 422,
+          "valid": false,
+          "eventCount": null,
+          "returnedTimestamp": null,
+          "errorCode": "INVALID_HISTORICAL_TIMESTAMP",
+          "message": "Invalid date parameter"
+        },
+        {
+          "requestedTimestamp": "2026-07-20T23:05:00Z",
+          "httpStatus": 200,
+          "valid": true,
+          "eventCount": 27,
+          "returnedTimestamp": "2026-07-20T23:00:37Z",
+          "errorCode": null,
+          "message": null
+        }
+      ]
+    }
+  ]
+}

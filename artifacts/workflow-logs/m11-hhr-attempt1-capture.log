@@ -1,0 +1,29 @@
+=== M11 HHR RESPECIFIED EVIDENCE ===
+WARMUP: 2026-07-13 through 2026-07-19
+FIT: 2026-07-20 through 2026-07-25
+ROWS: 783
+GAMES: 44
+EXCLUDED: 2082
+EXCLUSION warmup_history_only: 1419
+EXCLUSION missing_game: 0
+EXCLUSION missing_player_identity: 0
+EXCLUSION missing_team_identity: 20
+EXCLUSION invalid_box_score: 434
+EXCLUSION missing_lineup_slot: 110
+EXCLUSION missing_opposing_starter: 0
+EXCLUSION starter_reappeared_after_bullpen: 0
+EXCLUSION starter_absent_from_pitcher_allowed: 18
+EXCLUSION invalid_handedness: 0
+EXCLUSION missing_park_effect: 0
+EXCLUSION missing_team_bullpen: 0
+EXCLUSION missing_team_total: 81
+EXCLUSION missing_preceding_lineup: 0
+EXCLUSION duplicate_player_game: 0
+EXCLUSION invalid_m8_conditioning: 0
+EXCLUSION SUM: 2082
+DESIGN SHA-256: f712edfc6e9224a5cefeb3e89ff20cd35ea8355f2d4a1dcead53fd4740330e13
+BOARD SHA-256: 29ed865bfee0f4fedac816d3b58e5d9f6b4aad018df163789585bb5533561203
+ALL SEVEN CONDITIONING INPUTS: true
+RAW HITS/PA PREDICTOR: false
+PA OFFSET FIXED AT 1: true
+=== END M11 HHR RESPECIFIED EVIDENCE ===

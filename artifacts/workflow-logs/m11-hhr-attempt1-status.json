@@ -1,0 +1,14 @@
+{
+  "attempt": 1,
+  "attemptLimit": 2,
+  "sourceHead": "19c34550ce2d4ce978499f0da1003f908eb64f27",
+  "captureOutcome": "success",
+  "captureStatus": "0",
+  "fitOutcome": "failure",
+  "fitStatus": "1",
+  "verifyOutcome": "skipped",
+  "verifyStatus": "",
+  "lookaheadOverlap": false,
+  "productionEnabled": false,
+  "rankingEnabled": false
+}

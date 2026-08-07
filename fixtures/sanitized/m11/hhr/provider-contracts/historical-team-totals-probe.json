@@ -1,0 +1,430 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Verified historical The Odds API team_totals provider contract for M11 HHR conditioning.",
+  "provider": "The Odds API",
+  "sport": "baseball_mlb",
+  "requestedAt": "2026-07-20T17:00:00Z",
+  "returnedAt": "2026-07-20T16:55:37Z",
+  "event": {
+    "id": "ed99d6d31957cf5543b0733a49085559",
+    "commenceTime": "2026-07-20T22:41:00Z",
+    "homeTeam": "Cleveland Guardians",
+    "awayTeam": "Minnesota Twins"
+  },
+  "request": {
+    "endpoint": "/v4/historical/sports/baseball_mlb/events/{eventId}/odds",
+    "region": "us",
+    "market": "team_totals",
+    "dateFormat": "iso",
+    "oddsFormat": "american"
+  },
+  "sourceEvidence": {
+    "historicalEventsRawBodySha256": "1a96868ee602e57cdebdc0c51079cd58a1b3e8d56b6ed180b40d77c3d05f4aa8",
+    "historicalEventOddsRawBodySha256": "fdc1fe860b5d067b5f4d1bb36207ac9fdbf0f6393f0837f770e03926adad5290"
+  },
+  "responseContract": {
+    "marketKey": "team_totals",
+    "teamIdentityField": "outcome.description",
+    "postedTeamRunTotalField": "outcome.point",
+    "selectedSideField": "outcome.name",
+    "priceField": "outcome.price"
+  },
+  "bookmakers": [
+    {
+      "key": "fanduel",
+      "title": "FanDuel",
+      "markets": [
+        {
+          "key": "team_totals",
+          "lastUpdate": "2026-07-20T16:55:35Z",
+          "outcomes": [
+            {
+              "name": "Over",
+              "description": "Cleveland Guardians",
+              "point": 3.5,
+              "price": -102
+            },
+            {
+              "name": "Under",
+              "description": "Cleveland Guardians",
+              "point": 3.5,
+              "price": -125
+            },
+            {
+              "name": "Over",
+              "description": "Minnesota Twins",
+              "point": 4.5,
+              "price": 118
+            },
+            {
+              "name": "Under",
+              "description": "Minnesota Twins",
+              "point": 4.5,
+              "price": -150
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "betonlineag",
+      "title": "BetOnline.ag",
+      "markets": [
+        {
+          "key": "team_totals",
+          "lastUpdate": "2026-07-20T16:55:04Z",
+          "outcomes": [
+            {
+              "name": "Over",
+              "description": "Cleveland Guardians",
+              "point": 3.5,
+              "price": -110
+            },
+            {
+              "name": "Under",
+              "description": "Cleveland Guardians",
+              "point": 3.5,
+              "price": -120
+            },
+            {
+              "name": "Over",
+              "description": "Minnesota Twins",
+              "point": 3.5,
+              "price": -141
+            },
+            {
+              "name": "Under",
+              "description": "Minnesota Twins",
+              "point": 3.5,
+              "price": 110
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "draftkings",
+      "title": "DraftKings",
+      "markets": [
+        {
+          "key": "team_totals",
+          "lastUpdate": "2026-07-20T16:55:37Z",
+          "outcomes": [
+            {
+              "name": "Over",
+              "description": "Cleveland Guardians",
+              "point": 3.5,
+              "price": -115
+            },
+            {
+              "name": "Under",
+              "description": "Cleveland Guardians",
+              "point": 3.5,
+              "price": -115
+            },
+            {
+              "name": "Over",
+              "description": "Minnesota Twins",
+              "point": 4.5,
+              "price": 114
+            },
+            {
+              "name": "Under",
+              "description": "Minnesota Twins",
+              "point": 4.5,
+              "price": -145
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "williamhill_us",
+      "title": "Caesars",
+      "markets": [
+        {
+          "key": "team_totals",
+          "lastUpdate": "2026-07-20T16:55:38Z",
+          "outcomes": [
+            {
+              "name": "Over",
+              "description": "Cleveland Guardians",
+              "point": 2.5,
+              "price": -200
+            },
+            {
+              "name": "Over",
+              "description": "Cleveland Guardians",
+              "point": 3.5,
+              "price": -105
+            },
+            {
+              "name": "Over",
+              "description": "Cleveland Guardians",
+              "point": 4.5,
+              "price": 170
+            },
+            {
+              "name": "Over",
+              "description": "Cleveland Guardians",
+              "point": 5.5,
+              "price": 275
+            },
+            {
+              "name": "Over",
+              "description": "Cleveland Guardians",
+              "point": 6.5,
+              "price": 450
+            },
+            {
+              "name": "Over",
+              "description": "Cleveland Guardians",
+              "point": 7.5,
+              "price": 650
+            },
+            {
+              "name": "Over",
+              "description": "Cleveland Guardians",
+              "point": 8.5,
+              "price": 900
+            },
+            {
+              "name": "Under",
+              "description": "Cleveland Guardians",
+              "point": 2.5,
+              "price": 150
+            },
+            {
+              "name": "Under",
+              "description": "Cleveland Guardians",
+              "point": 3.5,
+              "price": -125
+            },
+            {
+              "name": "Under",
+              "description": "Cleveland Guardians",
+              "point": 4.5,
+              "price": -225
+            },
+            {
+              "name": "Under",
+              "description": "Cleveland Guardians",
+              "point": 5.5,
+              "price": -400
+            },
+            {
+              "name": "Under",
+              "description": "Cleveland Guardians",
+              "point": 6.5,
+              "price": -700
+            },
+            {
+              "name": "Under",
+              "description": "Cleveland Guardians",
+              "point": 7.5,
+              "price": -1400
+            },
+            {
+              "name": "Under",
+              "description": "Cleveland Guardians",
+              "point": 8.5,
+              "price": -3300
+            },
+            {
+              "name": "Over",
+              "description": "Minnesota Twins",
+              "point": 2.5,
+              "price": -275
+            },
+            {
+              "name": "Over",
+              "description": "Minnesota Twins",
+              "point": 3.5,
+              "price": -143
+            },
+            {
+              "name": "Over",
+              "description": "Minnesota Twins",
+              "point": 4.5,
+              "price": 120
+            },
+            {
+              "name": "Over",
+              "description": "Minnesota Twins",
+              "point": 5.5,
+              "price": 187
+            },
+            {
+              "name": "Over",
+              "description": "Minnesota Twins",
+              "point": 6.5,
+              "price": 290
+            },
+            {
+              "name": "Over",
+              "description": "Minnesota Twins",
+              "point": 7.5,
+              "price": 450
+            },
+            {
+              "name": "Over",
+              "description": "Minnesota Twins",
+              "point": 8.5,
+              "price": 600
+            },
+            {
+              "name": "Under",
+              "description": "Minnesota Twins",
+              "point": 2.5,
+              "price": 200
+            },
+            {
+              "name": "Under",
+              "description": "Minnesota Twins",
+              "point": 3.5,
+              "price": 110
+            },
+            {
+              "name": "Under",
+              "description": "Minnesota Twins",
+              "point": 4.5,
+              "price": -154
+            },
+            {
+              "name": "Under",
+              "description": "Minnesota Twins",
+              "point": 5.5,
+              "price": -250
+            },
+            {
+              "name": "Under",
+              "description": "Minnesota Twins",
+              "point": 6.5,
+              "price": -400
+            },
+            {
+              "name": "Under",
+              "description": "Minnesota Twins",
+              "point": 7.5,
+              "price": -700
+            },
+            {
+              "name": "Under",
+              "description": "Minnesota Twins",
+              "point": 8.5,
+              "price": -1400
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "betmgm",
+      "title": "BetMGM",
+      "markets": [
+        {
+          "key": "team_totals",
+          "lastUpdate": "2026-07-20T16:54:50Z",
+          "outcomes": [
+            {
+              "name": "Over",
+              "description": "Cleveland Guardians",
+              "point": 3.5,
+              "price": -105
+            },
+            {
+              "name": "Under",
+              "description": "Cleveland Guardians",
+              "point": 3.5,
+              "price": -125
+            },
+            {
+              "name": "Over",
+              "description": "Minnesota Twins",
+              "point": 3.5,
+              "price": -145
+            },
+            {
+              "name": "Under",
+              "description": "Minnesota Twins",
+              "point": 3.5,
+              "price": 110
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "betrivers",
+      "title": "BetRivers",
+      "markets": [
+        {
+          "key": "team_totals",
+          "lastUpdate": "2026-07-20T16:55:05Z",
+          "outcomes": [
+            {
+              "name": "Over",
+              "description": "Cleveland Guardians",
+              "point": 3.5,
+              "price": -104
+            },
+            {
+              "name": "Under",
+              "description": "Cleveland Guardians",
+              "point": 3.5,
+              "price": -122
+            },
+            {
+              "name": "Over",
+              "description": "Minnesota Twins",
+              "point": 3.5,
+              "price": -143
+            },
+            {
+              "name": "Under",
+              "description": "Minnesota Twins",
+              "point": 3.5,
+              "price": 114
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "bovada",
+      "title": "Bovada",
+      "markets": [
+        {
+          "key": "team_totals",
+          "lastUpdate": "2026-07-20T16:55:23Z",
+          "outcomes": [
+            {
+              "name": "Over",
+              "description": "Cleveland Guardians",
+              "point": 3.5,
+              "price": -110
+            },
+            {
+              "name": "Under",
+              "description": "Cleveland Guardians",
+              "point": 3.5,
+              "price": -120
+            },
+            {
+              "name": "Over",
+              "description": "Minnesota Twins",
+              "point": 3.5,
+              "price": -145
+            },
+            {
+              "name": "Under",
+              "description": "Minnesota Twins",
+              "point": 3.5,
+              "price": 110
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

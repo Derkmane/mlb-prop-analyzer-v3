@@ -18,12 +18,14 @@ concurrency:
 
 jobs:
   grade:
-    name: Grade final saved Batter Hits archives
+    name: Grade final saved Batter Hits and HHR archives
     runs-on: ubuntu-latest
     timeout-minutes: 180
     env:
       BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
       M10_ARCHIVE_ROOT: artifacts/board-archives/batter-hits
+      M10_HHR_ARCHIVE_ROOT: artifacts/board-archives/batter-hhr
+      M10_MULTI_MARKET_CUMULATIVE_ROOT: artifacts/board-archives/cumulative
       M10_ARCHIVE_BOOTSTRAP_ROOT: artifacts/bootstrap/m9-board-archive
       M10_GRADE_ATTEMPT_ID: github-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
       M10_BDL_MIN_REQUEST_INTERVAL_MS: '13000'
@@ -44,7 +46,7 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Restore immutable board archive ledger
+      - name: Restore immutable Batter Hits archive ledger
         id: restore-board-archives
         uses: actions/cache/restore@v4
         with:
@@ -53,9 +55,19 @@ jobs:
           restore-keys: |
             m9-board-archive-ledger-
 
-      - name: Check whether the ledger needs the verified August 5 seed
+      - name: Restore immutable HHR archive ledger
+        id: restore-hhr-board-archives
+        uses: actions/cache/restore@v4
+        with:
+          path: artifacts/board-archives/batter-hhr
+          key: m10-hhr-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            m10-hhr-board-archive-ledger-
+
+      - name: Check whether the Hits ledger needs the verified August 5 seed
         id: ledger-state
         run: |
+          set -euo pipefail
           if find artifacts/board-archives/batter-hits/captures -maxdepth 1 -type f -name '*.json' -print -quit 2>/dev/null | grep -q .; then
             echo 'needs-bootstrap=false' >> "$GITHUB_OUTPUT"
           else
@@ -72,39 +84,60 @@ jobs:
           repository: Derkmane/mlb-prop-analyzer-v3
           run-id: 31017005173
 
-      - name: Bootstrap empty ledger from verified immutable archive
+      - name: Bootstrap empty Hits ledger from verified immutable archive
         if: steps.ledger-state.outputs.needs-bootstrap == 'true'
         run: |
+          set -euo pipefail
           mkdir -p artifacts/workflow-logs
-          set -o pipefail
           node scripts/bootstrap-m10-archive-ledger.mjs 2>&1 | tee artifacts/workflow-logs/m10-archive-bootstrap-grade.log
 
-      - name: Grade only archives whose exact games are final
+      - name: Grade only Batter Hits archives whose exact games are final
         run: |
+          set -euo pipefail
           mkdir -p artifacts/workflow-logs
-          set -o pipefail
           node scripts/grade-m10-pending-archives.mjs 2>&1 | tee artifacts/workflow-logs/m10-pending-archive-grade.log
 
-      - name: Build selected-side and cumulative grading evidence
+      - name: Grade only HHR archives whose exact games are final and accumulate HHR evidence
         run: |
-          set -o pipefail
+          set -euo pipefail
+          mkdir -p artifacts/workflow-logs
+          node scripts/grade-m10-hhr-pending-archives.mjs 2>&1 | tee artifacts/workflow-logs/m10-hhr-pending-archive-grade.log
+
+      - name: Build Batter Hits selected-side and cumulative grading evidence
+        run: |
+          set -euo pipefail
           node scripts/build-m10-selected-side-cumulative-grades.mjs 2>&1 | tee artifacts/workflow-logs/m10-selected-side-cumulative-grade.log
 
-      - name: Save immutable archive and grade ledger
+      - name: Build combined Batter Hits and HHR cumulative selected-side evidence
+        run: |
+          set -euo pipefail
+          node scripts/build-m10-multi-market-cumulative-grades.mjs 2>&1 | tee artifacts/workflow-logs/m10-multi-market-cumulative-grade.log
+
+      - name: Save immutable Batter Hits archive and grade ledger
         if: always()
         uses: actions/cache/save@v4
         with:
           path: artifacts/board-archives/batter-hits
           key: m9-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
 
-      - name: Upload immutable grades, status evidence, and provider evidence
+      - name: Save immutable HHR archive and grade ledger
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: artifacts/board-archives/batter-hhr
+          key: m10-hhr-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Upload immutable grades, status evidence, cumulative evidence, and provider evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: m10-pending-archive-grades-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: warn
           retention-days: 90
-          path: artifacts/board-archives/batter-hits/**
+          path: |
+            artifacts/board-archives/batter-hits/**
+            artifacts/board-archives/batter-hhr/**
+            artifacts/board-archives/cumulative/**
 
       - name: Upload full grading logs
         if: always()
