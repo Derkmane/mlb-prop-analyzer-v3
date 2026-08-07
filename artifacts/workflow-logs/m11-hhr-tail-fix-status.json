@@ -1,0 +1,11 @@
+{
+  "implementationAttempt": 1,
+  "tailFix": "direct-recurrence-sum",
+  "focusedHhrTests": "success",
+  "batterHitsByteIdentity": true,
+  "step3": "success",
+  "npmVerifyExitStatus": 1,
+  "expectedOpenIssue": "duplicate-market-key-type-literal-not-fixed",
+  "productionEnabled": false,
+  "rankingEnabled": false
+}

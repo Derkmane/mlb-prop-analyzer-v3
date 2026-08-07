@@ -404,7 +404,7 @@ export function selectOneModelSidePerProp(gradedRows) {
   });
 }
 
-function performanceSummary(rows) {
+export function buildSelectedSidePerformanceSummary(rows) {
   const picks = array(rows, 'performance rows');
   const wins = picks.filter((row) => row.outcome === 'win').length;
   const losses = picks.filter((row) => row.outcome === 'loss').length;
@@ -469,7 +469,7 @@ export function buildSelectedSideCalibration(rows) {
         (definition.upperExclusive === null ||
           row.archivedPWinGivenGrades < definition.upperExclusive),
     );
-    const summary = performanceSummary(bucketRows);
+    const summary = buildSelectedSidePerformanceSummary(bucketRows);
     return Object.freeze({
       label: definition.label,
       lowerInclusive: definition.lowerInclusive,
@@ -586,7 +586,7 @@ export function buildSelectedSideArchiveMetricsReportV1({
     selectedSide: Object.freeze({
       label: 'MODEL-SELECTED SIDE PERFORMANCE',
       selectionRule: 'exactly one complementary side with p_final >= 0.5',
-      summary: performanceSummary(selectedRows),
+      summary: buildSelectedSidePerformanceSummary(selectedRows),
       calibration: buildSelectedSideCalibration(selectedRows),
       rows: selectedRows,
     }),
@@ -594,7 +594,7 @@ export function buildSelectedSideArchiveMetricsReportV1({
       label: 'OPPORTUNITY MINER POSITIVE-EDGE SUBSET',
       eligibilityRuleVersion:
         'opportunity-miner-positive-american-price-edge-v1',
-      summary: performanceSummary(minerRows),
+      summary: buildSelectedSidePerformanceSummary(minerRows),
       rows: minerRows,
     }),
     complementaryIntegrity: complementaryIntegrity(pairs, gradeReport.rows),
@@ -696,12 +696,12 @@ export function buildCumulativeSelectedSideMetricsReportV1({
     sources: Object.freeze(sourceReports),
     selectedSide: Object.freeze({
       label: 'CUMULATIVE MODEL-SELECTED SIDE PERFORMANCE',
-      summary: performanceSummary(selectedRows),
+      summary: buildSelectedSidePerformanceSummary(selectedRows),
       calibration: buildSelectedSideCalibration(selectedRows),
     }),
     opportunityMiner: Object.freeze({
       label: 'CUMULATIVE OPPORTUNITY MINER POSITIVE-EDGE SUBSET',
-      summary: performanceSummary(minerRows),
+      summary: buildSelectedSidePerformanceSummary(minerRows),
     }),
     complementaryIntegrity: Object.freeze({
       label: 'SOURCE REPORT COMPLEMENTARY INTEGRITY — NOT PERFORMANCE',

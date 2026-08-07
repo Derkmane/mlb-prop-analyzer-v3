@@ -1,0 +1,838 @@
+
+> mlb-prop-analyzer-v3@0.0.0 verify
+> npm run typecheck && npm run check:scripts && npm run check:m8-pa-survival-baseline-artifact && npm run check:m8-team-offensive-environment-dataset && npm run check:m8-shared-offensive-environment && npm run check:m8-shared-offensive-environment-walk-forward && npm run check:m8-shared-offensive-environment-artifact && npm run check:m8-5-team-bullpen-outcome && npm run architecture && npm test
+
+
+> mlb-prop-analyzer-v3@0.0.0 typecheck
+> tsc --noEmit
+
+
+> mlb-prop-analyzer-v3@0.0.0 check:scripts
+> node --check scripts/clean.mjs && node --check scripts/provider-probe-utils.mjs && node --check scripts/provider-capability-utils.mjs && node --check scripts/verify-provider-access.mjs && node --check scripts/capture-provider-capabilities.mjs && node --check scripts/m8-recency-weighting-utils.mjs && node --check scripts/capture-m8-current-season-pa.mjs && node --check scripts/m8-capture-verification-utils.mjs && node --check scripts/verify-m8-current-season-pa.mjs && node --check scripts/m8-sharded-capture-utils.mjs && node --check scripts/capture-m8-current-season-pa-shards.mjs && node --check scripts/m8-partition-manifest-utils.mjs && node --check scripts/build-m8-chronological-partition-manifest.mjs && node --check scripts/m8-recency-evaluation-dataset-utils.mjs && node --check scripts/build-m8-recency-evaluation-dataset.mjs && node --check scripts/m8-hit-benchmark-dataset-utils.mjs && node --check scripts/build-m8-hit-benchmark-dataset.mjs && node --check scripts/m8-hit-recency-evaluation-utils.mjs && node --check scripts/evaluate-m8-hit-recency-candidates.mjs && node --check scripts/m8-hit-recency-walk-forward-utils.mjs && node --check scripts/evaluate-m8-hit-recency-walk-forward.mjs && node --check scripts/m8-categorical-pooling-utils.mjs && node --check scripts/evaluate-m8-categorical-pooling.mjs && node --check scripts/m8-categorical-pooling-boundary-utils.mjs && node --check scripts/evaluate-m8-categorical-pooling-boundary.mjs && node --check scripts/m8-coherent-categorical-matchup-utils.mjs && node --check scripts/evaluate-m8-coherent-categorical-matchup.mjs && node --check scripts/m8-context-play-capture-utils.mjs && node --check scripts/m8-opportunity-play-capture-plan-utils.mjs && node --check scripts/m8-opportunity-play-capture-run-utils.mjs && node --check scripts/capture-m8-opportunity-plays.mjs && node --check scripts/m8-stats-lineup-capture-utils.mjs && node --check scripts/capture-m8-stats-lineups.mjs && node --check scripts/m8-pa-survival-dataset-utils.mjs && node --check scripts/build-m8-pa-survival-dataset.mjs && node --check scripts/m8-pa-survival-evaluation-utils.mjs && node --check scripts/evaluate-m8-pa-survival-baselines.mjs && node --check scripts/m8-pa-survival-walk-forward-utils.mjs && node --check scripts/evaluate-m8-pa-survival-walk-forward.mjs && node --check scripts/m8-context-play-batch-utils.mjs && node --check scripts/bdl-adaptive-rate-limit-utils.mjs && node --check scripts/capture-m8-context-plays.mjs && node --check scripts/m8-context-play-signature-audit-utils.mjs && node --check scripts/m8-context-play-signature-audit-run-utils.mjs && node --check scripts/audit-m8-context-play-signatures.mjs && node --check scripts/m8-context-terminal-resolution-utils.mjs && node --check scripts/build-m8-context-terminal-resolution.mjs && node --check scripts/m8-resolved-categorical-dataset-utils.mjs && node --check scripts/build-m8-resolved-categorical-dataset.mjs && node --check scripts/m8-resolved-categorical-model-evaluation-utils.mjs && node --check scripts/evaluate-m8-resolved-categorical-model.mjs && node --check scripts/m8-resolved-categorical-walk-forward-utils.mjs && node --check scripts/evaluate-m8-resolved-categorical-walk-forward.mjs && node --check scripts/m8-resolved-categorical-platoon-utils.mjs && node --check scripts/evaluate-m8-resolved-categorical-platoon.mjs && node --check scripts/m8-resolved-categorical-platoon-boundary-utils.mjs && node --check scripts/evaluate-m8-resolved-categorical-platoon-boundary.mjs && node --check scripts/m8-resolved-categorical-platoon-walk-forward-utils.mjs && node --check scripts/evaluate-m8-resolved-categorical-platoon-walk-forward.mjs && node --check scripts/m8-resolved-categorical-rare-outcome-uncertainty-utils.mjs && node --check scripts/evaluate-m8-resolved-categorical-rare-outcome-uncertainty.mjs && node --check scripts/m8-resolved-categorical-hit-reliability-utils.mjs && node --check scripts/evaluate-m8-resolved-categorical-hit-reliability.mjs && node --check scripts/m8-resolved-categorical-rare-category-reliability-utils.mjs && node --check scripts/evaluate-m8-resolved-categorical-rare-category-reliability.mjs && node --check scripts/m8-resolved-categorical-hit-overdispersion-utils.mjs && node --check scripts/evaluate-m8-resolved-categorical-hit-overdispersion.mjs && node --check scripts/m8-5-team-bullpen-outcome-utils.mjs && node --check scripts/evaluate-m8-5-team-bullpen-outcome.mjs && node --check scripts/m9-board-archive-utils.mjs && node --check scripts/m9-board-archive-funnel-utils.mjs && node --check scripts/archive-m9-batter-hits-board.mjs && node --check scripts/capture-m11-hhr-respecified-evidence.mjs && node --check scripts/fit-m11-batter-hhr-respecified.mjs
+
+
+> mlb-prop-analyzer-v3@0.0.0 check:m8-pa-survival-baseline-artifact
+> node --check scripts/m8-pa-survival-baseline-artifact-utils.mjs && node --check scripts/build-m8-pa-survival-baseline-artifact.mjs
+
+
+> mlb-prop-analyzer-v3@0.0.0 check:m8-team-offensive-environment-dataset
+> node --check scripts/m8-team-offensive-environment-dataset-utils.mjs && node --check scripts/build-m8-team-offensive-environment-dataset.mjs
+
+
+> mlb-prop-analyzer-v3@0.0.0 check:m8-shared-offensive-environment
+> node --check scripts/m8-shared-offensive-environment-utils.mjs && node --check scripts/evaluate-m8-shared-offensive-environment.mjs
+
+
+> mlb-prop-analyzer-v3@0.0.0 check:m8-shared-offensive-environment-walk-forward
+> node --check scripts/m8-shared-offensive-environment-walk-forward-utils.mjs && node --check scripts/evaluate-m8-shared-offensive-environment-walk-forward.mjs
+
+
+> mlb-prop-analyzer-v3@0.0.0 check:m8-shared-offensive-environment-artifact
+> node --check scripts/m8-shared-offensive-environment-artifact-utils.mjs && node --check scripts/build-m8-shared-offensive-environment-artifact.mjs
+
+
+> mlb-prop-analyzer-v3@0.0.0 check:m8-5-team-bullpen-outcome
+> node --check scripts/m8-5-team-bullpen-outcome-utils.mjs && node --check scripts/evaluate-m8-5-team-bullpen-outcome.mjs
+
+
+> mlb-prop-analyzer-v3@0.0.0 architecture
+> depcruise --config .dependency-cruiser.cjs src test --exclude '^test/architecture/fixtures/'
+
+
+✔ no dependency violations found (319 modules, 1011 dependencies cruised)
+
+
+> mlb-prop-analyzer-v3@0.0.0 test
+> npm run build && node --test "dist/test/**/*.test.js" "test/**/*.test.mjs"
+
+
+> mlb-prop-analyzer-v3@0.0.0 build
+> tsc
+
+✔ protective architecture check rejects domain importing an adapter (842.146784ms)
+✔ accepts observed nullable pitch metadata and maps the direct Strikeout result to K (5.308696ms)
+✔ nullable pitch metadata does not weaken required terminal-result validation (1.653183ms)
+✔ raw evidence accepts observed nullable pitch metadata and a present null result (4.363255ms)
+✔ direct terminal classification does not depend on optional pitch metadata (2.170727ms)
+✔ unrecognized pitcher handedness preserves the outcome but fails platoon readiness (1.298625ms)
+✔ missing, unknown, and context-dependent results remain explicit and unresolved (0.376158ms)
+✔ canonical terminal PA and baserunning categories remain separate (1.566179ms)
+✔ all promoted BALLDONTLIE PA and play fixtures satisfy the raw schemas (86.460521ms)
+✔ raw schemas preserve unknown provider fields and reject missing required fields (17.567287ms)
+✔ play contracts preserve nullable identities and reject malformed pagination (3.194715ms)
+✔ normalized terminal PA boundary accepts only canonical categories and explicit snapshot context (2.115874ms)
+✔ verified direct BALLDONTLIE results map to exactly one canonical terminal category (8.294888ms)
+✔ ambiguous fielder-choice and multi-out labels require explicit batter disposition (1.42873ms)
+✔ compound strikeout and caught-stealing rows keep terminal and baserunning events separate (0.460968ms)
+✔ unknown, canonical-looking raw labels, malformed context, and contradictory context fail closed (0.923038ms)
+✔ all promoted PA rows produce one explicit deterministic state without OTHER_PA fallback (62.007798ms)
+✔ historical Batter Hits snapshot renders without importing the active feature (1.998152ms)
+✔ Batter Hits applies starter retention before hit-count convolution (5.944162ms)
+✔ synthetic input cannot be mistaken for a provider offer and requires the shared GameScenarioSet (6.295955ms)
+✔ exact opportunity-count mixing and shared scenario mixing conserve probability (7.187062ms)
+✔ Higher and Lower use exact settlement, exchange win/loss mass, and preserve ties and voids (3.586022ms)
+✔ baseline and alternate offers settle one identical Hits distribution (3.055493ms)
+✔ generic candidate preserves identity, probabilities, versions, side, line, and shared scenario reference (2.569629ms)
+✔ synthetic saved prediction is immutable after source inputs are mutated (3.938987ms)
+✔ synthetic JSON output is deterministic and preserves side-aware historical fields (2.221052ms)
+✔ disabled Batter Hits fails closed before any synthetic distribution builder can run (0.368073ms)
+✔ probability validation rejects malformed mass and preserves valid vectors (2.173673ms)
+✔ hitter survival converts to an exact opportunity-count distribution (0.504038ms)
+✔ deterministic convolution conserves probability mass (0.337616ms)
+✔ Poisson-binomial dynamic programming matches brute-force enumeration (0.563281ms)
+✔ one guaranteed opportunity produces one exact Bernoulli distribution (0.315815ms)
+✔ count mixing reproduces the canonical Batter Hits worked example (0.399112ms)
+✔ count mixing requires one probability for every possible opportunity (0.232307ms)
+✔ scenario mixing matches manual weighted calculations and validates weights (0.425331ms)
+✔ identical inputs produce byte-for-byte identical deterministic distributions (0.748981ms)
+✔ P(Win | grades) is exactly invariant to eligibility probability (1.236598ms)
+✔ ranking preserves genuine probability differences smaller than 1e-12 (0.268836ms)
+✔ Higher and Lower exchange win/loss mass while preserving tie and void mass (1.543626ms)
+✔ half-point lines have no tie mass for integer-valued statistics (0.28649ms)
+✔ fully void outcomes remain unrankable instead of producing NaN (1.242699ms)
+✔ the canonical worked example produces the verified settlement values (0.687354ms)
+✔ Higher decreases and Lower increases as the line rises (0.407939ms)
+✔ an upward distribution shift helps Higher and hurts Lower (0.287611ms)
+✔ ranking uses only P(Win | grades), then P(Void) (0.228801ms)
+✔ invalid settlement inputs fail closed (0.27667ms)
+✔ identical settlement inputs produce identical deterministic results (0.376469ms)
+✔ a disabled feature cannot produce a prediction (1.073992ms)
+✔ a not-yet-production-enabled feature cannot produce a prediction (0.167756ms)
+✔ an enabled production feature passes the generic gate (0.251504ms)
+✔ GameScenarioSet preserves shared lineup, home-away, environment, starter, bullpen, joint workload, and conserved weights (5.399997ms)
+✔ accepted survival curves preserve separate raw and adjusted fields and convert exactly to counts (1.018968ms)
+✔ any upward survival violation fails closed before count conversion (0.455988ms)
+✔ a pre-adjusted curve cannot bypass the strict M6 survival gate (0.809614ms)
+✔ scenario weights fail closed unless they conserve total probability (1.356935ms)
+✔ lineup-slot survival is derived exactly and ignores exact trailing zero padding (0.312438ms)
+✔ a slot curve with the right expectation but the wrong tail fails team-PA consistency (0.754802ms)
+✔ joint workload marginals must match the stored starter and bullpen distributions (0.532653ms)
+✔ matching workload expectations cannot hide impossible combined tails (0.94548ms)
+✔ the same shared scenario moves hitter opportunity and outcome assumptions together (2.295622ms)
+✔ feature inputs cannot substitute a contradictory game scenario set (1.509793ms)
+✔ an immutable saved prediction renders after its feature implementation is absent (1.780462ms)
+✔ High Probability Altline admits only alternate offers (1.802914ms)
+✔ Altline order is final P(Win | grades), then P(Void) only (0.428557ms)
+✔ Altline keeps one prop per player using the canonical comparator (0.240373ms)
+✔ price, multiplier, and priceEdge cannot alter Altline order (0.376198ms)
+✔ Altline selection preserves the original candidate and probabilities (0.320303ms)
+✔ High Probability Baseline admits only baseline offers (1.779701ms)
+✔ Baseline order is final P(Win | grades), then P(Void) only (0.466969ms)
+✔ Baseline keeps one prop per player using the canonical comparator (0.245302ms)
+✔ price, multiplier, and priceEdge cannot alter Baseline order (0.369265ms)
+✔ Baseline selection preserves the original candidate and probabilities (0.308401ms)
+
+--- M10 HISTORICAL SAVED RUN OUTPUT ---
+RUN ID: m10-historical-run-20260805
+STATUS: historical
+ACTIVE FEATURE IMPORTS: 0
+FEATURE ID: removed-batter-hits-feature-v99
+FEATURE SCHEMA: 99
+opportunity-miner-favorites	1	Historical Higher	higher	0.5	0.5700000000000001	0
+high-probability-baseline-props	1	Historical Higher	higher	0.5	0.5700000000000001	0
+high-probability-altline-props	1	Historical Lower	lower	1.5	0.5800000000000001	0
+PRODUCTION: DISABLED
+RANKING: DISABLED
+--- END M10 HISTORICAL SAVED RUN OUTPUT ---
+✔ a complete saved run renders after its active feature implementation is absent (5.986071ms)
+✔ historical rendering preserves exact identities, sides, probabilities, and diagnostic labels (2.046823ms)
+✔ American-price implied probability is correct for negative and positive prices (1.406859ms)
+✔ Opportunity Miner eligibility requires priceEdge strictly greater than the versioned threshold (1.246837ms)
+✔ within Opportunity Miner, order is final P(Win | grades), then P(Void) only (0.427716ms)
+✔ a higher priceEdge cannot improve Opportunity Miner rank (0.328649ms)
+✔ multiplier is preserved unchanged and never converted (0.316146ms)
+✔ Opportunity Miner keeps one prop per player using only the canonical comparator (0.278194ms)
+✔ adding Opportunity Miner diagnostics leaves every model probability unchanged (0.218361ms)
+✔ the exact August 5 live archive projection yields only Buddy Kennedy, Grant McCray, and Yainer Diaz (1.009561ms)
+
+--- M10 SAVED RUN GRADING OUTPUT ---
+RUN ID: m10-historical-run-20260805
+GRADING VERSION: m10-saved-run-batter-hits-grading-v1
+PROVIDER: balldontlie-mlb
+JOIN: EXACT providerGameId + providerPlayerId
+GAME STATUS: STATUS_FINAL ONLY
+STATISTIC: official Hits
+opportunity-miner-favorites	1	Historical Higher	5059401	2001	higher	0.5	1	win	0.5700000000000001
+high-probability-baseline-props	1	Historical Higher	5059401	2001	higher	0.5	1	win	0.5700000000000001
+high-probability-altline-props	1	Historical Lower	5059402	2002	lower	1.5	1	win	0.5800000000000001
+GRADED: 3
+WINS: 3
+LOSSES: 0
+VOIDS: 0
+WIN RATE GIVEN GRADES: 1
+ACTIVE FEATURE IMPORTS: 0
+PRODUCTION: DISABLED
+RANKING: DISABLED
+--- END M10 SAVED RUN GRADING OUTPUT ---
+✔ observed Hits settle Higher and Lower symmetrically with exact ties void (1.505375ms)
+✔ BALLDONTLIE final Hits normalization joins only exact game and player identities (5.901582ms)
+✔ BALLDONTLIE grading evidence fails closed for non-final, missing, duplicate, or malformed rows (1.960091ms)
+✔ versioned grading preserves archived probabilities and grades category overlap independently (3.658288ms)
+✔ saved-run grading uses no active feature implementation and prints literal track-record evidence (2.850998ms)
+✔ saved run preserves complete immutable lineage for every category pick (3.787922ms)
+✔ saved-run validation fails closed on missing lineage, unknown evidence, and category duplicates (1.006205ms)
+
+--- M10 SAVED RUN STORAGE OUTPUT ---
+RUN ID: m10-run-20260805-160217812
+FILE: runs/m10-run-20260805-160217812.json
+BYTE LENGTH: 6288
+FILE SHA-256: b16b2e63f4c8df698efa1de9642d8a89df3a6333690a48b2ba4b70b5c52bc214
+CATEGORIES: 3
+PICKS: 3
+LINEAGE: COMPLETE
+ATOMIC OVERWRITE: REFUSED
+TEMP FILES: 0
+PRODUCTION: DISABLED
+RANKING: DISABLED
+--- END M10 SAVED RUN STORAGE OUTPUT ---
+✔ atomic persistence publishes exact bytes, refuses overwrite, and leaves no temporary file (34.509997ms)
+✔ two distinct saved-run identities persist independently (8.93337ms)
+✔ Top Five returns exactly the first five when more than five are eligible (1.687487ms)
+✔ Top Five returns all eligible picks when fewer than five exist (0.261843ms)
+✔ the same player may appear in Top Five for different categories (0.413399ms)
+✔ Top Five selection preserves object identity and every probability (0.367492ms)
+✔ HHR artifact is one direct Family B offset fit using all seven inputs with production closed (69.638993ms)
+✔ HHR retained diagnostics preserve passed structural gates, retired Gate C evidence, and exclusion conservation (58.238214ms)
+✔ HHR direct analytic distribution conserves mass and remains side independent (59.992436ms)
+✔ HHR Higher falls and Lower rises across the 0.5 through 3.5 ladder (61.246588ms)
+✔ every captured baseline and alternate offer preserves its line and settles from one distribution (50.467533ms)
+✔ HHR fails closed on missing canonical inputs, malformed vectors, unsupported lines, and side-bearing artifacts (48.348152ms)
+✔ production registries are explicit, frozen, and keep Batter Hits and HHR disabled (1.900448ms)
+✔ a still-planned market cannot produce or rank a prediction (0.33996ms)
+✔ implemented but disabled Batter Hits cannot produce or rank a prediction (0.170241ms)
+✔ implemented but disabled HHR cannot produce or rank a prediction (0.247636ms)
+✔ an unknown market receives no fallback registration (0.216046ms)
+✔ a not-yet-production-enabled market cannot reach ranking (0.203594ms)
+✔ an unvalidated distribution builder cannot reach ranking (0.178476ms)
+✔ a disabled registered feature cannot produce a prediction (0.565755ms)
+✔ a missing settlement rule cannot produce a prediction (0.479944ms)
+✔ a settlement rule for the wrong official statistic cannot authorize a prediction (0.39801ms)
+✔ a fully validated synthetic market receives an immutable authorization (0.303521ms)
+✔ exact provider venue survives BALLDONTLIE normalization byte-for-byte (5.745909ms)
+✔ surrounding whitespace and null bytes fail closed through final runtime composition (404.993473ms)
+✔ an absent provider venue leaves D_final unchanged because park remains not applied (477.505316ms)
+✔ typed factor contract exposes every approved non-identity baseball effect kind (4.929872ms)
+✔ every factor defaults to one explicit disabled identity effect (0.540047ms)
+✔ selected-side and direct-probability fields fail closed (1.033906ms)
+✔ wrong season, unknown factor keys, missing evidence, and hash drift fail closed (0.805877ms)
+✔ effect schemas conserve their own probability structures and reject malformed payloads (1.066738ms)
+✔ identical versioned factor inputs produce identical deterministic artifacts (0.503609ms)
+✔ committed Defense identity artifact is deterministic and restricted to approved BIP categories (3.14439ms)
+✔ canonical D_final applies environment and bullpen while recording TTO identity and park not applied (278.502344ms)
+✔ runtime venue is not resolved or applied when building D_final (218.993702ms)
+✔ D_final with no applied effects equals D_base exactly (113.031995ms)
+✔ bullpen-only D_final differs from D_base, conserves mass, and one D_final settles baseline and alternate offers (121.463638ms)
+✔ factor artifact hash drift fails closed even when park is not applied (92.221358ms)
+✔ an upward D_final shift helps Higher and hurts Lower under exact settlement (225.029245ms)
+✔ contextProbabilityDelta is diagnostic and cannot alter ranking order (135.757016ms)
+✔ M8.5 final evaluation preserves complete lineage and exact final settlement (181.992722ms)
+✔ one immutable D_final settles baseline and alternate Higher or Lower offers without rebuilding (127.646087ms)
+✔ M8.5 final evaluation fails closed on source, factor, scenario, or hash drift (128.956879ms)
+✔ resolves one deterministic game-specific mixture over the exact shared scenario set (5.775965ms)
+✔ game features move only shared scenario weights and preserve scenario identity (1.259842ms)
+✔ scenario drift, feature drift, selected-side input, and source drift fail closed (1.88563ms)
+✔ model artifact hash drift and malformed coefficient coverage fail closed (0.596443ms)
+✔ validated game-specific weights preserve one shared scenario set and jointly move opportunity and Hits mixtures (187.998926ms)
+✔ baseline Higher and alternate Lower reuse one identical game-adjusted D_final (100.431404ms)
+✔ game-specific runtime composition fails closed on side input, game drift, scenario drift, source drift, and artifact drift (53.893453ms)
+✔ omitting park reproduces the frozen distribution exactly (142.622839ms)
+✔ a real venue-hand park multiplier set moves the statistic distribution (110.826699ms)
+✔ park applies to both starter and reliever branches (145.827387ms)
+✔ an unknown venue fails closed (63.92478ms)
+✔ a non-identity multiplier on an omitted category fails closed (53.99795ms)
+✔ resolves one exact provider venue and batter hand without selected-side input (9.063074ms)
+✔ applies the park multiplier to the terminal vector and renormalizes once (5.881344ms)
+✔ fails closed on unknown venues, selected-side fields, aliases, and incomplete mappings (4.492279ms)
+✔ rejects effect-index drift, wrong hand mapping, and artifact hash drift (2.096117ms)
+✔ identical park inputs produce one deterministic wrapper identity (2.774454ms)
+✔ committed M8.5 successor freeze deterministically locks every factor disposition before untouched testing (79.219918ms)
+✔ successor freeze hash drift fails closed (44.548003ms)
+✔ source factor artifact hash drift fails closed (32.663469ms)
+✔ post-freeze coefficient changes fail closed before a new untouched cohort can be read (31.768131ms)
+✔ omitting the team bullpen override reproduces the frozen distribution exactly (142.939514ms)
+✔ a team-specific bullpen vector moves the statistic distribution (91.814596ms)
+✔ a malformed bullpen override fails closed (66.898178ms)
+✔ resolves one exact opposing-team and pitcher-hand terminal vector without side input (3.941067ms)
+✔ a disabled team bullpen factor resolves to explicit identity (0.573791ms)
+✔ wrong factor, missing team-hand pairs, duplicates, and unknown teams fail closed (4.76993ms)
+✔ committed TTO identity artifact is deterministic and preserves the real evaluation decision (3.058454ms)
+✔ observed baseline and alternate offer attributes reuse one statistic distribution for identical player and game inputs (180.117494ms)
+✔ normalizes committed Underdog baseline and alternate offers with exact side and line identity (11.789529ms)
+✔ fails each event-scoped player with zero or multiple identity matches closed (4.445919ms)
+✔ rejects unsupported side and non-null source IDs instead of inventing contracts (1.978659ms)
+✔ public Batter Hits candidate probabilities come from exact settlement of D_final (339.752275ms)
+✔ a real p_final difference is reported diagnostically while candidate probabilities use p_final (202.219936ms)
+✔ baseline and alternate offers for one player and game settle one identical D_final (467.58414ms)
+✔ factor artifact hash drift fails closed before a candidate exists (105.1439ms)
+✔ missing or unvalidated frozen factors fail closed with no D_base fallback (171.580054ms)
+✔ identical inputs produce deterministic final output while production and ranking remain disabled (329.055457ms)
+✔ projected and confirmed versions of one active lineup produce identical final probabilities (551.027894ms)
+✔ M8 base evaluation remains audit-only while public output preserves it beside D_final (304.945628ms)
+✔ M8 base distribution is projected-status invariant and rejects contract tampering (166.304168ms)
+✔ connects the exact frozen Batter Hits runtime artifact while ranking stays disabled (32.317436ms)
+✔ rejects a changed frozen component before it can enter composition (37.18137ms)
+✔ all linked baseline and alternate offers preserve exact posted side and line through both public board boundaries (19.663308ms)
+✔ final-game exclusion retains each normalized offer side and line unchanged (4.259057ms)
+✔ scheduled pregame offers survive with exact selected side and line identity (14.222604ms)
+✔ a final matched game excludes every offer before ranking (5.607548ms)
+✔ the earlier preserved provider start time is a strict pregame cutoff (2.641207ms)
+✔ unknown or missing matched game state fails closed (2.736818ms)
+✔ order depends only on final P(Win | grades), then P(Void) (2.192833ms)
+✔ a candidate with higher p_base but lower p_final ranks below (0.252406ms)
+✔ a higher multiplier or better price cannot improve rank (0.227228ms)
+✔ identical p_final ties break only on P(Void) (0.33449ms)
+✔ a candidate with no validated distribution cannot enter ranking (0.423328ms)
+✔ a disabled or not-yet-production-enabled market cannot rank (0.256483ms)
+✔ a null pWinGivenGrades is excluded before sorting (0.322187ms)
+✔ identical inputs produce deterministic stable order for exact ties (0.447664ms)
+✔ a B/R hitter resolves against a verified starter while preserving the raw declaration (1.670047ms)
+✔ a switch hitter fails closed without a verified opposing starter hand (0.513468ms)
+✔ declared L and R hitters retain the existing resolved side and platoon path (0.23355ms)
+✔ the committed switch hitters normalize deterministically and remain on the frozen coherent path (17.071694ms)
+✖ every base-market key has exactly one canonical production-source declaration (5.865975ms)
+✔ implemented Batter Hits and HHR remain disabled and fail closed for production (0.938819ms)
+✔ duplicate ownership across the planned catalog and a feature manifest is rejected (0.517114ms)
+✔ starter retention converts slot turns into the named hitter PA distribution (4.522663ms)
+✔ named hitter derivation preserves slot turns separately and rejects mismatched retention identity (2.577147ms)
+✔ projected and confirmed lineup metadata produce identical named hitter distributions (1.430436ms)
+✔ projected and confirmed versions of the same lineup produce identical model assumptions (5.647343ms)
+✔ the domain preserves exactly Higher and Lower as selected sides (1.525415ms)
+✔ derives safe pacing from official BALLDONTLIE rate-limit headers (1.284491ms)
+✔ supports observed legacy request counters only when they imply a known tier (0.294064ms)
+✔ falls back conservatively when no recognized rate headers are present (0.178527ms)
+✔ paces subsequent requests and waits through an exhausted reset window (2.182022ms)
+✔ honors Retry-After and clears the pending retry after waiting (0.51509ms)
+✔ canonical Family B guardrails remain synchronized across authorities (6.233658ms)
+✔ category output is pinned to the exact real archive and remains production-disabled (8.54777ms)
+✔ the real archive yields the approved Top Five for all three categories (1.054577ms)
+✔ category rows preserve archived probabilities and expose price edge as diagnostic only (0.460619ms)
+✔ each category is ordered only by final probability then void probability and overlap is allowed (0.247426ms)
+
+--- M10 REAL ARCHIVE CATEGORY OUTPUT ---
+M10 Category Top Five — Real Archived Board
+PRODUCTION RANKING: DISABLED
+SOURCE CAPTURE: 20260805T160217812Z--235bac8c330999cccfe86b6037a1007eb06f8ec23d1aacdbc3131a70d18db353
+SOURCE ARCHIVE SHA-256: f817216794f98b3c842170507f10fa0c40526f67f1cdc08084188388e5ca5b26
+SOURCE OFFERS: 78
+PRICE EDGE: DIAGNOSTIC ONLY — NEVER A RANKING OR TIEBREAK QUANTITY
+
+Opportunity Miner Favorites
+ELIGIBLE: 3 | TOP FIVE RETURNED: 3
+RANK	PLAYER	SIDE	LINE	OFFER TYPE	P(WIN|GRADES)	P(VOID)	P_BASE	CONTEXT_DELTA	AMERICAN PRICE	MULTIPLIER	POSTED IMPLIED PROBABILITY	PRICE EDGE [DIAGNOSTIC ONLY]
+1	Buddy Kennedy	higher	0.5	alternate	0.600286798863	0.000000000000	0.588418731267	0.011868067596	-108	1.11	0.519230769231	0.081056029632
+2	Grant McCray	higher	0.5	baseline	0.595720567974	0.000000000000	0.583822969962	0.011897598012	-137	1	0.578059071730	0.017661496244
+3	Yainer Diaz	lower	0.5	alternate	0.431990876837	0.000000000000	0.426647898862	0.005342977975	146	1.42	0.406504065041	0.025486811797
+
+High Probability Baseline Props
+ELIGIBLE: 3 | TOP FIVE RETURNED: 3
+RANK	PLAYER	SIDE	LINE	OFFER TYPE	P(WIN|GRADES)	P(VOID)	P_BASE	CONTEXT_DELTA	AMERICAN PRICE	MULTIPLIER	POSTED IMPLIED PROBABILITY	PRICE EDGE [DIAGNOSTIC ONLY]
+1	Grant McCray	higher	0.5	baseline	0.595720567974	0.000000000000	0.583822969962	0.011897598012	-137	1	0.578059071730	0.017661496244
+2	Andres Gimenez	higher	0.5	baseline	0.568533835047	0.000000000000	0.568668850515	-0.000135015469	-137	1	0.578059071730	-0.009525236683
+3	Hunter Feduccia	higher	0.5	baseline	0.522265098514	0.000000000000	0.533189123902	-0.010924025388	-137	1	0.578059071730	-0.055793973216
+
+High Probability Altline Props
+ELIGIBLE: 36 | TOP FIVE RETURNED: 5
+RANK	PLAYER	SIDE	LINE	OFFER TYPE	P(WIN|GRADES)	P(VOID)	P_BASE	CONTEXT_DELTA	AMERICAN PRICE	MULTIPLIER	POSTED IMPLIED PROBABILITY	PRICE EDGE [DIAGNOSTIC ONLY]
+1	Jose Altuve	lower	1.5	alternate	0.781834546338	0.000000000000	0.776146973851	0.005687572487	-471	0.7	0.824868651489	-0.043034105151
+2	Shohei Ohtani	lower	1.5	alternate	0.730642839845	0.000000000000	0.720106025329	0.010536814515	-435	0.71	0.813084112150	-0.082441272305
+3	Jeremy Pena	lower	1.5	alternate	0.718832931316	0.000000000000	0.712852132716	0.005980798600	-355	0.74	0.780219780220	-0.061386848904
+4	Nathan Lukes	higher	0.5	alternate	0.689128540839	0.000000000000	0.688863034219	0.000265506620	-248	0.81	0.712643678161	-0.023515137322
+5	Yordan Alvarez	lower	1.5	alternate	0.684281310445	0.000000000000	0.677652308387	0.006629002058	-435	0.71	0.813084112150	-0.128802801704
+--- END M10 REAL ARCHIVE CATEGORY OUTPUT ---
+✔ the existing CLI prints all required columns without implementing probability or ranking math (8.320531ms)
+✔ exact August 5 projection preserves 78 archived identities and three exact games (7.73113ms)
+✔ real archive report grades all 78 picks through exact final Hits evidence and core settlement (11.060054ms)
+✔ scheduled, live, postponed, or unknown game state fails the entire archive closed (8.718441ms)
+✔ missing, duplicate, or unexpected player-game stats identities fail closed (3.499508ms)
+✔ grade persistence is immutable and never changes the archive projection (11.531158ms)
+✔ workflow has a timeout and always uploads report evidence and the full log (1.483456ms)
+✔ scheduled archive verification authenticates immutable bytes and rejects drift (5.673132ms)
+✔ scheduled status gate grades only exact STATUS_FINAL games and skips every other state (1.792017ms)
+✔ scheduled report settles through core and calibration buckets conserve every pick (9.280591ms)
+✔ scheduled report refuses a live game before settlement or grading (1.130751ms)
+✔ grade persistence is separate and leaves verified archive bytes unchanged (16.645841ms)
+✔ daily capture and final-only grading workflows are scheduled, bounded, cached, and always upload evidence (2.824634ms)
+✔ new scheduled grading scripts pass Node syntax checking (54.94453ms)
+✔ headline performance uses one p_final >= 0.5 side per complementary prop (10.470873ms)
+✔ complementary all-row output is labeled structurally forced and never performance (0.821528ms)
+✔ Opportunity Miner is derived through the canonical positive-edge selector and reported separately (1.135951ms)
+✔ an exact 50/50 complementary pair fails closed instead of double-selecting (0.590062ms)
+✔ cumulative selected-side metrics conserve running totals and bucket counts across archives (2.210696ms)
+✔ cumulative grading rejects duplicate archive identities (0.879037ms)
+✔ scheduled workflow builds cumulative selected-side evidence and keeps always-on uploads and timeout (10.641105ms)
+✔ archive bootstrap, selected-side, and cumulative grading scripts pass Node syntax checking (81.227664ms)
+
+--- M11 BATTER HITS BYTE IDENTITY PROOF ---
+BASE MAIN SHA: 7e9e2628c4cd8174463786f3eadec2fa2ce83da5
+EXPECTED BYTE LENGTH: 43943
+ACTUAL BYTE LENGTH: 43943
+EXPECTED SHA-256: 70247b111932202efac839874905a62c43fe30a2df886be80f88b9eb4a4eca59
+ACTUAL SHA-256: 70247b111932202efac839874905a62c43fe30a2df886be80f88b9eb4a4eca59
+DISTRIBUTIONS COMPARED: 34
+ALTERNATE SETTLEMENTS COMPARED: 28
+RANKED ROWS COMPARED: 34
+BYTE IDENTICAL: true
+--- END M11 BATTER HITS BYTE IDENTITY PROOF ---
+✔ M11 step 1 preserves Batter Hits distributions, alternate settlements, and ranked output byte for byte (6461.009744ms)
+✔ M11 HHR attempt 2 encodes the corrected gate, standardized scale, and leakage-safe expanded window (5.542033ms)
+✔ HHR historical starter source imports the shared M8 PA-order recovery and fails closed (1.128334ms)
+✔ candidate artifact is hash-verified reconstruction without refitting (1.960291ms)
+✖ Step 3 evidence uses final untouched games, both sides, per-line calibration, and insufficient labels (0.362041ms)
+✔ builds pregame features only from strictly earlier current-season games (11.605669ms)
+✔ same-date games cannot leak outcomes into each other (0.981147ms)
+✔ a game outcome cannot alter its own features but can alter later-date features (2.022828ms)
+✔ excluded-game offensive values never enter chronological features (0.798674ms)
+✔ input ordering is deterministic and untouched-test payloads fail closed (0.936143ms)
+✔ validates a genuine pregame signal in fixed holdout and walk-forward evaluation (476.121336ms)
+✔ identical shared scenarios produce an explicit no-signal decision (309.525865ms)
+✔ later validation outcomes cannot alter an earlier walk-forward fold (770.714837ms)
+✔ tampered evidence and untouched-test exposure fail closed (379.702798ms)
+✔ game-specific offensive-environment executable scripts pass node syntax checking (81.470457ms)
+✔ locks the validated real M8.5 game offensive-environment artifact and safety boundary (5.279439ms)
+✔ categorical proper-score dominance requires no-worse log loss and Brier with one strict improvement (1.112705ms)
+✔ proper-score sign disagreement keeps both candidates nondominated (8.939439ms)
+✔ fails closed when fixed and walk-forward nondominated sets have no common candidate (0.38207ms)
+✔ selects the strongest finite pooling candidate in the stable intersection (1.117935ms)
+✔ treats identity as the infinite-pooling limit and selects it when stable (0.309733ms)
+✔ Hit diagnostic changes cannot alter canonical candidate selection (0.341202ms)
+✔ reproduces deterministic coherent and selected-platoon base distributions without side input (7.151854ms)
+✔ keeps a switch hitter on the coherent base path instead of inventing platoon evidence (0.891369ms)
+✔ rejects selected-side and direct-probability inputs instead of silently ignoring them (0.571355ms)
+✔ fails closed when an exact raw matchup cell lacks category support (0.521712ms)
+✔ fails closed on handedness eligibility drift and duplicate observation identity (0.403721ms)
+✔ M8.5 park frozen-base prediction scripts pass node syntax checking (54.966786ms)
+✔ builds a deterministic chronological park dataset from exact venue and frozen-base lineage (66.431072ms)
+✔ fails closed on parity identity drift, missing venue evidence, and exposed untouched rows (12.448065ms)
+✔ scripts/m8-5-park-candidate-selection-utils.mjs passes node syntax checking (28.173309ms)
+✔ scripts/m8-5-park-model-utils.mjs passes node syntax checking (28.70538ms)
+✔ scripts/evaluate-m8-5-park-model.mjs passes node syntax checking (26.878177ms)
+✔ selects a handedness- and outcome-specific venue residual through canonical fixed and walk-forward frontiers (19.140721ms)
+✔ retains the identity infinite-pooling limit when venue outcomes match frozen base probabilities (14.126362ms)
+✔ rejects selected-side fields, direct probability fields, chronology drift, and unverified venues (3.550915ms)
+✔ authenticates current boundary bytes separately from preserved historical lineage bytes (2.570404ms)
+✔ rejects swapped or drifted coherent, boundary, and derived identities (0.845115ms)
+✔ rejects tampered current boundary bytes even when historical bytes remain preserved (0.483483ms)
+✔ rejects malformed serialized evidence and unsupported versions (0.666759ms)
+✔ locks the validated real M8.5 park artifact, exact venue coverage, and safety boundary (8.025834ms)
+✔ preserves exact provider venue identity and authorizes only the evidence path (10.870425ms)
+✔ keeps multiple exact venue names for one home team separate instead of inventing aliases (0.391759ms)
+✔ fails the park path closed when exact provider venue identity is missing or repaired text would be required (0.417859ms)
+✔ is deterministic regardless of capture and manifest ordering (0.730178ms)
+✔ rejects wrong-season, nonfinal, and identity-drifted games (0.800402ms)
+✔ rejects any manifest or capture that exposes untouched-test rows (1.379485ms)
+✔ M8.5 park venue evidence scripts pass node syntax checking (56.039061ms)
+✔ selects the resolved and team-environment pair whose rebuilt workload dataset matches frozen lineage (10.612337ms)
+✔ fails closed when no resolved dataset matches frozen workload lineage (0.783409ms)
+✔ fails closed when frozen-lineage evidence has multiple team-environment identities (1.464846ms)
+✔ joins each bullpen PA to the opposing pitching team without changing workload evidence (13.233757ms)
+✔ chronological validation selects a pooled team signal while preserving frozen hand weights (4.548528ms)
+✔ factor effects are team-and-hand terminal vectors and contain no side or probability shortcut (4.103388ms)
+✔ no validation improvement keeps the factor explicit identity instead of forcing team movement (1.687526ms)
+✔ missing team-game identity and exposed untouched rows fail closed (0.88983ms)
+✔ uses excluded games for verified team identity only while rejected offensive values stay excluded (10.617717ms)
+✔ duplicate included and excluded identity for one team-game fails closed (0.787887ms)
+✔ nonreciprocal excluded-game team identities fail closed (0.335774ms)
+✔ locks the validated real M8.5 team-bullpen factor artifact and safety boundary (6.930506ms)
+✔ M8.5 times-through-order executable scripts pass node syntax checking (56.906859ms)
+✔ assigns exact starter exposures and preserves the separate starter-to-bullpen transition (93.196059ms)
+✔ selects a repeated-starter-exposure signal while first exposure remains exact identity (67.234669ms)
+✔ retains the identity limit when exposure outcome distributions are identical (58.767422ms)
+✔ fails closed on selected-side input, exposed untouched rows, hash drift, and starter reappearance (68.089142ms)
+✔ locks the immutable one-time M8.5 untouched acceptance result and safety boundary (5.798949ms)
+✔ scores D_final and D_base on identical Hits-count observations with diagnostics separated (2.230141ms)
+✔ does not claim dominance when D_final worsens one primary proper score (0.278446ms)
+✔ fails closed on duplicate observation identity or malformed probability mass (2.361168ms)
+✔ creates and verifies one immutable acceptance artifact with the explicit small-cohort limitation (1.345491ms)
+✔ ignores an unrelated postponed snapshot row but rejects a selected unfinished game (1.013143ms)
+✔ one-time acceptance runner passes Node syntax checking (28.881702ms)
+✔ reserves the deterministic July 26+ cohort, preserves raw gameDate, and never opens missing PA payloads (19.861411ms)
+✔ fails closed on a malformed provider gameDate timestamp (6.973878ms)
+✔ fails closed when gameDate resolves to a different UTC calendar date (6.286039ms)
+✔ accepts legitimate recaptures with identical game metadata and deduplicates by gameId (5.775235ms)
+✔ fails closed on contradictory metadata for the same gameId (5.923136ms)
+✔ skips capture manifests that do not carry the dateCaptures contract (6.137258ms)
+✔ skips wholly pre-window legacy manifests before strict snapshot hash validation (6.459597ms)
+✔ skips a pre-window truncated pilot but rejects an eligible truncated manifest (7.838447ms)
+✔ fails closed when an eligible manifest omits its saved games snapshot hash (4.57599ms)
+✔ reserves the available contiguous run when it ends before latestDate (6.071514ms)
+✔ fails closed when the required July 26 first date has no complete capture metadata (4.317733ms)
+✔ keeps the boundary evaluation with lower categorical log loss and marks the other stale (2.29826ms)
+✔ rejects boundary evaluations from different validation cohorts (0.551501ms)
+✔ accepts duplicate files that contain one identical artifact hash (7.693316ms)
+✔ rejects duplicate-looking files with different internal identities (0.252687ms)
+✔ freezes deterministic selected-component evidence without test access (13.430028ms)
+✔ identity components leave synthetic terminal PA vectors unchanged (1.093074ms)
+✔ rejects a disguised fitted adjustment or exposed untouched rows (2.053868ms)
+✔ final M8 Batter Hits gate scripts pass node syntax checking (111.326916ms)
+✔ frozen M8 Batter Hits scripts pass node syntax checking (57.363682ms)
+✔ accepts only the predeclared environment effect and sealed test boundary (1.473643ms)
+✔ rejects post-freeze coefficient or hash changes (0.702306ms)
+✔ complete M8 Batter Hits candidate script passes node syntax checking (29.246542ms)
+✔ starter retention reduces only the named hitter tail while preserving probability (1.868458ms)
+✔ the complete candidate mixes starter and bullpen outcomes and conserves hit mass (4.795795ms)
+✔ freezes one complete validation-selected candidate and rejects tampering (15.521767ms)
+✔ verifies a complete non-truncated current-season capture (11.76247ms)
+✔ rejects a tampered saved snapshot (5.667454ms)
+✔ rejects truncated evidence (3.56964ms)
+✔ rejects manifest count drift (3.912765ms)
+✔ rejects a provider secret even when hashes match (4.257358ms)
+✔ selects the exact league-only limit when identity deviations contain no later validation signal (14.415168ms)
+✔ selects a finite pooling strength when identity deviations persist into validation (7.374163ms)
+✔ is deterministic and uses the identical validation observation identities for finite and league-only candidates (15.830828ms)
+✔ rejects a source dataset that exposes untouched-test rows (3.529434ms)
+✔ pools one complete categorical vector and maps an unseen identity exactly to the current-season league target (1.95374ms)
+✔ sparse identities remain closer to the league target while large samples approach their raw categorical rates (0.449689ms)
+✔ rejects a second shrinkage pass instead of accepting an already pooled estimate as raw counts (0.499042ms)
+✔ selects pooling strength from one identical later-validation cohort (2.754992ms)
+✔ fails closed when validation contains a terminal category with no current-season fit support (0.344321ms)
+✔ rejects a source dataset that exposes untouched-test rows (11.71906ms)
+✔ returns the league vector when both pooled effects are neutral (1.876012ms)
+✔ reproduces one pooled parameter exactly when the other effect is neutral and its coefficient is one (1.50954ms)
+✔ coefficient zero removes that factor exactly and positive weight moves the matching category directionally (0.51906ms)
+✔ rejects estimates that did not come directly from exactly one pooling pass (0.547774ms)
+✔ selects coherent batter and pitcher coefficients from one identical later-validation cohort (4.143474ms)
+✔ rejects any source dataset that exposes untouched-test rows (12.857778ms)
+✔ selects only the requested number of first missing games in plan order (2.003453ms)
+✔ zero batch limit selects every missing game (0.263427ms)
+✔ marks completion only when the selected batch covers every remaining game (0.378064ms)
+✔ rejects duplicate, unplanned, and invalid game identities or limits (0.631091ms)
+✔ plans only fit-validation context-required games deterministically while test remains sealed (19.797191ms)
+✔ collects every cursor page in strict global play order (1.065823ms)
+✔ fails closed on cursor loops, duplicate orders, and cross-game rows (4.230487ms)
+✔ promotes and re-verifies one complete game capture and detects tampering (11.141477ms)
+✔ rejects any source dataset that exposes untouched-test rows (2.837748ms)
+✔ closes a missing-end batter block at the next verified batter start (2.162383ms)
+✔ closes the final missing-end batter block at capture end without inventing a result (0.3604ms)
+✔ closes a batter block before non-batter inning markers enter its evidence (0.292713ms)
+✔ segments complete batter blocks while preserving non-batter inning markers and null-batter events (1.595743ms)
+✔ conserves unique, multiple, and zero matches without inferring a disposition or terminal category (10.726744ms)
+✔ verifies the frozen capture and produces a deterministic no-mapping audit (18.199744ms)
+✔ rejects a tampered captured play page before producing signatures (8.273402ms)
+✔ rejects any dataset or capture that exposes untouched-test rows (6.746709ms)
+✔ maps exact typed provider markers into canonical FC, BIP_OUT, and K categories (1.807202ms)
+✔ keeps caught stealing in the baserunning layer even without a unique batter segment (0.255152ms)
+✔ leaves zero and multiple segment matches unresolved for terminal outcomes (0.3863ms)
+✔ fails closed on markerless and conflicting exact terminal evidence (0.43954ms)
+✔ does not infer a terminal category from play-result text (1.225474ms)
+✔ builds a deterministic conserved artifact while the untouched test stays sealed (10.431466ms)
+✔ rejects a tampered audit and any exposed untouched-test rows (0.753293ms)
+✔ builds a deterministic Hit/No-Hit benchmark while conserving all source rows and sealing test (20.779858ms)
+✔ maps every evidence-backed contextual terminal result to binary No Hit without assigning a terminal category (4.001284ms)
+✔ excludes context-required caught stealing as baserunning-only evidence (3.341569ms)
+✔ fails closed when a context-required label is not evidence-backed as binary No Hit (3.397405ms)
+✔ rejects duplicate observation identities across fit and validation (5.83638ms)
+✔ rejects any source dataset that includes untouched-test rows (2.354286ms)
+✔ selects a recent-signal half-life from later validation without clipping or pooling (13.509297ms)
+✔ uses one fixed cohort and explicitly excludes unseen or single-class histories (11.576798ms)
+✔ rejects any benchmark that exposes untouched-test rows (3.897459ms)
+✔ rejects a validation period with no usable batter-pitcher cohort rather than smoothing it (2.723599ms)
+✔ selects recent weighting across expanding daily folds without future leakage (32.474035ms)
+✔ earlier validation outcomes may unlock later folds but never the same fold (8.388018ms)
+✔ rejects duplicate observation identities across source periods (3.166479ms)
+✔ rejects any benchmark that exposes untouched-test rows (2.657487ms)
+✔ plans every fit-validation game deterministically while preserving source provenance and sealing test (26.337241ms)
+✔ rejects exposed untouched-test rows (5.530061ms)
+✔ rejects cross-period game identity and inconsistent snapshot provenance (7.89665ms)
+✔ writes and reuses one exact capture plan while rejecting plan drift (23.209734ms)
+✔ builds deterministic partial progress and a complete conserved manifest (3.440185ms)
+✔ promotes and verifies an opportunity-specific game capture (11.609718ms)
+✔ rejects capture identity drift and inconsistent progress accounting (0.653214ms)
+✔ freezes the agreed 18-group PA-survival baseline deterministically (13.655855ms)
+✔ rejects disagreement between holdout and walk-forward selection (0.673912ms)
+✔ rejects a fitted survival curve that does not reconstruct its PMF (0.430864ms)
+✔ rejects any untouched-test row payload (0.363046ms)
+✔ uses direct PA totals and retains component mismatches as audit metadata (10.71968ms)
+✔ excludes incomplete games and explicitly excludes missing, duplicate, and null starter stats (1.542102ms)
+✔ preserves fit-validation chronology and deterministic identity (2.290425ms)
+✔ rejects exposed untouched-test rows (0.603439ms)
+✔ survival conversion is exact and monotone by construction (1.244142ms)
+✔ fit-only slot-home-away model wins when validation follows fit structure (8.382375ms)
+✔ validation outcomes do not alter fitted selected-model curves (4.397639ms)
+✔ fails closed for unsupported validation counts and exposed untouched rows (0.930622ms)
+✔ builds expanding daily folds and aggregates identical cohorts (11.629795ms)
+✔ produces deterministic identity for identical inputs (2.510146ms)
+✔ rejects exposed untouched-test rows (0.512905ms)
+✔ rejects non-chronological fit and validation periods (0.224193ms)
+✔ builds a deterministic verified fit-validation-test evidence manifest (26.093527ms)
+✔ rejects overlaps, gaps, and dates outside the active season (0.822128ms)
+✔ rejects shard count drift after verification (7.9779ms)
+✔ rejects provider-secret exposure in a shard manifest (10.361548ms)
+✔ reserves test-period metrics from recency candidate selection (0.616631ms)
+✔ preserves the known omitted intentional-walk opportunity (2.706836ms)
+✔ assigns deterministic lineup slots and turns from complete play opportunities (1.840906ms)
+✔ fails closed when a batter segment lacks terminal evidence (0.53649ms)
+✔ ignores a delayed foreign-context row while preserving one complete opportunity (0.317618ms)
+✔ defers a premature inning boundary until delayed terminal evidence arrives (0.367311ms)
+✔ accounts deterministically for every fit-validation evidence state while leaving test sealed (31.253855ms)
+✔ rejects capture-manifest hash drift from the frozen partition (6.937158ms)
+✔ rejects duplicate provider game and PA identities (7.389281ms)
+✔ fails closed on malformed structural evidence (5.360726ms)
+✔ rejects provider-secret exposure in included evidence without reading test evidence (5.552674ms)
+✔ enumerates an explicit active-season date range without prior-season leakage (2.581089ms)
+✔ requires strictly chronological fit, validation, and untouched test periods (0.700559ms)
+✔ computes exact uniform and exponential half-life weights (0.486446ms)
+✔ builds weights from fit-period observations only (0.565174ms)
+✔ selects recency only from later validation log loss and retains uniform when better (0.699758ms)
+✔ selects only exact observed final games for the requested active-season date (0.466598ms)
+✔ accepts verified BALLDONTLIE UTC game timestamps and preserves the raw value (0.480445ms)
+✔ counts only an explicit plate-appearance data array (0.26001ms)
+✔ overlays exact contextual states and conserves every fit-validation row (14.214462ms)
+✔ preserves identities and applies the existing L/R-only platoon rule (1.492269ms)
+✔ is deterministic for identical versioned inputs (1.41303ms)
+✔ rejects a resolution row outside the source context cohort (1.291902ms)
+✔ rejects contextual identity drift even when hashes are recomputed (0.639033ms)
+✔ rejects tampered artifacts and exposed untouched-test rows (1.383685ms)
+✔ validates artifact text without trimming raw bytes (1.347296ms)
+✔ poisson-binomial matches two-trial exact distribution (0.437313ms)
+✔ reports overdispersion when mean is right but outcomes cluster (12.114829ms)
+✔ preserves Higher and Lower half-line symmetry (0.429739ms)
+✔ excludes entire batter-game when overall PA coverage is incomplete (0.502466ms)
+✔ is deterministic for identical games in different input order (2.377717ms)
+✔ rejects invalid probabilities, duplicate game keys, and impossible hit counts (0.399091ms)
+✔ conserves probability mass for a large heterogeneous cohort (36.62388ms)
+✔ assigns an exact 5% probability to the next fixed-width bucket and conserves rows (2.259644ms)
+✔ builds balanced deterministic equal-count deciles (9.430275ms)
+✔ conserves probability and outcome mass while reproducing source Hit metrics (1.118526ms)
+✔ reports Wilson uncertainty and is deterministic for identical predictions (1.036982ms)
+✔ rejects duplicate identities, invalid probabilities, and undersized deciles (0.65296ms)
+✔ rejects drift from the verified source Hit summary (0.510851ms)
+✔ allows only floating-point-order noise in large bucket mass conservation (56.758561ms)
+✔ reuses existing pooling and coherent matchup paths while retaining structural-zero categories (16.768009ms)
+✔ uses one identical validation cohort for pooling and coherent candidates (1.55625ms)
+✔ is deterministic for identical versioned inputs (4.029095ms)
+✔ rejects legacy dataset v2 instead of silently relabeling it (0.817469ms)
+✔ fails closed when validation contains a category with zero fit support (0.724003ms)
+✔ rejects tampered identity and any exposed untouched-test rows (0.901066ms)
+✔ extends the lower league-platoon prior boundary across several orders of magnitude (1.919564ms)
+✔ preserves every original candidate and adds one exact raw-cell limit grid (0.803683ms)
+✔ gives every league prior the identical split-coefficient grid (0.316516ms)
+✔ the raw-cell sentinel is computationally identical to zero pooling for positive counts (0.681302ms)
+✔ accepts the raw-cell limit only when every matchup category has positive support (0.708323ms)
+✔ is deterministic and does not mutate the verified default candidate grid (6.5489ms)
+✔ scores the frozen raw-cell candidate and no-platoon baseline on one identical cohort (7.014506ms)
+✔ keeps the frozen candidate immutable and uses the approved base coefficients (1.917941ms)
+✔ is deterministic for identical current-season cohorts (2.661311ms)
+✔ fails closed when an exact raw matchup cell lacks one modeled category (0.941503ms)
+✔ does not require raw-cell support for the no-platoon baseline (1.692747ms)
+✔ rejects empty cohorts and noncanonical hit categories (0.307159ms)
+✔ zero platoon coefficient preserves overall batter talent and positive weight moves toward the split (1.346395ms)
+✔ no-platoon baseline reproduces the verified coherent model on the identical eligible cohort (62.178235ms)
+✔ uses one identical validation cohort and preserves the no-double-shrinkage boundary (41.355822ms)
+✔ retains a switch-hitter row in overall fitting while excluding only its platoon interaction (26.468443ms)
+✔ is deterministic for identical versioned inputs (58.183083ms)
+✔ rejects tampered source artifacts, invalid platoon flags, and exposed test rows (50.712608ms)
+✔ builds balanced deterministic rare-category deciles (11.073949ms)
+✔ reproduces source one-vs-rest metrics and conserves events (1.248881ms)
+✔ reports Wilson uncertainty for zero-event deciles (0.927537ms)
+✔ rejects duplicate identities and invalid probabilities (0.626669ms)
+✔ rejects undersized deciles (0.309613ms)
+✔ rejects drift from verified source category metrics (0.339359ms)
+✔ allows only floating-point-order noise in large decile mass conservation (43.995338ms)
+✔ computes deterministic bounded Wilson 95% intervals including zero successes (1.639547ms)
+✔ per-observation predictions exactly reproduce the verified aggregate scorer (5.623237ms)
+✔ conserves observed counts and expected probability mass across canonical categories (1.983183ms)
+✔ flags zero-validation evidence without inventing a hard sample threshold (1.224435ms)
+✔ rejects structural-zero observations and nonconserved probability vectors (1.077017ms)
+✔ is deterministic for identical current-season prediction inputs (1.893375ms)
+✔ uses expanding strictly earlier training and scores each validation date once (43.330984ms)
+✔ keeps fixed pooling strengths and one identical coefficient cohort (15.866863ms)
+✔ tracks the fixed-holdout candidate and fold selection stability (18.296557ms)
+✔ preserves structural-zero categories and is deterministic (30.846646ms)
+✔ rejects a tampered fixed evaluation artifact (9.416899ms)
+✔ rejects exposed test rows and non-chronological source periods (4.644474ms)
+✔ plans deterministic current-season date shards only (2.670989ms)
+✔ reports a genuinely absent shard as missing (7.261632ms)
+✔ reuses a verified shard and refuses incomplete or corrupt existing shards (6.628442ms)
+✔ verifies and totals every required date shard without gaps (5.075052ms)
+✔ freezes the holdout and walk-forward selected K=4 benchmark deterministically (7.334298ms)
+✔ rejects holdout and walk-forward disagreement on K=4 (1.431205ms)
+✔ rejects K=4 when it no longer beats the K=1 independence baseline (0.951402ms)
+✔ rejects any untouched-test row payload (0.5045ms)
+✔ shared environment v2 scripts pass node syntax checking (82.145377ms)
+✔ adds a conserved starter-to-bullpen distribution to every shared scenario (22.045866ms)
+✔ scores every validation game once across deterministic expanding daily folds (109.304029ms)
+✔ later validation outcomes cannot alter earlier fold fits or scores (73.688766ms)
+✔ rejects a valid source holdout evaluation from another dataset (9.637635ms)
+✔ rejects any untouched-test row payload (0.680772ms)
+✔ selects shared scenarios on a deterministic bimodal game environment (37.809013ms)
+✔ fits parameters from fit rows only (24.358791ms)
+✔ is deterministic for identical input (21.266328ms)
+✔ conserves each candidate scenario weight (13.858392ms)
+✔ rejects a period missing one team side (1.41274ms)
+✔ rejects untouched-test payloads (0.395445ms)
+✔ recovers the starter block, conserves team PA, and selects one stable workload model (18.018875ms)
+✔ shared ordered-appearance recovery is the single starter source (0.230995ms)
+✔ a starter who reappears after the bullpen is rejected instead of repaired (1.905277ms)
+✔ the real-shape proper-score frontiers select side-pool-1000 (1.486067ms)
+✔ proper-score sign disagreement keeps both candidates nondominated (0.182444ms)
+✔ the full Pareto comparison removes a candidate dominated by a non-log-loss winner (0.182503ms)
+✔ contradictory fixed and walk-forward frontiers fail closed (0.19123ms)
+✔ strongest-pooling selection is deterministic under input reordering (0.296619ms)
+✔ untouched-test rows cannot enter starter-bullpen candidate selection (0.691161ms)
+✔ identical inputs produce an identical starter-bullpen evaluation (5.953299ms)
+✔ freezes selected starter retention while remaining disabled before untouched testing (9.558724ms)
+✔ rejects any frozen probability changed after hashing (2.940927ms)
+✔ recovers starter PA prefixes while excluding baserunning-only rows from the batting cycle (13.355294ms)
+✔ rejects a simultaneous multi-slot phase shift instead of fitting corrupted substitutions (1.438549ms)
+✔ fails closed when direct starter PA evidence disagrees with recovered slot occupancy (1.254632ms)
+✔ selects retention over assigning every batting-slot turn to the named starter (8.082955ms)
+✔ is deterministic for identical versioned inputs (4.251708ms)
+✔ rejects any dataset that exposes untouched-test rows (0.889254ms)
+✔ starter retention gate hashes the exact persisted dataset bytes (0.973884ms)
+✔ all starter retention executable scripts pass node syntax checking (110.190258ms)
+✔ derives a PA arithmetic candidate only from complete nonnegative components (1.693308ms)
+✔ classifies complete and incomplete official lineup coverage without inventing slots (1.905808ms)
+✔ preserves null reported PA and flags arithmetic mismatches instead of filling values (0.719555ms)
+✔ builds a deterministic manifest and preserves the sealed untouched-test reservation (2.03436ms)
+✔ uses game identity/outcomes and opponent pitcher BF while ignoring baserunning-only ghost pitcher IDs (11.894033ms)
+✔ fails the entire game closed when a real observed pitcher stats row is missing (2.51229ms)
+✔ fails closed on pitcher hits versus game-team hits contradiction (0.875438ms)
+✔ uses exact team_name only as an optional direct-PA contradiction check (0.582407ms)
+✔ is deterministic for identical evidence regardless of capture order (1.578612ms)
+✔ rejects untouched-test rows in either source artifact (0.529137ms)
+✔ freezes one coherent current-season terminal vector and verifies tamper evidence (15.358182ms)
+✔ unseen current-season identities use only the frozen league-pooled vectors (1.079733ms)
+✔ terminal PA artifact scripts pass node syntax checking (57.052223ms)
+✔ grades official hits, ignores baserunning-only rows, and retains verified contextual non-hits (1.308584ms)
+✔ reconstructs the starting nine without letting an ignored baserunning row shift slots (1.169993ms)
+✔ rejects a five-slot simultaneous replacement phase shift (1.617355ms)
+✔ a pregame event with a commence time on a later calendar date is included, not dropped (2.17775ms)
+✔ an event whose commence time has passed is excluded as started (0.354047ms)
+✔ the funnel report prints per-event drop detail on the failure path (1.051931ms)
+✔ the funnel report prints on the success path (0.326114ms)
+✔ --dry-run writes no archive file (10.3061ms)
+✔ --dry-run with an existing capture writes nothing and does not fail on immutability (3.365166ms)
+✔ drop reasons are attributed to the correct stage (7.950047ms)
+✔ no secret value appears in any funnel output (0.360538ms)
+✔ the live archive CLI wires capture identity, dry-run, and funnel output before either outcome (2.489798ms)
+✔ prospective archive scripts parse and the BDL 429 retry remains reachable without weakening other HTTP failures (108.157902ms)
+✔ identical provider game IDs returned by overlapping date queries deduplicate with complete provenance (10.116276ms)
+✔ different provider game IDs remain a genuine ambiguity and are never selected (0.379906ms)
+✔ funnel stage order follows the live execution sequence (0.257676ms)
+✔ the versioned commence tolerance equals the seven-event observed maximum and records its evidence basis (0.300746ms)
+✔ real observed consecutive Angels-Orioles games resolve by exact team pair and commence tolerance (0.672286ms)
+✔ a farther consecutive-series candidate outside tolerance is never selected (0.277763ms)
+✔ two distinct provider game IDs inside tolerance fail closed instead of selecting the nearer game (0.366801ms)
+✔ zero candidates inside tolerance fail closed even when the exact team pair exists (0.410413ms)
+✔ a fixture-backed archive preserves every required offer, probability, lineup, factor, and version field (84.274955ms)
+✔ re-writing an existing capture identity fails closed without overwriting even identical bytes (138.830773ms)
+✔ raw provider bytes and their SHA-256 survive unchanged (0.490293ms)
+✔ the archive layer copies existing outputs and contains no probability, settlement, or ranking implementation (61.898955ms)
+✔ malformed or empty provider responses fail closed (0.529918ms)
+✔ identical versioned inputs produce one deterministic archive identity and ranked order (132.415414ms)
+✔ two captures at different timestamps produce two distinct immutable records and neither overwrites the other (243.222344ms)
+✔ capture identity is exactly the capture timestamp plus the preserved raw provider snapshot SHA-256 (59.08147ms)
+✔ temporary M9 commence-time correction transport files are absent (3.713962ms)
+✔ the live path builds the verified separate first_name and last_name request including suffixes (1.87483ms)
+✔ one exact name on a matched-game team resolves and every rejected candidate records why (0.954417ms)
+✔ zero and multiple exact candidates remain fail closed without fuzzy matching or coercion (0.454877ms)
+✔ the player diagnostic prints exact request parameters, raw counts, candidates, rejection reasons, and no secret (0.85501ms)
+✔ player identity survives independently while missing lineup evidence drops only at the lineup stage (0.543954ms)
+✔ the live path now differs from the working fixture path only in how provider IDs are acquired, not in fail-closed identity semantics (14.190909ms)
+✔ temporary M9 player identity correction transport files are absent (1.670586ms)
+✔ the fixture-backed ranked-output CLI is deterministic for identical inputs (12591.70206ms)
+✔ ranked CLI rows match the existing application ranking adapter exactly (1.578372ms)
+✔ the CLI layer formats existing candidate probabilities without computing or settling them (2.29467ms)
+
+--- M9 RANKED FIXTURE OUTPUT ---
+M9 Ranked Batter Hits Fixture Output
+PRODUCTION RANKING: DISABLED
+SOURCE: COMMITTED FIXTURE-BACKED EVIDENCE — NOT A LIVE BOARD
+AUTHORIZATION: TEST ONLY — EPHEMERAL SNAPSHOT
+CAPTURED: 2026-07-23T15:12:25.190Z | EVALUATED: 2026-07-23T15:12:25.190Z
+NORMALIZED OFFERS: 34
+RANKED OFFERS: 34
+FIXTURE EXCLUSIONS: 0
+
+RANK	PLAYER	MARKET	SIDE	LINE	OFFER	P(WIN)	P(LOSS)	P(VOID)	P(WIN|GRADES)	P_BASE [DIAGNOSTIC ONLY]	CONTEXT_DELTA [DIAGNOSTIC ONLY]	MODEL	DISTRIBUTION_BUILDER	SETTLEMENT
+1	Matt Olson	Batter Hits	lower	1.5	alternate	0.764858037923	0.235141962077	0.000000000000	0.764858037923	0.762178820131	0.002679217792	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+2	Ozzie Albies	Batter Hits	lower	1.5	alternate	0.750363772409	0.249636227591	0.000000000000	0.750363772409	0.748314126600	0.002049645809	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+3	Michael Harris II	Batter Hits	lower	1.5	alternate	0.740107524788	0.259892475212	0.000000000000	0.740107524788	0.737696400384	0.002411124404	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+4	Fernando Tatis Jr.	Batter Hits	higher	0.5	alternate	0.695221753247	0.304778246753	0.000000000000	0.695221753247	0.694878337953	0.000343415295	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+5	Ty France	Batter Hits	higher	0.5	alternate	0.637222964249	0.362777035751	0.000000000000	0.637222964249	0.637541036345	-0.000318072096	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+6	Mauricio Dubon	Batter Hits	higher	0.5	alternate	0.629604273213	0.370395726787	0.000000000000	0.629604273213	0.631507543163	-0.001903269950	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+7	Drake Baldwin	Batter Hits	higher	0.5	alternate	0.620456557383	0.379543442617	0.000000000000	0.620456557383	0.623303299217	-0.002846741834	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+8	Luis Rengifo	Batter Hits	higher	0.5	alternate	0.614838570439	0.385161429561	0.000000000000	0.614838570439	0.614421569894	0.000417000545	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+9	Xander Bogaerts	Batter Hits	higher	0.5	alternate	0.605363556347	0.394636443653	0.000000000000	0.605363556347	0.604733764262	0.000629792085	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+10	Dominic Smith	Batter Hits	higher	0.5	alternate	0.578175128450	0.421824871550	0.000000000000	0.578175128450	0.580387832759	-0.002212704309	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+11	Gavin Sheets	Batter Hits	higher	0.5	baseline	0.577067653427	0.422932346573	0.000000000000	0.577067653427	0.577816491746	-0.000748838319	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+12	Manny Machado	Batter Hits	higher	0.5	alternate	0.570584208617	0.429415791383	0.000000000000	0.570584208617	0.570958324676	-0.000374116059	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+13	Austin Riley	Batter Hits	higher	0.5	alternate	0.543157685502	0.456842314498	0.000000000000	0.543157685502	0.545640147887	-0.002482462385	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+14	Jase Bowen	Batter Hits	higher	0.5	alternate	0.541273272260	0.458726727740	0.000000000000	0.541273272260	0.541358908499	-0.000085636239	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+15	Mike Yastrzemski	Batter Hits	higher	0.5	alternate	0.520444817125	0.479555182875	0.000000000000	0.520444817125	0.522966043480	-0.002521226355	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+16	Freddy Fermin	Batter Hits	higher	0.5	baseline	0.520075029720	0.479924970280	0.000000000000	0.520075029720	0.520132003436	-0.000056973716	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+17	Jake Cronenworth	Batter Hits	higher	0.5	baseline	0.500659106835	0.499340893165	0.000000000000	0.500659106835	0.500582948166	0.000076158669	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+18	Jake Cronenworth	Batter Hits	lower	0.5	baseline	0.499340893165	0.500659106835	0.000000000000	0.499340893165	0.499417051834	-0.000076158669	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+19	Freddy Fermin	Batter Hits	lower	0.5	baseline	0.479924970280	0.520075029720	0.000000000000	0.479924970280	0.479867996564	0.000056973716	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+20	Mike Yastrzemski	Batter Hits	lower	0.5	alternate	0.479555182875	0.520444817125	0.000000000000	0.479555182875	0.477033956520	0.002521226355	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+21	Jase Bowen	Batter Hits	lower	0.5	alternate	0.458726727740	0.541273272260	0.000000000000	0.458726727740	0.458641091501	0.000085636239	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+22	Austin Riley	Batter Hits	lower	0.5	alternate	0.456842314498	0.543157685502	0.000000000000	0.456842314498	0.454359852113	0.002482462385	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+23	Manny Machado	Batter Hits	lower	0.5	alternate	0.429415791383	0.570584208617	0.000000000000	0.429415791383	0.429041675324	0.000374116059	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+24	Gavin Sheets	Batter Hits	lower	0.5	baseline	0.422932346573	0.577067653427	0.000000000000	0.422932346573	0.422183508254	0.000748838319	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+25	Dominic Smith	Batter Hits	lower	0.5	alternate	0.421824871550	0.578175128450	0.000000000000	0.421824871550	0.419612167241	0.002212704309	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+26	Xander Bogaerts	Batter Hits	lower	0.5	alternate	0.394636443653	0.605363556347	0.000000000000	0.394636443653	0.395266235738	-0.000629792085	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+27	Luis Rengifo	Batter Hits	lower	0.5	alternate	0.385161429561	0.614838570439	0.000000000000	0.385161429561	0.385578430106	-0.000417000545	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+28	Drake Baldwin	Batter Hits	lower	0.5	alternate	0.379543442617	0.620456557383	0.000000000000	0.379543442617	0.376696700783	0.002846741834	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+29	Mauricio Dubon	Batter Hits	lower	0.5	alternate	0.370395726787	0.629604273213	0.000000000000	0.370395726787	0.368492456837	0.001903269950	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+30	Ty France	Batter Hits	lower	0.5	alternate	0.362777035751	0.637222964249	0.000000000000	0.362777035751	0.362458963655	0.000318072096	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+31	Fernando Tatis Jr.	Batter Hits	lower	0.5	alternate	0.304778246753	0.695221753247	0.000000000000	0.304778246753	0.305121662047	-0.000343415295	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+32	Michael Harris II	Batter Hits	higher	1.5	alternate	0.259892475212	0.740107524788	0.000000000000	0.259892475212	0.262303599616	-0.002411124404	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+33	Ozzie Albies	Batter Hits	higher	1.5	alternate	0.249636227591	0.750363772409	0.000000000000	0.249636227591	0.251685873400	-0.002049645809	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+34	Matt Olson	Batter Hits	higher	1.5	alternate	0.235141962077	0.764858037923	0.000000000000	0.235141962077	0.237821179869	-0.002679217792	m8-5-batter-hits-successor-freeze-v1	m9-batter-hits-runtime-distribution-v1	batter-hits-settlement-not-production-validated
+--- END M9 RANKED FIXTURE OUTPUT ---
+✔ production and ranking remain disabled after the fixture CLI runs (1.724608ms)
+✔ selectPregameEvents keeps valid future events and sorts by commence time (1.81089ms)
+✔ extractBookmakerMarketKeys reads only the requested bookmaker (0.370928ms)
+✔ summarizeBdlGames preserves raw status and identity fields without inference (0.348136ms)
+✔ date and integer helpers are deterministic and reject malformed values (0.797813ms)
+✔ provider probe redacts every configured secret from captured text (0.893152ms)
+✔ provider probe hashes identical response bodies deterministically (0.608476ms)
+✔ terminal-PA fixture bundle matches its checksums and contains valid sanitized JSON (35.802141ms)
+✔ terminal-PA fixtures preserve context needed to distinguish batter outcomes from runner events (15.529089ms)
+ℹ tests 602
+ℹ suites 0
+ℹ pass 600
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 52869.660366
+
+✖ failing tests:
+
+test at dist/test/market-key-ownership.test.js:23:1
+✖ every base-market key has exactly one canonical production-source declaration (5.865975ms)
+  AssertionError [ERR_ASSERTION]: batter-hits-runs-rbis must have exactly one literal declaration under src
+  
+  2 !== 1
+  
+      at TestContext.<anonymous> (file:///home/runner/work/mlb-prop-analyzer-v3/mlb-prop-analyzer-v3/dist/test/market-key-ownership.test.js:27:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.start (node:internal/test_runner/test:1191:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/m11-hhr-step3-evidence.test.mjs:36:1
+✖ Step 3 evidence uses final untouched games, both sides, per-line calibration, and insufficient labels (0.362041ms)
+  Error: ENOENT: no such file or directory, open 'artifacts/m11/hhr/step3/m11-hhr-step3-evidence.json'
+      at Object.readFileSync (node:fs:441:20)
+      at readJson (file:///home/runner/work/mlb-prop-analyzer-v3/mlb-prop-analyzer-v3/test/m11-hhr-step3-evidence.test.mjs:10:24)
+      at TestContext.<anonymous> (file:///home/runner/work/mlb-prop-analyzer-v3/mlb-prop-analyzer-v3/test/m11-hhr-step3-evidence.test.mjs:37:18)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:911:18)
+      at Test.postRun (node:internal/test_runner/test:1465:19)
+      at Test.run (node:internal/test_runner/test:1390:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: 'artifacts/m11/hhr/step3/m11-hhr-step3-evidence.json'
+  }

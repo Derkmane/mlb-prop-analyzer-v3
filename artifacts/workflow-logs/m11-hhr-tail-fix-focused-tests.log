@@ -1,0 +1,14 @@
+✔ HHR artifact is one direct Family B offset fit using all seven inputs with production closed (69.635821ms)
+✔ HHR retained diagnostics preserve passed structural gates, retired Gate C evidence, and exclusion conservation (58.43453ms)
+✔ HHR direct analytic distribution conserves mass and remains side independent (59.919318ms)
+✔ HHR Higher falls and Lower rises across the 0.5 through 3.5 ladder (54.993324ms)
+✔ every captured baseline and alternate offer preserves its line and settles from one distribution (58.503144ms)
+✔ HHR fails closed on missing canonical inputs, malformed vectors, unsupported lines, and side-bearing artifacts (52.421058ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 429.983316
