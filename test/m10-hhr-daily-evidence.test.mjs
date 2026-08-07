@@ -264,14 +264,17 @@ test('existing daily workflows carry the sibling HHR ledger, guard every piped c
 
 test('HHR diagnostics are persisted before status and cumulative thresholds are evaluated', async () => {
   const captureScript = await readFile('scripts/archive-m10-batter-hhr-board.mjs', 'utf8');
-  assert.ok(captureScript.indexOf('writeFile(preGateDiagnosticPath') < captureScript.indexOf('buildM10HhrProspectiveArchive'));
+  assert.ok(
+    captureScript.indexOf('writeFile(preGateDiagnosticPath') <
+      captureScript.indexOf('const archive = buildM10HhrProspectiveArchive'),
+  );
   assert.ok(captureScript.indexOf('writeFile(\n  resolutionDiagnosticPath') < captureScript.indexOf('const rows = []'));
 
   const gradeScript = await readFile('scripts/grade-m10-hhr-pending-archives.mjs', 'utf8');
   assert.ok(gradeScript.indexOf('persistImmutableJson(statusPath') < gradeScript.indexOf('if (!statusEvidence.readyToGrade)'));
   assert.ok(
     gradeScript.indexOf('persistImmutableJson(cumulativeDiagnosticPath') <
-      gradeScript.indexOf('buildM10HhrCumulativeSelectedSideReport'),
+      gradeScript.indexOf('const cumulative = buildM10HhrCumulativeSelectedSideReport'),
   );
 });
 
