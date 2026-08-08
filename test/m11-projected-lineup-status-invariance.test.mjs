@@ -1,14 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { rankPredictionCandidates } from '../dist/src/application/index.js';
-import { connectFrozenBatterHitsProbabilityOutput } from '../dist/src/composition/index.js';
 import { testOnlyRankingAuthorization } from '../scripts/print-m9-ranked-batter-hits-fixture.mjs';
-import {
-  m9FinalProbabilityInput,
-  m9Offer,
-  m9PregameBoard,
-} from '../dist/test/helpers/m9-batter-hits-final-runtime-fixture.js';
+
+async function loadCompiled(relativePath) {
+  return import(new URL(relativePath, import.meta.url));
+}
+
+const [
+  { rankPredictionCandidates },
+  { connectFrozenBatterHitsProbabilityOutput },
+  { m9FinalProbabilityInput, m9Offer, m9PregameBoard },
+] = await Promise.all([
+  loadCompiled('../dist/src/application/index.js'),
+  loadCompiled('../dist/src/composition/index.js'),
+  loadCompiled('../dist/test/helpers/m9-batter-hits-final-runtime-fixture.js'),
+]);
 
 test('lineupStatus is display-only: projected and confirmed candidates have identical probabilities and rank', async () => {
   const board = m9PregameBoard();
