@@ -1,0 +1,473 @@
+{
+  "diagnosticVersion": 1,
+  "provider": "BALLDONTLIE MLB API",
+  "activeSeason": 2026,
+  "fitWindow": {
+    "startDate": "2026-07-06",
+    "endDate": "2026-08-05"
+  },
+  "sourceRawLedgerPath": "artifacts/diagnostics/m11-batting-order-stability/raw-lineup-ledger-2026-07-06--2026-08-05.json",
+  "sourceRawLedgerSha256": "9af5e5ac96666314b81d9159683cebecf3496882383d374393cbd13489562313",
+  "generatedAt": "2026-08-08T14:40:42.145Z",
+  "coverage": {
+    "completedGameCount": 373,
+    "expectedTeamGameCount": 746,
+    "completeNineTeamGameCount": 744,
+    "incompleteTeamGameCount": 2,
+    "issues": [
+      {
+        "gameId": 8712499,
+        "gameDate": "2026-07-15T00:00:00.000Z",
+        "teamId": -1,
+        "teamName": "Unknown",
+        "starterRowCount": 0,
+        "orders": []
+      },
+      {
+        "gameId": 8712499,
+        "gameDate": "2026-07-15T00:00:00.000Z",
+        "teamId": -1,
+        "teamName": "Unknown",
+        "starterRowCount": 0,
+        "orders": []
+      }
+    ]
+  },
+  "previousStart": {
+    "rowCount": 6203,
+    "sameSlot": {
+      "count": 3737,
+      "fraction": 0.6024504272126391
+    },
+    "movedExactlyOne": {
+      "count": 1441,
+      "fraction": 0.23230694825084636
+    },
+    "movedTwoOrMore": {
+      "count": 1025,
+      "fraction": 0.1652426245365146
+    },
+    "meanAbsoluteSlotChange": 0.7215863291955505,
+    "medianAbsoluteSlotChange": 0,
+    "distribution": {
+      "0": {
+        "count": 3737,
+        "fraction": 0.6024504272126391
+      },
+      "1": {
+        "count": 1441,
+        "fraction": 0.23230694825084636
+      },
+      "2": {
+        "count": 551,
+        "fraction": 0.0888279864581654
+      },
+      "3": {
+        "count": 215,
+        "fraction": 0.034660648073512816
+      },
+      "4+": {
+        "count": 259,
+        "fraction": 0.04175399000483637
+      }
+    },
+    "exactCounts": {
+      "0": 3737,
+      "1": 1441,
+      "2": 551,
+      "3": 215,
+      "4": 122,
+      "5": 64,
+      "6": 41,
+      "7": 22,
+      "8": 10
+    },
+    "probability": {
+      "sensitivity": {
+        "oneSlotPoints": 1.28,
+        "twoSlotPoints": 2.53,
+        "beyondTwoIncrementPointsPerSlot": 1.28
+      },
+      "expectedAbsoluteErrorPoints": 0.9186732226342086,
+      "withinOnePoint": {
+        "count": 3737,
+        "fraction": 0.6024504272126391
+      },
+      "withinTwoPoints": {
+        "count": 5178,
+        "fraction": 0.8347573754634854
+      },
+      "beyondThreePoints": {
+        "count": 474,
+        "fraction": 0.07641463807834918
+      }
+    },
+    "previousGameStarterChurn": {
+      "transitionCount": 714,
+      "skippedTransitionsForIncompleteLineups": 1,
+      "previousStarterOpportunities": 6426,
+      "previousStartersNotStartingNextGame": 1548,
+      "fraction": 0.24089635854341737
+    }
+  },
+  "previousThreeStartMode": {
+    "rowCount": 5315,
+    "sameSlot": {
+      "count": 3285,
+      "fraction": 0.6180620884289746
+    },
+    "movedExactlyOne": {
+      "count": 1167,
+      "fraction": 0.2195672624647225
+    },
+    "movedTwoOrMore": {
+      "count": 863,
+      "fraction": 0.16237064910630292
+    },
+    "meanAbsoluteSlotChange": 0.6857949200376293,
+    "medianAbsoluteSlotChange": 0,
+    "distribution": {
+      "0": {
+        "count": 3285,
+        "fraction": 0.6180620884289746
+      },
+      "1": {
+        "count": 1167,
+        "fraction": 0.2195672624647225
+      },
+      "2": {
+        "count": 484,
+        "fraction": 0.09106302916274694
+      },
+      "3": {
+        "count": 183,
+        "fraction": 0.03443085606773283
+      },
+      "4+": {
+        "count": 196,
+        "fraction": 0.03687676387582314
+      }
+    },
+    "exactCounts": {
+      "0": 3285,
+      "1": 1167,
+      "2": 484,
+      "3": 183,
+      "4": 100,
+      "5": 45,
+      "6": 28,
+      "7": 16,
+      "8": 7
+    },
+    "probability": {
+      "sensitivity": {
+        "oneSlotPoints": 1.28,
+        "twoSlotPoints": 2.53,
+        "beyondTwoIncrementPointsPerSlot": 1.28
+      },
+      "expectedAbsoluteErrorPoints": 0.87294637817499,
+      "withinOnePoint": {
+        "count": 3285,
+        "fraction": 0.6180620884289746
+      },
+      "withinTwoPoints": {
+        "count": 4452,
+        "fraction": 0.8376293508936971
+      },
+      "beyondThreePoints": {
+        "count": 379,
+        "fraction": 0.07130761994355597
+      }
+    },
+    "modeDefinition": "mode of exactly previous three starts; most recent tied slot breaks ties",
+    "tiedModeRowCount": 584,
+    "tiedModeFraction": 0.10987770460959548,
+    "previousGameStarterChurn": {
+      "transitionCount": 714,
+      "skippedTransitionsForIncompleteLineups": 1,
+      "previousStarterOpportunities": 6426,
+      "previousStartersNotStartingNextGame": 1548,
+      "fraction": 0.24089635854341737
+    }
+  },
+  "comparison": {
+    "cohort": "same rows eligible for mode-three",
+    "rowCount": 5315,
+    "lastStartCommonCohort": {
+      "rowCount": 5315,
+      "sameSlot": {
+        "count": 3239,
+        "fraction": 0.6094073377234243
+      },
+      "movedExactlyOne": {
+        "count": 1206,
+        "fraction": 0.2269049858889934
+      },
+      "movedTwoOrMore": {
+        "count": 870,
+        "fraction": 0.1636876763875823
+      },
+      "meanAbsoluteSlotChange": 0.7095014111006586,
+      "medianAbsoluteSlotChange": 0,
+      "distribution": {
+        "0": {
+          "count": 3239,
+          "fraction": 0.6094073377234243
+        },
+        "1": {
+          "count": 1206,
+          "fraction": 0.2269049858889934
+        },
+        "2": {
+          "count": 467,
+          "fraction": 0.0878645343367827
+        },
+        "3": {
+          "count": 187,
+          "fraction": 0.03518344308560677
+        },
+        "4+": {
+          "count": 216,
+          "fraction": 0.04063969896519285
+        }
+      },
+      "exactCounts": {
+        "0": 3239,
+        "1": 1206,
+        "2": 467,
+        "3": 187,
+        "4": 104,
+        "5": 53,
+        "6": 33,
+        "7": 17,
+        "8": 9
+      },
+      "probability": {
+        "sensitivity": {
+          "oneSlotPoints": 1.28,
+          "twoSlotPoints": 2.53,
+          "beyondTwoIncrementPointsPerSlot": 1.28
+        },
+        "expectedAbsoluteErrorPoints": 0.9032511759172284,
+        "withinOnePoint": {
+          "count": 3239,
+          "fraction": 0.6094073377234243
+        },
+        "withinTwoPoints": {
+          "count": 4445,
+          "fraction": 0.8363123236124177
+        },
+        "beyondThreePoints": {
+          "count": 403,
+          "fraction": 0.07582314205079962
+        }
+      }
+    },
+    "modeThreeHasLowerMeanAbsoluteSlotChange": true,
+    "modeThreeHasLowerExpectedProbabilityError": true
+  },
+  "liveToday": {
+    "chicagoDate": "2026-08-08",
+    "captureStartedAtUtc": "2026-08-08T14:40:37.688Z",
+    "captureStartedAtChicago": "8/8/26, 9:40:37 AM CDT",
+    "captureFinishedAtUtc": "2026-08-08T14:40:39.833Z",
+    "captureFinishedAtChicago": "8/8/26, 9:40:39 AM CDT",
+    "lineupRowFieldNames": [
+      "batting_order",
+      "game_id",
+      "id",
+      "is_probable_pitcher",
+      "player",
+      "position",
+      "team"
+    ],
+    "projectionOrConfirmationFieldCandidates": [],
+    "games": [
+      {
+        "gameId": 5059524,
+        "away": "Atlanta Braves",
+        "home": "New York Yankees",
+        "status": "STATUS_SCHEDULED",
+        "firstPitchUtc": "2026-08-08T19:05:00.000Z",
+        "lineupReturnedAtUtc": "2026-08-08T14:40:38.043Z",
+        "beforeFirstPitch": true,
+        "leadMinutes": 264.36595,
+        "rowCount": 2,
+        "completeNineTeamIds": []
+      },
+      {
+        "gameId": 5059525,
+        "away": "Los Angeles Angels",
+        "home": "Miami Marlins",
+        "status": "STATUS_SCHEDULED",
+        "firstPitchUtc": "2026-08-08T20:10:00.000Z",
+        "lineupReturnedAtUtc": "2026-08-08T14:40:38.170Z",
+        "beforeFirstPitch": true,
+        "leadMinutes": 329.36383333333333,
+        "rowCount": 2,
+        "completeNineTeamIds": []
+      },
+      {
+        "gameId": 5059526,
+        "away": "Oakland Athletics",
+        "home": "Boston Red Sox",
+        "status": "STATUS_SCHEDULED",
+        "firstPitchUtc": "2026-08-08T20:10:00.000Z",
+        "lineupReturnedAtUtc": "2026-08-08T14:40:38.490Z",
+        "beforeFirstPitch": true,
+        "leadMinutes": 329.3585,
+        "rowCount": 2,
+        "completeNineTeamIds": []
+      },
+      {
+        "gameId": 5059527,
+        "away": "Toronto Blue Jays",
+        "home": "Philadelphia Phillies",
+        "status": "STATUS_SCHEDULED",
+        "firstPitchUtc": "2026-08-08T22:05:00.000Z",
+        "lineupReturnedAtUtc": "2026-08-08T14:40:38.590Z",
+        "beforeFirstPitch": true,
+        "leadMinutes": 444.3568333333333,
+        "rowCount": 2,
+        "completeNineTeamIds": []
+      },
+      {
+        "gameId": 5059528,
+        "away": "New York Mets",
+        "home": "Pittsburgh Pirates",
+        "status": "STATUS_SCHEDULED",
+        "firstPitchUtc": "2026-08-08T22:40:00.000Z",
+        "lineupReturnedAtUtc": "2026-08-08T14:40:38.727Z",
+        "beforeFirstPitch": true,
+        "leadMinutes": 479.35455,
+        "rowCount": 2,
+        "completeNineTeamIds": []
+      },
+      {
+        "gameId": 5059529,
+        "away": "Cincinnati Reds",
+        "home": "Washington Nationals",
+        "status": "STATUS_SCHEDULED",
+        "firstPitchUtc": "2026-08-08T22:45:00.000Z",
+        "lineupReturnedAtUtc": "2026-08-08T14:40:38.827Z",
+        "beforeFirstPitch": true,
+        "leadMinutes": 484.35288333333335,
+        "rowCount": 2,
+        "completeNineTeamIds": []
+      },
+      {
+        "gameId": 5059530,
+        "away": "Chicago Cubs",
+        "home": "Kansas City Royals",
+        "status": "STATUS_SCHEDULED",
+        "firstPitchUtc": "2026-08-08T23:10:00.000Z",
+        "lineupReturnedAtUtc": "2026-08-08T14:40:38.944Z",
+        "beforeFirstPitch": true,
+        "leadMinutes": 509.35093333333333,
+        "rowCount": 2,
+        "completeNineTeamIds": []
+      },
+      {
+        "gameId": 5059532,
+        "away": "Minnesota Twins",
+        "home": "Milwaukee Brewers",
+        "status": "STATUS_SCHEDULED",
+        "firstPitchUtc": "2026-08-08T23:10:00.000Z",
+        "lineupReturnedAtUtc": "2026-08-08T14:40:39.053Z",
+        "beforeFirstPitch": true,
+        "leadMinutes": 509.34911666666665,
+        "rowCount": 2,
+        "completeNineTeamIds": []
+      },
+      {
+        "gameId": 5059531,
+        "away": "Cleveland Guardians",
+        "home": "Chicago White Sox",
+        "status": "STATUS_SCHEDULED",
+        "firstPitchUtc": "2026-08-08T23:15:00.000Z",
+        "lineupReturnedAtUtc": "2026-08-08T14:40:39.156Z",
+        "beforeFirstPitch": true,
+        "leadMinutes": 514.3474,
+        "rowCount": 2,
+        "completeNineTeamIds": []
+      },
+      {
+        "gameId": 5059533,
+        "away": "Baltimore Orioles",
+        "home": "Texas Rangers",
+        "status": "STATUS_SCHEDULED",
+        "firstPitchUtc": "2026-08-08T23:15:00.000Z",
+        "lineupReturnedAtUtc": "2026-08-08T14:40:39.272Z",
+        "beforeFirstPitch": true,
+        "leadMinutes": 514.3454666666667,
+        "rowCount": 2,
+        "completeNineTeamIds": []
+      },
+      {
+        "gameId": 5059534,
+        "away": "Colorado Rockies",
+        "home": "St. Louis Cardinals",
+        "status": "STATUS_SCHEDULED",
+        "firstPitchUtc": "2026-08-08T23:15:00.000Z",
+        "lineupReturnedAtUtc": "2026-08-08T14:40:39.380Z",
+        "beforeFirstPitch": true,
+        "leadMinutes": 514.3436666666666,
+        "rowCount": 2,
+        "completeNineTeamIds": []
+      },
+      {
+        "gameId": 5059535,
+        "away": "Detroit Tigers",
+        "home": "San Francisco Giants",
+        "status": "STATUS_SCHEDULED",
+        "firstPitchUtc": "2026-08-08T23:15:00.000Z",
+        "lineupReturnedAtUtc": "2026-08-08T14:40:39.508Z",
+        "beforeFirstPitch": true,
+        "leadMinutes": 514.3415333333334,
+        "rowCount": 2,
+        "completeNineTeamIds": []
+      },
+      {
+        "gameId": 5059536,
+        "away": "Houston Astros",
+        "home": "San Diego Padres",
+        "status": "STATUS_SCHEDULED",
+        "firstPitchUtc": "2026-08-08T23:15:00.000Z",
+        "lineupReturnedAtUtc": "2026-08-08T14:40:39.608Z",
+        "beforeFirstPitch": true,
+        "leadMinutes": 514.3398666666667,
+        "rowCount": 2,
+        "completeNineTeamIds": []
+      },
+      {
+        "gameId": 5059537,
+        "away": "Los Angeles Dodgers",
+        "home": "Arizona Diamondbacks",
+        "status": "STATUS_SCHEDULED",
+        "firstPitchUtc": "2026-08-09T00:10:00.000Z",
+        "lineupReturnedAtUtc": "2026-08-08T14:40:39.719Z",
+        "beforeFirstPitch": true,
+        "leadMinutes": 569.3380166666667,
+        "rowCount": 2,
+        "completeNineTeamIds": []
+      },
+      {
+        "gameId": 5059538,
+        "away": "Tampa Bay Rays",
+        "home": "Seattle Mariners",
+        "status": "STATUS_SCHEDULED",
+        "firstPitchUtc": "2026-08-09T01:50:00.000Z",
+        "lineupReturnedAtUtc": "2026-08-08T14:40:39.832Z",
+        "beforeFirstPitch": true,
+        "leadMinutes": 669.3361333333334,
+        "rowCount": 2,
+        "completeNineTeamIds": []
+      }
+    ],
+    "pregameGamesWithAnyLineupRows": 15,
+    "pregameGamesWithCompleteNineBothTeams": 0,
+    "maximumObservedPregameLeadMinutes": 669.3361333333334,
+    "minimumObservedPregameLeadMinutes": 264.36595
+  },
+  "artifactSha256": "14618e7f785eefba8d4a570b3f7a0e2391e9b6c51621dac4f2983aee0828b3e4"
+}
