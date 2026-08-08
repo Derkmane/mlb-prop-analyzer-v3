@@ -126,7 +126,7 @@ async function fetchBdlDate(queryDateUtc) {
 
 async function fetchBdlRows(endpoint, gameIds) {
   const snapshots = [];
-  const rows = [];
+  const combinedRows = [];
   const seenCursors = new Set();
   let cursor = null;
   let page = 1;
@@ -144,7 +144,7 @@ async function fetchBdlRows(endpoint, gameIds) {
       throw new Error(`BDL ${endpoint} page ${page} did not return a data array.`);
     }
     snapshots.push(snapshot);
-    rows.push(...pageRows);
+    combinedRows.push(...pageRows);
     const nextCursor = snapshot.body?.meta?.next_cursor ?? null;
     if (nextCursor === null || nextCursor === undefined) break;
     const cursorKey = String(nextCursor);
@@ -164,7 +164,7 @@ async function fetchBdlRows(endpoint, gameIds) {
     }),
   );
   return Object.freeze({
-    body: Object.freeze({ data: Object.freeze(rows) }),
+    body: Object.freeze({ data: Object.freeze(combinedRows) }),
     sha256: sha256(combinedBytes),
     capturedAt: new Date().toISOString(),
     pageSha256: Object.freeze(snapshots.map((snapshot) => snapshot.sha256)),
