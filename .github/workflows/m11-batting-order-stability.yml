@@ -33,7 +33,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add artifacts/diagnostics/m11-batting-order-stability/raw-lineup-ledger-2026-07-06--2026-08-05.json
+          git add -f artifacts/diagnostics/m11-batting-order-stability/raw-lineup-ledger-2026-07-06--2026-08-05.json
           git diff --cached --quiet && { echo "raw ledger was not written"; exit 1; }
           git commit -m "diagnostic: persist M11 raw lineup stability ledger"
           git push origin HEAD:diagnostic/m11-batting-order-stability
@@ -43,7 +43,7 @@ jobs:
 
       - name: Persist diagnostics before reporting
         run: |
-          git add artifacts/diagnostics/m11-batting-order-stability/batting-order-stability-2026-07-06--2026-08-05.json
+          git add -f artifacts/diagnostics/m11-batting-order-stability/batting-order-stability-2026-07-06--2026-08-05.json
           git diff --cached --quiet && { echo "diagnostics were not written"; exit 1; }
           git commit -m "diagnostic: persist M11 batting order stability results"
           git push origin HEAD:diagnostic/m11-batting-order-stability
