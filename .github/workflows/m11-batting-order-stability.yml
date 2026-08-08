@@ -1,0 +1,60 @@
+name: M11 batting order stability diagnostic
+
+on:
+  push:
+    branches:
+      - diagnostic/m11-batting-order-stability
+    paths:
+      - scripts/measure-m11-batting-order-stability.mjs
+      - .github/workflows/m11-batting-order-stability.yml
+
+permissions:
+  contents: write
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+    steps:
+      - name: Checkout diagnostic branch
+        uses: actions/checkout@v4
+        with:
+          ref: diagnostic/m11-batting-order-stability
+          fetch-depth: 0
+
+      - name: Capture unbiased raw lineup ledger
+        id: capture
+        run: node scripts/measure-m11-batting-order-stability.mjs capture
+
+      - name: Persist raw ledger before analysis
+        if: ${{ steps.capture.outcome == 'success' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add artifacts/diagnostics/m11-batting-order-stability/raw-lineup-ledger-2026-07-06--2026-08-05.json
+          git diff --cached --quiet && { echo "raw ledger was not written"; exit 1; }
+          git commit -m "diagnostic: persist M11 raw lineup stability ledger"
+          git push origin HEAD:diagnostic/m11-batting-order-stability
+
+      - name: Analyze committed raw ledger
+        run: node scripts/measure-m11-batting-order-stability.mjs analyze
+
+      - name: Persist diagnostics before reporting
+        run: |
+          git add artifacts/diagnostics/m11-batting-order-stability/batting-order-stability-2026-07-06--2026-08-05.json
+          git diff --cached --quiet && { echo "diagnostics were not written"; exit 1; }
+          git commit -m "diagnostic: persist M11 batting order stability results"
+          git push origin HEAD:diagnostic/m11-batting-order-stability
+
+      - name: Emit persisted diagnostic report
+        run: node scripts/measure-m11-batting-order-stability.mjs report
+
+      - name: Upload diagnostic evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: m11-batting-order-stability-${{ github.run_id }}
+          if-no-files-found: warn
+          path: artifacts/diagnostics/m11-batting-order-stability/
