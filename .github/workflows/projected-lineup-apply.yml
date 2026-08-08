@@ -35,6 +35,13 @@ jobs:
       - name: Build shared resolver before script imports
         run: npm run build
 
+      - name: Normalize and syntax-check patch generators
+        run: |
+          set -euo pipefail
+          node scripts/normalize-projected-lineup-patch-literals.mjs
+          node --check scripts/apply-projected-lineup-integration.mjs
+          node --check scripts/apply-projected-lineup-hhr.mjs
+
       - name: Apply Hits integration
         run: node scripts/apply-projected-lineup-integration.mjs
 
@@ -72,6 +79,7 @@ jobs:
         run: |
           git rm scripts/apply-projected-lineup-integration.mjs
           git rm scripts/apply-projected-lineup-hhr.mjs
+          git rm scripts/normalize-projected-lineup-patch-literals.mjs
           git rm .github/workflows/projected-lineup-apply.yml
 
       - name: Commit validated integration
