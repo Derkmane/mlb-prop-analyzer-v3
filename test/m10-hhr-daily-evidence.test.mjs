@@ -4,6 +4,9 @@ import { readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
+import { normalizeUnderdogBatterHhrCapture } from '../dist/src/features/batter-hhr/index.js';
+import { createBdlAdaptiveRateLimiter } from '../scripts/bdl-adaptive-rate-limit-utils.mjs';
+import { classifyHhrUnderdogBookmakerAvailability } from '../scripts/m10-hhr-board-availability-utils.mjs';
 import {
   buildM10HhrCumulativeSelectedSideReport,
   buildM10HhrFinalGradeReport,
@@ -17,6 +20,35 @@ import {
 const SHA_A = 'a'.repeat(64);
 const SHA_B = 'b'.repeat(64);
 const CAPTURED_AT = '2026-08-07T21:15:00.000Z';
+
+function hhrCaptureWithBookmakers(bookmakers) {
+  return Object.freeze({
+    captureVersion: 1,
+    capturedAt: CAPTURED_AT,
+    captureMode: 'prospective-m10-daily-evidence',
+    request: Object.freeze({
+      provider: 'The Odds API',
+      bookmaker: 'underdog',
+      region: 'us_dfs',
+      marketKeys: Object.freeze([
+        'batter_hits_runs_rbis',
+        'batter_hits_runs_rbis_alternate',
+      ]),
+      dateFormat: 'iso',
+      oddsFormat: 'american',
+      includeMultipliers: true,
+      includeSids: true,
+    }),
+    sourceSnapshotSha256: SHA_A,
+    response: Object.freeze({
+      id: 'event-a',
+      commence_time: CAPTURED_AT,
+      home_team: 'Home Team',
+      away_team: 'Away Team',
+      bookmakers,
+    }),
+  });
+}
 
 function row({
   eventId,
@@ -146,6 +178,86 @@ test('HHR prospective archive is immutable, authenticated, complete across basel
         expectedCaptureKey: archive.captureKey,
       }),
     /SHA-256 verification failed/u,
+  );
+});
+
+test('HHR archiver uses the shared adaptive limiter and real Headers resolve the provider limit', async () => {
+  const limiter = createBdlAdaptiveRateLimiter({
+    fallbackDelayMs: 13_000,
+    utilization: 0.9,
+  });
+  const state = limiter.afterResponse({
+    status: 200,
+    headers: new Headers({
+      'x-ratelimit-limit': '600',
+      'x-ratelimit-remaining': '599',
+      'x-ratelimit-reset': '2000000000',
+    }),
+  });
+  assert.equal(state.source, 'x-ratelimit-limit');
+  assert.equal(state.limitPerMinute, 600);
+  assert.equal(state.intervalMs, 112);
+  assert.equal(state.fallbackDelayMs, 13_000);
+  assert.equal(state.utilization, 0.9);
+
+  const captureScript = await readFile('scripts/archive-m10-batter-hhr-board.mjs', 'utf8');
+  assert.match(captureScript, /createBdlAdaptiveRateLimiter/u);
+  assert.match(captureScript, /fallbackDelayMs:\s*13_000/u);
+  assert.match(captureScript, /utilization:\s*0\.9/u);
+  assert.match(captureScript, /await bdlRateLimiter\.beforeRequest\(\)/u);
+  assert.match(captureScript, /bdlRateLimiter\.afterResponse\(\{/u);
+  assert.match(captureScript, /headers:\s*response\.headers/u);
+  assert.doesNotMatch(captureScript, /fetchSnapshot\.lastBdlAt/u);
+  assert.doesNotMatch(captureScript, /elapsed < 13_000/u);
+  assert.match(captureScript, /BDL RATE LIMIT PER MINUTE/u);
+  assert.match(captureScript, /BDL INTERVAL MS/u);
+});
+
+test('HHR zero-bookmaker events exclude and continue while duplicate Underdog bookmakers remain fatal', async () => {
+  const zeroBookmaker = hhrCaptureWithBookmakers([]);
+  assert.deepEqual(
+    classifyHhrUnderdogBookmakerAvailability(zeroBookmaker),
+    { status: 'exclude', reason: 'no-underdog-hhr-offers' },
+  );
+
+  const duplicateUnderdog = hhrCaptureWithBookmakers([
+    { key: 'underdog' },
+    { key: 'underdog' },
+  ]);
+  assert.deepEqual(
+    classifyHhrUnderdogBookmakerAvailability(duplicateUnderdog),
+    { status: 'normalize' },
+  );
+  assert.throws(
+    () => normalizeUnderdogBatterHhrCapture(duplicateUnderdog),
+    /HHR response must contain exactly one underdog bookmaker\./u,
+  );
+
+  const malformedBookmaker = hhrCaptureWithBookmakers([null]);
+  assert.deepEqual(
+    classifyHhrUnderdogBookmakerAvailability(malformedBookmaker),
+    { status: 'normalize' },
+  );
+  assert.throws(
+    () => normalizeUnderdogBatterHhrCapture(malformedBookmaker),
+    /HHR bookmaker\[0\] must be an object\./u,
+  );
+
+  const captureScript = await readFile('scripts/archive-m10-batter-hhr-board.mjs', 'utf8');
+  const classifyIndex = captureScript.indexOf(
+    'const bookmakerAvailability = classifyHhrUnderdogBookmakerAvailability(capture);',
+  );
+  const normalizeIndex = captureScript.indexOf(
+    'const offers = normalizeUnderdogBatterHhrCapture(capture);',
+  );
+  assert.ok(classifyIndex >= 0 && normalizeIndex > classifyIndex);
+  assert.match(
+    captureScript,
+    /if \(bookmakerAvailability\.status === 'exclude'\) \{[\s\S]*reason: bookmakerAvailability\.reason,[\s\S]*continue;[\s\S]*const offers = normalizeUnderdogBatterHhrCapture\(capture\);/u,
+  );
+  assert.match(
+    captureScript,
+    /throw new Error\('HHR capture contained no normalized offers\.'\);/u,
   );
 });
 
@@ -281,6 +393,7 @@ test('HHR diagnostics are persisted before status and cumulative thresholds are 
 test('HHR daily evidence scripts pass Node syntax checking', () => {
   for (const scriptPath of [
     'scripts/m10-hhr-evidence-utils.mjs',
+    'scripts/m10-hhr-board-availability-utils.mjs',
     'scripts/archive-m10-batter-hhr-board.mjs',
     'scripts/grade-m10-hhr-pending-archives.mjs',
   ]) {
