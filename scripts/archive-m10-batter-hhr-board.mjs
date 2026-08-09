@@ -13,6 +13,8 @@ import {
   resolveExactBallDontLieGameMatch,
   resolveProjectedLineupIdentity,
 } from './archive-m9-batter-hits-board.mjs';
+import { createBdlAdaptiveRateLimiter } from './bdl-adaptive-rate-limit-utils.mjs';
+import { classifyHhrUnderdogBookmakerAvailability } from './m10-hhr-board-availability-utils.mjs';
 import { persistImmutableJson } from './m10-grade-saved-archive-utils.mjs';
 import { buildM10HhrProspectiveArchive } from './m10-hhr-evidence-utils.mjs';
 import {
@@ -49,6 +51,10 @@ const HITS_CAPTURE_PATTERN = /^(\d{8}T\d{9}Z--[a-f0-9]{64})\.json$/u;
 const MODEL_PATH = path.resolve('model-artifacts/m11-batter-hhr-direct-composite-v2.json');
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+const bdlRateLimiter = createBdlAdaptiveRateLimiter({
+  fallbackDelayMs: 13_000,
+  utilization: 0.9,
+});
 
 function stableJson(value) {
   if (
@@ -90,16 +96,22 @@ async function latestHitsCapture() {
 
 async function fetchSnapshot(url, label, { headers = {}, bdl = false } = {}) {
   for (let attempt = 0; attempt <= 8; attempt += 1) {
-    if (bdl && fetchSnapshot.lastBdlAt) {
-      const elapsed = Date.now() - fetchSnapshot.lastBdlAt;
-      if (elapsed < 13_000) await sleep(13_000 - elapsed);
-    }
+    if (bdl) await bdlRateLimiter.beforeRequest();
     const response = await fetch(url, { headers });
-    if (bdl) fetchSnapshot.lastBdlAt = Date.now();
+    if (bdl) {
+      bdlRateLimiter.afterResponse({
+        status: response.status,
+        headers: response.headers,
+      });
+    }
     const text = await response.text();
     if (response.status === 429 && attempt < 8) {
-      const retrySeconds = Number(response.headers.get('retry-after'));
-      await sleep(Number.isFinite(retrySeconds) ? retrySeconds * 1000 : 13_000);
+      if (bdl) {
+        await bdlRateLimiter.waitForRetry();
+      } else {
+        const retrySeconds = Number(response.headers.get('retry-after'));
+        await sleep(Number.isFinite(retrySeconds) ? retrySeconds * 1000 : 13_000);
+      }
       continue;
     }
     if (!response.ok) throw new Error(`${label} returned HTTP ${response.status}: ${text.slice(0, 500)}`);
@@ -107,7 +119,6 @@ async function fetchSnapshot(url, label, { headers = {}, bdl = false } = {}) {
   }
   throw new Error(`${label} exhausted retries.`);
 }
-fetchSnapshot.lastBdlAt = 0;
 
 async function fetchBdlDate(queryDateUtc) {
   const url = new URL('https://api.balldontlie.io/mlb/v1/games');
@@ -461,11 +472,24 @@ const projectedLineupHistorySha256ByGame = new Map();
 const projectedGameSnapshotCache = new Map();
 const lineupResolutionRows = [];
 const identityDiagnosticState = { printed: 0 };
+let zeroUnderdogHhrEventCount = 0;
 for (const game of resolvedGames) {
   const rawGame = rawGameByEventId.get(game.providerEventId);
   if (!rawGame) throw new Error(`Missing raw BDL game for ${game.providerEventId}.`);
   const boardSnapshot = boardSnapshots.get(game.providerEventId);
-  const offers = normalizeUnderdogBatterHhrCapture(hhrCapture(boardSnapshot, capturedAt));
+  const capture = hhrCapture(boardSnapshot, capturedAt);
+  const bookmakerAvailability = classifyHhrUnderdogBookmakerAvailability(capture);
+  if (bookmakerAvailability.status === 'exclude') {
+    zeroUnderdogHhrEventCount += 1;
+    offersByEventId.set(game.providerEventId, Object.freeze([]));
+    exclusions.push(Object.freeze({
+      gameId: game.gameId,
+      providerEventId: game.providerEventId,
+      reason: bookmakerAvailability.reason,
+    }));
+    continue;
+  }
+  const offers = normalizeUnderdogBatterHhrCapture(capture);
   offersByEventId.set(game.providerEventId, offers);
   const offeredNames = [...new Set(offers.map((offer) => offer.playerName))];
   const identityCapture = await capturePlayerIdentityLookups({
@@ -571,6 +595,9 @@ for (const game of resolvedGames) {
       sourceSnapshotSha256: hitter.lineupSourceSnapshotSha256,
     }));
   }
+}
+if (resolvedGames.length > 0 && zeroUnderdogHhrEventCount === resolvedGames.length) {
+  throw new Error('HHR capture contained no normalized offers.');
 }
 
 const projectedGameSnapshotSha256ByDate = Object.fromEntries(
@@ -855,6 +882,7 @@ const exclusionCounts = new Map();
 for (const exclusion of exclusions) {
   exclusionCounts.set(exclusion.reason, (exclusionCounts.get(exclusion.reason) ?? 0) + 1);
 }
+const bdlRateLimitState = bdlRateLimiter.snapshot();
 
 console.log('--- M10 HHR PROSPECTIVE EVIDENCE CAPTURE ---');
 console.log(`SOURCE HITS CAPTURE\t${archive.source.sourceHitsCaptureKey}`);
@@ -877,6 +905,8 @@ console.log(`EXCLUSIONS\t${archive.counts.exclusions}`);
 for (const [reason, count] of [...exclusionCounts.entries()].sort(([left], [right]) => left.localeCompare(right))) {
   console.log(`EXCLUSION ${reason}\t${count}`);
 }
+console.log(`BDL RATE LIMIT PER MINUTE\t${bdlRateLimitState.limitPerMinute ?? 'unknown'}`);
+console.log(`BDL INTERVAL MS\t${bdlRateLimitState.intervalMs}`);
 console.log(`PROVIDER DIAGNOSTICS\t${preGateDiagnosticPath}`);
 console.log(`RESOLUTION DIAGNOSTICS\t${resolutionDiagnosticPath}`);
 console.log('PRODUCTION\tDISABLED');
