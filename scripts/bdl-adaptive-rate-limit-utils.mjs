@@ -18,8 +18,20 @@ function normalizedHeaders(rawHeaders) {
   if (rawHeaders === null || typeof rawHeaders !== 'object' || Array.isArray(rawHeaders)) {
     return {};
   }
+  const entries =
+    typeof rawHeaders.get === 'function' && typeof rawHeaders.forEach === 'function'
+      ? (() => {
+          const headerEntries = [];
+          rawHeaders.forEach((value, name) => {
+            headerEntries.push([name, value]);
+          });
+          return headerEntries;
+        })()
+      : typeof rawHeaders[Symbol.iterator] === 'function'
+        ? [...rawHeaders]
+        : Object.entries(rawHeaders);
   return Object.fromEntries(
-    Object.entries(rawHeaders).map(([name, value]) => [
+    entries.map(([name, value]) => [
       String(name).toLowerCase(),
       value === null || value === undefined ? null : String(value),
     ]),

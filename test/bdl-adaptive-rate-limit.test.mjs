@@ -23,6 +23,24 @@ test('derives safe pacing from official BALLDONTLIE rate-limit headers', () => {
   assert.equal(evidence.utilization, 0.9);
 });
 
+test('derives safe pacing from a real WHATWG Headers object', () => {
+  const evidence = deriveBdlRateLimitEvidence({
+    headers: new Headers({
+      'X-RateLimit-Limit': '600',
+      'X-RateLimit-Remaining': '599',
+      'X-RateLimit-Reset': '2000000000',
+    }),
+  });
+
+  assert.equal(evidence.source, 'x-ratelimit-limit');
+  assert.equal(evidence.limitPerMinute, 600);
+  assert.equal(evidence.remaining, 599);
+  assert.equal(evidence.resetAtMs, 2_000_000_000_000);
+  assert.equal(evidence.intervalMs, 112);
+  assert.equal(evidence.utilization, 0.9);
+  assert.equal(evidence.fallbackDelayMs, 13_000);
+});
+
 test('supports observed legacy request counters only when they imply a known tier', () => {
   const evidence = deriveBdlRateLimitEvidence({
     headers: {
