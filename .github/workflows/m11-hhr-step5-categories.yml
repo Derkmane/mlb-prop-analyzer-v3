@@ -1,0 +1,69 @@
+name: M11 HHR Step 5 category evidence
+
+on:
+  push:
+    branches:
+      - agent/m11-step5-hhr-categories
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  verify-and-evidence:
+    name: Verify HHR categories and print real-board evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+      M10_HHR_ARCHIVE_ROOT: artifacts/board-archives/batter-hhr
+
+    steps:
+      - name: Check out exact branch head
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Download immutable HHR archive evidence from run 31325056244
+        uses: actions/download-artifact@v4
+        with:
+          name: m9-board-archive-31325056244-1
+          path: artifacts
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: Derkmane/mlb-prop-analyzer-v3
+          run-id: 31325056244
+
+      - name: Check Step 5 evidence script syntax
+        run: node --check scripts/run-m11-hhr-step5-categories.mjs
+
+      - name: Run literal npm verify
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/workflow-logs
+          npm run verify 2>&1 | tee artifacts/workflow-logs/m11-hhr-step5-npm-verify.log
+
+      - name: Run Gate J Batter Hits byte identity
+        run: |
+          set -euo pipefail
+          node --test test/m11-batter-hits-byte-identity.test.mjs 2>&1 | tee artifacts/workflow-logs/m11-hhr-step5-gate-j.log
+
+      - name: Print both Step 5 categories from a real captured HHR board
+        run: |
+          set -euo pipefail
+          node scripts/run-m11-hhr-step5-categories.mjs 2>&1 | tee artifacts/workflow-logs/m11-hhr-step5-categories.log
+
+      - name: Upload literal Step 5 evidence logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m11-hhr-step5-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 90
+          path: artifacts/workflow-logs/m11-hhr-step5-*.log
