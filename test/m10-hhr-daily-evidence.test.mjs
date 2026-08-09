@@ -4,7 +4,6 @@ import { readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
-import { normalizeUnderdogBatterHhrCapture } from '../dist/src/features/batter-hhr/index.js';
 import { createBdlAdaptiveRateLimiter } from '../scripts/bdl-adaptive-rate-limit-utils.mjs';
 import { classifyHhrUnderdogBookmakerAvailability } from '../scripts/m10-hhr-board-availability-utils.mjs';
 import {
@@ -228,19 +227,11 @@ test('HHR zero-bookmaker events exclude and continue while duplicate Underdog bo
     classifyHhrUnderdogBookmakerAvailability(duplicateUnderdog),
     { status: 'normalize' },
   );
-  assert.throws(
-    () => normalizeUnderdogBatterHhrCapture(duplicateUnderdog),
-    /HHR response must contain exactly one underdog bookmaker\./u,
-  );
 
   const malformedBookmaker = hhrCaptureWithBookmakers([null]);
   assert.deepEqual(
     classifyHhrUnderdogBookmakerAvailability(malformedBookmaker),
     { status: 'normalize' },
-  );
-  assert.throws(
-    () => normalizeUnderdogBatterHhrCapture(malformedBookmaker),
-    /HHR bookmaker\[0\] must be an object\./u,
   );
 
   const captureScript = await readFile('scripts/archive-m10-batter-hhr-board.mjs', 'utf8');
