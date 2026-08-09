@@ -48,6 +48,9 @@ function assertApprovedSourceSet(archive) {
 
 function assertRequiredRowFields(row) {
   requireNonemptyString(row.playerName, 'HHR evidence playerName');
+  if (!['projected', 'confirmed'].includes(row.lineupStatus)) {
+    throw new Error('HHR evidence lineupStatus must be projected or confirmed.');
+  }
   requireNonemptyString(row.distributionIdentity?.modelVersion, 'HHR evidence modelVersion');
   requireNonemptyString(
     row.distributionIdentity?.distributionBuilderVersion,
@@ -255,7 +258,7 @@ function displayIdentity(row, games, lineups) {
   return Object.freeze({
     team: requireNonemptyString(team, 'display team'),
     opponent: requireNonemptyString(opponent, 'display opponent'),
-    lineupStatus: 'confirmed',
+    lineupStatus: row.lineupStatus,
   });
 }
 
@@ -343,7 +346,7 @@ console.log(`ARCHIVE SELECTION POLICY\t${evidence.selectionPolicy}`);
 console.log(`UPSTREAM FAIL-CLOSED EXCLUSIONS BY RULE\t${JSON.stringify(exclusionCountsByRule(evidence.archive.exclusions))}`);
 console.log('PRODUCTION\tDISABLED');
 console.log('RANKING\tDISABLED');
-console.log('LINEUP STATUS POLICY\tDISPLAY ONLY; category selection completes before BDL lineup enrichment');
+console.log('LINEUP STATUS POLICY\tDISPLAY ONLY; category selection completes before BDL lineup enrichment; status is preserved from the immutable archive');
 console.log('PAYOUT POLICY\tDISPLAY ONLY; multiplier is never passed to the category selector');
 console.log('---');
 printCategory(evidence.selections.lower25, displayByRowKey);
