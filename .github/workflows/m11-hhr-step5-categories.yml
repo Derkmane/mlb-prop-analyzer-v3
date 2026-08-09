@@ -6,6 +6,7 @@ on:
       - agent/m11-step5-hhr-categories
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -30,13 +31,14 @@ jobs:
       - name: Install dependencies
         run: npm install --ignore-scripts
 
-      - name: Restore immutable HHR archive ledger
-        uses: actions/cache/restore@v4
+      - name: Download immutable HHR archive evidence from run 31325056244
+        uses: actions/download-artifact@v4
         with:
-          path: artifacts/board-archives/batter-hhr
-          key: m11-step5-hhr-ledger-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: |
-            m10-hhr-board-archive-ledger-
+          name: m9-board-archive-31325056244-1
+          path: artifacts
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: Derkmane/mlb-prop-analyzer-v3
+          run-id: 31325056244
 
       - name: Check Step 5 evidence script syntax
         run: node --check scripts/run-m11-hhr-step5-categories.mjs
