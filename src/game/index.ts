@@ -35,6 +35,19 @@ export {
   deriveNamedHitterOpportunityCountDistribution,
 } from './named-hitter-opportunity.js';
 export {
+  PROJECTED_LINEUP_EXCLUSION_REASON,
+  PROJECTED_LINEUP_LOOKBACK_DAYS,
+  resolveProjectedLineupSlot,
+} from './projected-lineup-resolution.js';
+export type {
+  CurrentLineupSlotEvidence,
+  HistoricalCompletedLineupStartEvidence,
+  ProjectedLineupSlotResolution,
+  ResolvedLineupSlot,
+  ResolveProjectedLineupSlotInput,
+  UnresolvedLineupSlot,
+} from './projected-lineup-resolution.js';
+export {
   GAME_LIFECYCLE_STATUSES,
   InvalidPregameTimestampError,
   PREGAME_GAME_INELIGIBILITY_REASONS,

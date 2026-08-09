@@ -121,7 +121,7 @@ test('every captured baseline and alternate offer preserves its line and settles
   });
 });
 
-test('HHR fails closed on missing canonical inputs, malformed vectors, unsupported lines, and side-bearing artifacts', async () => {
+test('HHR fails closed on missing canonical inputs, malformed vectors, unsupported lines, side-bearing artifacts, and corrupted bookmaker rows', async () => {
   const { model, input } = await evidence();
   assert.throws(() => buildBatterHhrDirectCompositeDistribution(model, { ...input, expectedPlateAppearances: 0 }), /positive/u);
   assert.throws(() => buildBatterHhrDirectCompositeDistribution(model, { ...input, platoonSplitCell: Number.NaN }), /finite/u);
@@ -130,4 +130,40 @@ test('HHR fails closed on missing canonical inputs, malformed vectors, unsupport
   const distribution = buildBatterHhrDirectCompositeDistribution(model, input);
   assert.throws(() => settleBatterHhrDistribution(distribution, 'higher', 64.5), /between/u);
   assert.throws(() => validateBatterHhrDirectCompositeArtifact({ ...model, selectedSide: 'higher' } as unknown as BatterHhrDirectCompositeArtifact), /prohibited/u);
+
+  const capture = {
+    captureVersion: 1,
+    capturedAt: '2026-08-07T21:15:00.000Z',
+    captureMode: 'prospective-m10-daily-evidence',
+    request: {
+      provider: 'The Odds API',
+      bookmaker: 'underdog',
+      region: 'us_dfs',
+      marketKeys: ['batter_hits_runs_rbis', 'batter_hits_runs_rbis_alternate'],
+      dateFormat: 'iso',
+      oddsFormat: 'american',
+      includeMultipliers: true,
+      includeSids: true,
+    },
+    sourceSnapshotSha256: 'a'.repeat(64),
+    response: {
+      id: 'event-a',
+      commence_time: '2026-08-07T21:15:00.000Z',
+      home_team: 'Home Team',
+      away_team: 'Away Team',
+      bookmakers: [{ key: 'underdog' }, { key: 'underdog' }],
+    },
+  };
+  assert.throws(
+    () => normalizeUnderdogBatterHhrCapture(capture),
+    /HHR response must contain exactly one underdog bookmaker\./u,
+  );
+  assert.throws(
+    () =>
+      normalizeUnderdogBatterHhrCapture({
+        ...capture,
+        response: { ...capture.response, bookmakers: [null] },
+      }),
+    /HHR bookmaker\[0\] must be an object\./u,
+  );
 });
