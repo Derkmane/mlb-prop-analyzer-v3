@@ -118,30 +118,62 @@ jobs:
         run: |
           node -e 'const fs=require("node:fs"),path=require("node:path");const dir="artifacts/board-archives/batter-hhr/captures";const before=new Set(JSON.parse(fs.readFileSync("artifacts/workflow-logs/hhr-captures-before.json","utf8")));const after=fs.existsSync(dir)?fs.readdirSync(dir,{withFileTypes:true}).filter((entry)=>entry.isFile()&&entry.name.endsWith(".json")).map((entry)=>entry.name).sort():[];const added=after.filter((name)=>!before.has(name));if(added.length!==1)throw new Error(`Expected exactly one new immutable HHR capture after successful archiver; found ${added.length}.`);fs.appendFileSync(process.env.GITHUB_OUTPUT,`path=${path.join(dir,added[0])}\n`);console.log(`NEW HHR CAPTURE\t${path.join(dir,added[0])}`);'
 
-      - name: Persist successful immutable captures to repository
-        id: persist-captures
-        if: always() && (steps.identify-hits-capture.outcome == 'success' || steps.identify-hhr-capture.outcome == 'success')
+      - name: Build immutable trimmed display archives
+        id: build-display-archives
+        if: always() && steps.identify-hits-capture.outcome == 'success' && steps.identify-hhr-capture.outcome == 'success'
         env:
           HITS_CAPTURE_PATH: ${{ steps.identify-hits-capture.outputs.path }}
           HHR_CAPTURE_PATH: ${{ steps.identify-hhr-capture.outputs.path }}
         run: |
           set -euo pipefail
+          if [ -z "${HITS_CAPTURE_PATH}" ] || [ -z "${HHR_CAPTURE_PATH}" ]; then
+            echo "Both full capture paths are required to build the display archives."
+            exit 1
+          fi
+          HITS_CAPTURE_NAME="${HITS_CAPTURE_PATH##*/}"
+          HHR_CAPTURE_NAME="${HHR_CAPTURE_PATH##*/}"
+          HITS_DISPLAY_PATH="artifacts/display-archives/batter-hits/captures/${HITS_CAPTURE_NAME}"
+          HHR_DISPLAY_PATH="artifacts/display-archives/batter-hhr/captures/${HHR_CAPTURE_NAME}"
+          node scripts/build-phase1-display-archive.mjs batter-hits "${HITS_CAPTURE_PATH}" "${HITS_DISPLAY_PATH}"
+          node scripts/build-phase1-display-archive.mjs batter-hhr "${HHR_CAPTURE_PATH}" "${HHR_DISPLAY_PATH}"
+          printf 'hits_path=%s\n' "${HITS_DISPLAY_PATH}" >> "$GITHUB_OUTPUT"
+          printf 'hhr_path=%s\n' "${HHR_DISPLAY_PATH}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload full archives and diagnostics before repository persistence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m9-board-archive-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 90
+          path: |
+            artifacts/board-archives/batter-hits/**
+            artifacts/board-archives/batter-hhr/**
+            artifacts/workflow-logs/**
+
+      - name: Persist trimmed display archives to repository
+        id: persist-display-archives
+        if: always() && steps.build-display-archives.outcome == 'success'
+        env:
+          HITS_DISPLAY_PATH: ${{ steps.build-display-archives.outputs.hits_path }}
+          HHR_DISPLAY_PATH: ${{ steps.build-display-archives.outputs.hhr_path }}
+        run: |
+          set -euo pipefail
           if [ "${GITHUB_REF_TYPE}" != "branch" ]; then
-            echo "Archive persistence requires a branch ref; got ${GITHUB_REF_TYPE}."
+            echo "Display archive persistence requires a branch ref; got ${GITHUB_REF_TYPE}."
             exit 1
           fi
-          if [ -n "${HITS_CAPTURE_PATH}" ]; then
-            git add -f -- "${HITS_CAPTURE_PATH}"
+          if [ -z "${HITS_DISPLAY_PATH}" ] || [ -z "${HHR_DISPLAY_PATH}" ]; then
+            echo "Both trimmed display archives are required for one durable commit."
+            exit 1
           fi
-          if [ -n "${HHR_CAPTURE_PATH}" ]; then
-            git add -f -- "${HHR_CAPTURE_PATH}"
-          fi
+          git add -f -- "${HITS_DISPLAY_PATH}" "${HHR_DISPLAY_PATH}"
           if git diff --cached --quiet; then
-            echo "No successful immutable capture was staged."
+            echo "No trimmed display archives were staged."
             exit 1
           fi
-          node -e 'const cp=require("node:child_process");const staged=cp.execFileSync("git",["diff","--cached","--name-only"],{encoding:"utf8"}).trim().split(/\r?\n/u).filter(Boolean);const allowed=/^artifacts\/board-archives\/(?:batter-hits|batter-hhr)\/captures\/[^/]+\.json$/u;const invalid=staged.filter((value)=>!allowed.test(value));if(invalid.length>0)throw new Error(`Refusing to persist non-capture paths: ${invalid.join(", ")}`);console.log(`STAGED IMMUTABLE CAPTURES\t${staged.length}`);'
-          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "chore: persist prospective board archives [skip ci]"
+          node -e 'const cp=require("node:child_process");const staged=cp.execFileSync("git",["diff","--cached","--name-only"],{encoding:"utf8"}).trim().split(/\r?\n/u).filter(Boolean);const allowed=/^artifacts\/display-archives\/(batter-hits|batter-hhr)\/captures\/\d{8}T\d{9}Z--[a-f0-9]{64}\.json$/u;const invalid=staged.filter((value)=>!allowed.test(value));if(invalid.length>0)throw new Error(`Refusing to persist non-display paths: ${invalid.join(", ")}`);const markets=new Set(staged.map((value)=>allowed.exec(value)?.[1]).filter(Boolean));if(staged.length!==2||markets.size!==2)throw new Error(`Expected exactly two trimmed display archives, one per market; staged ${staged.length}.`);console.log(`STAGED TRIMMED DISPLAY ARCHIVES\t${staged.length}`);'
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "chore: persist trimmed display archives [skip ci]"
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Save verified current-season shards
@@ -165,18 +197,6 @@ jobs:
           path: artifacts/board-archives/batter-hhr
           key: m10-hhr-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
 
-      - name: Upload archive and diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: m9-board-archive-${{ github.run_id }}-${{ github.run_attempt }}
-          if-no-files-found: warn
-          retention-days: 90
-          path: |
-            artifacts/board-archives/batter-hits/**
-            artifacts/board-archives/batter-hhr/**
-            artifacts/workflow-logs/**
-
       - name: Verify archive run status
         if: always()
         env:
@@ -184,7 +204,8 @@ jobs:
           HITS_IDENTIFY_OUTCOME: ${{ steps.identify-hits-capture.outcome }}
           HHR_CAPTURE_OUTCOME: ${{ steps.capture-hhr.outcome }}
           HHR_IDENTIFY_OUTCOME: ${{ steps.identify-hhr-capture.outcome }}
-          PERSIST_OUTCOME: ${{ steps.persist-captures.outcome }}
+          DISPLAY_OUTCOME: ${{ steps.build-display-archives.outcome }}
+          PERSIST_OUTCOME: ${{ steps.persist-display-archives.outcome }}
         run: |
           set -euo pipefail
           if [ "${HITS_CAPTURE_OUTCOME}" != "success" ]; then
@@ -203,8 +224,12 @@ jobs:
             echo "HHR immutable capture identification outcome: ${HHR_IDENTIFY_OUTCOME}"
             exit 1
           fi
-          if [ "${PERSIST_OUTCOME}" != "success" ]; then
-            echo "Durable archive persistence outcome: ${PERSIST_OUTCOME}"
+          if [ "${DISPLAY_OUTCOME}" != "success" ]; then
+            echo "Trimmed display archive build outcome: ${DISPLAY_OUTCOME}"
             exit 1
           fi
-          echo "Both immutable board captures were durably persisted."
+          if [ "${PERSIST_OUTCOME}" != "success" ]; then
+            echo "Durable trimmed display archive persistence outcome: ${PERSIST_OUTCOME}"
+            exit 1
+          fi
+          echo "Both full captures remain in the archive ledger/artifact and both trimmed display archives were durably persisted."
