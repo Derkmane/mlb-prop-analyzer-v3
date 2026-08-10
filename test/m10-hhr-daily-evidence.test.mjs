@@ -339,9 +339,15 @@ test('HHR cumulative evidence includes the Step 3 seed, fails duplicate capture 
   );
 });
 
-test('existing daily workflows carry the sibling HHR ledger, guard every piped command with pipefail, and always upload evidence', async () => {
+test('daily workflows keep full ledgers in cache/artifacts and durably commit only trimmed display and cumulative reports', async () => {
   const captureWorkflow = await readFile('.github/workflows/m9-board-archive.yml', 'utf8');
   assert.match(captureWorkflow, /cron:\s*'15 21 \* \* \*'/u);
+  assert.match(captureWorkflow, /permissions:\s*\n\s*contents:\s*write/u);
+  assert.match(captureWorkflow, /Snapshot immutable archive ledgers/u);
+  assert.match(captureWorkflow, /id:\s*capture-hits/u);
+  assert.match(captureWorkflow, /id:\s*identify-hits-capture/u);
+  assert.match(captureWorkflow, /id:\s*capture-hhr/u);
+  assert.match(captureWorkflow, /id:\s*identify-hhr-capture/u);
   assert.match(captureWorkflow, /archive-m10-batter-hhr-board\.mjs/u);
   assert.match(captureWorkflow, /artifacts\/board-archives\/batter-hhr/u);
   assert.match(captureWorkflow, /m10-hhr-board-archive-ledger-/u);
@@ -349,16 +355,64 @@ test('existing daily workflows carry the sibling HHR ledger, guard every piped c
     captureWorkflow,
     /set -euo pipefail[\s\S]*archive-m10-batter-hhr-board\.mjs 2>&1 \| tee/u,
   );
-  assert.ok((captureWorkflow.match(/if:\s*always\(\)/gu) ?? []).length >= 4);
+  assert.match(
+    captureWorkflow,
+    /if:\s*steps\.capture-hits\.outcome == 'success' && steps\.identify-hits-capture\.outcome == 'success'/u,
+  );
+  assert.match(captureWorkflow, /Build immutable trimmed display archives/u);
+  assert.match(
+    captureWorkflow,
+    /build-phase1-display-archive\.mjs batter-hits "\$\{HITS_CAPTURE_PATH\}" "\$\{HITS_DISPLAY_PATH\}"/u,
+  );
+  assert.match(
+    captureWorkflow,
+    /build-phase1-display-archive\.mjs batter-hhr "\$\{HHR_CAPTURE_PATH\}" "\$\{HHR_DISPLAY_PATH\}"/u,
+  );
+  assert.ok(
+    captureWorkflow.indexOf('Upload full archives and diagnostics before repository persistence') <
+      captureWorkflow.indexOf('Persist trimmed display archives to repository'),
+  );
+  assert.match(
+    captureWorkflow,
+    /git add -f -- "\$\{HITS_DISPLAY_PATH\}" "\$\{HHR_DISPLAY_PATH\}"/u,
+  );
+  assert.match(captureWorkflow, /Refusing to persist non-display paths/u);
+  assert.match(captureWorkflow, /Expected exactly two trimmed display archives, one per market/u);
+  assert.match(
+    captureWorkflow,
+    /commit -m "chore: persist trimmed display archives \[skip ci\]"/u,
+  );
+  assert.match(captureWorkflow, /git push origin "HEAD:\$\{GITHUB_REF_NAME\}"/u);
+  assert.doesNotMatch(captureWorkflow, /git add -f -- "\$\{HITS_CAPTURE_PATH\}"/u);
+  assert.doesNotMatch(captureWorkflow, /git add -f -- "\$\{HHR_CAPTURE_PATH\}"/u);
+  assert.doesNotMatch(captureWorkflow, /git push origin[^\n]*main/u);
+  assert.doesNotMatch(captureWorkflow, /git add[^\n]*(?:diagnostics|workflow-logs|model-artifacts|PROJECT_)/u);
+  assert.match(captureWorkflow, /Verify archive run status/u);
+  assert.ok((captureWorkflow.match(/if:\s*always\(\)/gu) ?? []).length >= 7);
 
   const gradeWorkflow = await readFile('.github/workflows/m10-grade-pending-archives.yml', 'utf8');
   assert.match(gradeWorkflow, /cron:\s*'0 9 \* \* \*'/u);
+  assert.match(gradeWorkflow, /actions:\s*read[\s\S]*contents:\s*write/u);
   assert.match(gradeWorkflow, /grade-m10-hhr-pending-archives\.mjs/u);
   assert.match(gradeWorkflow, /artifacts\/board-archives\/batter-hhr/u);
   assert.match(gradeWorkflow, /m10-hhr-board-archive-ledger-/u);
   assert.match(
     gradeWorkflow,
     /set -euo pipefail[\s\S]*grade-m10-hhr-pending-archives\.mjs 2>&1 \| tee/u,
+  );
+  assert.match(gradeWorkflow, /build-m10-multi-market-cumulative-grades\.mjs/u);
+  assert.ok(
+    gradeWorkflow.indexOf('Upload immutable grades, status evidence, cumulative evidence, and provider evidence') <
+      gradeWorkflow.indexOf('Persist small cumulative grading report to repository'),
+  );
+  assert.match(
+    gradeWorkflow,
+    /git add -f -- artifacts\/board-archives\/cumulative\/m10-multi-market-cumulative-selected-side-v1--\*\.json/u,
+  );
+  assert.match(gradeWorkflow, /Refusing to persist non-cumulative paths/u);
+  assert.match(
+    gradeWorkflow,
+    /commit -m "chore: persist cumulative grading display \[skip ci\]"/u,
   );
   assert.ok((gradeWorkflow.match(/if:\s*always\(\)/gu) ?? []).length >= 4);
   assert.doesNotMatch(`${captureWorkflow}\n${gradeWorkflow}`, /productionEnabled:\s*true/u);
@@ -371,10 +425,16 @@ test('HHR diagnostics are persisted before status and cumulative thresholds are 
     captureScript.indexOf('writeFile(preGateDiagnosticPath') <
       captureScript.indexOf('const archive = buildM10HhrProspectiveArchive'),
   );
-  assert.ok(captureScript.indexOf('writeFile(\n  resolutionDiagnosticPath') < captureScript.indexOf('const rows = []'));
+  assert.ok(
+    captureScript.indexOf('writeFile(\n  resolutionDiagnosticPath') <
+      captureScript.indexOf('const rows = []'),
+  );
 
   const gradeScript = await readFile('scripts/grade-m10-hhr-pending-archives.mjs', 'utf8');
-  assert.ok(gradeScript.indexOf('persistImmutableJson(statusPath') < gradeScript.indexOf('if (!statusEvidence.readyToGrade)'));
+  assert.ok(
+    gradeScript.indexOf('persistImmutableJson(statusPath') <
+      gradeScript.indexOf('if (!statusEvidence.readyToGrade)'),
+  );
   assert.ok(
     gradeScript.indexOf('persistImmutableJson(cumulativeDiagnosticPath') <
       gradeScript.indexOf('const cumulative = buildM10HhrCumulativeSelectedSideReport'),
@@ -387,6 +447,7 @@ test('HHR daily evidence scripts pass Node syntax checking', () => {
     'scripts/m10-hhr-board-availability-utils.mjs',
     'scripts/archive-m10-batter-hhr-board.mjs',
     'scripts/grade-m10-hhr-pending-archives.mjs',
+    'scripts/build-phase1-display-archive.mjs',
   ]) {
     const result = spawnSync(process.execPath, ['--check', scriptPath], { encoding: 'utf8' });
     assert.equal(result.status, 0, `${scriptPath}\n${result.stderr}`);
