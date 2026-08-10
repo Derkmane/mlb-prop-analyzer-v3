@@ -339,9 +339,15 @@ test('HHR cumulative evidence includes the Step 3 seed, fails duplicate capture 
   );
 });
 
-test('existing daily workflows carry the sibling HHR ledger, guard every piped command with pipefail, and always upload evidence', async () => {
+test('existing daily workflows durably persist only successful immutable capture JSON and always preserve evidence', async () => {
   const captureWorkflow = await readFile('.github/workflows/m9-board-archive.yml', 'utf8');
   assert.match(captureWorkflow, /cron:\s*'15 21 \* \* \*'/u);
+  assert.match(captureWorkflow, /permissions:\s*\n\s*contents:\s*write/u);
+  assert.match(captureWorkflow, /Snapshot immutable archive ledgers/u);
+  assert.match(captureWorkflow, /id:\s*capture-hits/u);
+  assert.match(captureWorkflow, /id:\s*identify-hits-capture/u);
+  assert.match(captureWorkflow, /id:\s*capture-hhr/u);
+  assert.match(captureWorkflow, /id:\s*identify-hhr-capture/u);
   assert.match(captureWorkflow, /archive-m10-batter-hhr-board\.mjs/u);
   assert.match(captureWorkflow, /artifacts\/board-archives\/batter-hhr/u);
   assert.match(captureWorkflow, /m10-hhr-board-archive-ledger-/u);
@@ -349,7 +355,22 @@ test('existing daily workflows carry the sibling HHR ledger, guard every piped c
     captureWorkflow,
     /set -euo pipefail[\s\S]*archive-m10-batter-hhr-board\.mjs 2>&1 \| tee/u,
   );
-  assert.ok((captureWorkflow.match(/if:\s*always\(\)/gu) ?? []).length >= 4);
+  assert.match(
+    captureWorkflow,
+    /if:\s*steps\.capture-hits\.outcome == 'success' && steps\.identify-hits-capture\.outcome == 'success'/u,
+  );
+  assert.match(captureWorkflow, /git add -f -- "\$\{HITS_CAPTURE_PATH\}"/u);
+  assert.match(captureWorkflow, /git add -f -- "\$\{HHR_CAPTURE_PATH\}"/u);
+  assert.match(captureWorkflow, /Refusing to persist non-capture paths/u);
+  assert.match(
+    captureWorkflow,
+    /commit -m "chore: persist prospective board archives \[skip ci\]"/u,
+  );
+  assert.match(captureWorkflow, /git push origin "HEAD:\$\{GITHUB_REF_NAME\}"/u);
+  assert.doesNotMatch(captureWorkflow, /git push origin[^\n]*main/u);
+  assert.doesNotMatch(captureWorkflow, /git add[^\n]*(?:diagnostics|workflow-logs|model-artifacts|PROJECT_)/u);
+  assert.match(captureWorkflow, /Verify archive run status/u);
+  assert.ok((captureWorkflow.match(/if:\s*always\(\)/gu) ?? []).length >= 7);
 
   const gradeWorkflow = await readFile('.github/workflows/m10-grade-pending-archives.yml', 'utf8');
   assert.match(gradeWorkflow, /cron:\s*'0 9 \* \* \*'/u);
