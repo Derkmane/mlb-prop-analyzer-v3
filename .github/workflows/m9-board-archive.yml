@@ -16,7 +16,7 @@ on:
       - .github/workflows/m9-board-archive.yml
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: m9-prospective-board-archive
@@ -79,6 +79,11 @@ jobs:
           restore-keys: |
             m10-hhr-board-archive-ledger-
 
+      - name: Snapshot immutable archive ledgers
+        run: |
+          mkdir -p artifacts/workflow-logs
+          node -e 'const fs=require("node:fs"),path=require("node:path");for(const [key,root] of [["hits","artifacts/board-archives/batter-hits"],["hhr","artifacts/board-archives/batter-hhr"]]){const dir=path.join(root,"captures");const names=fs.existsSync(dir)?fs.readdirSync(dir,{withFileTypes:true}).filter((entry)=>entry.isFile()&&entry.name.endsWith(".json")).map((entry)=>entry.name).sort():[];fs.writeFileSync(`artifacts/workflow-logs/${key}-captures-before.json`,`${JSON.stringify(names)}\n`);}'
+
       - name: Set history end date
         run: |
           node -e "const d=new Date();d.setUTCDate(d.getUTCDate()-1);process.stdout.write('M8_CAPTURE_END_DATE='+d.toISOString().slice(0,10)+'\n')" >> "$GITHUB_ENV"
@@ -87,16 +92,57 @@ jobs:
         run: node scripts/capture-m8-current-season-pa-shards.mjs
 
       - name: Run immutable M9 Batter Hits board archiver
+        id: capture-hits
         run: |
           set -euo pipefail
           mkdir -p artifacts/workflow-logs
           node scripts/archive-m9-batter-hits-board.mjs 2>&1 | tee artifacts/workflow-logs/m9-board-archive.log
 
+      - name: Identify new immutable Batter Hits capture
+        id: identify-hits-capture
+        if: always() && steps.capture-hits.outcome == 'success'
+        run: |
+          node -e 'const fs=require("node:fs"),path=require("node:path");const dir="artifacts/board-archives/batter-hits/captures";const before=new Set(JSON.parse(fs.readFileSync("artifacts/workflow-logs/hits-captures-before.json","utf8")));const after=fs.existsSync(dir)?fs.readdirSync(dir,{withFileTypes:true}).filter((entry)=>entry.isFile()&&entry.name.endsWith(".json")).map((entry)=>entry.name).sort():[];const added=after.filter((name)=>!before.has(name));if(added.length!==1)throw new Error(`Expected exactly one new immutable Batter Hits capture after successful archiver; found ${added.length}.`);fs.appendFileSync(process.env.GITHUB_OUTPUT,`path=${path.join(dir,added[0])}\n`);console.log(`NEW BATTER HITS CAPTURE\t${path.join(dir,added[0])}`);'
+
       - name: Run immutable HHR evidence archiver from the same prospective slate
+        id: capture-hhr
+        if: steps.capture-hits.outcome == 'success' && steps.identify-hits-capture.outcome == 'success'
         run: |
           set -euo pipefail
           mkdir -p artifacts/workflow-logs
           node --import ./scripts/m10-hhr-raw-board-preload.mjs scripts/archive-m10-batter-hhr-board.mjs 2>&1 | tee artifacts/workflow-logs/m10-hhr-board-archive.log
+
+      - name: Identify new immutable HHR capture
+        id: identify-hhr-capture
+        if: always() && steps.capture-hhr.outcome == 'success'
+        run: |
+          node -e 'const fs=require("node:fs"),path=require("node:path");const dir="artifacts/board-archives/batter-hhr/captures";const before=new Set(JSON.parse(fs.readFileSync("artifacts/workflow-logs/hhr-captures-before.json","utf8")));const after=fs.existsSync(dir)?fs.readdirSync(dir,{withFileTypes:true}).filter((entry)=>entry.isFile()&&entry.name.endsWith(".json")).map((entry)=>entry.name).sort():[];const added=after.filter((name)=>!before.has(name));if(added.length!==1)throw new Error(`Expected exactly one new immutable HHR capture after successful archiver; found ${added.length}.`);fs.appendFileSync(process.env.GITHUB_OUTPUT,`path=${path.join(dir,added[0])}\n`);console.log(`NEW HHR CAPTURE\t${path.join(dir,added[0])}`);'
+
+      - name: Persist successful immutable captures to repository
+        id: persist-captures
+        if: always() && (steps.identify-hits-capture.outcome == 'success' || steps.identify-hhr-capture.outcome == 'success')
+        env:
+          HITS_CAPTURE_PATH: ${{ steps.identify-hits-capture.outputs.path }}
+          HHR_CAPTURE_PATH: ${{ steps.identify-hhr-capture.outputs.path }}
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF_TYPE}" != "branch" ]; then
+            echo "Archive persistence requires a branch ref; got ${GITHUB_REF_TYPE}."
+            exit 1
+          fi
+          if [ -n "${HITS_CAPTURE_PATH}" ]; then
+            git add -f -- "${HITS_CAPTURE_PATH}"
+          fi
+          if [ -n "${HHR_CAPTURE_PATH}" ]; then
+            git add -f -- "${HHR_CAPTURE_PATH}"
+          fi
+          if git diff --cached --quiet; then
+            echo "No successful immutable capture was staged."
+            exit 1
+          fi
+          node -e 'const cp=require("node:child_process");const staged=cp.execFileSync("git",["diff","--cached","--name-only"],{encoding:"utf8"}).trim().split(/\r?\n/u).filter(Boolean);const allowed=/^artifacts\/board-archives\/(?:batter-hits|batter-hhr)\/captures\/[^/]+\.json$/u;const invalid=staged.filter((value)=>!allowed.test(value));if(invalid.length>0)throw new Error(`Refusing to persist non-capture paths: ${invalid.join(", ")}`);console.log(`STAGED IMMUTABLE CAPTURES\t${staged.length}`);'
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "chore: persist prospective board archives [skip ci]"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Save verified current-season shards
         if: always()
@@ -130,3 +176,35 @@ jobs:
             artifacts/board-archives/batter-hits/**
             artifacts/board-archives/batter-hhr/**
             artifacts/workflow-logs/**
+
+      - name: Verify archive run status
+        if: always()
+        env:
+          HITS_CAPTURE_OUTCOME: ${{ steps.capture-hits.outcome }}
+          HITS_IDENTIFY_OUTCOME: ${{ steps.identify-hits-capture.outcome }}
+          HHR_CAPTURE_OUTCOME: ${{ steps.capture-hhr.outcome }}
+          HHR_IDENTIFY_OUTCOME: ${{ steps.identify-hhr-capture.outcome }}
+          PERSIST_OUTCOME: ${{ steps.persist-captures.outcome }}
+        run: |
+          set -euo pipefail
+          if [ "${HITS_CAPTURE_OUTCOME}" != "success" ]; then
+            echo "Batter Hits archive capture outcome: ${HITS_CAPTURE_OUTCOME}"
+            exit 1
+          fi
+          if [ "${HITS_IDENTIFY_OUTCOME}" != "success" ]; then
+            echo "Batter Hits immutable capture identification outcome: ${HITS_IDENTIFY_OUTCOME}"
+            exit 1
+          fi
+          if [ "${HHR_CAPTURE_OUTCOME}" != "success" ]; then
+            echo "HHR archive capture outcome: ${HHR_CAPTURE_OUTCOME}"
+            exit 1
+          fi
+          if [ "${HHR_IDENTIFY_OUTCOME}" != "success" ]; then
+            echo "HHR immutable capture identification outcome: ${HHR_IDENTIFY_OUTCOME}"
+            exit 1
+          fi
+          if [ "${PERSIST_OUTCOME}" != "success" ]; then
+            echo "Durable archive persistence outcome: ${PERSIST_OUTCOME}"
+            exit 1
+          fi
+          echo "Both immutable board captures were durably persisted."
