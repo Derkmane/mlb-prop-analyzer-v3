@@ -153,13 +153,13 @@ function hhrDisplayRow(raw, gameById, index) {
   }
   const lineage = object(row.inputLineage, `HHR rows[${index}].inputLineage`);
   return Object.freeze({
-    rank: Number.isSafeInteger(row.rank) && row.rank > 0 ? row.rank : null,
+    rank: null,
     providerEventId: nonemptyString(row.providerEventId, `HHR row ${index} providerEventId`),
     providerGameId: integerOrNull(row.providerGameId, `HHR row ${index} providerGameId`),
     providerPlayerId: integerOrNull(row.providerPlayerId, `HHR row ${index} providerPlayerId`),
-    providerTeamId: null,
+    providerTeamId: integerOrNull(row.providerTeamId, `HHR row ${index} providerTeamId`),
     playerName: nonemptyString(row.playerName, `HHR row ${index} playerName`),
-    teamName: null,
+    teamName: nonemptyString(row.teamName, `HHR row ${index} teamName`),
     homeTeamName: nonemptyString(game.homeTeamName, `HHR row ${index} homeTeamName`),
     awayTeamName: nonemptyString(game.awayTeamName, `HHR row ${index} awayTeamName`),
     eventCommenceTime: isoTimestamp(game.date, `HHR row ${index} eventCommenceTime`),
@@ -229,6 +229,13 @@ export function buildPhase1DisplayArchive({ market, fullArchive, fullArchiveFile
     );
   }
   if (rows.length === 0) throw new Error(`${market} display archive cannot be empty.`);
+  rows = Object.freeze(
+    [...rows]
+      .sort((left, right) =>
+        right.pWinGivenGrades - left.pWinGivenGrades || left.pVoid - right.pVoid,
+      )
+      .map((row, index) => Object.freeze({ ...row, rank: index + 1 })),
+  );
 
   return Object.freeze({
     displayArchiveVersion: PHASE1_DISPLAY_ARCHIVE_VERSION,

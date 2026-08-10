@@ -99,9 +99,11 @@ function hhrFullArchive() {
         providerEventId: 'event-hhr',
         providerGameId: 5059554,
         providerPlayerId: 202,
+        providerTeamId: 20,
         providerMarketKey: 'batter_hits_runs_rbis_alternate',
         offerType: 'alternate',
         playerName: 'HHR Player',
+        teamName: 'HHR Team',
         lineupStatus: 'confirmed',
         selectedSide: 'higher',
         postedLine: 0.5,
@@ -205,13 +207,13 @@ test('HHR display archive copies exact archived settlement probabilities and omi
   assert.equal(display.modelVersion, 'hhr-model-v2');
   assert.equal(display.distributionBuilderVersion, 'hhr-distribution-v1');
   assert.deepEqual(display.rows[0], {
-    rank: null,
+    rank: 1,
     providerEventId: 'event-hhr',
     providerGameId: 5059554,
     providerPlayerId: 202,
-    providerTeamId: null,
+    providerTeamId: 20,
     playerName: 'HHR Player',
-    teamName: null,
+    teamName: 'HHR Team',
     homeTeamName: 'Home Team',
     awayTeamName: 'Away Team',
     eventCommenceTime: '2026-08-10T23:10:00.000Z',
@@ -230,6 +232,45 @@ test('HHR display archive copies exact archived settlement probabilities and omi
     pWinGivenGrades: 0.67,
     lineupStatus: 'confirmed',
   });
+});
+
+test('trimmed display rows use canonical probability order and assign fresh ranks', () => {
+  const archive = hhrFullArchive();
+  const base = archive.rows[0];
+  archive.rows = [
+    base,
+    {
+      ...base,
+      providerPlayerId: 203,
+      playerName: 'HHR Player B',
+      archivedPWin: 0.72,
+      archivedPLoss: 0.18,
+      archivedPVoid: 0.10,
+      archivedPWinGivenGrades: 0.80,
+    },
+    {
+      ...base,
+      providerPlayerId: 204,
+      playerName: 'HHR Player C',
+      archivedPWin: 0.76,
+      archivedPLoss: 0.19,
+      archivedPVoid: 0.05,
+      archivedPWinGivenGrades: 0.80,
+    },
+  ];
+  const display = buildPhase1DisplayArchive({
+    market: 'batter-hhr',
+    fullArchive: archive,
+    fullArchiveFileSha256: SHA_A,
+  });
+  assert.deepEqual(
+    display.rows.map((row) => [row.rank, row.playerName, row.pWinGivenGrades, row.pVoid]),
+    [
+      [1, 'HHR Player C', 0.80, 0.05],
+      [2, 'HHR Player B', 0.80, 0.10],
+      [3, 'HHR Player', 0.67, 0],
+    ],
+  );
 });
 
 test('display persistence is immutable and duplicate capture identity fails closed', async () => {
