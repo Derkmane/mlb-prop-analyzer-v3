@@ -96,12 +96,16 @@ test('identical cumulative source reports produce byte-identical combined eviden
   assert.equal(first.sourceSetSha256, second.sourceSetSha256);
 });
 
-test('HHR cumulative runtime derives generatedAt from immutable source reports rather than wall-clock time', async () => {
+test('HHR cumulative runtime derives generatedAt from immutable Step 3 grade and later grade reports rather than wall-clock time', async () => {
   const script = await readFile('scripts/grade-m10-hhr-pending-archives.mjs', 'utf8');
   const sourceTimeIndex = script.indexOf('const cumulativeGeneratedAt = [');
   const buildIndex = script.indexOf('const cumulative = buildM10HhrCumulativeSelectedSideReport');
   assert.ok(sourceTimeIndex >= 0);
   assert.ok(sourceTimeIndex < buildIndex);
+  const sourceBlock = script.slice(sourceTimeIndex, buildIndex);
+  assert.match(sourceBlock, /step3Archive\.gradedAt/u);
+  assert.doesNotMatch(sourceBlock, /step3Archive\.generatedAt/u);
+  assert.match(sourceBlock, /gradeReports\.map\(\(report\) => report\.gradedAt\)/u);
   const buildBlock = script.slice(buildIndex, script.indexOf('const cumulativePath', buildIndex));
   assert.match(buildBlock, /generatedAt: cumulativeGeneratedAt/u);
   assert.doesNotMatch(buildBlock, /new Date/u);
