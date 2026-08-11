@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildPhase2DisplayEnrichment } from '../scripts/phase2-display-enrichment-utils.mjs';
+import {
+  buildPhase2DisplayEnrichment,
+  capturePhase2DisplayEnrichment,
+  phase2EnrichmentEnabled,
+} from '../scripts/phase2-display-enrichment-utils.mjs';
 
 const game = (id, date, status = 'STATUS_FINAL') => ({
   id, date: `${date}T19:00:00.000Z`, status,
@@ -70,4 +74,108 @@ test('starter season block and ERA come from season_stats', () => {
   assert.deepEqual(entry(result).opposingStarter.season, {
     inningsPitched: '123.1', earnedRuns: 40, strikeouts: 130, whip: 1.08,
   });
+});
+
+test('Phase 2 kill switch skips lookups and records empty enrichment reasons', async () => {
+  const previous = process.env.PHASE2_ENRICHMENT;
+  process.env.PHASE2_ENRICHMENT = 'off';
+  try {
+    const result = await capturePhase2DisplayEnrichment({
+      captureDateUtc: '2026-08-10', players: [player],
+      fetchPage: () => assert.fail('disabled enrichment must not fetch'),
+    });
+    assert.deepEqual(entry(result).lastFiveGames, {
+      count: 0, games: [], failureReason: 'disabled-by-flag',
+    });
+    assert.deepEqual(entry(result).opposingStarter, { failureReason: 'disabled-by-flag' });
+    assert.deepEqual(result.diagnostics.failureReasons, { 'disabled-by-flag': 1 });
+  } finally {
+    if (previous === undefined) delete process.env.PHASE2_ENRICHMENT;
+    else process.env.PHASE2_ENRICHMENT = previous;
+  }
+});
+
+test('Phase 2 flag defaults on and rejects unsupported values', () => {
+  assert.equal(phase2EnrichmentEnabled(undefined), true);
+  assert.equal(phase2EnrichmentEnabled('on'), true);
+  assert.equal(phase2EnrichmentEnabled('off'), false);
+  assert.throws(() => phase2EnrichmentEnabled('yes'), /must be "on" or "off"/u);
+});
+
+test('capture batches stats with game_ids[] and player_ids[] and follows pagination', async () => {
+  const previous = process.env.PHASE2_ENRICHMENT;
+  process.env.PHASE2_ENRICHMENT = 'on';
+  const statsUrls = [];
+  try {
+    const result = await capturePhase2DisplayEnrichment({
+      captureDateUtc: '2026-08-10', players: [player], timeoutMs: 1_000,
+      fetchPage: async (url) => {
+        if (url.pathname.endsWith('/games')) {
+          return url.searchParams.get('cursor') === null && url.searchParams.getAll('dates[]').includes('2026-08-01')
+            ? { data: [game(1, '2026-08-01')], meta: {} }
+            : { data: [], meta: {} };
+        }
+        if (url.pathname.endsWith('/stats')) {
+          statsUrls.push(url);
+          return url.searchParams.get('cursor') === null
+            ? { data: [], meta: { next_cursor: 2 } }
+            : { data: [batting(1, 4)], meta: {} };
+        }
+        return { data: [], meta: {} };
+      },
+    });
+    assert.equal(statsUrls.length, 2);
+    assert.deepEqual(statsUrls[0].searchParams.getAll('game_ids[]'), ['1']);
+    assert.deepEqual(statsUrls[0].searchParams.getAll('player_ids[]').sort(), ['7', '99']);
+    assert.equal(statsUrls[1].searchParams.get('cursor'), '2');
+    assert.equal(entry(result).lastFiveGames.count, 1);
+  } finally {
+    if (previous === undefined) delete process.env.PHASE2_ENRICHMENT;
+    else process.env.PHASE2_ENRICHMENT = previous;
+  }
+});
+
+test('repeated stats pagination cursor fails soft without emitting partial logs', async () => {
+  const previous = process.env.PHASE2_ENRICHMENT;
+  process.env.PHASE2_ENRICHMENT = 'on';
+  try {
+    const result = await capturePhase2DisplayEnrichment({
+      captureDateUtc: '2026-08-10', players: [player], timeoutMs: 1_000,
+      fetchPage: async (url) => {
+        if (url.pathname.endsWith('/games')) {
+          return url.searchParams.getAll('dates[]').includes('2026-08-01')
+            ? { data: [game(1, '2026-08-01')], meta: {} }
+            : { data: [], meta: {} };
+        }
+        if (url.pathname.endsWith('/stats')) {
+          return { data: [batting(1, 4)], meta: { next_cursor: 2 } };
+        }
+        return { data: [], meta: {} };
+      },
+    });
+    assert.deepEqual(entry(result).lastFiveGames.games, []);
+    assert.equal(entry(result).lastFiveGames.failureReason, 'stats-page-truncated');
+    assert.deepEqual(result.diagnostics.failureReasons, { 'stats-page-truncated': 1 });
+  } finally {
+    if (previous === undefined) delete process.env.PHASE2_ENRICHMENT;
+    else process.env.PHASE2_ENRICHMENT = previous;
+  }
+});
+
+test('whole enrichment timeout fails soft and reports a counted reason', async () => {
+  const previous = process.env.PHASE2_ENRICHMENT;
+  process.env.PHASE2_ENRICHMENT = 'on';
+  try {
+    const result = await capturePhase2DisplayEnrichment({
+      captureDateUtc: '2026-08-10', players: [player], timeoutMs: 10,
+      fetchPage: (_url, _label, { signal }) => new Promise((_resolve, reject) => {
+        signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+      }),
+    });
+    assert.equal(entry(result).lastFiveGames.failureReason, 'enrichment-timeout');
+    assert.deepEqual(result.diagnostics.failureReasons, { 'enrichment-timeout': 1 });
+  } finally {
+    if (previous === undefined) delete process.env.PHASE2_ENRICHMENT;
+    else process.env.PHASE2_ENRICHMENT = previous;
+  }
 });

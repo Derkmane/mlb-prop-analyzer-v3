@@ -3,6 +3,14 @@ import { createHash } from 'node:crypto';
 export const PHASE2_DISPLAY_ENRICHMENT_VERSION = 1;
 export const PHASE2_DISPLAY_ENRICHMENT_CONTRACT = 'phase2-last-five-and-opposing-starter-v1';
 
+export function phase2EnrichmentEnabled(value = process.env.PHASE2_ENRICHMENT) {
+  const normalized = value ?? 'on';
+  if (normalized !== 'on' && normalized !== 'off') {
+    throw new Error('PHASE2_ENRICHMENT must be "on" or "off".');
+  }
+  return normalized === 'on';
+}
+
 const key = (gameId, playerId) => `${gameId}:${playerId}`;
 
 function integer(value) {
@@ -135,7 +143,7 @@ export function buildPhase2DisplayEnrichment({
       providerGameId: player.providerGameId,
       providerPlayerId: player.providerPlayerId,
       lastFiveGames: Object.freeze({ count: lastFive.length, games: Object.freeze(lastFive), failureReason }),
-      opposingStarter: Object.freeze({
+      opposingStarter: failureReason !== null ? Object.freeze({ failureReason }) : Object.freeze({
         name: player.opposingStarterName ?? null,
         throwingHand: player.opposingStarterHand ?? null,
         era: typeof season?.pitching_era === 'number' && Number.isFinite(season.pitching_era) ? season.pitching_era : null,
@@ -168,56 +176,140 @@ export function attachPhase2DisplayEnrichment(archive, displayEnrichment) {
   });
 }
 
-async function pagedRows({ endpoint, ids, idParameter, fetchPage }) {
+async function pagedRows({ endpoint, parameterGroups, fetchPage, signal }) {
   const rows = [];
-  for (let offset = 0; offset < ids.length; offset += 100) {
-    const batch = ids.slice(offset, offset + 100);
+  for (let batchIndex = 0; batchIndex < parameterGroups.length; batchIndex += 1) {
+    const parameters = parameterGroups[batchIndex];
     let cursor = null;
+    const seenCursors = new Set();
     do {
       const url = new URL(`https://api.balldontlie.io/mlb/v1/${endpoint}`);
-      for (const id of batch) url.searchParams.append(idParameter, String(id));
+      for (const [name, values] of Object.entries(parameters)) {
+        for (const value of values) url.searchParams.append(name, String(value));
+      }
       url.searchParams.set('per_page', '100');
       if (cursor !== null) url.searchParams.set('cursor', String(cursor));
-      const body = await fetchPage(url, `Phase 2 ${endpoint} batch ${Math.floor(offset / 100) + 1}`);
+      const body = await fetchPage(url, `Phase 2 ${endpoint} batch ${batchIndex + 1}`, { signal });
       if (!Array.isArray(body?.data)) throw new Error(`Phase 2 ${endpoint} response has no data array.`);
       rows.push(...body.data);
       cursor = body?.meta?.next_cursor ?? null;
+      if (cursor !== null) {
+        const cursorKey = String(cursor);
+        if (seenCursors.has(cursorKey)) {
+          const error = new Error(`Phase 2 ${endpoint} pagination repeated cursor ${cursorKey}.`);
+          error.code = endpoint === 'stats' ? 'STATS_PAGE_TRUNCATED' : 'ENRICHMENT_PAGE_TRUNCATED';
+          throw error;
+        }
+        seenCursors.add(cursorKey);
+      }
     } while (cursor !== null);
   }
   return rows;
 }
 
-export async function capturePhase2DisplayEnrichment({ captureDateUtc, players, fetchPage }) {
-  const playerIds = [...new Set(players.flatMap((player) => [
-    player.providerPlayerId, player.opposingStarterPitcherId,
-  ]))].filter(Number.isSafeInteger);
-  let statsRows;
-  try {
-    statsRows = await pagedRows({ endpoint: 'stats', ids: playerIds, idParameter: 'player_ids[]', fetchPage });
-  } catch {
+function chunks(values, size) {
+  return Array.from({ length: Math.ceil(values.length / size) }, (_, index) =>
+    values.slice(index * size, (index + 1) * size));
+}
+
+function utcDatesBefore(captureDateUtc) {
+  const end = new Date(`${captureDateUtc}T00:00:00.000Z`);
+  const start = new Date(Date.UTC(end.getUTCFullYear(), 0, 1));
+  const dates = [];
+  for (let cursor = start; cursor < end; cursor = new Date(cursor.getTime() + 86_400_000)) {
+    dates.push(cursor.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
+function emptyEnrichment(captureDateUtc, players, reason) {
+  return buildPhase2DisplayEnrichment({
+    captureDateUtc, players, games: [], statsRows: [], seasonStatsRows: [],
+    failureReasonByPlayerId: new Map(players.map((player) => [player.providerPlayerId, reason])),
+  });
+}
+
+export async function capturePhase2DisplayEnrichment({
+  captureDateUtc,
+  players,
+  fetchPage,
+  timeoutMs = 120_000,
+}) {
+  if (!phase2EnrichmentEnabled()) {
+    const reason = 'disabled-by-flag';
+    const byGamePlayerKey = Object.fromEntries(players.map((player) => [
+      key(player.providerGameId, player.providerPlayerId),
+      Object.freeze({
+        providerGameId: player.providerGameId,
+        providerPlayerId: player.providerPlayerId,
+        lastFiveGames: Object.freeze({ count: 0, games: Object.freeze([]), failureReason: reason }),
+        opposingStarter: Object.freeze({ failureReason: reason }),
+      }),
+    ]));
+    return Object.freeze({
+      version: PHASE2_DISPLAY_ENRICHMENT_VERSION,
+      contract: PHASE2_DISPLAY_ENRICHMENT_CONTRACT,
+      keyFormat: 'providerGameId:providerPlayerId',
+      byGamePlayerKey: Object.freeze(byGamePlayerKey),
+      diagnostics: Object.freeze({
+        playerCount: players.length,
+        failureReasons: Object.freeze({ [reason]: players.length }),
+      }),
+    });
+  }
+  const controller = new AbortController();
+  let timer;
+  const work = async () => {
+    const games = await pagedRows({
+      endpoint: 'games',
+      parameterGroups: chunks(utcDatesBefore(captureDateUtc), 100).map((dates) => ({ 'dates[]': dates })),
+      fetchPage,
+      signal: controller.signal,
+    });
+    const gameIds = [...new Set(games.map((game) => game?.id ?? game?.gameId))].filter(Number.isSafeInteger);
+    const playerIds = [...new Set(players.flatMap((player) => [
+      player.providerPlayerId, player.opposingStarterPitcherId,
+    ]))].filter(Number.isSafeInteger);
+    const statsGroups = chunks(gameIds, 100).flatMap((gameBatch) =>
+      chunks(playerIds, 100).map((playerBatch) => ({
+        'game_ids[]': gameBatch,
+        'player_ids[]': playerBatch,
+      })));
+    const statsRows = await pagedRows({
+      endpoint: 'stats', parameterGroups: statsGroups, fetchPage, signal: controller.signal,
+    });
+    const starterIds = [...new Set(players.map((player) => player.opposingStarterPitcherId))]
+      .filter(Number.isSafeInteger);
+    const seasonStatsRows = await pagedRows({
+      endpoint: 'season_stats',
+      parameterGroups: chunks(starterIds, 100).map((ids) => ({ 'player_ids[]': ids })),
+      fetchPage,
+      signal: controller.signal,
+    });
+    const returnedPlayerIds = new Set(statsRows.map((row) => row?.player?.id));
+    const failures = new Map(players
+      .filter((player) => !returnedPlayerIds.has(player.providerPlayerId))
+      .map((player) => [player.providerPlayerId, 'missing-player']));
     return buildPhase2DisplayEnrichment({
-      captureDateUtc, players, games: [], statsRows: [], seasonStatsRows: [],
-      failureReasonByPlayerId: new Map(players.map((player) => [player.providerPlayerId, 'STATS_UNAVAILABLE'])),
+      captureDateUtc, players, games, statsRows, seasonStatsRows, failureReasonByPlayerId: failures,
     });
-  }
-  const gameIds = [...new Set(statsRows.map((row) => row?.game_id))].filter(Number.isSafeInteger);
-  let games;
+  };
   try {
-    games = await pagedRows({ endpoint: 'games', ids: gameIds, idParameter: 'game_ids[]', fetchPage });
-  } catch {
-    return buildPhase2DisplayEnrichment({
-      captureDateUtc, players, games: [], statsRows, seasonStatsRows: [],
-      failureReasonByPlayerId: new Map(players.map((player) => [player.providerPlayerId, 'GAMES_UNAVAILABLE'])),
-    });
+    return await Promise.race([
+      work(),
+      new Promise((resolve) => {
+        timer = setTimeout(() => {
+          controller.abort();
+          resolve(emptyEnrichment(captureDateUtc, players, 'enrichment-timeout'));
+        }, timeoutMs);
+      }),
+    ]);
+  } catch (error) {
+    const reason = error?.code === 'STATS_PAGE_TRUNCATED'
+      ? 'stats-page-truncated'
+      : 'enrichment-http-error';
+    return emptyEnrichment(captureDateUtc, players, reason);
+  } finally {
+    clearTimeout(timer);
   }
-  const starterIds = [...new Set(players.map((player) => player.opposingStarterPitcherId))].filter(Number.isSafeInteger);
-  let seasonStatsRows = [];
-  try {
-    seasonStatsRows = await pagedRows({
-      endpoint: 'season_stats', ids: starterIds, idParameter: 'player_ids[]', fetchPage,
-    });
-  } catch {
-    // A season summary failure must not remove the player or a valid last-five log.
-  }
-  return buildPhase2DisplayEnrichment({ captureDateUtc, players, games, statsRows, seasonStatsRows });
 }

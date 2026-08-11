@@ -2,6 +2,15 @@ name: M9 prospective board archive
 
 on:
   workflow_dispatch:
+    inputs:
+      phase2_enrichment:
+        description: Enable display-only Phase 2 enrichment for this run
+        required: true
+        default: 'off'
+        type: choice
+        options:
+          - 'off'
+          - 'on'
   schedule:
     # 21:15 UTC is 4:15 PM Central during the MLB regular season. With the
     # warm daily shard cache, the board snapshot should land roughly 60-80
@@ -35,6 +44,8 @@ jobs:
       M8_CURRENT_SEASON_SHARD_ROOT: artifacts/m8-current-season-pa/shards-2026
       M10_ARCHIVE_ROOT: artifacts/board-archives/batter-hits
       M10_HHR_ARCHIVE_ROOT: artifacts/board-archives/batter-hhr
+      # Kill switch remains off until the batched Phase 2 path is proven green.
+      PHASE2_ENRICHMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.phase2_enrichment || 'off' }}
 
     steps:
       - name: Check out repository
