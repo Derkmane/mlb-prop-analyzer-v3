@@ -152,10 +152,11 @@ async function fetchExactJsonSnapshot({
   beforeRequest,
   afterResponse,
   allowNonOk = false,
+  signal,
 }) {
   if (beforeRequest) await beforeRequest();
   const snapshotCapturedAt = capturedAt ?? new Date().toISOString();
-  const response = await fetch(url, { headers });
+  const response = await fetch(url, { headers, signal });
   const rawBodyBytes = Buffer.from(await response.arrayBuffer());
   if (afterResponse) {
     afterResponse({ status: response.status, headers: response.headers });
@@ -2124,12 +2125,13 @@ export async function runM9ProspectiveBoardArchive({
     const displayEnrichment = await capturePhase2DisplayEnrichment({
       captureDateUtc,
       players: [...displayPlayerByKey.values()],
-      fetchPage: async (url, label) => {
-        const snapshot = await fetchBdl({ label, url });
+      fetchPage: async (url, label, { signal } = {}) => {
+        const snapshot = await fetchBdl({ label, url, signal });
         providerSnapshots.push(snapshot);
         return snapshot.parsedBody;
       },
     });
+    write(`PHASE2 ENRICHMENT REASON COUNTS\t${JSON.stringify(displayEnrichment.diagnostics.failureReasons)}\n`);
     const baseArchive = buildM9ProspectiveBoardArchive({
       capturedAt,
       captureSnapshotSha256: eventsSnapshot.rawBody.sha256,

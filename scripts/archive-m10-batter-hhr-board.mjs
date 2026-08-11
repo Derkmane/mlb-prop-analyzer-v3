@@ -98,10 +98,10 @@ async function latestHitsCapture() {
   return Object.freeze({ ...file, filePath });
 }
 
-async function fetchSnapshot(url, label, { headers = {}, bdl = false } = {}) {
+async function fetchSnapshot(url, label, { headers = {}, bdl = false, signal } = {}) {
   for (let attempt = 0; attempt <= 8; attempt += 1) {
     if (bdl) await bdlRateLimiter.beforeRequest();
-    const response = await fetch(url, { headers });
+    const response = await fetch(url, { headers, signal });
     if (bdl) {
       bdlRateLimiter.afterResponse({
         status: response.status,
@@ -861,11 +861,13 @@ const displayPlayers = [...new Map(rows.map((row) => [
 const displayEnrichment = await capturePhase2DisplayEnrichment({
   captureDateUtc: capturedAt.slice(0, 10),
   players: displayPlayers,
-  fetchPage: async (url, label) => (await fetchSnapshot(url, label, {
+  fetchPage: async (url, label, { signal } = {}) => (await fetchSnapshot(url, label, {
     headers: { Authorization: bdlKey },
     bdl: true,
+    signal,
   })).body,
 });
+console.log(`PHASE2 ENRICHMENT REASON COUNTS\t${JSON.stringify(displayEnrichment.diagnostics.failureReasons)}`);
 const archive = buildM10HhrProspectiveArchive({
   capturedAt,
   sourceSetSha256,
