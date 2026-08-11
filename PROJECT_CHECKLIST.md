@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 4.1
+**Version:** 4.2
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -460,7 +460,7 @@ Model family: Family B, directly fitted composite
 requirement is SUPERSEDED as of Version 1.8 by owner
 decision. Do not raise it as a conflict.
 
-- [ ] Verify Underdog baseline and alternate offers.
+- [x] Verify Underdog baseline and alternate offers — preserved sanitized The Odds API fixture `fixtures/sanitized/m11/hhr/respecified-v2/the-odds-api-underdog-hhr-board-v2.json` verifies exact Underdog `us_dfs` baseline `batter_hits_runs_rbis` and alternate `batter_hits_runs_rbis_alternate` markets with observed Over/Under sides and posted lines. `normalizeUnderdogBatterHhrCapture` preserves exact side, line, and offer type and rejects unsupported market-key sets. Immutable evidence commit `5278d63f123207772a76f25c482c5cecbb919331`; main verify run `31540589584` passed 678/678 including the baseline/alternate line-preservation and shared-distribution regression.
 - [ ] Verify approved-source data sufficiency for the
       declared Family B conditioning inputs.
 - [ ] Build the directly fitted composite distribution over
@@ -517,7 +517,6 @@ ship without it.
 [x] Batter Hits              -- BUILT, end-to-end
 [ ] Batter Hits+Runs+RBIs    -- PRIMARY, M11
 [ ] Batter Runs              -- M11, designated cut if M11 drags
-
 --- POST-V1 MARKETS (NOT V1) ---
 
 [ ] Batter Total Bases       -- user low priority
@@ -577,6 +576,12 @@ rejected without escalation.
 [x] NO probability logic in the UI layer — merged PR #62 keeps settlement/probability logic server-side; main run `31539088716` passed the focused authentication/rendering/API regressions.
 
 ## Changelog
+
+### Version 4.2 — 2026-08-11
+
+- Closed only the first HHR M11 checklist item after direct repository verification of preserved The Odds API evidence for exact Underdog baseline and alternate HHR markets, sides, lines, and offer types.
+- Recorded immutable evidence commit `5278d63f123207772a76f25c482c5cecbb919331` and main verify run `31540589584`, which passed 678 of 678 tests.
+- No provider logic, model fitting, probabilities, settlement, categories, production/ranking enablement, or canonical authority changed.
 
 ### Version 4.1 — 2026-08-11
 
