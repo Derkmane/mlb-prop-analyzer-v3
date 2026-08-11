@@ -9,3 +9,4 @@ expertMode = true
 [deployment]
 build = "npm run build"
 run = "node dist/src/composition/hhr-display-server.js"
+deploymentTarget = "cloudrun"
