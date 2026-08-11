@@ -1,8 +1,3 @@
-import {
-  settleObservedDiscreteStatisticV1,
-  type ObservedSettlementOutcome,
-} from '../core/index.js';
-
 export const HHR_DISPLAY_BOARD_VERSION = 'phase4-hhr-display-board-v2' as const;
 export const HHR_DISPLAY_RANKING_RATIONALE =
   'Persisted category order: P(Win | grades) descending, then P(Void) ascending.' as const;
@@ -19,10 +14,6 @@ export interface HhrDisplayLastFiveGame {
   readonly atBats: number;
   readonly plateAppearances: number;
   readonly totalBases: number;
-}
-
-export interface HhrDisplayBoardLastFiveGame extends HhrDisplayLastFiveGame {
-  readonly selectedSideOutcome: ObservedSettlementOutcome;
 }
 
 export interface HhrDisplayOpposingStarter {
@@ -114,7 +105,7 @@ export interface HhrDisplayBoardPick {
   readonly lineupStatus: string;
   readonly multiplier: number | null;
   readonly americanPrice: number | null;
-  readonly lastFiveGames: readonly HhrDisplayBoardLastFiveGame[];
+  readonly lastFiveGames: readonly HhrDisplayLastFiveGame[];
   readonly lastFiveGamesFailureReason: string | null;
 }
 
@@ -135,18 +126,6 @@ function opponent(row: HhrDisplayArchiveRow): string {
   throw new Error('HHR display row team does not agree with its home/away teams.');
 }
 
-function toBoardLastFiveGame(
-  game: HhrDisplayLastFiveGame,
-  row: HhrDisplayArchiveRow,
-): HhrDisplayBoardLastFiveGame {
-  const selectedSideOutcome = settleObservedDiscreteStatisticV1({
-    observedStatistic: game.hrr,
-    line: row.postedLine,
-    selectedSide: row.selectedSide,
-  }).outcome;
-  return Object.freeze({ ...game, selectedSideOutcome });
-}
-
 function toPick(
   row: HhrDisplayArchiveRow,
   enrichmentByKey: HhrDisplayArchive['enrichmentByGamePlayerKey'],
@@ -161,9 +140,6 @@ function toPick(
     : starter !== undefined && 'failureReason' in starter
       ? starter.failureReason
       : null;
-  const lastFiveGames = Object.freeze(
-    (exactEnrichment?.lastFiveGames.games ?? []).map((game) => toBoardLastFiveGame(game, row)),
-  );
   return Object.freeze({
     persistedRank: row.rank,
     player: row.playerName,
@@ -181,7 +157,7 @@ function toPick(
     lineupStatus: row.lineupStatus,
     multiplier: row.multiplier,
     americanPrice: row.americanPrice,
-    lastFiveGames,
+    lastFiveGames: exactEnrichment?.lastFiveGames.games ?? Object.freeze([]),
     lastFiveGamesFailureReason: exactEnrichment === undefined
       ? 'missing-player-enrichment'
       : exactEnrichment.lastFiveGames.failureReason,

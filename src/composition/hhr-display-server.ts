@@ -9,6 +9,7 @@ import {
 } from '../adapters/index.js';
 import {
   readLatestHhrDisplayBoard,
+  readLatestHhrDisplayUiBoard,
   type HhrDisplayArchiveRepository,
 } from '../application/index.js';
 
@@ -48,10 +49,10 @@ export interface HhrDisplayAppServerOptions {
   readonly sessionToken?: string;
 }
 
-/** Deployable Phase 4 composition: persistence -> application view model -> password-gated UI/API. */
+/** Deployable Phase 4 composition: persistence -> presentation view model -> password-gated UI/API. */
 export function createHhrDisplayAppServer(options: HhrDisplayAppServerOptions): Server {
   const repository = options.repository ?? createHhrDisplayArchiveRepository();
-  const readBoard = () => readLatestHhrDisplayBoard(repository);
+  const readBoard = () => readLatestHhrDisplayUiBoard(repository);
   const handler = options.sessionToken === undefined
     ? createHhrDisplayAppHttpHandler({ readBoard, password: options.password })
     : createHhrDisplayAppHttpHandler({
