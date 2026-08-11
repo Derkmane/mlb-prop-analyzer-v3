@@ -61,10 +61,27 @@ async function fetchBdl(url, label) {
 fetchBdl.lastAt = 0;
 
 async function fetchGames(gameIds) {
-  const url = new URL('https://api.balldontlie.io/mlb/v1/games');
-  for (const gameId of gameIds) url.searchParams.append('ids[]', String(gameId));
-  url.searchParams.set('per_page', '100');
-  return fetchBdl(url, 'BDL HHR game status');
+  const rows = [];
+  let capturedAt;
+  for (const gameId of gameIds) {
+    const snapshot = await fetchBdl(
+      new URL(`https://api.balldontlie.io/mlb/v1/games/${gameId}`),
+      `BDL HHR game status ${gameId}`,
+    );
+    const game = snapshot.body?.data;
+    if (!game || typeof game !== 'object' || Array.isArray(game)) {
+      throw new Error(`BDL HHR game status ${gameId} data must be an object.`);
+    }
+    rows.push(game);
+    capturedAt = snapshot.capturedAt;
+  }
+  if (capturedAt === undefined) {
+    throw new Error('BDL HHR game status requires at least one game ID.');
+  }
+  return Object.freeze({
+    body: Object.freeze({ data: Object.freeze(rows) }),
+    capturedAt,
+  });
 }
 
 async function fetchStatsForGames(gameIds) {
