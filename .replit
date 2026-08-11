@@ -9,3 +9,8 @@ expertMode = true
 [deployment]
 build = "npm run build"
 run = "node dist/src/composition/hhr-display-server.js"
+deploymentTarget = "cloudrun"
+
+[[ports]]
+localPort = 3000
+externalPort = 80
