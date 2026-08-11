@@ -199,7 +199,7 @@ await persistImmutableJson(cumulativeDiagnosticPath, {
 console.log(`CUMULATIVE INPUT DIAGNOSTIC WRITTEN\t${cumulativeDiagnosticPath}`);
 
 const cumulativeGeneratedAt = [
-  step3Archive.generatedAt,
+  step3Archive.gradedAt,
   ...gradeReports.map((report) => report.gradedAt),
 ]
   .filter((value) => typeof value === 'string' && Number.isFinite(Date.parse(value)))
