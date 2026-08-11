@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 
 export const PHASE2_DISPLAY_ENRICHMENT_VERSION = 1;
 export const PHASE2_DISPLAY_ENRICHMENT_CONTRACT = 'phase2-last-five-and-opposing-starter-v1';
+const ACTIVE_SEASON = 2026;
 
 export function phase2EnrichmentEnabled(value = process.env.PHASE2_ENRICHMENT) {
   const normalized = value ?? 'on';
@@ -282,7 +283,10 @@ export async function capturePhase2DisplayEnrichment({
       .filter(Number.isSafeInteger);
     const seasonStatsRows = await pagedRows({
       endpoint: 'season_stats',
-      parameterGroups: chunks(starterIds, 100).map((ids) => ({ 'player_ids[]': ids })),
+      parameterGroups: chunks(starterIds, 100).map((ids) => ({
+        'player_ids[]': ids,
+        season: [ACTIVE_SEASON],
+      })),
       fetchPage,
       signal: controller.signal,
     });
