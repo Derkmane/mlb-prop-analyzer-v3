@@ -92,6 +92,8 @@ jobs:
           node scripts/bootstrap-m10-archive-ledger.mjs 2>&1 | tee artifacts/workflow-logs/m10-archive-bootstrap-grade.log
 
       - name: Grade only Batter Hits archives whose exact games are final
+        id: grade-batter-hits
+        continue-on-error: true
         run: |
           set -euo pipefail
           mkdir -p artifacts/workflow-logs
@@ -164,3 +166,9 @@ jobs:
           fi
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "chore: persist cumulative grading display [skip ci]"
           git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Preserve Batter Hits grading failure after HHR evidence
+        if: always() && steps.grade-batter-hits.outcome == 'failure'
+        run: |
+          echo "Batter Hits grading failed earlier; HHR grading and cumulative evidence were allowed to complete."
+          exit 1

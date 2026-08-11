@@ -107,7 +107,7 @@ test('HHR cumulative runtime derives generatedAt from immutable source reports r
   assert.doesNotMatch(buildBlock, /new Date/u);
 });
 
-test('existing M10 grading workflow emits the combined cumulative envelope with pipefail and always uploads it', async () => {
+test('existing M10 grading workflow isolates HHR evidence from a Batter Hits grading failure and still fails the job afterward', async () => {
   const workflow = await readFile('.github/workflows/m10-grade-pending-archives.yml', 'utf8');
   assert.match(workflow, /build-m10-multi-market-cumulative-grades\.mjs/u);
   assert.match(
@@ -116,6 +116,26 @@ test('existing M10 grading workflow emits the combined cumulative envelope with 
   );
   assert.match(workflow, /artifacts\/board-archives\/cumulative\/\*\*/u);
   assert.match(workflow, /if:\s*always\(\)[\s\S]*artifacts\/board-archives\/cumulative\/\*\*/u);
+
+  const hitsIndex = workflow.indexOf('- name: Grade only Batter Hits archives whose exact games are final');
+  const hhrIndex = workflow.indexOf('- name: Grade only HHR archives whose exact games are final and accumulate HHR evidence');
+  const persistIndex = workflow.indexOf('- name: Persist small cumulative grading report to repository');
+  const preserveFailureIndex = workflow.indexOf('- name: Preserve Batter Hits grading failure after HHR evidence');
+  assert.ok(hitsIndex >= 0);
+  assert.ok(hitsIndex < hhrIndex);
+  assert.ok(hhrIndex < persistIndex);
+  assert.ok(persistIndex < preserveFailureIndex);
+
+  const hitsBlock = workflow.slice(hitsIndex, hhrIndex);
+  assert.match(hitsBlock, /id:\s*grade-batter-hits/u);
+  assert.match(hitsBlock, /continue-on-error:\s*true/u);
+
+  const failureBlock = workflow.slice(preserveFailureIndex);
+  assert.match(
+    failureBlock,
+    /if:\s*always\(\) && steps\.grade-batter-hits\.outcome == 'failure'/u,
+  );
+  assert.match(failureBlock, /exit 1/u);
 });
 
 test('combined cumulative builder passes Node syntax checking', () => {
