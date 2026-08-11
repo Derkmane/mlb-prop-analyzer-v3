@@ -601,7 +601,7 @@ rejected without escalation.
 
 - Closed Opportunity Miner, High Probability Baseline, High Probability Altline, one-prop-per-player, overlap, canonical final-probability sorting, and Top Five using commits `c00c4f98b84890093ef35678c82f8a8120a6cc4c`, `d8681e71819607bccc756eb9dac8be3c8c8e3d64`, `5625df541b2b94bdb603318156abe5830fd80c62`, `bc7cc1485b9e52b6e3a51383cdaeeef111d20c93`, `b1b038c5264125c9e22a5719e377c2be7b67402a`, and `9b55267b23ab9632cf0522530afb0c3f913ed497`; GitHub Actions runs 747, 749, 750, 751, and 759 supplied the direct gates.
 - Closed complete immutable saved-run storage and atomic persistence at commits `1c46ce7a884b27e2c9a83e7f4642aef141701b72` and `764a48bc97553e9d5148bc8ce3cb2188626ab9c6`; run 761 passed 560 of 560 tests.
-- Closed feature-independent historical-only rendering at commit `08df180bfd05dc45d81365cc36948a191611ecc3`; GitHub Actions run 762 passed 562 of 562 tests with zero active-feature imports.
+- Closed feature-independent historical-only rendering at commit `08df180bfd05dc45d81365cc36948a191611ecc3`; run 762 passed 562 of 562 tests.
 - Closed the versioned grading implementation at final corrective commit `ecf02030ad0108fd53e3772de119abdd5114d77a`; run 765 passed 567 of 567 tests. The grading path has been exercised only with sanitized deterministic test evidence and has not yet produced a real archived-board grade report.
 - Left API entrypoints, UI display, deployment, and public-link verification open. Production and ranking remain disabled, and no July 31 recovery work was performed.
 
@@ -721,7 +721,7 @@ rejected without escalation.
 - Verified baseline and alternate offers through both normalized and pregame composition boundaries.
 - Verified raw Over maps only to Higher, raw Under maps only to Lower, and every numeric provider point survives exactly as the posted line.
 - Verified final-game exclusion preserves the same immutable normalized offer identity rather than rewriting side or line.
-- Recorded 2-of-2 focused passing tests and GitHub Actions verify run 413 with 343-of-343 tests passing; production ranking remains disabled.
+- Recorded 2-of-2 focused passing tests and GitHub Actions verify run 413 with 343-of-343 tests passing; production ranking remained disabled.
 
 ### Version 2.5 — 2026-07-30
 
@@ -729,14 +729,14 @@ rejected without escalation.
 - Required a uniquely matched current-season regular-season game with exact scheduled status and an evaluation time strictly before both preserved provider start timestamps.
 - Verified that final, unknown, missing, duplicate, and start-time-reached game states fail closed before probability generation or ranking.
 - Preserved exact normalized offer identity, selected Higher/Lower side, and posted line for every surviving offer.
-- Recorded 4-of-4 focused passing tests and GitHub Actions verify run 408 with 341-of-341 tests passing; production ranking remains disabled.
+- Recorded 4-of-4 focused passing tests and GitHub Actions verify run 408 with 341-of-341 tests passing; production ranking remained disabled.
 
 ### Version 2.4 — 2026-07-30
 
 - Connected fixture-backed real Underdog Batter Hits baseline and alternate board offers through strict The Odds API contracts and normalization.
 - Preserved event, bookmaker, market, offer type, uniquely linked player, Higher/Lower side, exact line, price, multiplier, market timestamp, and source snapshot identity.
 - Verified 34 normalized offers and fail-closed rejection of both unresolved James Jarvis offers.
-- Recorded 3-of-3 focused passing tests and GitHub Actions verify run 405 with 337-of-337 tests passing; probability generation and production ranking remained disabled.
+- Recorded 3-of-3 focused passing tests and GitHub Actions verify run 405 with 337-of-337 tests passing; probability generation and production ranking remain disabled.
 
 ### Version 2.3 — 2026-07-30
 
