@@ -102,10 +102,11 @@ test('Phase 2 flag defaults on and rejects unsupported values', () => {
   assert.throws(() => phase2EnrichmentEnabled('yes'), /must be "on" or "off"/u);
 });
 
-test('capture batches stats with game_ids[] and player_ids[] and follows pagination', async () => {
+test('capture batches stats, follows pagination, and requests active-season season_stats', async () => {
   const previous = process.env.PHASE2_ENRICHMENT;
   process.env.PHASE2_ENRICHMENT = 'on';
   const statsUrls = [];
+  const seasonStatsUrls = [];
   try {
     const result = await capturePhase2DisplayEnrichment({
       captureDateUtc: '2026-08-10', players: [player], timeoutMs: 1_000,
@@ -121,6 +122,10 @@ test('capture batches stats with game_ids[] and player_ids[] and follows paginat
             ? { data: [], meta: { next_cursor: 2 } }
             : { data: [batting(1, 4)], meta: {} };
         }
+        if (url.pathname.endsWith('/season_stats')) {
+          seasonStatsUrls.push(url);
+          return { data: [], meta: {} };
+        }
         return { data: [], meta: {} };
       },
     });
@@ -128,6 +133,9 @@ test('capture batches stats with game_ids[] and player_ids[] and follows paginat
     assert.deepEqual(statsUrls[0].searchParams.getAll('game_ids[]'), ['1']);
     assert.deepEqual(statsUrls[0].searchParams.getAll('player_ids[]').sort(), ['7', '99']);
     assert.equal(statsUrls[1].searchParams.get('cursor'), '2');
+    assert.equal(seasonStatsUrls.length, 1);
+    assert.deepEqual(seasonStatsUrls[0].searchParams.getAll('player_ids[]'), ['99']);
+    assert.equal(seasonStatsUrls[0].searchParams.get('season'), '2026');
     assert.equal(entry(result).lastFiveGames.count, 1);
   } finally {
     if (previous === undefined) delete process.env.PHASE2_ENRICHMENT;
