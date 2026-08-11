@@ -72,6 +72,24 @@ function stringOrNull(value, label) {
   return nonemptyString(value, label);
 }
 
+function displayEnrichmentForRows(raw, rows) {
+  if (raw === undefined) return undefined;
+  const enrichment = object(raw, 'displayEnrichment');
+  const source = object(enrichment.byGamePlayerKey, 'displayEnrichment.byGamePlayerKey');
+  const selected = {};
+  for (const row of rows) {
+    const key = `${row.providerGameId}:${row.providerPlayerId}`;
+    if (source[key] !== undefined) selected[key] = object(source[key], `displayEnrichment ${key}`);
+  }
+  return Object.freeze({
+    version: enrichment.version,
+    contract: nonemptyString(enrichment.contract, 'displayEnrichment.contract'),
+    keyFormat: 'providerGameId:providerPlayerId',
+    byGamePlayerKey: Object.freeze(selected),
+    diagnostics: object(enrichment.diagnostics, 'displayEnrichment.diagnostics'),
+  });
+}
+
 function sha256Bytes(bytes) {
   return createHash('sha256').update(bytes).digest('hex');
 }
@@ -237,6 +255,8 @@ export function buildPhase1DisplayArchive({ market, fullArchive, fullArchiveFile
       .map((row, index) => Object.freeze({ ...row, rank: index + 1 })),
   );
 
+  const displayEnrichment = displayEnrichmentForRows(archive.displayEnrichment, rows);
+
   return Object.freeze({
     displayArchiveVersion: PHASE1_DISPLAY_ARCHIVE_VERSION,
     displayArchiveContract: PHASE1_DISPLAY_ARCHIVE_CONTRACT,
@@ -250,6 +270,7 @@ export function buildPhase1DisplayArchive({ market, fullArchive, fullArchiveFile
     productionRankingEnabled: false,
     modelVersion,
     distributionBuilderVersion,
+    ...(displayEnrichment === undefined ? {} : { displayEnrichment }),
     rows,
   });
 }

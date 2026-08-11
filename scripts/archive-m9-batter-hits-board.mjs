@@ -21,6 +21,10 @@ import {
   resolveProjectedLineupSlot,
 } from '../dist/src/game/index.js';
 import { createBdlAdaptiveRateLimiter } from './bdl-adaptive-rate-limit-utils.mjs';
+import {
+  attachPhase2DisplayEnrichment,
+  capturePhase2DisplayEnrichment,
+} from './phase2-display-enrichment-utils.mjs';
 import { gradeM8UntouchedPlateAppearance } from './m8-untouched-hit-observation-utils.mjs';
 import {
   buildM9ProspectiveBoardArchive,
@@ -1079,6 +1083,7 @@ function runtimeObservation({
       opposingStarterHand,
     ),
     opposingStarterPitcherId: starterPlayer.id,
+    opposingStarterName: starterPlayer.fullName,
     opposingStarterTeamId: starterTeam.id,
     opposingStarterHand,
     eligibilityProbability: 1,
@@ -1652,6 +1657,7 @@ export async function runM9ProspectiveBoardArchive({
     const candidateEvaluations = [];
     const exclusions = [];
     const environmentEvidence = [];
+    const displayPlayerByKey = new Map();
     const playerLookupDiagnosticState = { printed: 0 };
     const projectedLineupGameSnapshotCache = new Map();
 
@@ -1966,6 +1972,17 @@ export async function runM9ProspectiveBoardArchive({
               }),
             }),
           );
+          const capturedObservation = observations.at(-1).observation;
+          displayPlayerByKey.set(
+            `${offer.providerGameId}:${offer.providerPlayerId}`,
+            Object.freeze({
+              providerGameId: offer.providerGameId,
+              providerPlayerId: offer.providerPlayerId,
+              opposingStarterPitcherId: capturedObservation.opposingStarterPitcherId,
+              opposingStarterName: capturedObservation.opposingStarterName,
+              opposingStarterHand: capturedObservation.opposingStarterHand,
+            }),
+          );
           funnel.add('verifiedStarterOffers', { survived: 1 });
         } catch (error) {
           const detail = error instanceof Error ? error.message : String(error);
@@ -2104,7 +2121,16 @@ export async function runM9ProspectiveBoardArchive({
       throw new Error('Live archive execution mutated the production registries.');
     }
 
-    const archive = buildM9ProspectiveBoardArchive({
+    const displayEnrichment = await capturePhase2DisplayEnrichment({
+      captureDateUtc,
+      players: [...displayPlayerByKey.values()],
+      fetchPage: async (url, label) => {
+        const snapshot = await fetchBdl({ label, url });
+        providerSnapshots.push(snapshot);
+        return snapshot.parsedBody;
+      },
+    });
+    const baseArchive = buildM9ProspectiveBoardArchive({
       capturedAt,
       captureSnapshotSha256: eventsSnapshot.rawBody.sha256,
       pregameEvents: eventSelection.events.map((event) =>
@@ -2128,6 +2154,7 @@ export async function runM9ProspectiveBoardArchive({
         gameEnvironmentInputs: Object.freeze(environmentEvidence),
       }),
     });
+    const archive = attachPhase2DisplayEnrichment(baseArchive, displayEnrichment);
     const persisted = await persistM9ArchiveForMode({
       dryRun,
       filePath,
