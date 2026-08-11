@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 4.0
+**Version:** 4.1
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -443,9 +443,9 @@ M8.5 is closed. This closure authorizes the next M9 ranking milestone only; it d
 - [x] Versioned grading — final corrective commit `ecf02030ad0108fd53e3772de119abdd5114d77a`; GitHub Actions run 765 passed 567 of 567 tests. Real evidence: exact capture `20260805T160217812Z--235bac8c330999cccfe86b6037a1007eb06f8ec23d1aacdbc3131a70d18db353` was graded in GitHub Actions run `31041810622`, attempt 2, only after games `5059484`, `5059485`, and `5059486` all returned exact `STATUS_FINAL`. The immutable report graded 78 rows as 39 wins, 39 losses, and 0 voids; observed win rate and mean archived `P(Win | grades)` were both 0.5; archive modification was false; grade report SHA-256 was `c0e0d851992fe9d5b10b236fa45d4b17d594930d95f2756478bf9e04cb4454d4`.
 - [x] Daily scheduled prospective board capture is configured at `21:15 UTC` with immutable ledger caching, a 330-minute timeout, and `if: always()` artifact upload — implementation commit `aac2935f1856823ec8169a71e43b026d2c95ca4c`; GitHub Actions run 774 passed 580/580.
 - [x] Daily scheduled final-only grading is configured at `09:00 UTC`; non-final archives are skipped with immutable status evidence, final archives use exact game/player Hits joins and core settlement, and reports/logs upload under `if: always()` with a 180-minute timeout — implementation commit `aac2935f1856823ec8169a71e43b026d2c95ca4c`; GitHub Actions run 774 passed 580/580.
-- [ ] API entrypoints.
-- [ ] UI display with no probability logic in the UI.
-- [ ] Deployment and public-link verification.
+- [x] API entrypoints — merged PR #61, merge commit `5f632ced9d3b822abb2abb0d709c938101a54d8b`; `GET /api/hhr-display-board` returns the persisted read-only HHR display board with `Cache-Control: no-store`, unsupported paths/methods fail without archive reads, and archive failure fails closed. PR verify run `31519917988` passed, and post-deployment main verify run `31539088716` reverified the API path.
+- [x] UI display with no probability logic in the UI — merged PR #62, merge commit `fc4ac40c89b4af165ace490dd467aed5ae640a00`; responsive password-gated display preserves delivered ranking order, renders `P(Win)`, `P(Loss)`, `P(Void)`, and `P(Win | grades)`, and keeps settlement/probability logic server-side. PR verify run `31522109244` passed, and main verify run `31539088716` reverified authentication, rendering, API preservation, and logout behavior.
+- [x] Deployment and public-link verification — Replit app `Player Analytics` is published through Autoscale/cloudrun at `https://player-analytics--derkmane.replit.app`. Deployment-target fix PR #64 merged as commit `7848074387eb7bc5c6fa899fe730f1cc2d5d3b52`; post-merge main verify run `31539088716` passed 678 of 678 tests with zero architecture violations, and Replit reported deployment status `success` for deployment `5ff04892-19b2-4b83-846b-aff76a2b1790`.
 
 ---
 
@@ -573,10 +573,17 @@ rejected without escalation.
 
 --- FRONT END (M12+) ---
 
-[ ] Must display P(Win), P(Loss), P(Void), ranking rationale
-[ ] NO probability logic in the UI layer
+[x] Must display P(Win), P(Loss), P(Void), ranking rationale — implemented by merged PR #62 and reverified on main in run `31539088716`.
+[x] NO probability logic in the UI layer — merged PR #62 keeps settlement/probability logic server-side; main run `31539088716` passed the focused authentication/rendering/API regressions.
 
 ## Changelog
+
+### Version 4.1 — 2026-08-11
+
+- Synchronized M10 presentation status with merged repository evidence: PR #61 closed the read-only HHR API entrypoint and PR #62 closed the password-gated responsive UI with no browser-side probability or ranking logic.
+- Recorded the successful Replit `Player Analytics` Autoscale/cloudrun deployment at `https://player-analytics--derkmane.replit.app` after PR #64 merged as `7848074387eb7bc5c6fa899fe730f1cc2d5d3b52`.
+- Recorded post-merge main GitHub Actions verify run `31539088716`: 678 tests, 678 pass, 0 fail, with typecheck, script checks, build, architecture, selected-side, and protective-architecture gates clean.
+- Closed the matching front-end display requirements already directly verified by the merged UI implementation; no production-enable, ranking-enable, model, provider, settlement, probability, or canonical authority change was made.
 
 ### Version 4.0 — 2026-08-05
 
