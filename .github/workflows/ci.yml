@@ -25,10 +25,10 @@ jobs:
         run: npm run typecheck
       - name: Check scripts
         run: npm run check:scripts
-      - name: Check architecture
-        run: npm run architecture
       - name: Build
         run: npm run build
+      - name: Check architecture
+        run: npm run architecture
       - name: Test selected-side domain
         run: npm run test:selected-side
       - name: Test protective architecture rejection
