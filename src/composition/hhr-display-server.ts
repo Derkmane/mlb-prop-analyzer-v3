@@ -3,11 +3,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  createHhrDisplayAppHttpHandler,
   createHhrDisplayArchiveRepository,
   createHhrDisplayBoardHttpHandler,
 } from '../adapters/index.js';
 import {
   readLatestHhrDisplayBoard,
+  readLatestHhrDisplayUiBoard,
   type HhrDisplayArchiveRepository,
 } from '../application/index.js';
 
@@ -24,13 +26,40 @@ export function resolveHhrDisplayServerPort(rawPort: string | undefined): number
   return port;
 }
 
-/** Composition is the only layer that wires persistence, application, and HTTP. */
+export function resolveHhrDisplayServerPassword(rawPassword: string | undefined): string {
+  if (rawPassword === undefined || rawPassword.length === 0) {
+    throw new Error('HHR display server requires HHR_DISPLAY_PASSWORD.');
+  }
+  return rawPassword;
+}
+
+/** Lower-level Phase 3b transport retained for focused API-boundary verification. */
 export function createHhrDisplayBoardServer(
   repository: HhrDisplayArchiveRepository = createHhrDisplayArchiveRepository(),
 ): Server {
   const handler = createHhrDisplayBoardHttpHandler(
     () => readLatestHhrDisplayBoard(repository),
   );
+  return createServer(handler);
+}
+
+export interface HhrDisplayAppServerOptions {
+  readonly password: string;
+  readonly repository?: HhrDisplayArchiveRepository;
+  readonly sessionToken?: string;
+}
+
+/** Deployable Phase 4 composition: persistence -> presentation view model -> password-gated UI/API. */
+export function createHhrDisplayAppServer(options: HhrDisplayAppServerOptions): Server {
+  const repository = options.repository ?? createHhrDisplayArchiveRepository();
+  const readBoard = () => readLatestHhrDisplayUiBoard(repository);
+  const handler = options.sessionToken === undefined
+    ? createHhrDisplayAppHttpHandler({ readBoard, password: options.password })
+    : createHhrDisplayAppHttpHandler({
+        readBoard,
+        password: options.password,
+        sessionToken: options.sessionToken,
+      });
   return createServer(handler);
 }
 
@@ -43,15 +72,26 @@ export function startHhrDisplayBoardServer(
   return server;
 }
 
+export function startHhrDisplayAppServer(
+  password = resolveHhrDisplayServerPassword(process.env['HHR_DISPLAY_PASSWORD']),
+  port = resolveHhrDisplayServerPort(process.env['PORT']),
+  host = DEFAULT_HHR_DISPLAY_SERVER_HOST,
+): Server {
+  const server = createHhrDisplayAppServer({ password });
+  server.listen(port, host);
+  return server;
+}
+
 function isDirectInvocation(): boolean {
   const entrypoint = process.argv[1];
   return entrypoint !== undefined && path.resolve(entrypoint) === fileURLToPath(import.meta.url);
 }
 
 if (isDirectInvocation()) {
+  const password = resolveHhrDisplayServerPassword(process.env['HHR_DISPLAY_PASSWORD']);
   const port = resolveHhrDisplayServerPort(process.env['PORT']);
-  const server = startHhrDisplayBoardServer(port);
+  const server = startHhrDisplayAppServer(password, port);
   server.once('listening', () => {
-    console.log(`HHR display server listening on port ${port}`);
+    console.log(`HHR display app listening on port ${port}`);
   });
 }

@@ -1,4 +1,6 @@
-export const HHR_DISPLAY_BOARD_VERSION = 'phase3-hhr-display-board-v1' as const;
+export const HHR_DISPLAY_BOARD_VERSION = 'phase4-hhr-display-board-v2' as const;
+export const HHR_DISPLAY_RANKING_RATIONALE =
+  'Persisted category order: P(Win | grades) descending, then P(Void) ascending.' as const;
 
 export interface HhrDisplayLastFiveGame {
   readonly gameDate: string;
@@ -96,6 +98,8 @@ export interface HhrDisplayBoardPick {
   readonly opposingStarterFailureReason: string | null;
   readonly postedLine: number;
   readonly selectedSide: 'higher' | 'lower';
+  readonly pWin: number;
+  readonly pLoss: number;
   readonly pWinGivenGrades: number;
   readonly pVoid: number;
   readonly lineupStatus: string;
@@ -111,6 +115,7 @@ export interface HhrDisplayBoard {
   readonly capturedAt: string;
   readonly modelVersion: string;
   readonly distributionBuilderVersion: string;
+  readonly rankingRationale: typeof HHR_DISPLAY_RANKING_RATIONALE;
   readonly hhr25LowerAlternates: readonly HhrDisplayBoardPick[];
   readonly hhr05HigherAlternates: readonly HhrDisplayBoardPick[];
 }
@@ -145,6 +150,8 @@ function toPick(
     opposingStarterFailureReason: starterFailure,
     postedLine: row.postedLine,
     selectedSide: row.selectedSide,
+    pWin: row.pWin,
+    pLoss: row.pLoss,
     pWinGivenGrades: row.pWinGivenGrades,
     pVoid: row.pVoid,
     lineupStatus: row.lineupStatus,
@@ -189,6 +196,7 @@ export async function readLatestHhrDisplayBoard(
     capturedAt: archive.capturedAt,
     modelVersion: archive.modelVersion,
     distributionBuilderVersion: archive.distributionBuilderVersion,
+    rankingRationale: HHR_DISPLAY_RANKING_RATIONALE,
     hhr25LowerAlternates: exactList(archive, 2.5, 'lower'),
     hhr05HigherAlternates: exactList(archive, 0.5, 'higher'),
   });
