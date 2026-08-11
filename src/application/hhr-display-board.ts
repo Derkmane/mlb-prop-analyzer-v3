@@ -1,4 +1,11 @@
-export const HHR_DISPLAY_BOARD_VERSION = 'phase3-hhr-display-board-v1' as const;
+import {
+  settleObservedDiscreteStatisticV1,
+  type ObservedSettlementOutcome,
+} from '../core/index.js';
+
+export const HHR_DISPLAY_BOARD_VERSION = 'phase4-hhr-display-board-v2' as const;
+export const HHR_DISPLAY_RANKING_RATIONALE =
+  'Persisted category order: P(Win | grades) descending, then P(Void) ascending.' as const;
 
 export interface HhrDisplayLastFiveGame {
   readonly gameDate: string;
@@ -12,6 +19,10 @@ export interface HhrDisplayLastFiveGame {
   readonly atBats: number;
   readonly plateAppearances: number;
   readonly totalBases: number;
+}
+
+export interface HhrDisplayBoardLastFiveGame extends HhrDisplayLastFiveGame {
+  readonly selectedSideOutcome: ObservedSettlementOutcome;
 }
 
 export interface HhrDisplayOpposingStarter {
@@ -96,12 +107,14 @@ export interface HhrDisplayBoardPick {
   readonly opposingStarterFailureReason: string | null;
   readonly postedLine: number;
   readonly selectedSide: 'higher' | 'lower';
+  readonly pWin: number;
+  readonly pLoss: number;
   readonly pWinGivenGrades: number;
   readonly pVoid: number;
   readonly lineupStatus: string;
   readonly multiplier: number | null;
   readonly americanPrice: number | null;
-  readonly lastFiveGames: readonly HhrDisplayLastFiveGame[];
+  readonly lastFiveGames: readonly HhrDisplayBoardLastFiveGame[];
   readonly lastFiveGamesFailureReason: string | null;
 }
 
@@ -111,6 +124,7 @@ export interface HhrDisplayBoard {
   readonly capturedAt: string;
   readonly modelVersion: string;
   readonly distributionBuilderVersion: string;
+  readonly rankingRationale: typeof HHR_DISPLAY_RANKING_RATIONALE;
   readonly hhr25LowerAlternates: readonly HhrDisplayBoardPick[];
   readonly hhr05HigherAlternates: readonly HhrDisplayBoardPick[];
 }
@@ -119,6 +133,18 @@ function opponent(row: HhrDisplayArchiveRow): string {
   if (row.teamName === row.homeTeamName) return row.awayTeamName;
   if (row.teamName === row.awayTeamName) return row.homeTeamName;
   throw new Error('HHR display row team does not agree with its home/away teams.');
+}
+
+function toBoardLastFiveGame(
+  game: HhrDisplayLastFiveGame,
+  row: HhrDisplayArchiveRow,
+): HhrDisplayBoardLastFiveGame {
+  const selectedSideOutcome = settleObservedDiscreteStatisticV1({
+    observedStatistic: game.hrr,
+    line: row.postedLine,
+    selectedSide: row.selectedSide,
+  }).outcome;
+  return Object.freeze({ ...game, selectedSideOutcome });
 }
 
 function toPick(
@@ -135,6 +161,9 @@ function toPick(
     : starter !== undefined && 'failureReason' in starter
       ? starter.failureReason
       : null;
+  const lastFiveGames = Object.freeze(
+    (exactEnrichment?.lastFiveGames.games ?? []).map((game) => toBoardLastFiveGame(game, row)),
+  );
   return Object.freeze({
     persistedRank: row.rank,
     player: row.playerName,
@@ -145,12 +174,14 @@ function toPick(
     opposingStarterFailureReason: starterFailure,
     postedLine: row.postedLine,
     selectedSide: row.selectedSide,
+    pWin: row.pWin,
+    pLoss: row.pLoss,
     pWinGivenGrades: row.pWinGivenGrades,
     pVoid: row.pVoid,
     lineupStatus: row.lineupStatus,
     multiplier: row.multiplier,
     americanPrice: row.americanPrice,
-    lastFiveGames: exactEnrichment?.lastFiveGames.games ?? Object.freeze([]),
+    lastFiveGames,
     lastFiveGamesFailureReason: exactEnrichment === undefined
       ? 'missing-player-enrichment'
       : exactEnrichment.lastFiveGames.failureReason,
@@ -189,6 +220,7 @@ export async function readLatestHhrDisplayBoard(
     capturedAt: archive.capturedAt,
     modelVersion: archive.modelVersion,
     distributionBuilderVersion: archive.distributionBuilderVersion,
+    rankingRationale: HHR_DISPLAY_RANKING_RATIONALE,
     hhr25LowerAlternates: exactList(archive, 2.5, 'lower'),
     hhr05HigherAlternates: exactList(archive, 0.5, 'higher'),
   });
