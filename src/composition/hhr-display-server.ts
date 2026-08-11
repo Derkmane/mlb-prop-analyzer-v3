@@ -35,7 +35,7 @@ export function createHhrDisplayBoardServer(
 }
 
 export function startHhrDisplayBoardServer(
-  port = resolveHhrDisplayServerPort(process.env.PORT),
+  port = resolveHhrDisplayServerPort(process.env['PORT']),
   host = DEFAULT_HHR_DISPLAY_SERVER_HOST,
 ): Server {
   const server = createHhrDisplayBoardServer();
@@ -49,7 +49,7 @@ function isDirectInvocation(): boolean {
 }
 
 if (isDirectInvocation()) {
-  const port = resolveHhrDisplayServerPort(process.env.PORT);
+  const port = resolveHhrDisplayServerPort(process.env['PORT']);
   const server = startHhrDisplayBoardServer(port);
   server.once('listening', () => {
     console.log(`HHR display server listening on port ${port}`);
