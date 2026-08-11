@@ -122,6 +122,27 @@ test('repository reads the newest valid fixture capture', async () => {
   assert.equal(result.captureKey, CAPTURE_KEY);
 });
 
+test('strict archive schema and display board accept the latest committed HHR archive', async () => {
+  const liveRepository = createHhrDisplayArchiveRepository();
+  await assert.doesNotReject(liveRepository.readLatest());
+  const board = await readLatestHhrDisplayBoard(liveRepository);
+  for (const pick of board.hhr25LowerAlternates) {
+    assert.equal(pick.postedLine, 2.5);
+    assert.equal(pick.selectedSide, 'lower');
+  }
+  for (const pick of board.hhr05HigherAlternates) {
+    assert.equal(pick.postedLine, 0.5);
+    assert.equal(pick.selectedSide, 'higher');
+  }
+  assert.ok(board.hhr25LowerAlternates.length <= 20);
+  assert.ok(board.hhr05HigherAlternates.length <= 20);
+  for (const picks of [board.hhr25LowerAlternates, board.hhr05HigherAlternates]) {
+    for (let index = 1; index < picks.length; index += 1) {
+      assert.ok(picks[index - 1]!.persistedRank < picks[index]!.persistedRank);
+    }
+  }
+});
+
 test('newest valid selection is deterministic and independent of filesystem order', async () => {
   const olderKey = `20260811T152447459Z--${'b'.repeat(64)}`;
   const files = {
@@ -239,6 +260,8 @@ test('view model preserves side, line, probabilities, lineup, display price, enr
   assert.equal(pick.gameTime, '2026-08-11T23:00:00.000Z');
   assert.equal(pick.opposingStarter?.name, 'Starter');
   assert.equal(pick.lastFiveGames[0]?.hrr, 6);
+  assert.equal(pick.lastFiveGamesFailureReason, null);
+  assert.equal(pick.opposingStarterFailureReason, null);
 });
 
 test('exact providerGameId:providerPlayerId join never attaches another player enrichment', async () => {
@@ -247,6 +270,7 @@ test('exact providerGameId:providerPlayerId join never attaches another player e
   assert.equal(pick.opposingStarter, null);
   assert.equal(pick.lastFiveGames.length, 0);
   assert.equal(pick.lastFiveGamesFailureReason, 'missing-player-enrichment');
+  assert.equal(pick.opposingStarterFailureReason, 'missing-player-enrichment');
 });
 
 test('exact category lines and sides are selected with no substitution', async () => {

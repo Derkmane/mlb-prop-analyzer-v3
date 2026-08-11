@@ -130,9 +130,11 @@ function toPick(
   const exactEnrichment = enrichment?.providerGameId === row.providerGameId &&
     enrichment.providerPlayerId === row.providerPlayerId ? enrichment : undefined;
   const starter = exactEnrichment?.opposingStarter;
-  const starterFailure = starter !== undefined && 'failureReason' in starter
-    ? starter.failureReason
-    : null;
+  const starterFailure = exactEnrichment === undefined
+    ? 'missing-player-enrichment'
+    : starter !== undefined && 'failureReason' in starter
+      ? starter.failureReason
+      : null;
   return Object.freeze({
     persistedRank: row.rank,
     player: row.playerName,
@@ -149,7 +151,9 @@ function toPick(
     multiplier: row.multiplier,
     americanPrice: row.americanPrice,
     lastFiveGames: exactEnrichment?.lastFiveGames.games ?? Object.freeze([]),
-    lastFiveGamesFailureReason: exactEnrichment?.lastFiveGames.failureReason ?? 'missing-player-enrichment',
+    lastFiveGamesFailureReason: exactEnrichment === undefined
+      ? 'missing-player-enrichment'
+      : exactEnrichment.lastFiveGames.failureReason,
   });
 }
 
