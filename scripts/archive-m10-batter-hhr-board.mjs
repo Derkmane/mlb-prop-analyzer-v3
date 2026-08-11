@@ -14,6 +14,10 @@ import {
   resolveProjectedLineupIdentity,
 } from './archive-m9-batter-hits-board.mjs';
 import { createBdlAdaptiveRateLimiter } from './bdl-adaptive-rate-limit-utils.mjs';
+import {
+  attachPhase2DisplayEnrichment,
+  capturePhase2DisplayEnrichment,
+} from './phase2-display-enrichment-utils.mjs';
 import { classifyHhrUnderdogBookmakerAvailability } from './m10-hhr-board-availability-utils.mjs';
 import { persistImmutableJson } from './m10-grade-saved-archive-utils.mjs';
 import { buildM10HhrProspectiveArchive } from './m10-hhr-evidence-utils.mjs';
@@ -844,6 +848,24 @@ const sourceSet = {
   bullpenArtifactSha256: bullpenFile.sha256,
 };
 const sourceSetSha256 = sha256(stableJson(sourceSet));
+const displayPlayers = [...new Map(rows.map((row) => [
+  `${row.providerGameId}:${row.providerPlayerId}`,
+  {
+    providerGameId: row.providerGameId,
+    providerPlayerId: row.providerPlayerId,
+    opposingStarterPitcherId: row.inputLineage.probableStarterPlayerId,
+    opposingStarterName: row.inputLineage.probableStarterName,
+    opposingStarterHand: row.inputLineage.probableStarterHand,
+  },
+])).values()];
+const displayEnrichment = await capturePhase2DisplayEnrichment({
+  captureDateUtc: capturedAt.slice(0, 10),
+  players: displayPlayers,
+  fetchPage: async (url, label) => (await fetchSnapshot(url, label, {
+    headers: { Authorization: bdlKey },
+    bdl: true,
+  })).body,
+});
 const archive = buildM10HhrProspectiveArchive({
   capturedAt,
   sourceSetSha256,
@@ -865,8 +887,9 @@ const archive = buildM10HhrProspectiveArchive({
   exclusions,
   diagnosticsPath: path.relative(process.cwd(), resolutionDiagnosticPath),
 });
-const capturePath = path.join(HHR_ARCHIVE_ROOT, 'captures', `${archive.captureKey}.json`);
-await persistImmutableJson(capturePath, archive);
+const enrichedArchive = attachPhase2DisplayEnrichment(archive, displayEnrichment);
+const capturePath = path.join(HHR_ARCHIVE_ROOT, 'captures', `${enrichedArchive.captureKey}.json`);
+await persistImmutableJson(capturePath, enrichedArchive);
 
 const confirmedRows = rows.filter((row) => row.lineupStatus === 'confirmed').length;
 const projectedRows = rows.filter((row) => row.lineupStatus === 'projected').length;
@@ -887,23 +910,23 @@ for (const exclusion of exclusions) {
 const bdlRateLimitState = bdlRateLimiter.snapshot();
 
 console.log('--- M10 HHR PROSPECTIVE EVIDENCE CAPTURE ---');
-console.log(`SOURCE HITS CAPTURE\t${archive.source.sourceHitsCaptureKey}`);
-console.log(`CAPTURE KEY\t${archive.captureKey}`);
+console.log(`SOURCE HITS CAPTURE\t${enrichedArchive.source.sourceHitsCaptureKey}`);
+console.log(`CAPTURE KEY\t${enrichedArchive.captureKey}`);
 console.log(`ARCHIVE PATH\t${capturePath}`);
-console.log(`ARCHIVE SHA-256\t${archive.archiveSha256}`);
+console.log(`ARCHIVE SHA-256\t${enrichedArchive.archiveSha256}`);
 console.log(`PREGAME EVENTS\t${pregameEvents.length}`);
 console.log(`RESOLVED GAMES\t${resolvedGames.length}`);
-console.log(`HHR ROWS\t${archive.counts.rows}`);
+console.log(`HHR ROWS\t${enrichedArchive.counts.rows}`);
 console.log(`CANDIDATES FROM CONFIRMED SLOTS\t${confirmedRows}`);
 console.log(`CANDIDATES FROM PROJECTED SLOTS\t${projectedRows}`);
 console.log(`UNIQUE PLAYERS FROM CONFIRMED SLOTS\t${confirmedPlayers}`);
 console.log(`UNIQUE PLAYERS FROM PROJECTED SLOTS\t${projectedPlayers}`);
-console.log(`TOTAL CANDIDATES\t${archive.counts.rows}`);
+console.log(`TOTAL CANDIDATES\t${enrichedArchive.counts.rows}`);
 console.log('PRIOR 11 AM CANDIDATES\t78');
-console.log(`DELTA VS PRIOR 11 AM\t${archive.counts.rows - 78}`);
-console.log(`BASELINE ROWS\t${archive.counts.baselineRows}`);
-console.log(`ALTERNATE ROWS\t${archive.counts.alternateRows}`);
-console.log(`EXCLUSIONS\t${archive.counts.exclusions}`);
+console.log(`DELTA VS PRIOR 11 AM\t${enrichedArchive.counts.rows - 78}`);
+console.log(`BASELINE ROWS\t${enrichedArchive.counts.baselineRows}`);
+console.log(`ALTERNATE ROWS\t${enrichedArchive.counts.alternateRows}`);
+console.log(`EXCLUSIONS\t${enrichedArchive.counts.exclusions}`);
 for (const [reason, count] of [...exclusionCounts.entries()].sort(([left], [right]) => left.localeCompare(right))) {
   console.log(`EXCLUSION ${reason}\t${count}`);
 }
