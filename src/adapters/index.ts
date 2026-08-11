@@ -1,4 +1,5 @@
 /** Public boundary for the adapters layer. */
+export * from './display-archives/hhr-display-archive-repository.js';
 export * from './model-artifacts/batter-hits-runtime-artifact-file.js';
 export * from './model-artifacts/batter-hits-probability-artifacts-file.js';
 export * from './model-artifacts/m8-5-batter-hits-successor-artifacts-file.js';
