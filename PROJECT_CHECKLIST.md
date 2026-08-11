@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 4.1
+**Version:** 4.2
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -460,7 +460,7 @@ Model family: Family B, directly fitted composite
 requirement is SUPERSEDED as of Version 1.8 by owner
 decision. Do not raise it as a conflict.
 
-- [ ] Verify Underdog baseline and alternate offers.
+- [x] Verify Underdog baseline and alternate offers — preserved sanitized The Odds API fixture `fixtures/sanitized/m11/hhr/respecified-v2/the-odds-api-underdog-hhr-board-v2.json` requests exact `underdog` / `us_dfs` markets `batter_hits_runs_rbis` and `batter_hits_runs_rbis_alternate`, contains observed baseline and alternate Over/Under offers with exact posted lines, and was committed as immutable attempt-2 evidence in `5278d63f123207772a76f25c482c5cecbb919331`. `normalizeUnderdogBatterHhrCapture` rejects any other requested key set and maps only exact Over/Under while preserving line and offer type. Current main verify run `31540589584` passed 678/678 including `every captured baseline and alternate offer preserves its line and settles from one distribution`.
 - [ ] Verify approved-source data sufficiency for the
       declared Family B conditioning inputs.
 - [ ] Build the directly fitted composite distribution over
@@ -578,6 +578,12 @@ rejected without escalation.
 
 ## Changelog
 
+### Version 4.2 — 2026-08-11
+
+- Closed only the first HHR M11 checklist item after direct repository verification of preserved sanitized The Odds API evidence for exact Underdog baseline `batter_hits_runs_rbis` and alternate `batter_hits_runs_rbis_alternate` markets, observed Higher/Lower source sides, posted lines, and offer-type normalization.
+- Recorded immutable evidence commit `5278d63f123207772a76f25c482c5cecbb919331` and current main verify run `31540589584`, which passed 678 of 678 tests including the focused baseline/alternate line-preservation and shared-distribution regression.
+- No provider logic, model fitting, probabilities, settlement, categories, production/ranking enablement, or canonical authority changed.
+
 ### Version 4.1 — 2026-08-11
 
 - Synchronized M10 presentation status with merged repository evidence: PR #61 closed the read-only HHR API entrypoint and PR #62 closed the password-gated responsive UI with no browser-side probability or ranking logic.
@@ -595,7 +601,7 @@ rejected without escalation.
 
 - Closed Opportunity Miner, High Probability Baseline, High Probability Altline, one-prop-per-player, overlap, canonical final-probability sorting, and Top Five using commits `c00c4f98b84890093ef35678c82f8a8120a6cc4c`, `d8681e71819607bccc756eb9dac8be3c8c8e3d64`, `5625df541b2b94bdb603318156abe5830fd80c62`, `bc7cc1485b9e52b6e3a51383cdaeeef111d20c93`, `b1b038c5264125c9e22a5719e377c2be7b67402a`, and `9b55267b23ab9632cf0522530afb0c3f913ed497`; GitHub Actions runs 747, 749, 750, 751, and 759 supplied the direct gates.
 - Closed complete immutable saved-run storage and atomic persistence at commits `1c46ce7a884b27e2c9a83e7f4642aef141701b72` and `764a48bc97553e9d5148bc8ce3cb2188626ab9c6`; run 761 passed 560 of 560 tests.
-- Closed feature-independent historical-only rendering at commit `08df180bfd05dc45d81365cc36948a191611ecc3`; run 762 passed 562 of 562 tests.
+- Closed feature-independent historical-only rendering at commit `08df180bfd05dc45d81365cc36948a191611ecc3`; GitHub Actions run 762 passed 562 of 562 tests with zero active-feature imports.
 - Closed the versioned grading implementation at final corrective commit `ecf02030ad0108fd53e3772de119abdd5114d77a`; run 765 passed 567 of 567 tests. The grading path has been exercised only with sanitized deterministic test evidence and has not yet produced a real archived-board grade report.
 - Left API entrypoints, UI display, deployment, and public-link verification open. Production and ranking remain disabled, and no July 31 recovery work was performed.
 
@@ -730,7 +736,7 @@ rejected without escalation.
 - Connected fixture-backed real Underdog Batter Hits baseline and alternate board offers through strict The Odds API contracts and normalization.
 - Preserved event, bookmaker, market, offer type, uniquely linked player, Higher/Lower side, exact line, price, multiplier, market timestamp, and source snapshot identity.
 - Verified 34 normalized offers and fail-closed rejection of both unresolved James Jarvis offers.
-- Recorded 3-of-3 focused passing tests and GitHub Actions verify run 405 with 337-of-337 tests passing; probability generation and production ranking remain disabled.
+- Recorded 3-of-3 focused passing tests and GitHub Actions verify run 405 with 337-of-337 tests passing; probability generation and production ranking remained disabled.
 
 ### Version 2.3 — 2026-07-30
 
