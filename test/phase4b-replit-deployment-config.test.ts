@@ -12,7 +12,9 @@ test('Replit deployment explicitly targets cloudrun and launches only the passwo
   assert.match(replitConfig, /^build = "npm run build"$/mu);
   assert.match(replitConfig, /^run = "node dist\/src\/composition\/hhr-display-server\.js"$/mu);
   assert.match(replitConfig, /^deploymentTarget = "cloudrun"$/mu);
-  assert.doesNotMatch(replitConfig, /\[ports\]|localPort|externalPort/u);
+  assert.match(replitConfig, /\[\[ports\]\]\nlocalPort = 3000\nexternalPort = 80/u);
+  assert.doesNotMatch(replitConfig, /localPort = (?!3000$)\d+/mu);
+  assert.doesNotMatch(replitConfig, /externalPort = (?!80$)\d+/mu);
 
   assert.match(serverSource, /DEFAULT_HHR_DISPLAY_SERVER_HOST = '0\.0\.0\.0'/u);
   assert.match(
