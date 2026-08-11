@@ -44,8 +44,8 @@ jobs:
       M8_CURRENT_SEASON_SHARD_ROOT: artifacts/m8-current-season-pa/shards-2026
       M10_ARCHIVE_ROOT: artifacts/board-archives/batter-hits
       M10_HHR_ARCHIVE_ROOT: artifacts/board-archives/batter-hhr
-      # Kill switch remains off until the batched Phase 2 path is proven green.
-      PHASE2_ENRICHMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.phase2_enrichment || 'off' }}
+      # Live proof run 31512202775 passed with Phase 2 enrichment enabled.
+      PHASE2_ENRICHMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.phase2_enrichment || 'on' }}
 
     steps:
       - name: Check out repository
