@@ -162,15 +162,16 @@ function exactList(
     .filter((row) => row.offerType === 'alternate' && row.postedLine === postedLine &&
       row.selectedSide === selectedSide)
     .sort((left, right) => left.rank - right.rank);
-  const seenPlayers = new Set<number>();
-  const selected: HhrDisplayBoardPick[] = [];
+  const offerIdentities = new Set<string>();
   for (const row of persistedOrder) {
-    if (seenPlayers.has(row.providerPlayerId)) continue;
-    seenPlayers.add(row.providerPlayerId);
-    selected.push(toPick(row, archive.enrichmentByGamePlayerKey));
-    if (selected.length === 20) break;
+    const identity = `${row.providerGameId}:${row.providerPlayerId}:${row.postedLine}:${row.selectedSide}`;
+    if (offerIdentities.has(identity)) {
+      throw new Error(`Duplicate HHR display offer identity: ${identity}`);
+    }
+    offerIdentities.add(identity);
   }
-  return Object.freeze(selected);
+  return Object.freeze(persistedOrder.slice(0, 20)
+    .map((row) => toPick(row, archive.enrichmentByGamePlayerKey)));
 }
 
 /** Reads already-ranked evidence only; it cannot call providers or probability code. */

@@ -117,9 +117,9 @@ function fakeReader(files: Readonly<Record<string, string>>, order = Object.keys
 const filename = `${CAPTURE_KEY}.json`;
 const serialized = (value: unknown): string => JSON.stringify(value);
 
-test('repository reads the newest committed valid capture', async () => {
-  const result = await createHhrDisplayArchiveRepository().readLatest();
-  assert.equal(result.captureKey, '20260811T162447459Z--ddda7db0a4e092c737504e895ccea3a5c9d4b6f71ef3ed73edc7123623faab21');
+test('repository reads the newest valid fixture capture', async () => {
+  const result = await createHhrDisplayArchiveRepository(fakeReader({ [filename]: serialized(archive()) })).readLatest();
+  assert.equal(result.captureKey, CAPTURE_KEY);
 });
 
 test('newest valid selection is deterministic and independent of filesystem order', async () => {
@@ -131,6 +131,49 @@ test('newest valid selection is deterministic and independent of filesystem orde
   for (const order of [Object.keys(files), Object.keys(files).reverse()]) {
     assert.equal((await createHhrDisplayArchiveRepository(fakeReader(files, order)).readLatest()).captureKey, CAPTURE_KEY);
   }
+});
+
+test('N valid archives require exactly one file read', async () => {
+  const files: Record<string, string> = {};
+  for (let hour = 10; hour <= 16; hour += 1) {
+    const prefix = `20260811T${hour}2447459Z`;
+    const key = `${prefix}--${'abcdef1'[hour - 10]!.repeat(64)}`;
+    files[`${key}.json`] = serialized(archive({
+      captureKey: key,
+      capturedAt: `2026-08-11T${hour}:24:47.459Z`,
+    }));
+  }
+  let reads = 0;
+  const reader = fakeReader(files, Object.keys(files).reverse());
+  const countingReader: HhrDisplayArchiveFileReader = {
+    readdir: reader.readdir,
+    readFile: async (filePath) => {
+      reads += 1;
+      return reader.readFile(filePath);
+    },
+  };
+  const result = await createHhrDisplayArchiveRepository(countingReader).readLatest();
+  assert.equal(result.capturedAt, '2026-08-11T16:24:47.459Z');
+  assert.equal(reads, 1);
+});
+
+test('newest pre-Phase-2 capture advances to the next newest archive', async () => {
+  const olderKey = `20260811T152447459Z--${'b'.repeat(64)}`;
+  const files = {
+    [filename]: serialized(archive({ displayEnrichment: undefined })),
+    [`${olderKey}.json`]: serialized(archive({ captureKey: olderKey, capturedAt: '2026-08-11T15:24:47.459Z' })),
+  };
+  let reads = 0;
+  const reader = fakeReader(files);
+  const result = await createHhrDisplayArchiveRepository({
+    readdir: reader.readdir,
+    readFile: async (filePath) => {
+      reads += 1;
+      return reader.readFile(filePath);
+    },
+  }).readLatest();
+  assert.equal(result.captureKey, olderKey);
+  assert.equal(reads, 2);
 });
 
 test('malformed JSON fails closed', async () => {
@@ -229,10 +272,16 @@ test('persisted rank alone controls order, so multiplier cannot change it', asyn
   assert.deepEqual(picks.map((pick) => pick.player), ['First', 'Second']);
 });
 
-test('persisted rank keeps only the first exact offer for each player', async () => {
+test('duplicate exact game-player-line-side offer identity fails closed', async () => {
   const rows = [row(), row({ rank: 2, playerName: 'Duplicate' })];
+  await assert.rejects(readLatestHhrDisplayBoard(repository(applicationArchive(rows))), /Duplicate HHR display offer identity/u);
+});
+
+test('the same player in different doubleheader games remains two legitimate rows', async () => {
+  const rows = [row(), row({ rank: 2, providerGameId: 101, providerEventId: 'event-2' })];
   const picks = (await readLatestHhrDisplayBoard(repository(applicationArchive(rows)))).hhr25LowerAlternates;
-  assert.deepEqual(picks.map((pick) => pick.player), ['Player Seven']);
+  assert.equal(picks.length, 2);
+  assert.deepEqual(picks.map((pick) => pick.persistedRank), [1, 2]);
 });
 
 test('top 20 never pads and returns fewer when fewer exist', async () => {

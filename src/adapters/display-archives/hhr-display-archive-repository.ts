@@ -177,21 +177,25 @@ export function createHhrDisplayArchiveRepository(
   return Object.freeze({
     async readLatest(): Promise<HhrDisplayArchive> {
       const filenames = await reader.readdir(HHR_DISPLAY_ARCHIVE_ROOT);
+      const capturePrefixes = new Set<string>();
+      const captureFiles: Array<Readonly<{ filename: string; capturePrefix: string }>> = [];
       for (const filename of filenames) {
-        if (!CAPTURE_FILE.test(filename)) throw new Error(`Unexpected HHR display archive filename: ${filename}`);
+        const match = CAPTURE_FILE.exec(filename);
+        if (match === null) throw new Error(`Unexpected HHR display archive filename: ${filename}`);
+        const capturePrefix = match[1]!;
+        if (capturePrefixes.has(capturePrefix)) throw new Error(`Ambiguous HHR capture timestamp: ${capturePrefix}`);
+        capturePrefixes.add(capturePrefix);
+        captureFiles.push(Object.freeze({ filename, capturePrefix }));
       }
-      const parsed = await Promise.all(filenames.map(async (filename) =>
-        parseArchive(await reader.readFile(path.join(HHR_DISPLAY_ARCHIVE_ROOT, filename)), filename)));
-      const candidates = parsed.filter((value): value is HhrDisplayArchive => value !== null);
-      if (candidates.length === 0) throw new Error('No valid Phase 2 HHR display archive is available.');
-      const capturedAt = new Set<string>();
-      for (const candidate of candidates) {
-        if (capturedAt.has(candidate.capturedAt)) throw new Error(`Ambiguous HHR capture timestamp: ${candidate.capturedAt}`);
-        capturedAt.add(candidate.capturedAt);
+      captureFiles.sort((left, right) => right.capturePrefix.localeCompare(left.capturePrefix));
+      for (const { filename } of captureFiles) {
+        const candidate = parseArchive(
+          await reader.readFile(path.join(HHR_DISPLAY_ARCHIVE_ROOT, filename)),
+          filename,
+        );
+        if (candidate !== null) return candidate;
       }
-      candidates.sort((left, right) =>
-        left.capturedAt.localeCompare(right.capturedAt) || left.captureKey.localeCompare(right.captureKey));
-      return candidates.at(-1)!;
+      throw new Error('No valid Phase 2 HHR display archive is available.');
     },
   });
 }
