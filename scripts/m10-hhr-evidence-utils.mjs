@@ -1,6 +1,11 @@
 import { createHash } from 'node:crypto';
 
+import { SETTLEMENT_REGISTRY } from '../dist/src/composition/registries.js';
 import { settleObservedDiscreteStatisticV1 } from '../dist/src/core/index.js';
+import {
+  BATTER_HHR_MARKET_KEY,
+  BATTER_HHR_SETTLEMENT_RULE_VERSION,
+} from '../dist/src/features/batter-hhr/index.js';
 import {
   buildSelectedSideCalibration,
   buildSelectedSidePerformanceSummary,
@@ -117,6 +122,51 @@ function exactRowIdentity(row) {
   ]);
 }
 
+function registeredHhrSettlementRule() {
+  const matches = SETTLEMENT_REGISTRY.rules.filter(
+    (rule) =>
+      rule.baseMarketKey === BATTER_HHR_MARKET_KEY &&
+      rule.version === BATTER_HHR_SETTLEMENT_RULE_VERSION,
+  );
+  if (matches.length !== 1) {
+    throw new Error(
+      `Expected exactly one registered ${BATTER_HHR_SETTLEMENT_RULE_VERSION} rule; received ${matches.length}.`,
+    );
+  }
+  const rule = matches[0];
+  if (!rule.voidConditions.includes('batter absent from the official starting lineup')) {
+    throw new Error('Registered HHR settlement rule no longer voids a batter absent from the official starting lineup.');
+  }
+  return rule;
+}
+
+function validateNonstarterGradingSettlement(row, label) {
+  if (row.officialHits !== null || row.officialComponents !== null) {
+    throw new Error(`${label} verified nonstarter cannot claim an official HHR stat row.`);
+  }
+  if (row.outcome !== 'void') {
+    throw new Error(`${label} verified nonstarter must be void.`);
+  }
+  if (row.settlementVersion !== BATTER_HHR_SETTLEMENT_RULE_VERSION) {
+    throw new Error(`${label} verified nonstarter must use the registered HHR settlement rule.`);
+  }
+  if (row.settlementReason !== 'verified-final-nonstarter') {
+    throw new Error(`${label} verified nonstarter settlement reason is unsupported.`);
+  }
+  const settlement = object(row.gradingSettlement, `${label}.gradingSettlement`);
+  if (
+    settlement.eligibilityProbability !== 0 ||
+    settlement.winProbability !== 0 ||
+    settlement.lossProbability !== 0 ||
+    settlement.voidProbability !== 1 ||
+    settlement.winProbabilityGivenGrades !== null ||
+    settlement.settlementRuleVersion !== BATTER_HHR_SETTLEMENT_RULE_VERSION
+  ) {
+    throw new Error(`${label} verified nonstarter grading settlement must be a full registered-rule void.`);
+  }
+  nonemptyString(settlement.ruleSourceReference, `${label}.gradingSettlement.ruleSourceReference`);
+}
+
 function validateEvidenceRow(raw, label, { graded }) {
   const row = object(raw, label);
   nonemptyString(row.providerEventId, `${label}.providerEventId`);
@@ -147,14 +197,18 @@ function validateEvidenceRow(raw, label, { graded }) {
     throw new Error(`${label} probability mass does not sum to one.`);
   }
   if (graded) {
-    nonnegativeInteger(row.officialHhr, `${label}.officialHhr`);
-    if (row.officialHits !== row.officialHhr) {
-      throw new Error(`${label}.officialHits compatibility alias must equal officialHhr.`);
+    if (row.officialHhr === null) {
+      validateNonstarterGradingSettlement(row, label);
+    } else {
+      nonnegativeInteger(row.officialHhr, `${label}.officialHhr`);
+      if (row.officialHits !== row.officialHhr) {
+        throw new Error(`${label}.officialHits compatibility alias must equal officialHhr.`);
+      }
+      if (!['win', 'loss', 'void'].includes(row.outcome)) {
+        throw new Error(`${label}.outcome is unsupported.`);
+      }
+      nonemptyString(row.settlementVersion, `${label}.settlementVersion`);
     }
-    if (!['win', 'loss', 'void'].includes(row.outcome)) {
-      throw new Error(`${label}.outcome is unsupported.`);
-    }
-    nonemptyString(row.settlementVersion, `${label}.settlementVersion`);
   }
   return Object.freeze({
     ...row,
@@ -286,9 +340,22 @@ export function classifyHhrArchiveGameStatuses(archive, rawGames) {
   const statusRows = requiredIds.map((gameId) => {
     const matches = games.filter((game) => game?.id === gameId);
     if (matches.length !== 1) {
-      return Object.freeze({ gameId, status: 'IDENTITY_COUNT_ERROR', matchCount: matches.length });
+      return Object.freeze({
+        gameId,
+        status: 'IDENTITY_COUNT_ERROR',
+        matchCount: matches.length,
+        homeTeamName: null,
+        awayTeamName: null,
+      });
     }
-    return Object.freeze({ gameId, status: matches[0]?.status ?? 'UNKNOWN', matchCount: 1 });
+    const game = matches[0];
+    return Object.freeze({
+      gameId,
+      status: game?.status ?? 'UNKNOWN',
+      matchCount: 1,
+      homeTeamName: game?.home_team?.display_name ?? null,
+      awayTeamName: game?.away_team?.display_name ?? null,
+    });
   });
   const nonFinalGames = statusRows.filter((row) => row.status !== 'STATUS_FINAL');
   return Object.freeze({
@@ -299,14 +366,159 @@ export function classifyHhrArchiveGameStatuses(archive, rawGames) {
   });
 }
 
-export function buildM10HhrFinalGradeReport({ archive, statsRows, gradedAt, gameStatusEvidence }) {
+function statusGameForEvidence(status, gameId) {
+  const matches = array(status.games, 'gameStatusEvidence.games').filter((row) => row?.gameId === gameId);
+  if (matches.length !== 1) {
+    throw new Error(`HHR final evidence for game ${gameId} must contain exactly one game-status row.`);
+  }
+  const game = matches[0];
+  if (game.status !== 'STATUS_FINAL') {
+    throw new Error(`HHR final evidence for game ${gameId} is not exactly STATUS_FINAL.`);
+  }
+  return game;
+}
+
+function statsSnapshotForGame(statsSnapshots, gameId) {
+  const snapshots = array(statsSnapshots, 'statsSnapshots');
+  const matches = snapshots.filter((snapshot) => snapshot?.gameId === gameId);
+  if (matches.length !== 1) {
+    throw new Error(`HHR stats completeness for game ${gameId} requires exactly one snapshot.`);
+  }
+  return object(matches[0], `stats snapshot ${gameId}`);
+}
+
+function lineupSnapshotForGame(lineupSnapshots, gameId) {
+  const snapshots = array(lineupSnapshots, 'lineupSnapshots');
+  const matches = snapshots.filter((snapshot) => snapshot?.gameId === gameId);
+  if (matches.length !== 1) {
+    throw new Error(`HHR lineup evidence for game ${gameId} requires exactly one snapshot.`);
+  }
+  return object(matches[0], `lineup snapshot ${gameId}`);
+}
+
+function teamDisplayName(row) {
+  const value = row?.team?.display_name;
+  return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+function assertCompleteStatsEvidence({ gameId, status, statsRows, statsSnapshots }) {
+  const game = statusGameForEvidence(status, gameId);
+  const expectedTeamNames = [
+    nonemptyString(game.awayTeamName, `game ${gameId} awayTeamName`),
+    nonemptyString(game.homeTeamName, `game ${gameId} homeTeamName`),
+  ];
+  const snapshot = statsSnapshotForGame(statsSnapshots, gameId);
+  const meta = object(snapshot.meta, `stats snapshot ${gameId}.meta`);
+  if (Object.prototype.hasOwnProperty.call(meta, 'next_cursor')) {
+    throw new Error(`HHR stats response for game ${gameId} is incomplete because meta.next_cursor is present.`);
+  }
+  nonnegativeInteger(snapshot.rowCount, `stats snapshot ${gameId}.rowCount`);
+  const gameRows = statsRows.filter((row) => row?.game_id === gameId);
+  if (gameRows.length !== snapshot.rowCount) {
+    throw new Error(`HHR stats response for game ${gameId} row count drifted from persisted evidence.`);
+  }
+  const observedTeamNames = new Set(gameRows.map(teamDisplayName).filter(Boolean));
+  for (const teamName of expectedTeamNames) {
+    if (!observedTeamNames.has(teamName)) {
+      throw new Error(`HHR stats response for game ${gameId} is incomplete because team ${teamName} is absent.`);
+    }
+  }
+}
+
+function assertUsableLineupEvidence({ gameId, status, lineupRows, lineupSnapshots }) {
+  const game = statusGameForEvidence(status, gameId);
+  const snapshot = lineupSnapshotForGame(lineupSnapshots, gameId);
+  nonnegativeInteger(snapshot.rowCount, `lineup snapshot ${gameId}.rowCount`);
+  if (snapshot.rowCount === 0) {
+    throw new Error(`HHR lineup response for game ${gameId} is empty; nonstarter absence cannot be inferred.`);
+  }
+  if (snapshot.meta !== undefined && snapshot.meta !== null) {
+    const meta = object(snapshot.meta, `lineup snapshot ${gameId}.meta`);
+    if (Object.prototype.hasOwnProperty.call(meta, 'next_cursor')) {
+      throw new Error(`HHR lineup response for game ${gameId} is incomplete because meta.next_cursor is present.`);
+    }
+  }
+  const gameRows = lineupRows.filter((row) => row?.game_id === gameId);
+  if (gameRows.length !== snapshot.rowCount) {
+    throw new Error(`HHR lineup response for game ${gameId} row count drifted from persisted evidence.`);
+  }
+  const expectedTeamNames = [
+    nonemptyString(game.awayTeamName, `game ${gameId} awayTeamName`),
+    nonemptyString(game.homeTeamName, `game ${gameId} homeTeamName`),
+  ];
+  const observedTeamNames = new Set(gameRows.map(teamDisplayName).filter(Boolean));
+  for (const teamName of expectedTeamNames) {
+    if (!observedTeamNames.has(teamName)) {
+      throw new Error(`HHR lineup response for game ${gameId} is incomplete because team ${teamName} is absent.`);
+    }
+  }
+  return gameRows;
+}
+
+function buildVerifiedNonstarterRow({ row, index, status, statsRows, statsSnapshots, lineupRows, lineupSnapshots }) {
+  assertCompleteStatsEvidence({
+    gameId: row.providerGameId,
+    status,
+    statsRows,
+    statsSnapshots,
+  });
+  const gameLineups = assertUsableLineupEvidence({
+    gameId: row.providerGameId,
+    status,
+    lineupRows,
+    lineupSnapshots,
+  });
+  const lineupMatches = gameLineups.filter(
+    (lineup) => lineup?.player?.id === row.providerPlayerId,
+  );
+  if (lineupMatches.length > 0) {
+    throw new Error(
+      `Missing official HHR stats for ${row.providerGameId}:${row.providerPlayerId}. Player is present in live final-game lineups; approved sources contradict.`,
+    );
+  }
+
+  const rule = registeredHhrSettlementRule();
+  return validateEvidenceRow(
+    {
+      ...row,
+      officialHhr: null,
+      officialHits: null,
+      officialComponents: null,
+      outcome: 'void',
+      settlementVersion: rule.version,
+      settlementReason: 'verified-final-nonstarter',
+      gradingSettlement: Object.freeze({
+        eligibilityProbability: 0,
+        winProbability: 0,
+        lossProbability: 0,
+        voidProbability: 1,
+        winProbabilityGivenGrades: null,
+        settlementRuleVersion: rule.version,
+        ruleSourceReference: rule.ruleSourceReference,
+      }),
+    },
+    `graded rows[${index}]`,
+    { graded: true },
+  );
+}
+
+export function buildM10HhrFinalGradeReport({
+  archive,
+  statsRows,
+  statsSnapshots,
+  lineupRows,
+  lineupSnapshots,
+  gradedAt,
+  gameStatusEvidence,
+}) {
   timestamp(gradedAt, 'gradedAt');
   const status = object(gameStatusEvidence, 'gameStatusEvidence');
   if (status.readyToGrade !== true) {
     throw new Error('HHR archive games are not all STATUS_FINAL.');
   }
+  const safeStatsRows = array(statsRows, 'statsRows');
   const officialByIdentity = new Map();
-  for (const [index, raw] of array(statsRows, 'statsRows').entries()) {
+  for (const [index, raw] of safeStatsRows.entries()) {
     const gameId = raw?.game_id;
     const playerId = raw?.player?.id;
     if (!Number.isSafeInteger(gameId) || !Number.isSafeInteger(playerId)) continue;
@@ -329,7 +541,15 @@ export function buildM10HhrFinalGradeReport({ archive, statsRows, gradedAt, game
   const rows = archive.rows.map((row, index) => {
     const official = officialByIdentity.get(`${row.providerGameId}:${row.providerPlayerId}`);
     if (!official) {
-      throw new Error(`Missing official HHR stats for ${row.providerGameId}:${row.providerPlayerId}.`);
+      return buildVerifiedNonstarterRow({
+        row,
+        index,
+        status,
+        statsRows: safeStatsRows,
+        statsSnapshots,
+        lineupRows: array(lineupRows, 'lineupRows'),
+        lineupSnapshots,
+      });
     }
     const settlement = settleObservedDiscreteStatisticV1({
       observedStatistic: official.officialHhr,
@@ -409,6 +629,10 @@ function lineCohort(row) {
   throw new Error(`Unsupported HHR calibration line ${row.postedLine}.`);
 }
 
+function calibrationEligibleRows(rows) {
+  return rows.filter((row) => row.outcome !== 'void');
+}
+
 function withEvidenceStatus(calibration) {
   return calibration.map((bucket) =>
     Object.freeze({
@@ -468,15 +692,18 @@ export function buildM10HhrCumulativeSelectedSideReport({
     throw new Error('Cumulative HHR evidence contains duplicate exact offer identities.');
   }
   const selectedRows = selectOneModelSidePerProp(allRows).selectedRows;
+  const selectedCalibrationRows = calibrationEligibleRows(selectedRows);
   const perLine = {};
   for (const cohort of ['0.5', '1.5', '2.5+']) {
     const rows = selectedRows.filter((row) => lineCohort(row) === cohort);
+    const calibrationRows = calibrationEligibleRows(rows);
     perLine[cohort] = Object.freeze({
       lineCohort: cohort,
       summary: buildSelectedSidePerformanceSummary(rows),
-      calibration: Object.freeze(withEvidenceStatus(buildSelectedSideCalibration(rows))),
+      calibrationEligiblePicks: calibrationRows.length,
+      calibration: Object.freeze(withEvidenceStatus(buildSelectedSideCalibration(calibrationRows))),
       evidenceStatus:
-        rows.length >= M10_HHR_MINIMUM_CALIBRATION_BUCKET_COUNT
+        calibrationRows.length >= M10_HHR_MINIMUM_CALIBRATION_BUCKET_COUNT
           ? 'sufficient'
           : 'insufficient',
     });
@@ -492,7 +719,8 @@ export function buildM10HhrCumulativeSelectedSideReport({
     sources: Object.freeze(sources),
     selectedSide: Object.freeze({
       summary: buildSelectedSidePerformanceSummary(selectedRows),
-      calibration: Object.freeze(withEvidenceStatus(buildSelectedSideCalibration(selectedRows))),
+      calibrationEligiblePicks: selectedCalibrationRows.length,
+      calibration: Object.freeze(withEvidenceStatus(buildSelectedSideCalibration(selectedCalibrationRows))),
       perLine: Object.freeze(perLine),
     }),
     safety: Object.freeze({
@@ -513,9 +741,10 @@ export function hhrCumulativeInputDiagnostics({ step3Archive, gradeReports }) {
     ...reports.flatMap((report) => array(object(report, 'gradeReport').rows, 'gradeReport.rows')),
   ];
   const selectedRows = selectOneModelSidePerProp(sourceRows).selectedRows;
+  const calibrationRows = calibrationEligibleRows(selectedRows);
   const lineCounts = { '0.5': 0, '1.5': 0, '2.5+': 0 };
-  for (const row of selectedRows) lineCounts[lineCohort(row)] += 1;
-  const calibration = buildSelectedSideCalibration(selectedRows).map((bucket) => ({
+  for (const row of calibrationRows) lineCounts[lineCohort(row)] += 1;
+  const calibration = buildSelectedSideCalibration(calibrationRows).map((bucket) => ({
     label: bucket.label,
     picksGraded: bucket.picksGraded,
   }));
@@ -524,6 +753,8 @@ export function hhrCumulativeInputDiagnostics({ step3Archive, gradeReports }) {
     diagnosticType: 'm10-hhr-cumulative-input-counts-before-thresholds',
     archiveCount: 1 + reports.length,
     selectedSideRows: selectedRows.length,
+    calibrationEligibleRows: calibrationRows.length,
+    voidSelectedSideRows: selectedRows.length - calibrationRows.length,
     lineCounts,
     calibration,
     thresholdsEvaluated: false,
