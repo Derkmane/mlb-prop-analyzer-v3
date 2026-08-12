@@ -146,7 +146,7 @@ test('blocked HHR capture writes no grade or cumulative evidence, later captures
       output,
       /BLOCKED\t[^\n]+\t7001:1102\tMissing official HHR stats for 7001:1102\./u,
     );
-    assert.match(output, new RegExp(`GRADED\\t${goodArchive.captureKey.replaceAll('-', '\\-')}`, 'u'));
+    assert.ok(output.includes(`GRADED\t${goodArchive.captureKey}\t`), output);
     assert.match(output, /BLOCKED NOW\t1/u);
     assert.match(output, /CREATED CUMULATIVE\t/u);
 
