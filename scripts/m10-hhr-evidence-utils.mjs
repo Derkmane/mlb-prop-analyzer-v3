@@ -23,6 +23,17 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 const CAPTURE_KEY_PATTERN = /^\d{8}T\d{9}Z--[a-f0-9]{64}$/u;
 const PROBABILITY_TOLERANCE = 1e-12;
 
+export class HhrCaptureEvidenceError extends Error {
+  constructor({ code, providerGameId, providerPlayerId, message }) {
+    super(message);
+    this.name = 'HhrCaptureEvidenceError';
+    this.code = code;
+    this.providerGameId = providerGameId;
+    this.providerPlayerId = providerPlayerId;
+    this.providerIdentity = `${providerGameId}:${providerPlayerId}`;
+  }
+}
+
 function object(value, label) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new TypeError(`${label} must be an object.`);
@@ -120,6 +131,15 @@ function exactRowIdentity(row) {
     row.selectedSide,
     row.postedLine,
   ]);
+}
+
+function captureEvidenceError(row, code, message) {
+  return new HhrCaptureEvidenceError({
+    code,
+    providerGameId: row.providerGameId,
+    providerPlayerId: row.providerPlayerId,
+    message,
+  });
 }
 
 function registeredHhrSettlementRule() {
@@ -366,90 +386,208 @@ export function classifyHhrArchiveGameStatuses(archive, rawGames) {
   });
 }
 
-function statusGameForEvidence(status, gameId) {
-  const matches = array(status.games, 'gameStatusEvidence.games').filter((row) => row?.gameId === gameId);
+function statusGameForEvidence(status, row) {
+  const gameId = row.providerGameId;
+  const matches = array(status.games, 'gameStatusEvidence.games').filter((entry) => entry?.gameId === gameId);
   if (matches.length !== 1) {
-    throw new Error(`HHR final evidence for game ${gameId} must contain exactly one game-status row.`);
+    throw captureEvidenceError(
+      row,
+      'FINAL_STATUS_EVIDENCE_COUNT',
+      `HHR final evidence for game ${gameId} must contain exactly one game-status row.`,
+    );
   }
   const game = matches[0];
   if (game.status !== 'STATUS_FINAL') {
-    throw new Error(`HHR final evidence for game ${gameId} is not exactly STATUS_FINAL.`);
+    throw captureEvidenceError(
+      row,
+      'FINAL_STATUS_NOT_FINAL',
+      `HHR final evidence for game ${gameId} is not exactly STATUS_FINAL.`,
+    );
   }
   return game;
 }
 
-function statsSnapshotForGame(statsSnapshots, gameId) {
+function statsSnapshotForGame(statsSnapshots, row) {
+  const gameId = row.providerGameId;
   const snapshots = array(statsSnapshots, 'statsSnapshots');
   const matches = snapshots.filter((snapshot) => snapshot?.gameId === gameId);
   if (matches.length !== 1) {
-    throw new Error(`HHR stats completeness for game ${gameId} requires exactly one snapshot.`);
+    throw captureEvidenceError(
+      row,
+      'STATS_SNAPSHOT_COUNT',
+      `HHR stats completeness for game ${gameId} requires exactly one snapshot.`,
+    );
   }
-  return object(matches[0], `stats snapshot ${gameId}`);
+  return matches[0];
 }
 
-function lineupSnapshotForGame(lineupSnapshots, gameId) {
+function lineupSnapshotForGame(lineupSnapshots, row) {
+  const gameId = row.providerGameId;
   const snapshots = array(lineupSnapshots, 'lineupSnapshots');
   const matches = snapshots.filter((snapshot) => snapshot?.gameId === gameId);
   if (matches.length !== 1) {
-    throw new Error(`HHR lineup evidence for game ${gameId} requires exactly one snapshot.`);
+    throw captureEvidenceError(
+      row,
+      'LINEUP_SNAPSHOT_COUNT',
+      `HHR lineup evidence for game ${gameId} requires exactly one snapshot.`,
+    );
   }
-  return object(matches[0], `lineup snapshot ${gameId}`);
+  return matches[0];
 }
 
-function teamDisplayName(row) {
+function statsTeamName(row) {
+  const value = row?.team_name;
+  return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+function lineupTeamDisplayName(row) {
   const value = row?.team?.display_name;
   return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
-function assertCompleteStatsEvidence({ gameId, status, statsRows, statsSnapshots }) {
-  const game = statusGameForEvidence(status, gameId);
-  const expectedTeamNames = [
-    nonemptyString(game.awayTeamName, `game ${gameId} awayTeamName`),
-    nonemptyString(game.homeTeamName, `game ${gameId} homeTeamName`),
-  ];
-  const snapshot = statsSnapshotForGame(statsSnapshots, gameId);
-  const meta = object(snapshot.meta, `stats snapshot ${gameId}.meta`);
+function expectedTeamNamesForEvidence(game, row) {
+  const gameId = row.providerGameId;
+  if (typeof game.awayTeamName !== 'string' || game.awayTeamName.length === 0) {
+    throw captureEvidenceError(
+      row,
+      'GAME_AWAY_TEAM_NAME_MISSING',
+      `HHR final game evidence for game ${gameId} is missing awayTeamName.`,
+    );
+  }
+  if (typeof game.homeTeamName !== 'string' || game.homeTeamName.length === 0) {
+    throw captureEvidenceError(
+      row,
+      'GAME_HOME_TEAM_NAME_MISSING',
+      `HHR final game evidence for game ${gameId} is missing homeTeamName.`,
+    );
+  }
+  return [game.awayTeamName, game.homeTeamName];
+}
+
+function assertCompleteStatsEvidence({ row, status, statsRows, statsSnapshots }) {
+  const gameId = row.providerGameId;
+  const game = statusGameForEvidence(status, row);
+  const expectedTeamNames = expectedTeamNamesForEvidence(game, row);
+  const snapshot = statsSnapshotForGame(statsSnapshots, row);
+  if (snapshot === null || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+    throw captureEvidenceError(row, 'STATS_SNAPSHOT_INVALID', `HHR stats snapshot ${gameId} must be an object.`);
+  }
+  const meta = snapshot.meta;
+  if (meta === null || typeof meta !== 'object' || Array.isArray(meta)) {
+    throw captureEvidenceError(row, 'STATS_META_INVALID', `HHR stats snapshot ${gameId}.meta must be an object.`);
+  }
   if (Object.prototype.hasOwnProperty.call(meta, 'next_cursor')) {
-    throw new Error(`HHR stats response for game ${gameId} is incomplete because meta.next_cursor is present.`);
+    throw captureEvidenceError(
+      row,
+      'STATS_PAGINATION_INCOMPLETE',
+      `HHR stats response for game ${gameId} is incomplete because meta.next_cursor is present.`,
+    );
   }
-  nonnegativeInteger(snapshot.rowCount, `stats snapshot ${gameId}.rowCount`);
-  const gameRows = statsRows.filter((row) => row?.game_id === gameId);
+  if (!Number.isSafeInteger(snapshot.rowCount) || snapshot.rowCount < 0) {
+    throw captureEvidenceError(
+      row,
+      'STATS_ROW_COUNT_INVALID',
+      `HHR stats snapshot ${gameId}.rowCount must be a nonnegative safe integer.`,
+    );
+  }
+  const gameRows = statsRows.filter((statsRow) => statsRow?.game_id === gameId);
   if (gameRows.length !== snapshot.rowCount) {
-    throw new Error(`HHR stats response for game ${gameId} row count drifted from persisted evidence.`);
+    throw captureEvidenceError(
+      row,
+      'STATS_ROW_COUNT_DRIFT',
+      `HHR stats response for game ${gameId} row count drifted from persisted evidence.`,
+    );
   }
-  const observedTeamNames = new Set(gameRows.map(teamDisplayName).filter(Boolean));
+  if (gameRows.some((statsRow) => !Number.isSafeInteger(statsRow?.player?.id) || statsRow.player.id <= 0)) {
+    throw captureEvidenceError(
+      row,
+      'STATS_PLAYER_ID_INVALID',
+      `HHR stats response for game ${gameId} contains a row without a valid player.id.`,
+    );
+  }
+  if (gameRows.some((statsRow) => statsTeamName(statsRow) === null)) {
+    throw captureEvidenceError(
+      row,
+      'STATS_TEAM_NAME_INVALID',
+      `HHR stats response for game ${gameId} contains a row without top-level team_name.`,
+    );
+  }
+  const observedTeamNames = new Set(gameRows.map(statsTeamName));
   for (const teamName of expectedTeamNames) {
     if (!observedTeamNames.has(teamName)) {
-      throw new Error(`HHR stats response for game ${gameId} is incomplete because team ${teamName} is absent.`);
+      throw captureEvidenceError(
+        row,
+        'STATS_TEAM_MISSING',
+        `HHR stats response for game ${gameId} is incomplete because team ${teamName} is absent.`,
+      );
     }
   }
 }
 
-function assertUsableLineupEvidence({ gameId, status, lineupRows, lineupSnapshots }) {
-  const game = statusGameForEvidence(status, gameId);
-  const snapshot = lineupSnapshotForGame(lineupSnapshots, gameId);
-  nonnegativeInteger(snapshot.rowCount, `lineup snapshot ${gameId}.rowCount`);
+function assertUsableLineupEvidence({ row, status, lineupRows, lineupSnapshots }) {
+  const gameId = row.providerGameId;
+  const game = statusGameForEvidence(status, row);
+  const snapshot = lineupSnapshotForGame(lineupSnapshots, row);
+  if (snapshot === null || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+    throw captureEvidenceError(row, 'LINEUP_SNAPSHOT_INVALID', `HHR lineup snapshot ${gameId} must be an object.`);
+  }
+  if (!Number.isSafeInteger(snapshot.rowCount) || snapshot.rowCount < 0) {
+    throw captureEvidenceError(
+      row,
+      'LINEUP_ROW_COUNT_INVALID',
+      `HHR lineup snapshot ${gameId}.rowCount must be a nonnegative safe integer.`,
+    );
+  }
   if (snapshot.rowCount === 0) {
-    throw new Error(`HHR lineup response for game ${gameId} is empty; nonstarter absence cannot be inferred.`);
+    throw captureEvidenceError(
+      row,
+      'LINEUP_EMPTY',
+      `HHR lineup response for game ${gameId} is empty; nonstarter absence cannot be inferred.`,
+    );
   }
   if (snapshot.meta !== undefined && snapshot.meta !== null) {
-    const meta = object(snapshot.meta, `lineup snapshot ${gameId}.meta`);
-    if (Object.prototype.hasOwnProperty.call(meta, 'next_cursor')) {
-      throw new Error(`HHR lineup response for game ${gameId} is incomplete because meta.next_cursor is present.`);
+    if (typeof snapshot.meta !== 'object' || Array.isArray(snapshot.meta)) {
+      throw captureEvidenceError(row, 'LINEUP_META_INVALID', `HHR lineup snapshot ${gameId}.meta must be an object.`);
+    }
+    if (Object.prototype.hasOwnProperty.call(snapshot.meta, 'next_cursor')) {
+      throw captureEvidenceError(
+        row,
+        'LINEUP_PAGINATION_INCOMPLETE',
+        `HHR lineup response for game ${gameId} is incomplete because meta.next_cursor is present.`,
+      );
     }
   }
-  const gameRows = lineupRows.filter((row) => row?.game_id === gameId);
+  const gameRows = lineupRows.filter((lineupRow) => lineupRow?.game_id === gameId);
   if (gameRows.length !== snapshot.rowCount) {
-    throw new Error(`HHR lineup response for game ${gameId} row count drifted from persisted evidence.`);
+    throw captureEvidenceError(
+      row,
+      'LINEUP_ROW_COUNT_DRIFT',
+      `HHR lineup response for game ${gameId} row count drifted from persisted evidence.`,
+    );
   }
-  const expectedTeamNames = [
-    nonemptyString(game.awayTeamName, `game ${gameId} awayTeamName`),
-    nonemptyString(game.homeTeamName, `game ${gameId} homeTeamName`),
-  ];
-  const observedTeamNames = new Set(gameRows.map(teamDisplayName).filter(Boolean));
+  if (gameRows.some((lineupRow) => !Number.isSafeInteger(lineupRow?.player?.id) || lineupRow.player.id <= 0)) {
+    throw captureEvidenceError(
+      row,
+      'LINEUP_PLAYER_ID_INVALID',
+      `HHR lineup response for game ${gameId} contains a row without a valid player.id.`,
+    );
+  }
+  if (gameRows.some((lineupRow) => lineupTeamDisplayName(lineupRow) === null)) {
+    throw captureEvidenceError(
+      row,
+      'LINEUP_TEAM_NAME_INVALID',
+      `HHR lineup response for game ${gameId} contains a row without team.display_name.`,
+    );
+  }
+  const expectedTeamNames = expectedTeamNamesForEvidence(game, row);
+  const observedTeamNames = new Set(gameRows.map(lineupTeamDisplayName));
   for (const teamName of expectedTeamNames) {
     if (!observedTeamNames.has(teamName)) {
-      throw new Error(`HHR lineup response for game ${gameId} is incomplete because team ${teamName} is absent.`);
+      throw captureEvidenceError(
+        row,
+        'LINEUP_TEAM_MISSING',
+        `HHR lineup response for game ${gameId} is incomplete because team ${teamName} is absent.`,
+      );
     }
   }
   return gameRows;
@@ -457,13 +595,13 @@ function assertUsableLineupEvidence({ gameId, status, lineupRows, lineupSnapshot
 
 function buildVerifiedNonstarterRow({ row, index, status, statsRows, statsSnapshots, lineupRows, lineupSnapshots }) {
   assertCompleteStatsEvidence({
-    gameId: row.providerGameId,
+    row,
     status,
     statsRows,
     statsSnapshots,
   });
   const gameLineups = assertUsableLineupEvidence({
-    gameId: row.providerGameId,
+    row,
     status,
     lineupRows,
     lineupSnapshots,
@@ -472,7 +610,9 @@ function buildVerifiedNonstarterRow({ row, index, status, statsRows, statsSnapsh
     (lineup) => lineup?.player?.id === row.providerPlayerId,
   );
   if (lineupMatches.length > 0) {
-    throw new Error(
+    throw captureEvidenceError(
+      row,
+      'LIVE_LINEUP_CONTRADICTION',
       `Missing official HHR stats for ${row.providerGameId}:${row.providerPlayerId}. Player is present in live final-game lineups; approved sources contradict.`,
     );
   }
@@ -522,19 +662,27 @@ export function buildM10HhrFinalGradeReport({
     const gameId = raw?.game_id;
     const playerId = raw?.player?.id;
     if (!Number.isSafeInteger(gameId) || !Number.isSafeInteger(playerId)) continue;
-    const relevant = archive.rows.some(
+    const relevantRow = archive.rows.find(
       (row) => row.providerGameId === gameId && row.providerPlayerId === playerId,
     );
-    if (!relevant) continue;
+    if (!relevantRow) continue;
     const hits = raw?.hits;
     const runs = raw?.runs;
     const rbi = raw?.rbi;
     if (![hits, runs, rbi].every((value) => Number.isSafeInteger(value) && value >= 0)) {
-      throw new Error(`HHR official stats row ${index} is malformed.`);
+      throw captureEvidenceError(
+        relevantRow,
+        'OFFICIAL_STATS_ROW_MALFORMED',
+        `HHR official stats row ${index} is malformed.`,
+      );
     }
     const key = `${gameId}:${playerId}`;
     if (officialByIdentity.has(key)) {
-      throw new Error(`Duplicate official HHR stat identity ${key}.`);
+      throw captureEvidenceError(
+        relevantRow,
+        'OFFICIAL_STATS_IDENTITY_DUPLICATE',
+        `Duplicate official HHR stat identity ${key}.`,
+      );
     }
     officialByIdentity.set(key, Object.freeze({ hits, runs, rbi, officialHhr: hits + runs + rbi }));
   }

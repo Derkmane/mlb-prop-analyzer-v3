@@ -6,6 +6,7 @@ import {
   buildM10HhrCumulativeSelectedSideReport,
   buildM10HhrFinalGradeReport,
   classifyHhrArchiveGameStatuses,
+  HhrCaptureEvidenceError,
   hhrCumulativeInputDiagnostics,
   M10_HHR_CUMULATIVE_VERSION,
   M10_HHR_GRADE_VERSION,
@@ -23,7 +24,6 @@ const STEP3_ARCHIVE_PATH = path.resolve(
   'artifacts/m11/hhr/step3/archives/20260806T004000Z--2c2e9c408a2226dfea2bcc42b009203d26bc2a307e08caed05f3b31e361aabdf.json',
 );
 const CAPTURE_PATTERN = /^(\d{8}T\d{9}Z--[a-f0-9]{64})\.json$/u;
-const MISSING_OFFICIAL_STATS_PATTERN = /^Missing official HHR stats for (\d+):(\d+)\./u;
 const ATTEMPT_ID = process.env.M10_GRADE_ATTEMPT_ID?.trim() || `local-${Date.now()}`;
 const MIN_REQUEST_INTERVAL_MS = Number(
   process.env.M10_BDL_MIN_REQUEST_INTERVAL_MS?.trim() || '13000',
@@ -235,13 +235,12 @@ for (const capture of captures) {
       gameStatusEvidence: statusEvidence,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const missingStats = MISSING_OFFICIAL_STATS_PATTERN.exec(message);
-    if (!missingStats) throw error;
+    if (!(error instanceof HhrCaptureEvidenceError)) throw error;
 
-    const providerGameId = Number(missingStats[1]);
-    const providerPlayerId = Number(missingStats[2]);
-    const providerIdentity = `${providerGameId}:${providerPlayerId}`;
+    const message = error.message;
+    const providerGameId = error.providerGameId;
+    const providerPlayerId = error.providerPlayerId;
+    const providerIdentity = error.providerIdentity;
     const blockedStatusPath = path.join(
       ARCHIVE_ROOT,
       capture.captureKey,
@@ -250,9 +249,10 @@ for (const capture of captures) {
     );
     const blockedStatus = Object.freeze({
       blockedStatusVersion: 1,
-      blockedStatusType: 'm10-hhr-capture-blocked-missing-official-stats',
+      blockedStatusType: 'm10-hhr-capture-blocked-evidence',
       captureKey: archive.captureKey,
       blockedAt: new Date().toISOString(),
+      evidenceCode: error.code,
       providerGameId,
       providerPlayerId,
       providerIdentity,
