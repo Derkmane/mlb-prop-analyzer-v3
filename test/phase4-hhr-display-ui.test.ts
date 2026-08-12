@@ -191,6 +191,16 @@ function sessionCookieFrom(response: Response): string {
   return setCookie.split(';')[0]!;
 }
 
+function expectedCalibrationLabel(
+  n: number,
+  predicted: number,
+  observedMinusPredicted: number,
+): 'CALIBRATED' | 'OVERCONFIDENT' | 'UNDERCONFIDENT' {
+  const standardError = Math.sqrt((predicted * (1 - predicted)) / n);
+  if (Math.abs(observedMinusPredicted) <= 2 * standardError) return 'CALIBRATED';
+  return observedMinusPredicted < 0 ? 'OVERCONFIDENT' : 'UNDERCONFIDENT';
+}
+
 test('Phase 4 password configuration fails closed with no default credential', () => {
   assert.throws(() => resolveHhrDisplayServerPassword(undefined), /HHR_DISPLAY_PASSWORD/u);
   assert.throws(() => resolveHhrDisplayServerPassword(''), /HHR_DISPLAY_PASSWORD/u);
@@ -264,8 +274,11 @@ test('authenticated app renders delivered order and API preserves probabilities 
     const root = await fetch(`${origin}/`, { headers: authHeaders });
     assert.equal(root.status, 200);
     const html = await root.text();
+    assert.match(html, /High Probability Altline Props/u);
     assert.match(html, /HHR 2\.5 Lower Alt/u);
     assert.match(html, /HHR 0\.5 Higher Alt/u);
+    assert.match(html, /id="hhr-25-lower-evidence"/u);
+    assert.match(html, /id="hhr-05-higher-evidence"/u);
     assert.match(html, /Board freshness/u);
 
     const scriptResponse = await fetch(`${origin}/app.js`, { headers: authHeaders });
@@ -277,7 +290,12 @@ test('authenticated app renders delivered order and API preserves probabilities 
     assert.equal(script.includes('hrr >'), false);
     assert.equal(script.includes('hrr <'), false);
     assert.match(script, /selectedSideOutcome/u);
+    assert.match(script, /Green = selected side won · Red = selected side lost · Gray = void/u);
     assert.match(script, /Unavailable in current display archive/u);
+    assert.match(script, /renderSublistEvidence\(lowerEvidenceNode, board\.cumulativeEvidence, '2\.5\+'\)/u);
+    assert.match(script, /renderSublistEvidence\(higherEvidenceNode, board\.cumulativeEvidence, '0\.5'\)/u);
+    assert.match(script, /renderList\(lowerList, board\.hhr25LowerAlternates, '2\.5\+', lowerEvidence\)/u);
+    assert.match(script, /renderList\(higherList, board\.hhr05HigherAlternates, '0\.5', higherEvidence\)/u);
     assert.match(HHR_DISPLAY_APP_CSS, /@media \(max-width: 650px\)/u);
 
     const response = await fetch(`${origin}/api/hhr-display-board`, { headers: authHeaders });
@@ -304,6 +322,36 @@ test('authenticated app renders delivered order and API preserves probabilities 
     assert.equal(higherHistory[0]?.['selectedSideOutcome'], 'win');
     assert.equal(reads, 1);
   });
+});
+
+test('Phase 4 separates sample sufficiency from calibration agreement using written cohort values', () => {
+  assert.equal(
+    expectedCalibrationLabel(85, 0.6553639332128363, -0.114187462624601),
+    'OVERCONFIDENT',
+  );
+  assert.equal(
+    expectedCalibrationLabel(322, 0.5550014111353789, 0.004004800044745238),
+    'CALIBRATED',
+  );
+  assert.equal(
+    expectedCalibrationLabel(11, 0.6723284472800314, -0.3996011745527587),
+    'OVERCONFIDENT',
+  );
+
+  assert.match(HHR_DISPLAY_APP_JS, /const COIN_FLIP_LOG_LOSS = 0\.693/u);
+  assert.match(HHR_DISPLAY_APP_JS, /Math\.sqrt\(\(predicted \* \(1 - predicted\)\) \/ n\)/u);
+  assert.match(HHR_DISPLAY_APP_JS, /Math\.abs\(gap\) <= twoStandardErrors/u);
+  assert.match(HHR_DISPLAY_APP_JS, /Sample: /u);
+  assert.match(HHR_DISPLAY_APP_JS, /Calibration: /u);
+  assert.match(HHR_DISPLAY_APP_JS, /Observed − predicted/u);
+  assert.match(HHR_DISPLAY_APP_JS, /coin flip 0\.693/u);
+  assert.match(HHR_DISPLAY_APP_JS, /COHORT · SAMPLE/u);
+  assert.match(HHR_DISPLAY_APP_JS, /CALIBRATION /u);
+  assert.equal(HHR_DISPLAY_APP_JS.includes("'Line ' + cohort + ' · '"), false);
+  assert.equal(HHR_DISPLAY_APP_JS.includes('.sort('), false);
+  assert.equal(HHR_DISPLAY_APP_JS.includes('selectedSide ==='), false);
+  assert.equal(HHR_DISPLAY_APP_JS.includes('hrr >'), false);
+  assert.equal(HHR_DISPLAY_APP_JS.includes('hrr <'), false);
 });
 
 test('logout expires the session cookie and redirects to login without touching board evidence', async () => {

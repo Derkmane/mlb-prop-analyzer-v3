@@ -27,8 +27,18 @@ h1 { margin: 4px 0 8px; font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.04; 
 .evidence-summary { margin: 6px 0 12px; color: #93a8ba; font-size: .8rem; }
 .evidence-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .evidence-card { border: 1px solid #2d5e51; border-radius: 11px; background: #0a1a1a; padding: 11px; }
-.evidence-card.insufficient { border-color: #725845; background: #1d1711; }
+.evidence-card.sample-insufficient { border-color: #725845; background: #1d1711; }
+.evidence-card.overconfident { box-shadow: inset 0 0 0 1px #8a4d53; }
+.evidence-card.underconfident { box-shadow: inset 0 0 0 1px #416d8a; }
 .evidence-card h3 { margin: 0 0 8px; font-size: .92rem; }
+.evidence-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 9px; }
+.evidence-badge { border: 1px solid #35516b; border-radius: 999px; padding: 4px 8px; font-size: .68rem; font-weight: 800; letter-spacing: .02em; background: #102033; }
+.evidence-badge.sample-sufficient { border-color: #2f7462; color: #9ff0d1; }
+.evidence-badge.sample-insufficient { border-color: #7a5a32; color: #f2cf8f; }
+.evidence-badge.calibrated { border-color: #2f7462; color: #9ff0d1; }
+.evidence-badge.overconfident { border-color: #8a4d53; color: #ffadb5; }
+.evidence-badge.underconfident { border-color: #416d8a; color: #a9d7f5; }
+.evidence-badge.unavailable { border-color: #56616c; color: #b6c0c8; }
 .evidence-line { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; font-size: .76rem; }
 .evidence-line span:first-child { color: #849aaa; }
 .evidence-flags { margin-top: 8px; color: #8094a5; font-size: .7rem; line-height: 1.45; }
@@ -41,6 +51,8 @@ h1 { margin: 4px 0 8px; font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.04; 
 .list-heading h2 { margin: 0; font-size: 1.15rem; }
 .list-heading p { margin: 5px 0 0; color: #8fa5b8; font-size: .84rem; }
 .sublist-label { display: inline-block; margin-bottom: 7px; color: #78b7ff; font-size: .67rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.sublist-evidence { margin-top: 12px; border-top: 1px solid #213447; padding-top: 10px; }
+.sublist-evidence .evidence-line { font-size: .72rem; }
 .pick-list { display: grid; gap: 12px; padding: 12px; }
 .pick-card { border: 1px solid #263c50; border-radius: 13px; background: linear-gradient(145deg, #101e2b, #0b151f); padding: 14px; box-shadow: 0 12px 30px #00000020; }
 .pick-head { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
@@ -52,6 +64,12 @@ h1 { margin: 4px 0 8px; font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.04; 
 .chip.higher { border-color: #2f7462; color: #9ff0d1; }
 .chip.lower { border-color: #6a526f; color: #e1b2ea; }
 .chip.lineup { color: #e7ca8b; border-color: #695834; }
+.chip.cohort { border-color: #486c8b; color: #b7d8f5; }
+.chip.sample-insufficient { border-color: #7a5a32; color: #f2cf8f; }
+.chip.calibrated { border-color: #2f7462; color: #9ff0d1; }
+.chip.overconfident { border-color: #8a4d53; color: #ffadb5; }
+.chip.underconfident { border-color: #416d8a; color: #a9d7f5; }
+.chip.unavailable { border-color: #56616c; color: #b6c0c8; }
 .prob-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; margin: 12px 0; }
 .metric { border: 1px solid #21384b; background: #091520; border-radius: 9px; padding: 9px; }
 .metric-label { display: block; color: #7f97ab; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; }
@@ -62,7 +80,8 @@ h1 { margin: 4px 0 8px; font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.04; 
 .starter-title { margin: 0 0 6px; font-weight: 800; }
 .starter-stats { color: #9bb0c1; font-size: .8rem; line-height: 1.55; }
 .history { margin-top: 14px; padding-top: 12px; border-top: 1px solid #21384a; }
-.history h3 { margin: 0 0 10px; font-size: .92rem; }
+.history h3 { margin: 0 0 8px; font-size: .92rem; }
+.history-legend { margin: 0 0 8px; color: #8fa5b8; font-size: .7rem; line-height: 1.4; }
 .chart { position: relative; height: 130px; display: flex; align-items: flex-end; gap: 6px; padding: 12px 8px 20px; border: 1px solid #21384a; border-radius: 10px; background: #07121c; overflow: hidden; }
 .chart-bar-wrap { flex: 1; min-width: 0; height: 100%; display: flex; align-items: flex-end; justify-content: center; position: relative; z-index: 1; }
 .chart-bar { width: min(34px, 80%); min-height: 4px; border-radius: 5px 5px 2px 2px; opacity: .9; }
@@ -105,12 +124,15 @@ export const HHR_DISPLAY_APP_JS = `
 (() => {
   'use strict';
 
+  const COIN_FLIP_LOG_LOSS = 0.693;
   const statusNode = document.getElementById('status');
   const capturedAtNode = document.getElementById('captured-at');
   const boardVersionNode = document.getElementById('board-version');
   const modelVersionNode = document.getElementById('model-version');
   const rationaleNode = document.getElementById('ranking-rationale');
   const cumulativeNode = document.getElementById('cumulative-evidence');
+  const lowerEvidenceNode = document.getElementById('hhr-25-lower-evidence');
+  const higherEvidenceNode = document.getElementById('hhr-05-higher-evidence');
   const lowerList = document.getElementById('hhr-25-lower-list');
   const higherList = document.getElementById('hhr-05-higher-list');
 
@@ -123,6 +145,13 @@ export const HHR_DISPLAY_APP_JS = `
 
   function percentage(value) {
     return value === null || value === undefined ? '—' : (Number(value) * 100).toFixed(1) + '%';
+  }
+
+  function signedPercentage(value) {
+    if (value === null || value === undefined) return '—';
+    const numeric = Number(value);
+    const sign = numeric > 0 ? '+' : '';
+    return sign + (numeric * 100).toFixed(1) + '%';
   }
 
   function decimal(value) {
@@ -168,6 +197,28 @@ export const HHR_DISPLAY_APP_JS = `
     parent.append(row);
   }
 
+  function calibrationAgreement(line) {
+    const n = Number(line.calibrationEligiblePicks);
+    const predicted = Number(line.summary.predictedMeanWinProbability);
+    const observed = Number(line.summary.observedWinRate);
+    const gap = Number(line.summary.observedMinusPredicted);
+    if (!Number.isFinite(n) || n <= 0 || !Number.isFinite(predicted) || !Number.isFinite(observed) || !Number.isFinite(gap)) {
+      return { label: 'UNAVAILABLE', className: 'unavailable', twoStandardErrors: null };
+    }
+    const standardError = Math.sqrt((predicted * (1 - predicted)) / n);
+    const twoStandardErrors = 2 * standardError;
+    if (Math.abs(gap) <= twoStandardErrors) {
+      return { label: 'CALIBRATED', className: 'calibrated', twoStandardErrors };
+    }
+    return gap < 0
+      ? { label: 'OVERCONFIDENT', className: 'overconfident', twoStandardErrors }
+      : { label: 'UNDERCONFIDENT', className: 'underconfident', twoStandardErrors };
+  }
+
+  function addEvidenceBadge(parent, className, text) {
+    parent.append(element('span', 'evidence-badge ' + className, text));
+  }
+
   function renderCalibrationBands(parent, bands) {
     const details = element('details');
     details.append(element('summary', '', 'Calibration bands'));
@@ -201,6 +252,28 @@ export const HHR_DISPLAY_APP_JS = `
     parent.append(details);
   }
 
+  function renderCohortEvidence(parent, line, includeBands) {
+    const agreement = calibrationAgreement(line);
+    const badges = element('div', 'evidence-badges');
+    addEvidenceBadge(
+      badges,
+      'sample-' + line.evidenceStatus,
+      'Sample: ' + line.evidenceStatus.toUpperCase() + ' (n=' + line.calibrationEligiblePicks + ')',
+    );
+    addEvidenceBadge(badges, agreement.className, 'Calibration: ' + agreement.label);
+    parent.append(badges);
+    evidenceLine(parent, 'Graded rows', String(line.summary.picksGraded));
+    evidenceLine(parent, 'Voids', String(line.summary.voids));
+    evidenceLine(parent, 'Mean predicted', percentage(line.summary.predictedMeanWinProbability));
+    evidenceLine(parent, 'Observed win rate', percentage(line.summary.observedWinRate));
+    evidenceLine(parent, 'Observed − predicted', signedPercentage(line.summary.observedMinusPredicted));
+    evidenceLine(parent, '2 SE tolerance', agreement.twoStandardErrors === null ? '—' : '±' + percentage(agreement.twoStandardErrors));
+    evidenceLine(parent, 'Log loss', decimal(line.summary.binaryLogLoss) + ' · coin flip 0.693');
+    evidenceLine(parent, 'Brier', decimal(line.summary.binaryBrier));
+    evidenceLine(parent, '30-pick count gate', line.minimumCountGatePassed ? 'PASS' : 'FAIL');
+    if (includeBands) renderCalibrationBands(parent, line.calibration);
+  }
+
   function renderCumulativeEvidence(evidence) {
     cumulativeNode.replaceChildren();
     const heading = element('h2', '', 'HHR cumulative calibration evidence');
@@ -225,16 +298,10 @@ export const HHR_DISPLAY_APP_JS = `
     const grid = element('div', 'evidence-grid');
     for (const cohort of ['0.5', '1.5', '2.5+']) {
       const line = evidence.selectedSide.perLine[cohort];
-      const card = element('article', 'evidence-card ' + line.evidenceStatus);
-      card.append(element('h3', '', 'Line ' + cohort + ' · ' + line.evidenceStatus.toUpperCase()));
-      evidenceLine(card, 'Graded rows', String(line.summary.picksGraded));
-      evidenceLine(card, 'Calibration eligible', String(line.calibrationEligiblePicks));
-      evidenceLine(card, 'Voids', String(line.summary.voids));
-      evidenceLine(card, 'Mean predicted', percentage(line.summary.predictedMeanWinProbability));
-      evidenceLine(card, 'Observed win rate', percentage(line.summary.observedWinRate));
-      evidenceLine(card, 'Brier', decimal(line.summary.binaryBrier));
-      evidenceLine(card, 'Log loss', decimal(line.summary.binaryLogLoss));
-      evidenceLine(card, '30-pick gate', line.minimumCountGatePassed ? 'PASS' : 'FAIL');
+      const agreement = calibrationAgreement(line);
+      const card = element('article', 'evidence-card sample-' + line.evidenceStatus + ' ' + agreement.className);
+      card.append(element('h3', '', 'Line ' + cohort));
+      renderCohortEvidence(card, line, true);
       card.append(element(
         'div',
         'evidence-flags',
@@ -242,10 +309,20 @@ export const HHR_DISPLAY_APP_JS = `
           ' · productionEnabled=' + line.productionEnabled +
           ' · rankingEnabled=' + line.rankingEnabled,
       ));
-      renderCalibrationBands(card, line.calibration);
       grid.append(card);
     }
     cumulativeNode.append(grid);
+  }
+
+  function renderSublistEvidence(node, evidence, cohort) {
+    node.replaceChildren();
+    if (!evidence || evidence.available !== true) {
+      node.append(element('div', 'empty', cohort + ' cohort evidence unavailable. Board rows remain visible.'));
+      return null;
+    }
+    const line = evidence.selectedSide.perLine[cohort];
+    renderCohortEvidence(node, line, false);
+    return line;
   }
 
   function renderStarter(pick, parent) {
@@ -268,6 +345,7 @@ export const HHR_DISPLAY_APP_JS = `
   function renderHistory(pick, parent) {
     const history = element('section', 'history');
     history.append(element('h3', '', 'Last five appearances'));
+    history.append(element('div', 'history-legend', 'Green = selected side won · Red = selected side lost · Gray = void'));
     if (!Array.isArray(pick.lastFiveGames) || pick.lastFiveGames.length === 0) {
       history.append(element('div', 'empty', pick.lastFiveGamesFailureReason || 'No appearance history available.'));
       parent.append(history);
@@ -314,7 +392,7 @@ export const HHR_DISPLAY_APP_JS = `
     parent.append(history);
   }
 
-  function renderPick(pick) {
+  function renderPick(pick, cohort, lineEvidence) {
     const card = element('article', 'pick-card');
     const head = element('div', 'pick-head');
     const identity = element('div');
@@ -326,6 +404,17 @@ export const HHR_DISPLAY_APP_JS = `
     const chips = element('div', 'chips');
     chips.append(element('span', 'chip ' + pick.selectedSide, String(pick.selectedSide).toUpperCase() + ' ' + pick.postedLine));
     chips.append(element('span', 'chip lineup', String(pick.lineupStatus)));
+    if (lineEvidence === null) {
+      chips.append(element('span', 'chip cohort unavailable', cohort + ' COHORT · SAMPLE UNAVAILABLE'));
+    } else {
+      const agreement = calibrationAgreement(lineEvidence);
+      chips.append(element(
+        'span',
+        'chip cohort sample-' + lineEvidence.evidenceStatus,
+        cohort + ' COHORT · SAMPLE ' + lineEvidence.evidenceStatus.toUpperCase() + ' (n=' + lineEvidence.calibrationEligiblePicks + ')',
+      ));
+      chips.append(element('span', 'chip ' + agreement.className, 'CALIBRATION ' + agreement.label));
+    }
     card.append(chips);
 
     const probabilities = element('div', 'prob-grid');
@@ -347,13 +436,13 @@ export const HHR_DISPLAY_APP_JS = `
     return card;
   }
 
-  function renderList(node, picks) {
+  function renderList(node, picks, cohort, lineEvidence) {
     node.replaceChildren();
     if (!Array.isArray(picks) || picks.length === 0) {
       node.append(element('div', 'empty', 'No eligible archived rows for this exact line and side.'));
       return;
     }
-    for (const pick of picks) node.append(renderPick(pick));
+    for (const pick of picks) node.append(renderPick(pick, cohort, lineEvidence));
   }
 
   async function loadBoard() {
@@ -372,8 +461,10 @@ export const HHR_DISPLAY_APP_JS = `
       modelVersionNode.textContent = String(board.modelVersion);
       rationaleNode.textContent = String(board.rankingRationale);
       renderCumulativeEvidence(board.cumulativeEvidence);
-      renderList(lowerList, board.hhr25LowerAlternates);
-      renderList(higherList, board.hhr05HigherAlternates);
+      const lowerEvidence = renderSublistEvidence(lowerEvidenceNode, board.cumulativeEvidence, '2.5+');
+      const higherEvidence = renderSublistEvidence(higherEvidenceNode, board.cumulativeEvidence, '0.5');
+      renderList(lowerList, board.hhr25LowerAlternates, '2.5+', lowerEvidence);
+      renderList(higherList, board.hhr05HigherAlternates, '0.5', higherEvidence);
       statusNode.textContent = 'Loaded ' + board.hhr25LowerAlternates.length + ' Lower 2.5 picks and ' + board.hhr05HigherAlternates.length + ' Higher 0.5 picks. No rows are padded.';
     } catch {
       statusNode.className = 'status error';
@@ -452,11 +543,21 @@ export function renderHhrDisplayAppPage(): string {
       </header>
       <div class="board-grid">
         <section class="list-panel">
-          <header class="list-heading"><span class="sublist-label">Display sublist</span><h2>HHR 2.5 Lower Alt</h2><p>Up to 20 existing archived rows, in persisted probability rank.</p></header>
+          <header class="list-heading">
+            <span class="sublist-label">Display sublist</span>
+            <h2>HHR 2.5 Lower Alt</h2>
+            <p>Up to 20 existing archived rows, in persisted probability rank.</p>
+            <div id="hhr-25-lower-evidence" class="sublist-evidence"><div class="empty">Loading 2.5+ cohort evidence…</div></div>
+          </header>
           <div id="hhr-25-lower-list" class="pick-list"></div>
         </section>
         <section class="list-panel">
-          <header class="list-heading"><span class="sublist-label">Display sublist</span><h2>HHR 0.5 Higher Alt</h2><p>Up to 20 existing archived rows, in persisted probability rank.</p></header>
+          <header class="list-heading">
+            <span class="sublist-label">Display sublist</span>
+            <h2>HHR 0.5 Higher Alt</h2>
+            <p>Up to 20 existing archived rows, in persisted probability rank.</p>
+            <div id="hhr-05-higher-evidence" class="sublist-evidence"><div class="empty">Loading 0.5 cohort evidence…</div></div>
+          </header>
           <div id="hhr-05-higher-list" class="pick-list"></div>
         </section>
       </div>
