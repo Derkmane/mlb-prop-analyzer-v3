@@ -17,8 +17,51 @@ import { PLANNED_MARKET_KEYS } from '../src/composition/planned-market-catalog.j
 import type { FeatureRegistration } from '../src/domain/feature-status.js';
 import type { ImplementedMarketRegistration } from '../src/domain/market.js';
 import type { SettlementRuleRegistration } from '../src/domain/settlement-rule.js';
+import { BATTER_HHR_SETTLEMENT_RULE_VERSION } from '../src/features/batter-hhr/contracts.js';
 import { BATTER_HHR_FEATURE_ID, BATTER_HHR_MARKET_KEY } from '../src/features/batter-hhr/manifest.js';
 import { BATTER_HITS_FEATURE_ID, BATTER_HITS_MARKET_KEY } from '../src/features/batter-hits/manifest.js';
+
+type SettlementRuleWithoutTemporal = Omit<
+  SettlementRuleRegistration,
+  'effectiveDate' | 'sourcePublishedAt'
+>;
+type IsAssignable<Source, Target> = Source extends Target ? true : false;
+type Not<Value extends boolean> = Value extends true ? false : true;
+type AssertTrue<Value extends true> = Value;
+type SettlementTemporalUnionAssertions = {
+  effectiveDateOnlyAccepted: AssertTrue<
+    IsAssignable<
+      SettlementRuleWithoutTemporal & { readonly effectiveDate: string },
+      SettlementRuleRegistration
+    >
+  >;
+  sourcePublishedAtOnlyAccepted: AssertTrue<
+    IsAssignable<
+      SettlementRuleWithoutTemporal & { readonly sourcePublishedAt: string },
+      SettlementRuleRegistration
+    >
+  >;
+  bothRejected: AssertTrue<
+    Not<
+      IsAssignable<
+        SettlementRuleWithoutTemporal & {
+          readonly effectiveDate: string;
+          readonly sourcePublishedAt: string;
+        },
+        SettlementRuleRegistration
+      >
+    >
+  >;
+  neitherRejected: AssertTrue<
+    Not<IsAssignable<SettlementRuleWithoutTemporal, SettlementRuleRegistration>>
+  >;
+};
+const SETTLEMENT_TEMPORAL_UNION_ASSERTIONS: SettlementTemporalUnionAssertions = Object.freeze({
+  effectiveDateOnlyAccepted: true,
+  sourcePublishedAtOnlyAccepted: true,
+  bothRejected: true,
+  neitherRejected: true,
+});
 
 const validMarket: ImplementedMarketRegistration = Object.freeze({
   baseMarketKey: 'synthetic-market', providerMarketKeys: Object.freeze(['synthetic-provider-market']),
@@ -49,6 +92,15 @@ function captureMarketError(action: () => unknown): MarketRegistryUnavailableErr
   assert.fail('expected registry admission to fail closed');
 }
 
+test('settlement temporal applicability type enforces exactly one self-describing date field', () => {
+  assert.deepEqual(SETTLEMENT_TEMPORAL_UNION_ASSERTIONS, {
+    effectiveDateOnlyAccepted: true,
+    sourcePublishedAtOnlyAccepted: true,
+    bothRejected: true,
+    neitherRejected: true,
+  });
+});
+
 test('production registries are explicit, frozen, and keep Batter Hits and HHR disabled', () => {
   assert.equal(IMPLEMENTED_MARKET_REGISTRY.length, 2);
   assert.deepEqual(IMPLEMENTED_MARKET_REGISTRY.map((row) => row.baseMarketKey), [BATTER_HITS_MARKET_KEY, BATTER_HHR_MARKET_KEY]);
@@ -61,7 +113,13 @@ test('production registries are explicit, frozen, and keep Batter Hits and HHR d
     { featureId: BATTER_HITS_FEATURE_ID, enabled: false, status: 'model-under-development' },
     { featureId: BATTER_HHR_FEATURE_ID, enabled: false, status: 'model-under-development' },
   ]);
-  assert.deepEqual(SETTLEMENT_REGISTRY.rules, []);
+  assert.equal(SETTLEMENT_REGISTRY.version, 'settlement-registry-v2');
+  assert.equal(SETTLEMENT_REGISTRY.rules.length, 1);
+  assert.equal(SETTLEMENT_REGISTRY.rules[0]?.baseMarketKey, BATTER_HHR_MARKET_KEY);
+  assert.equal(SETTLEMENT_REGISTRY.rules[0]?.version, BATTER_HHR_SETTLEMENT_RULE_VERSION);
+  assert.equal(SETTLEMENT_REGISTRY.rules[0]?.officialSettlementStatistic, 'hits+runs+rbis');
+  assert.ok(Object.isFrozen(SETTLEMENT_REGISTRY.rules));
+  assert.ok(Object.isFrozen(SETTLEMENT_REGISTRY.rules[0]));
   assert.ok(Object.isFrozen(IMPLEMENTED_MARKET_REGISTRY));
   assert.ok(Object.isFrozen(FEATURE_REGISTRY));
   assert.ok(Object.isFrozen(SETTLEMENT_REGISTRY));

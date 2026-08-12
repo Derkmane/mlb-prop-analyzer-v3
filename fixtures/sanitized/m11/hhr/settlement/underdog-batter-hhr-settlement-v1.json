@@ -1,0 +1,63 @@
+{
+  "fixtureVersion": 1,
+  "fixtureType": "underdog-pickem-mlb-settlement-rule-reference",
+  "verifiedDate": "2026-08-11",
+  "settlementRuleVersion": "underdog-batter-hhr-settlement-v1",
+  "market": "batter-hhr",
+  "officialSettlementStatistic": "hits+runs+rbis",
+  "sourcePublishedAt": "2026-06-22",
+  "sourcePublicationBoundaryBasis": "Verified rule-version publication boundary per CANONICAL_MATH_SPEC.md §12.1(b): latest publication date among the official Underdog rule sources used by this rule bundle. This is not an operator-designated effective date.",
+  "governingRuleContext": {
+    "fantasyTermsVersion": "7.0",
+    "fantasyTermsEffectiveDate": "2026-03-17",
+    "rulesInEffectAtEntryGovern": true
+  },
+  "sources": [
+    {
+      "title": "Underdog Sports Legal Center - Fantasy Terms of Use",
+      "url": "https://legal.underdogsports.com/legal.html",
+      "version": "7.0",
+      "effectiveDate": "2026-03-17"
+    },
+    {
+      "title": "Pick'em Scoring - MLB",
+      "url": "https://help.underdogsports.com/en/articles/10361775-pick-em-scoring-mlb",
+      "publishedDate": "2026-06-14"
+    },
+    {
+      "title": "What happens if my player doesn't play?",
+      "url": "https://help.underdogsports.com/en/articles/8923389-what-happens-if-my-player-doesn-t-play",
+      "publishedDate": "2026-03-29"
+    },
+    {
+      "title": "What happens in the event of a tie (voided) selection?",
+      "url": "https://help.underdogsports.com/en/articles/10982402-what-happens-in-the-event-of-a-tie-voided-selection",
+      "publishedDate": "2026-05-07"
+    },
+    {
+      "title": "What happens with postponed/suspended games?",
+      "url": "https://help.underdogsports.com/en/articles/11084681-what-happens-with-postponed-suspended-games",
+      "publishedDate": "2026-06-22"
+    },
+    {
+      "title": "Contest cancellations",
+      "url": "https://help.underdogsports.com/en/articles/10776472-contest-cancellations",
+      "publishedDate": "2026-03-18"
+    }
+  ],
+  "normalizedRules": {
+    "cumulativeProjection": "A projection joined by + combines the listed statistics; HHR therefore settles the cumulative hits+runs+rbis statistic.",
+    "startRequirement": "An MLB batter must appear in the official starting lineup for the pick to grade.",
+    "minimumParticipation": "No separate HHR plate-appearance minimum is stated after the batter satisfies the official-start requirement; the general rule says a player who plays and exits early remains valid.",
+    "laterSubstituteHandling": "A batter absent from the official starting lineup remains void even if entering later as a pinch hitter or substitute.",
+    "intentionalWalkHandling": "No separate HHR intentional-walk settlement exception is stated in the verified sources; HHR settles the cumulative hits+runs+rbis statistic.",
+    "tieHandling": "A selection that ties its posted projection is void.",
+    "postponementHandling": "A baseball game postponed before starting is void unless played on the originally scheduled local calendar day.",
+    "suspensionHandling": "If a baseball game is suspended after starting, selections grade if the game resumes within 36 hours of the original start time; otherwise selections void unless the outcome was unequivocally determined before suspension.",
+    "shortenedOfficialGameHandling": "A shortened baseball game that is still official grades normally.",
+    "venueChangeHandling": "For team sports, a scheduled venue change after entry voids selections.",
+    "incorrectTeamHandling": "A player projection associated with the incorrect team is void.",
+    "postStartEntryHandling": "A pick used after the game or event has started is void.",
+    "projectionErrorHandling": "Underdog reserves the right to void a pick because of a projection error."
+  }
+}

@@ -1,4 +1,4 @@
-export interface SettlementRuleRegistration {
+export type SettlementRuleRegistration = {
   readonly version: string;
   readonly baseMarketKey: string;
   readonly officialSettlementStatistic: string;
@@ -10,9 +10,17 @@ export interface SettlementRuleRegistration {
   readonly postponementHandling: string;
   readonly suspensionHandling: string;
   readonly voidConditions: readonly string[];
-  readonly effectiveDate: string;
   readonly ruleSourceReference: string;
-}
+} & (
+  | {
+      readonly effectiveDate: string;
+      readonly sourcePublishedAt?: never;
+    }
+  | {
+      readonly sourcePublishedAt: string;
+      readonly effectiveDate?: never;
+    }
+);
 
 export interface SettlementRegistry {
   readonly version: string;
