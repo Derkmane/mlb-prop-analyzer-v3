@@ -686,7 +686,6 @@ export function buildM10HhrFinalGradeReport({
     }
     officialByIdentity.set(key, Object.freeze({ hits, runs, rbi, officialHhr: hits + runs + rbi }));
   }
-  const safeLineupRows = array(lineupRows, 'lineupRows');
   const rows = archive.rows.map((row, index) => {
     const official = officialByIdentity.get(`${row.providerGameId}:${row.providerPlayerId}`);
     if (!official) {
@@ -696,7 +695,7 @@ export function buildM10HhrFinalGradeReport({
         status,
         statsRows: safeStatsRows,
         statsSnapshots,
-        lineupRows: safeLineupRows,
+        lineupRows: array(lineupRows, 'lineupRows'),
         lineupSnapshots,
       });
     }
