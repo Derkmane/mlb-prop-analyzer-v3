@@ -334,7 +334,7 @@ test('Phase 4 separates sample sufficiency from calibration agreement using writ
     'CALIBRATED',
   );
   assert.equal(
-    expectedCalibrationLabel(11, 0.6723403336973839, -0.3996130609701112),
+    expectedCalibrationLabel(11, 0.6723284472800314, -0.3996011745527587),
     'OVERCONFIDENT',
   );
 
