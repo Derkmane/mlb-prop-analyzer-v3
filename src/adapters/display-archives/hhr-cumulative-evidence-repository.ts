@@ -106,8 +106,8 @@ export interface HhrCumulativeDisplayEvidenceFileReader {
 }
 
 const nodeFileReader: HhrCumulativeDisplayEvidenceFileReader = Object.freeze({
-  readdir: async (directory) => readdir(directory),
-  readFile: async (filePath) => readFile(filePath, 'utf8'),
+  readdir: async (directory: string) => readdir(directory),
+  readFile: async (filePath: string) => readFile(filePath, 'utf8'),
 });
 
 function isMissingDirectory(error: unknown): boolean {
