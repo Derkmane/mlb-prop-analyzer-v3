@@ -23,7 +23,7 @@ const STEP3_ARCHIVE_PATH = path.resolve(
   'artifacts/m11/hhr/step3/archives/20260806T004000Z--2c2e9c408a2226dfea2bcc42b009203d26bc2a307e08caed05f3b31e361aabdf.json',
 );
 const CAPTURE_PATTERN = /^(\d{8}T\d{9}Z--[a-f0-9]{64})\.json$/u;
-const MISSING_OFFICIAL_STATS_PATTERN = /^Missing official HHR stats for (\d+):(\d+)\.$/u;
+const MISSING_OFFICIAL_STATS_PATTERN = /^Missing official HHR stats for (\d+):(\d+)\./u;
 const ATTEMPT_ID = process.env.M10_GRADE_ATTEMPT_ID?.trim() || `local-${Date.now()}`;
 const MIN_REQUEST_INTERVAL_MS = Number(
   process.env.M10_BDL_MIN_REQUEST_INTERVAL_MS?.trim() || '13000',
@@ -61,6 +61,14 @@ async function fetchBdl(url, label) {
 }
 fetchBdl.lastAt = 0;
 
+function providerMeta(snapshot, label) {
+  const meta = snapshot.body?.meta;
+  if (meta === null || typeof meta !== 'object' || Array.isArray(meta)) {
+    throw new Error(`${label} meta must be an object.`);
+  }
+  return Object.freeze({ ...meta });
+}
+
 async function fetchGames(gameIds) {
   const rows = [];
   let capturedAt;
@@ -95,8 +103,36 @@ async function fetchStatsForGames(gameIds) {
     const snapshot = await fetchBdl(url, `BDL HHR stats game ${gameId}`);
     const data = snapshot.body?.data;
     if (!Array.isArray(data)) throw new Error(`BDL HHR stats game ${gameId} data must be an array.`);
+    const meta = providerMeta(snapshot, `BDL HHR stats game ${gameId}`);
     rows.push(...data);
-    snapshots.push(Object.freeze({ gameId, capturedAt: snapshot.capturedAt, rowCount: data.length }));
+    snapshots.push(Object.freeze({
+      gameId,
+      capturedAt: snapshot.capturedAt,
+      rowCount: data.length,
+      meta,
+    }));
+  }
+  return Object.freeze({ rows: Object.freeze(rows), snapshots: Object.freeze(snapshots) });
+}
+
+async function fetchLineupsForGames(gameIds) {
+  const rows = [];
+  const snapshots = [];
+  for (const gameId of gameIds) {
+    const url = new URL('https://api.balldontlie.io/mlb/v1/lineups');
+    url.searchParams.append('game_ids[]', String(gameId));
+    url.searchParams.set('per_page', '100');
+    const snapshot = await fetchBdl(url, `BDL HHR lineups game ${gameId}`);
+    const data = snapshot.body?.data;
+    if (!Array.isArray(data)) throw new Error(`BDL HHR lineups game ${gameId} data must be an array.`);
+    const meta = providerMeta(snapshot, `BDL HHR lineups game ${gameId}`);
+    rows.push(...data);
+    snapshots.push(Object.freeze({
+      gameId,
+      capturedAt: snapshot.capturedAt,
+      rowCount: data.length,
+      meta,
+    }));
   }
   return Object.freeze({ rows: Object.freeze(rows), snapshots: Object.freeze(snapshots) });
 }
@@ -165,6 +201,7 @@ for (const capture of captures) {
   }
 
   const stats = await fetchStatsForGames(statusEvidence.requiredGameIds);
+  const lineups = await fetchLineupsForGames(statusEvidence.requiredGameIds);
   const providerEvidencePath = path.join(
     ARCHIVE_ROOT,
     capture.captureKey,
@@ -172,13 +209,15 @@ for (const capture of captures) {
     `${ATTEMPT_ID}--stats-input.json`,
   );
   await persistImmutableJson(providerEvidencePath, {
-    providerEvidenceVersion: 1,
-    providerEvidenceType: 'm10-hhr-final-stats-before-grade',
+    providerEvidenceVersion: 2,
+    providerEvidenceType: 'm10-hhr-final-stats-and-lineups-before-grade',
     captureKey: archive.captureKey,
     capturedAt: new Date().toISOString(),
     provider: 'BALLDONTLIE MLB API',
-    gameSnapshots: stats.snapshots,
-    rowCount: stats.rows.length,
+    statsGameSnapshots: stats.snapshots,
+    statsRowCount: stats.rows.length,
+    lineupGameSnapshots: lineups.snapshots,
+    lineupRowCount: lineups.rows.length,
     gradeEvaluatedAfterPersistence: true,
     productionEnabled: false,
     rankingEnabled: false,
@@ -189,6 +228,9 @@ for (const capture of captures) {
     report = buildM10HhrFinalGradeReport({
       archive,
       statsRows: stats.rows,
+      statsSnapshots: stats.snapshots,
+      lineupRows: lineups.rows,
+      lineupSnapshots: lineups.snapshots,
       gradedAt: new Date().toISOString(),
       gameStatusEvidence: statusEvidence,
     });
