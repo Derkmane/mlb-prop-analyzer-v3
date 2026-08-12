@@ -23,6 +23,7 @@ const STEP3_ARCHIVE_PATH = path.resolve(
   'artifacts/m11/hhr/step3/archives/20260806T004000Z--2c2e9c408a2226dfea2bcc42b009203d26bc2a307e08caed05f3b31e361aabdf.json',
 );
 const CAPTURE_PATTERN = /^(\d{8}T\d{9}Z--[a-f0-9]{64})\.json$/u;
+const MISSING_OFFICIAL_STATS_PATTERN = /^Missing official HHR stats for (\d+):(\d+)\.$/u;
 const ATTEMPT_ID = process.env.M10_GRADE_ATTEMPT_ID?.trim() || `local-${Date.now()}`;
 const MIN_REQUEST_INTERVAL_MS = Number(
   process.env.M10_BDL_MIN_REQUEST_INTERVAL_MS?.trim() || '13000',
@@ -115,6 +116,7 @@ console.log(`CAPTURES DISCOVERED\t${captures.length}`);
 let graded = 0;
 let skippedNonFinal = 0;
 let alreadyGraded = 0;
+const blockedCaptures = [];
 for (const capture of captures) {
   const archiveBytes = await readFile(capture.filePath);
   const archive = verifyM10HhrArchiveBytes({
@@ -181,12 +183,50 @@ for (const capture of captures) {
     productionEnabled: false,
     rankingEnabled: false,
   });
-  const report = buildM10HhrFinalGradeReport({
-    archive,
-    statsRows: stats.rows,
-    gradedAt: new Date().toISOString(),
-    gameStatusEvidence: statusEvidence,
-  });
+
+  let report;
+  try {
+    report = buildM10HhrFinalGradeReport({
+      archive,
+      statsRows: stats.rows,
+      gradedAt: new Date().toISOString(),
+      gameStatusEvidence: statusEvidence,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const missingStats = MISSING_OFFICIAL_STATS_PATTERN.exec(message);
+    if (!missingStats) throw error;
+
+    const providerGameId = Number(missingStats[1]);
+    const providerPlayerId = Number(missingStats[2]);
+    const providerIdentity = `${providerGameId}:${providerPlayerId}`;
+    const blockedStatusPath = path.join(
+      ARCHIVE_ROOT,
+      capture.captureKey,
+      'blocked-status',
+      `${ATTEMPT_ID}.json`,
+    );
+    const blockedStatus = Object.freeze({
+      blockedStatusVersion: 1,
+      blockedStatusType: 'm10-hhr-capture-blocked-missing-official-stats',
+      captureKey: archive.captureKey,
+      blockedAt: new Date().toISOString(),
+      providerGameId,
+      providerPlayerId,
+      providerIdentity,
+      error: message,
+      gradeReportWritten: false,
+      cumulativeEvidenceIncluded: false,
+      productionEnabled: false,
+      rankingEnabled: false,
+    });
+    await persistImmutableJson(blockedStatusPath, blockedStatus);
+    blockedCaptures.push(blockedStatus);
+    console.error(`BLOCKED\t${capture.captureKey}\t${providerIdentity}\t${message}`);
+    console.error(`BLOCKED STATUS WRITTEN\t${capture.captureKey}\t${blockedStatusPath}`);
+    continue;
+  }
+
   await persistImmutableJson(gradePath, report);
   graded += 1;
   console.log(`GRADED\t${capture.captureKey}\trows=${report.rows.length}\twins=${report.summary.wins}\tlosses=${report.summary.losses}\tvoids=${report.summary.voids}`);
@@ -261,8 +301,16 @@ for (const bucket of cumulative.selectedSide.calibration) {
 console.log(`GRADED NOW\t${graded}`);
 console.log(`ALREADY GRADED\t${alreadyGraded}`);
 console.log(`SKIPPED NON-FINAL\t${skippedNonFinal}`);
+console.log(`BLOCKED NOW\t${blockedCaptures.length}`);
+for (const blocked of blockedCaptures) {
+  console.log(`BLOCKED CAPTURE\t${blocked.captureKey}\t${blocked.providerIdentity}\t${blocked.error}`);
+}
 console.log(`CUMULATIVE PATH\t${cumulativePath}`);
 console.log('PRODUCTION\tDISABLED');
 console.log('RANKING\tDISABLED');
 console.log('EVIDENCE ONLY\ttrue');
 console.log('--- END M10 HHR FINAL-ONLY GRADING ---');
+
+if (blockedCaptures.length > 0) {
+  process.exitCode = 1;
+}
