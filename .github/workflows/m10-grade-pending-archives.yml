@@ -100,6 +100,8 @@ jobs:
           node scripts/grade-m10-pending-archives.mjs 2>&1 | tee artifacts/workflow-logs/m10-pending-archive-grade.log
 
       - name: Grade only HHR archives whose exact games are final and accumulate HHR evidence
+        id: grade-hhr
+        continue-on-error: true
         run: |
           set -euo pipefail
           mkdir -p artifacts/workflow-logs
@@ -151,7 +153,7 @@ jobs:
           path: artifacts/workflow-logs/m10-*-grade.log
 
       - name: Persist small cumulative grading report to repository
-        if: success()
+        if: always()
         run: |
           set -euo pipefail
           if [ "${GITHUB_REF_TYPE}" != "branch" ]; then
@@ -168,7 +170,7 @@ jobs:
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Preserve Batter Hits grading failure after HHR evidence
-        if: always() && steps.grade-batter-hits.outcome == 'failure'
+        if: always() && (steps.grade-batter-hits.outcome == 'failure' || steps.grade-hhr.outcome == 'failure')
         run: |
           echo "Batter Hits grading failed earlier; HHR grading and cumulative evidence were allowed to complete."
           exit 1
