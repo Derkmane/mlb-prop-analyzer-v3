@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 4.2
+**Version:** 4.3
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -210,7 +210,7 @@ Verified by `test/balldontlie-terminal-pa-contracts.test.ts` and `test/balldontl
 - [x] Planned-market catalog.
 - [x] Implemented-market registry.
 - [x] Feature registry with enable/disable state.
-- [x] Settlement registry with versions and effective dates.
+- [x] Settlement registry with versions and verified temporal applicability per `CANONICAL_MATH_SPEC.md` §12.1.
 - [x] Single-source market-key ownership test.
 - [x] No silent fallback test.
 - [x] Disabled feature cannot produce a prediction.
@@ -460,6 +460,13 @@ Model family: Family B, directly fitted composite
 requirement is SUPERSEDED as of Version 1.8 by owner
 decision. Do not raise it as a conflict.
 
+Settlement contract status:
+
+- [x] Register `underdog-batter-hhr-settlement-v1` with verified temporal applicability — `CANONICAL_MATH_SPEC.md` advanced from Version 1.8 to Version 1.9 so §12.1 now requires exactly one self-describing temporal form: operator-designated `effectiveDate` under §12.1(a), or verified `sourcePublishedAt` publication boundary under §12.1(b). Underdog does not publish operator-designated effective dates; all Underdog settlement rules register under §12.1(b) publication boundary. The HHR rule is registered with `sourcePublishedAt: '2026-06-22'`; `SettlementRuleRegistration` enforces exactly one temporal field. PR #70 merged as `e5bb8b5df08877152786aabace3d2b1efe28f601`; post-merge main verify run `31554833774` passed 684/684.
+- [ ] Wire the registered HHR settlement rule into final grading — **NOT IMPLEMENTED**. Current HHR grading does not consume the settlement registry and still throws when an archived player lacks an official HHR stats row. Do not mark HHR nonstarter void handling complete until official post-game starting-lineup evidence is verified and the Case A/Case B grading path is implemented.
+
+HHR and Batter Hits remain production-disabled and ranking-disabled. Settlement-contract registration does not authorize either market.
+
 - [x] Verify Underdog baseline and alternate offers — preserved sanitized The Odds API fixture `fixtures/sanitized/m11/hhr/respecified-v2/the-odds-api-underdog-hhr-board-v2.json` verifies exact Underdog `us_dfs` baseline `batter_hits_runs_rbis` and alternate `batter_hits_runs_rbis_alternate` markets with observed Over/Under sides and posted lines. `normalizeUnderdogBatterHhrCapture` preserves exact side, line, and offer type and rejects unsupported market-key sets. Immutable evidence commit `5278d63f123207772a76f25c482c5cecbb919331`; main verify run `31540589584` passed 678/678 including the baseline/alternate line-preservation and shared-distribution regression.
 - [ ] Verify approved-source data sufficiency for the
       declared Family B conditioning inputs.
@@ -576,6 +583,14 @@ rejected without escalation.
 [x] NO probability logic in the UI layer — merged PR #62 keeps settlement/probability logic server-side; main run `31539088716` passed the focused authentication/rendering/API regressions.
 
 ## Changelog
+
+### Version 4.3 — 2026-08-11
+
+- Synchronized the checklist with `CANONICAL_MATH_SPEC.md` Version 1.9, which replaced the Version 1.8 mandatory effective-date requirement with the mutually exclusive §12.1(a) operator-designated effective date / §12.1(b) verified publication-boundary contract.
+- Recorded that Underdog does not publish operator-designated effective dates and that Underdog settlement rules register under §12.1(b) publication boundaries.
+- Recorded `underdog-batter-hhr-settlement-v1` as registered after merged PR #70 (`e5bb8b5df08877152786aabace3d2b1efe28f601`); the domain type enforces exactly one temporal form, and post-merge main verify run `31554833774` passed 684 of 684 tests.
+- Explicitly left HHR nonstarter void handling open: current grading does not consume the registered rule and still throws on a missing official HHR stats row.
+- Preserved HHR and Batter Hits production-disabled and ranking-disabled status. No other M11 item was marked complete.
 
 ### Version 4.2 — 2026-08-11
 
