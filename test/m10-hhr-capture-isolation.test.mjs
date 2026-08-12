@@ -252,6 +252,16 @@ function buildNonstarterReport({
   });
 }
 
+function assertCaptureEvidenceError(run, { code, providerIdentity, message }) {
+  assert.throws(run, (error) => {
+    assert.equal(error instanceof HhrCaptureEvidenceError, true);
+    assert.equal(error.code, code);
+    assert.equal(error.providerIdentity, providerIdentity);
+    assert.match(error.message, message);
+    return true;
+  });
+}
+
 function gradedSeedPair() {
   return pair({
     eventId: 'seed-event',
@@ -460,37 +470,44 @@ test('Case B: final complete stats plus live lineup absence grades the player as
 
 test('Case A and incomplete provider evidence throw explicit capture-local evidence errors', () => {
   const contradictionLineups = completeNonstarterLineups({ includeNonstarter: true });
-  const contradiction = assert.throws(
+  assertCaptureEvidenceError(
     () => buildNonstarterReport({ lineupRows: contradictionLineups }),
-    /Missing official HHR stats for 5059565:974\. Player is present in live final-game lineups; approved sources contradict\./u,
+    {
+      code: 'LIVE_LINEUP_CONTRADICTION',
+      providerIdentity: '5059565:974',
+      message: /Missing official HHR stats for 5059565:974\. Player is present in live final-game lineups; approved sources contradict\./u,
+    },
   );
-  assert.equal(contradiction instanceof HhrCaptureEvidenceError, true);
-  assert.equal(contradiction.code, 'LIVE_LINEUP_CONTRADICTION');
-  assert.equal(contradiction.providerIdentity, '5059565:974');
 
-  const paginated = assert.throws(
+  assertCaptureEvidenceError(
     () => buildNonstarterReport({ statsMeta: { per_page: 100, next_cursor: 123456 } }),
-    /stats response for game 5059565 is incomplete because meta\.next_cursor is present/u,
+    {
+      code: 'STATS_PAGINATION_INCOMPLETE',
+      providerIdentity: '5059565:974',
+      message: /stats response for game 5059565 is incomplete because meta\.next_cursor is present/u,
+    },
   );
-  assert.equal(paginated instanceof HhrCaptureEvidenceError, true);
-  assert.equal(paginated.code, 'STATS_PAGINATION_INCOMPLETE');
 
   const oneTeamStats = completeNonstarterStats().filter(
     (entry) => entry.team_name === NONSTARTER_TEAM,
   );
-  const missingTeam = assert.throws(
+  assertCaptureEvidenceError(
     () => buildNonstarterReport({ statsRows: oneTeamStats }),
-    /stats response for game 5059565 is incomplete because team Pittsburgh Pirates is absent/u,
+    {
+      code: 'STATS_TEAM_MISSING',
+      providerIdentity: '5059565:974',
+      message: /stats response for game 5059565 is incomplete because team Pittsburgh Pirates is absent/u,
+    },
   );
-  assert.equal(missingTeam instanceof HhrCaptureEvidenceError, true);
-  assert.equal(missingTeam.code, 'STATS_TEAM_MISSING');
 
-  const emptyLineup = assert.throws(
+  assertCaptureEvidenceError(
     () => buildNonstarterReport({ lineupRows: [] }),
-    /lineup response for game 5059565 is empty; nonstarter absence cannot be inferred/u,
+    {
+      code: 'LINEUP_EMPTY',
+      providerIdentity: '5059565:974',
+      message: /lineup response for game 5059565 is empty; nonstarter absence cannot be inferred/u,
+    },
   );
-  assert.equal(emptyLineup instanceof HhrCaptureEvidenceError, true);
-  assert.equal(emptyLineup.code, 'LINEUP_EMPTY');
 });
 
 test('nonstarter voids stay in summaries, stay out of calibration, and per-line gates remain independent', () => {
