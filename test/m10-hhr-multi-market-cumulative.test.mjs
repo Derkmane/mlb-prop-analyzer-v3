@@ -137,7 +137,7 @@ test('existing M10 grading workflow isolates HHR evidence from a Batter Hits gra
   const failureBlock = workflow.slice(preserveFailureIndex);
   assert.match(
     failureBlock,
-    /if:\s*always\(\) && steps\.grade-batter-hits\.outcome == 'failure'/u,
+    /if: always\(\) && \(steps\.grade-batter-hits\.outcome == 'failure' \|\| steps\.grade-hhr\.outcome == 'failure'\)/u,
   );
   assert.match(failureBlock, /exit 1/u);
 });
