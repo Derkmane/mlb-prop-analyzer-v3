@@ -107,6 +107,31 @@ jobs:
           mkdir -p artifacts/workflow-logs
           node scripts/grade-m10-hhr-pending-archives.mjs 2>&1 | tee artifacts/workflow-logs/m10-hhr-pending-archive-grade.log
 
+      - name: Persist HHR cumulative display evidence
+        if: always() && steps.grade-hhr.outcome == 'success'
+        run: |
+          set -euo pipefail
+          SOURCE_DIR="artifacts/board-archives/batter-hhr/cumulative"
+          DISPLAY_DIR="artifacts/display-archives/batter-hhr/cumulative"
+          if ! find "${SOURCE_DIR}" -maxdepth 1 -type f -name 'm10-hhr-cumulative-selected-side-v1--*.json' -print -quit 2>/dev/null | grep -q .; then
+            echo "No HHR cumulative report to persist; clean no-op."
+            exit 0
+          fi
+          mkdir -p "${DISPLAY_DIR}"
+          node -e 'const fs=require("node:fs"),path=require("node:path");const sourceDir="artifacts/board-archives/batter-hhr/cumulative",displayDir="artifacts/display-archives/batter-hhr/cumulative",prefix="m10-hhr-cumulative-selected-side-v1--",sha=/^[a-f0-9]{64}$/u;const names=fs.readdirSync(sourceDir).filter((name)=>name.startsWith(prefix)&&name.endsWith(".json"));const candidates=names.map((name)=>{const report=JSON.parse(fs.readFileSync(path.join(sourceDir,name),"utf8"));if(report.reportVersion!==1||report.reportType!=="m10-hhr-cumulative-selected-side-v1")throw new Error(`Unsupported HHR cumulative report: ${name}`);if(!sha.test(report.sourceSetSha256)||name!==`${prefix}${report.sourceSetSha256}.json`)throw new Error(`HHR cumulative source identity mismatch: ${name}`);if(!Number.isFinite(Date.parse(report.generatedAt)))throw new Error(`HHR cumulative generatedAt is invalid: ${name}`);if(report.safety?.productionEnabled!==false||report.safety?.rankingEnabled!==false||report.safety?.evidenceOnly!==true||report.safety?.ownerDecisionRequired!==true||report.safety?.archivesModified!==false)throw new Error(`HHR cumulative safety boundary drifted: ${name}`);for(const cohort of ["0.5","1.5","2.5+"]){const line=report.selectedSide?.perLine?.[cohort];if(line?.lineCohort!==cohort||line?.ownerDecisionRequired!==true||line?.productionEnabled!==false||line?.rankingEnabled!==false)throw new Error(`HHR cumulative line evidence drifted: ${name} ${cohort}`);}return {name,report};});candidates.sort((a,b)=>a.report.generatedAt.localeCompare(b.report.generatedAt)||a.report.sourceSetSha256.localeCompare(b.report.sourceSetSha256));const report=candidates.at(-1).report,selected=report.selectedSide;const display={displayEvidenceVersion:1,displayEvidenceContract:"phase3-hhr-cumulative-display-v1",sourceReportVersion:report.reportVersion,sourceReportType:report.reportType,generatedAt:report.generatedAt,sourceSetSha256:report.sourceSetSha256,archivesIncluded:report.archivesIncluded,selectedSide:{deduplicationVersion:selected.deduplicationVersion,deduplicationIdentity:selected.deduplicationIdentity,deduplicationWinnerRule:selected.deduplicationWinnerRule,selectedSideRowsBeforeDedup:selected.selectedSideRowsBeforeDedup,retainedSelectedSideRows:selected.retainedSelectedSideRows,supersededSelectedSideRows:selected.supersededSelectedSideRows,calibrationEligiblePicksBeforeDedup:selected.calibrationEligiblePicksBeforeDedup,summary:selected.summary,calibrationEligiblePicks:selected.calibrationEligiblePicks,calibration:selected.calibration,perLine:selected.perLine},safety:report.safety};const outputPath=path.join(displayDir,`${prefix}${report.sourceSetSha256}.json`),bytes=`${JSON.stringify(display,null,2)}\n`;if(fs.existsSync(outputPath)){if(fs.readFileSync(outputPath,"utf8")!==bytes)throw new Error(`HHR cumulative display evidence drifted: ${outputPath}`);console.log(`VERIFIED HHR CUMULATIVE DISPLAY\t${outputPath}`);}else{fs.writeFileSync(outputPath,bytes,{flag:"wx"});console.log(`CREATED HHR CUMULATIVE DISPLAY\t${outputPath}`);}'
+          if [ "${GITHUB_REF_TYPE}" != "branch" ]; then
+            echo "HHR cumulative display persistence requires a branch ref; got ${GITHUB_REF_TYPE}."
+            exit 1
+          fi
+          git add -f -- "${DISPLAY_DIR}"/m10-hhr-cumulative-selected-side-v1--*.json
+          node -e 'const cp=require("node:child_process");const staged=cp.execFileSync("git",["diff","--cached","--name-only"],{encoding:"utf8"}).trim().split(/\r?\n/u).filter(Boolean);const allowed=/^artifacts\/display-archives\/batter-hhr\/cumulative\/m10-hhr-cumulative-selected-side-v1--[a-f0-9]{64}\.json$/u;const invalid=staged.filter((value)=>!allowed.test(value));if(invalid.length>0)throw new Error(`Refusing to persist non-HHR-display paths: ${invalid.join(", ")}`);if(staged.length>1)throw new Error(`Expected at most one new HHR cumulative display report; staged ${staged.length}.`);console.log(`STAGED HHR CUMULATIVE DISPLAY REPORTS\t${staged.length}`);'
+          if git diff --cached --quiet; then
+            echo "HHR cumulative display evidence already persisted; no commit required."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "chore: persist HHR cumulative display evidence [skip ci]"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
       - name: Build Batter Hits selected-side and cumulative grading evidence
         run: |
           set -euo pipefail

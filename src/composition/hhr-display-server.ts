@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  createHhrCumulativeDisplayEvidenceRepository,
   createHhrDisplayAppHttpHandler,
   createHhrDisplayArchiveRepository,
   createHhrDisplayBoardHttpHandler,
@@ -10,6 +11,7 @@ import {
 import {
   readLatestHhrDisplayBoard,
   readLatestHhrDisplayUiBoard,
+  type HhrCumulativeDisplayEvidenceRepository,
   type HhrDisplayArchiveRepository,
 } from '../application/index.js';
 
@@ -46,13 +48,16 @@ export function createHhrDisplayBoardServer(
 export interface HhrDisplayAppServerOptions {
   readonly password: string;
   readonly repository?: HhrDisplayArchiveRepository;
+  readonly cumulativeRepository?: HhrCumulativeDisplayEvidenceRepository;
   readonly sessionToken?: string;
 }
 
-/** Deployable Phase 4 composition: persistence -> presentation view model -> password-gated UI/API. */
+/** Deployable composition: committed display archives -> password-gated read-only UI/API. */
 export function createHhrDisplayAppServer(options: HhrDisplayAppServerOptions): Server {
   const repository = options.repository ?? createHhrDisplayArchiveRepository();
-  const readBoard = () => readLatestHhrDisplayUiBoard(repository);
+  const cumulativeRepository = options.cumulativeRepository ??
+    createHhrCumulativeDisplayEvidenceRepository();
+  const readBoard = () => readLatestHhrDisplayUiBoard(repository, cumulativeRepository);
   const handler = options.sessionToken === undefined
     ? createHhrDisplayAppHttpHandler({ readBoard, password: options.password })
     : createHhrDisplayAppHttpHandler({
