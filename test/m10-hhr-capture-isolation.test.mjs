@@ -108,7 +108,7 @@ test('blocked HHR capture writes no grade or cumulative evidence, later captures
         `  [7002, [{ game_id: 7002, player: { id: 1201 }, hits: 1, runs: 1, rbi: 0 }]],\n` +
         `]);\n` +
         `globalThis.fetch = async (input) => {\n` +
-        `  const url = new URL(typeof input === 'string' ? input : input.url);\n` +
+        `  const url = input instanceof URL ? input : new URL(typeof input === 'string' ? input : input.url);\n` +
         `  const gameMatch = /^\\/mlb\\/v1\\/games\\/(\\d+)$/u.exec(url.pathname);\n` +
         `  if (gameMatch) {\n` +
         `    const gameId = Number(gameMatch[1]);\n` +
