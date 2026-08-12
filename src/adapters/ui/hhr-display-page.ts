@@ -22,11 +22,25 @@ h1 { margin: 4px 0 8px; font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.04; 
 .button:hover, button:hover { background: #1b3149; }
 .status { margin: 0 0 16px; padding: 12px 14px; border: 1px solid #283e52; border-radius: 10px; background: #0d1925; color: #a9bbca; }
 .status.error { border-color: #744049; color: #ffb5bd; background: #261217; }
+.evidence-panel { margin: 0 0 18px; border: 1px solid #273b4e; border-radius: 16px; background: #09141fdd; padding: 16px; }
+.evidence-panel h2 { margin: 0; font-size: 1.05rem; }
+.evidence-summary { margin: 6px 0 12px; color: #93a8ba; font-size: .8rem; }
+.evidence-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.evidence-card { border: 1px solid #2d5e51; border-radius: 11px; background: #0a1a1a; padding: 11px; }
+.evidence-card.insufficient { border-color: #725845; background: #1d1711; }
+.evidence-card h3 { margin: 0 0 8px; font-size: .92rem; }
+.evidence-line { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; font-size: .76rem; }
+.evidence-line span:first-child { color: #849aaa; }
+.evidence-flags { margin-top: 8px; color: #8094a5; font-size: .7rem; line-height: 1.45; }
+.evidence-card details { margin-top: 9px; font-size: .72rem; color: #9fb0bf; }
+.category-heading { margin: 18px 0 10px; }
+.category-heading h2 { margin: 3px 0 4px; font-size: 1.35rem; }
 .board-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
 .list-panel { border: 1px solid #273b4e; background: #09141fdd; border-radius: 16px; overflow: hidden; }
 .list-heading { padding: 18px 18px 14px; border-bottom: 1px solid #213447; position: sticky; top: 0; z-index: 2; background: #0b1723f2; backdrop-filter: blur(12px); }
 .list-heading h2 { margin: 0; font-size: 1.15rem; }
 .list-heading p { margin: 5px 0 0; color: #8fa5b8; font-size: .84rem; }
+.sublist-label { display: inline-block; margin-bottom: 7px; color: #78b7ff; font-size: .67rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .pick-list { display: grid; gap: 12px; padding: 12px; }
 .pick-card { border: 1px solid #263c50; border-radius: 13px; background: linear-gradient(145deg, #101e2b, #0b151f); padding: 14px; box-shadow: 0 12px 30px #00000020; }
 .pick-head { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
@@ -74,6 +88,7 @@ th { color: #8097aa; font-weight: 700; }
 .login-error { margin-top: 12px; color: #ff9ba6; font-size: .84rem; }
 @media (max-width: 980px) {
   .board-grid { grid-template-columns: 1fr; }
+  .evidence-grid { grid-template-columns: 1fr; }
   .list-heading { position: static; }
 }
 @media (max-width: 650px) {
@@ -95,6 +110,7 @@ export const HHR_DISPLAY_APP_JS = `
   const boardVersionNode = document.getElementById('board-version');
   const modelVersionNode = document.getElementById('model-version');
   const rationaleNode = document.getElementById('ranking-rationale');
+  const cumulativeNode = document.getElementById('cumulative-evidence');
   const lowerList = document.getElementById('hhr-25-lower-list');
   const higherList = document.getElementById('hhr-05-higher-list');
 
@@ -106,7 +122,11 @@ export const HHR_DISPLAY_APP_JS = `
   }
 
   function percentage(value) {
-    return (Number(value) * 100).toFixed(1) + '%';
+    return value === null || value === undefined ? '—' : (Number(value) * 100).toFixed(1) + '%';
+  }
+
+  function decimal(value) {
+    return value === null || value === undefined ? '—' : Number(value).toFixed(4);
   }
 
   function displayNumber(value) {
@@ -140,6 +160,92 @@ export const HHR_DISPLAY_APP_JS = `
     row.append(element('strong', '', label + ': '));
     row.append(document.createTextNode(value));
     parent.append(row);
+  }
+
+  function evidenceLine(parent, label, value) {
+    const row = element('div', 'evidence-line');
+    row.append(element('span', '', label), element('strong', '', value));
+    parent.append(row);
+  }
+
+  function renderCalibrationBands(parent, bands) {
+    const details = element('details');
+    details.append(element('summary', '', 'Calibration bands'));
+    if (!Array.isArray(bands) || bands.length === 0) {
+      details.append(element('div', 'empty', 'No calibration bands in written evidence.'));
+      parent.append(details);
+      return;
+    }
+    const table = element('table');
+    const thead = element('thead');
+    const header = element('tr');
+    for (const label of ['Band', 'n', 'W', 'L', 'Pred', 'Obs']) header.append(element('th', '', label));
+    thead.append(header);
+    table.append(thead);
+    const tbody = element('tbody');
+    for (const band of bands) {
+      const row = element('tr');
+      const values = [
+        band.label,
+        band.picksGraded,
+        band.wins,
+        band.losses,
+        percentage(band.predictedMeanWinProbability),
+        percentage(band.observedWinRate),
+      ];
+      for (const value of values) row.append(element('td', '', value));
+      tbody.append(row);
+    }
+    table.append(tbody);
+    details.append(table);
+    parent.append(details);
+  }
+
+  function renderCumulativeEvidence(evidence) {
+    cumulativeNode.replaceChildren();
+    const heading = element('h2', '', 'HHR cumulative calibration evidence');
+    cumulativeNode.append(heading);
+    if (!evidence || evidence.available !== true) {
+      cumulativeNode.append(element(
+        'div',
+        'empty',
+        'Unavailable: ' + (evidence && evidence.unavailableReason ? evidence.unavailableReason : 'no-hhr-cumulative-display-evidence'),
+      ));
+      return;
+    }
+
+    cumulativeNode.append(element(
+      'div',
+      'evidence-summary',
+      'Written ' + displayTime(evidence.generatedAt) +
+        ' · ' + evidence.archivesIncluded + ' archives' +
+        ' · ' + evidence.selectedSide.retainedSelectedSideRows + ' retained selected-side rows' +
+        ' · ' + evidence.selectedSide.supersededSelectedSideRows + ' superseded',
+    ));
+    const grid = element('div', 'evidence-grid');
+    for (const cohort of ['0.5', '1.5', '2.5+']) {
+      const line = evidence.selectedSide.perLine[cohort];
+      const card = element('article', 'evidence-card ' + line.evidenceStatus);
+      card.append(element('h3', '', 'Line ' + cohort + ' · ' + line.evidenceStatus.toUpperCase()));
+      evidenceLine(card, 'Graded rows', String(line.summary.picksGraded));
+      evidenceLine(card, 'Calibration eligible', String(line.calibrationEligiblePicks));
+      evidenceLine(card, 'Voids', String(line.summary.voids));
+      evidenceLine(card, 'Mean predicted', percentage(line.summary.predictedMeanWinProbability));
+      evidenceLine(card, 'Observed win rate', percentage(line.summary.observedWinRate));
+      evidenceLine(card, 'Brier', decimal(line.summary.binaryBrier));
+      evidenceLine(card, 'Log loss', decimal(line.summary.binaryLogLoss));
+      evidenceLine(card, '30-pick gate', line.minimumCountGatePassed ? 'PASS' : 'FAIL');
+      card.append(element(
+        'div',
+        'evidence-flags',
+        'ownerDecisionRequired=' + line.ownerDecisionRequired +
+          ' · productionEnabled=' + line.productionEnabled +
+          ' · rankingEnabled=' + line.rankingEnabled,
+      ));
+      renderCalibrationBands(card, line.calibration);
+      grid.append(card);
+    }
+    cumulativeNode.append(grid);
   }
 
   function renderStarter(pick, parent) {
@@ -265,6 +371,7 @@ export const HHR_DISPLAY_APP_JS = `
       boardVersionNode.textContent = String(board.boardVersion);
       modelVersionNode.textContent = String(board.modelVersion);
       rationaleNode.textContent = String(board.rankingRationale);
+      renderCumulativeEvidence(board.cumulativeEvidence);
       renderList(lowerList, board.hhr25LowerAlternates);
       renderList(higherList, board.hhr05HigherAlternates);
       statusNode.textContent = 'Loaded ' + board.hhr25LowerAlternates.length + ' Lower 2.5 picks and ' + board.hhr05HigherAlternates.length + ' Higher 0.5 picks. No rows are padded.';
@@ -333,16 +440,27 @@ export function renderHhrDisplayAppPage(): string {
       </aside>
     </header>
     <div id="status" class="status" role="status">Loading latest committed HHR display archive…</div>
-    <div class="board-grid">
-      <section class="list-panel">
-        <header class="list-heading"><h2>HHR 2.5 Lower Alt</h2><p>Up to 20 existing archived rows, in persisted probability rank.</p></header>
-        <div id="hhr-25-lower-list" class="pick-list"></div>
-      </section>
-      <section class="list-panel">
-        <header class="list-heading"><h2>HHR 0.5 Higher Alt</h2><p>Up to 20 existing archived rows, in persisted probability rank.</p></header>
-        <div id="hhr-05-higher-list" class="pick-list"></div>
-      </section>
-    </div>
+    <section id="cumulative-evidence" class="evidence-panel" aria-label="HHR cumulative calibration evidence">
+      <h2>HHR cumulative calibration evidence</h2>
+      <div class="empty">Loading cumulative evidence…</div>
+    </section>
+    <section aria-labelledby="altline-category-heading">
+      <header class="category-heading">
+        <div class="eyebrow">Canonical category</div>
+        <h2 id="altline-category-heading">High Probability Altline Props</h2>
+        <p class="subtle">The HHR lists below are display sublists of this category, not standalone product categories.</p>
+      </header>
+      <div class="board-grid">
+        <section class="list-panel">
+          <header class="list-heading"><span class="sublist-label">Display sublist</span><h2>HHR 2.5 Lower Alt</h2><p>Up to 20 existing archived rows, in persisted probability rank.</p></header>
+          <div id="hhr-25-lower-list" class="pick-list"></div>
+        </section>
+        <section class="list-panel">
+          <header class="list-heading"><span class="sublist-label">Display sublist</span><h2>HHR 0.5 Higher Alt</h2><p>Up to 20 existing archived rows, in persisted probability rank.</p></header>
+          <div id="hhr-05-higher-list" class="pick-list"></div>
+        </section>
+      </div>
+    </section>
   </main>
   <script src="/app.js" defer></script>
 </body>
