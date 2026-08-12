@@ -1,6 +1,6 @@
 # MLB Prop Analyzer — Canonical Math & Statistics Reference
 
-**Version:** 1.8
+**Version:** 1.9
 **Status:** Canonical probability mathematics
 **Empirical status:** Mathematical framework verified where marked; predictive accuracy not yet validated
 
@@ -815,7 +815,14 @@ Each market must use a versioned settlement registry defining:
 - postponement handling
 - suspension handling
 - void conditions
-- effective date
+- temporal applicability, recorded as exactly one of:
+  (a) operator-designated effective date, permitted ONLY when the rule source
+      states an effective date explicitly; or
+  (b) verified rule-version publication boundary, when the source states a
+      publication or version date but no effective date.
+  The stored field name MUST state which of (a) or (b) it is. A publication
+  boundary MUST NOT be stored in a field named or documented as an effective
+  date. If the source supplies neither, the rule MUST NOT be registered.
 - rule-source snapshot or reference
 
 The registry must define the market-specific eligibility event `A` used in:
@@ -1311,7 +1318,8 @@ The following must be fitted, documented, versioned, and validated before real-p
   the extent it feeds the declared conditioning inputs)
 - intentional-walk settlement handling for any Walk market
 - market-specific eligibility event `P(A)`
-- versioned settlement rules and effective dates
+- versioned settlement rules and their verified temporal applicability,
+  recorded per §12.1
 
 ### Calibration
 
@@ -1397,6 +1405,18 @@ no validated distribution → no ranked prop
 ---
 
 ## Changelog
+
+### Version 1.9 — 2026-08-11
+
+- Replaced the mandatory settlement-rule effective-date requirement with
+  evidence-bound temporal applicability recorded as exactly one of an
+  explicitly operator-designated effective date or a verified rule-version
+  publication boundary when no effective date is supplied.
+- Required the stored field name to distinguish effective dates from
+  publication boundaries and prohibited registration when the source supplies
+  neither form of temporal applicability.
+- Updated the Section 18 production-readiness requirement to reference the
+  verified temporal applicability rule in Section 12.1.
 
 ### Version 1.8 — 2026-08-05
 
