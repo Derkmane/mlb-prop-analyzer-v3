@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -108,6 +111,52 @@ function fixtureEvidence(
       rankingEnabled: false,
       evidenceOnly: true,
       ownerDecisionRequired: true,
+      archivesModified: false,
+      deepLineCohort: '2.5+',
+      minimumCalibrationBucketCount: 30,
+    }),
+  });
+}
+
+function sourceReport(
+  sourceSetSha256: string,
+  generatedAt: string,
+  ownerDecisionRequired = true,
+) {
+  return Object.freeze({
+    reportVersion: 1,
+    reportType: 'm10-hhr-cumulative-selected-side-v1',
+    generatedAt,
+    sourceSetSha256,
+    archivesIncluded: 6,
+    selectedSide: Object.freeze({
+      deduplicationVersion: 'hhr-latest-capture-per-prop-v1',
+      deduplicationIdentity: Object.freeze([
+        'providerGameId',
+        'providerPlayerId',
+        'providerMarketKey',
+        'offerType',
+        'postedLine',
+      ] as const),
+      deduplicationWinnerRule: 'most-recent-capture-timestamp-only',
+      selectedSideRowsBeforeDedup: 693,
+      retainedSelectedSideRows: 422,
+      supersededSelectedSideRows: 271,
+      calibrationEligiblePicksBeforeDedup: 683,
+      summary: summary(422, 4),
+      calibrationEligiblePicks: 418,
+      calibration: Object.freeze([band(75)]),
+      perLine: Object.freeze({
+        '0.5': lineEvidence('0.5', 86, 85, 1),
+        '1.5': lineEvidence('1.5', 325, 322, 3),
+        '2.5+': lineEvidence('2.5+', 11, 11),
+      }),
+    }),
+    safety: Object.freeze({
+      productionEnabled: false,
+      rankingEnabled: false,
+      evidenceOnly: true,
+      ownerDecisionRequired,
       archivesModified: false,
       deepLineCohort: '2.5+',
       minimumCalibrationBucketCount: 30,
@@ -237,10 +286,63 @@ test('grading workflow persists HHR-only cumulative display evidence before Batt
   assert.match(step, /artifacts\/display-archives\/batter-hhr\/cumulative/u);
   assert.match(step, /phase3-hhr-cumulative-display-v1/u);
   assert.match(step, /No HHR cumulative report to persist; clean no-op\./u);
+  assert.match(step, /mkdir -p "\$\{DISPLAY_DIR\}"/u);
+  assert.match(step, /if \[ ! -f "\$\{DISPLAY_PATH\}" \]; then/u);
+  assert.match(step, /git add -f -- "\$\{DISPLAY_PATH\}"/u);
+  assert.doesNotMatch(step, /git add -f -- "\$\{DISPLAY_DIR\}"\/m10-hhr-cumulative-selected-side-v1--\*\.json/u);
   assert.match(step, /exit 0/u);
   assert.doesNotMatch(step, /m10-multi-market-cumulative/u);
   assert.doesNotMatch(step, /build-m10-selected-side-cumulative-grades/u);
 
   assert.match(workflow, /- name: Persist small cumulative grading report to repository/u);
   assert.match(workflow, /git add -f -- artifacts\/board-archives\/cumulative\/m10-multi-market-cumulative-selected-side-v1--\*\.json/u);
+});
+
+test('stale or unparseable historical HHR cumulative reports do not block persistence of the valid newest report', async (t) => {
+  const workflow = await readFile('.github/workflows/m10-grade-pending-archives.yml', 'utf8');
+  const persistIndex = workflow.indexOf('- name: Persist HHR cumulative display evidence');
+  const hitsCumulativeIndex = workflow.indexOf('- name: Build Batter Hits selected-side and cumulative grading evidence');
+  const step = workflow.slice(persistIndex, hitsCumulativeIndex);
+  const scriptMatch = step.match(/DISPLAY_PATH="\$\(node -e '([^']+)'\)"/u);
+  assert.ok(scriptMatch);
+  const nodeScript = scriptMatch[1];
+  assert.ok(nodeScript);
+
+  const root = mkdtempSync(path.join(tmpdir(), 'hhr-cumulative-persist-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const sourceDir = path.join(root, 'artifacts', 'board-archives', 'batter-hhr', 'cumulative');
+  const displayDir = path.join(root, 'artifacts', 'display-archives', 'batter-hhr', 'cumulative');
+  mkdirSync(sourceDir, { recursive: true });
+  mkdirSync(displayDir, { recursive: true });
+
+  const prefix = 'm10-hhr-cumulative-selected-side-v1--';
+  const staleSha = 'd'.repeat(64);
+  const latestSha = 'e'.repeat(64);
+  const unparseableSha = 'f'.repeat(64);
+  writeFileSync(
+    path.join(sourceDir, `${prefix}${staleSha}.json`),
+    `${JSON.stringify(sourceReport(staleSha, '2026-08-11T17:30:45.315Z', false), null, 2)}\n`,
+  );
+  writeFileSync(
+    path.join(sourceDir, `${prefix}${latestSha}.json`),
+    `${JSON.stringify(sourceReport(latestSha, '2026-08-12T17:30:45.315Z'), null, 2)}\n`,
+  );
+  writeFileSync(path.join(sourceDir, `${prefix}${unparseableSha}.json`), '{');
+
+  const relativeOutputPath = execFileSync(process.execPath, ['-e', nodeScript], {
+    cwd: root,
+    encoding: 'utf8',
+  }).trim();
+  const expectedRelativePath = path.join(
+    'artifacts',
+    'display-archives',
+    'batter-hhr',
+    'cumulative',
+    `${prefix}${latestSha}.json`,
+  );
+  assert.equal(relativeOutputPath, expectedRelativePath);
+
+  const persisted = JSON.parse(readFileSync(path.join(root, relativeOutputPath), 'utf8')) as Record<string, unknown>;
+  assert.equal(persisted['sourceSetSha256'], latestSha);
+  assert.equal(persisted['generatedAt'], '2026-08-12T17:30:45.315Z');
 });
