@@ -793,15 +793,34 @@ function withEvidenceStatus(calibration) {
   );
 }
 
-export function buildM10HhrCumulativeSelectedSideReport({
-  step3Archive,
-  gradeReports,
-  generatedAt,
-}) {
-  timestamp(generatedAt, 'generatedAt');
+const HHR_CUMULATIVE_CAPTURE_KEY_PATTERN =
+  /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(\d{3})?Z--[a-f0-9]{64}$/u;
+const HHR_CUMULATIVE_DEDUPLICATION_VERSION = 'hhr-latest-capture-per-prop-v1';
+
+function captureTimestampFromKey(captureKey, label) {
+  nonemptyString(captureKey, label);
+  const match = HHR_CUMULATIVE_CAPTURE_KEY_PATTERN.exec(captureKey);
+  if (match === null) throw new Error(`${label} is malformed.`);
+  const milliseconds = match[7] ?? '000';
+  const value = `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}.${milliseconds}Z`;
+  timestamp(value, `${label} timestamp`);
+  return value;
+}
+
+function calibrationPropIdentity(row) {
+  return stableJson([
+    row.providerGameId,
+    row.providerPlayerId,
+    row.providerMarketKey,
+    row.offerType,
+    row.postedLine,
+  ]);
+}
+
+function buildHhrCumulativeCaptureInputs({ step3Archive, gradeReports }) {
   const sources = [];
-  const captures = new Set();
-  const allRows = [];
+  const seenCaptureKeys = new Set();
+  const captureInputs = [];
 
   const seed = object(step3Archive, 'step3Archive');
   const seedSafety = object(seed.safety, 'step3Archive.safety');
@@ -809,63 +828,211 @@ export function buildM10HhrCumulativeSelectedSideReport({
     throw new Error('Step 3 HHR seed is not production-disabled.');
   }
   nonemptyString(seed.captureKey, 'step3Archive.captureKey');
-  captures.add(seed.captureKey);
+  const seedCaptureTimestamp = captureTimestampFromKey(
+    seed.captureKey,
+    'step3Archive.captureKey',
+  );
+  seenCaptureKeys.add(seed.captureKey);
   const seedRows = array(seed.rows, 'step3Archive.rows').map((row, index) =>
     validateEvidenceRow(row, `step3Archive.rows[${index}]`, { graded: true }),
   );
-  allRows.push(...seedRows);
+  captureInputs.push(Object.freeze({
+    captureKey: seed.captureKey,
+    captureTimestamp: seedCaptureTimestamp,
+    sourceType: 'm11-step3-seed',
+    rows: Object.freeze(seedRows),
+  }));
   sources.push(Object.freeze({
     captureKey: seed.captureKey,
+    captureTimestamp: seedCaptureTimestamp,
     sourceType: 'm11-step3-seed',
     rowCount: seedRows.length,
   }));
 
-  for (const [index, rawReport] of array(gradeReports, 'gradeReports').entries()) {
+  for (const rawReport of array(gradeReports, 'gradeReports')) {
     const report = verifyM10HhrGradeReport(rawReport);
-    if (captures.has(report.source.captureKey)) {
+    if (seenCaptureKeys.has(report.source.captureKey)) {
       throw new Error(`Duplicate cumulative capture ${report.source.captureKey}.`);
     }
-    captures.add(report.source.captureKey);
-    allRows.push(...report.rows);
+    seenCaptureKeys.add(report.source.captureKey);
+    const captureTimestamp = captureTimestampFromKey(
+      report.source.captureKey,
+      'HHR grade report source.captureKey',
+    );
+    captureInputs.push(Object.freeze({
+      captureKey: report.source.captureKey,
+      captureTimestamp,
+      sourceType: 'm10-daily-hhr-grade',
+      rows: report.rows,
+    }));
     sources.push(Object.freeze({
       captureKey: report.source.captureKey,
+      captureTimestamp,
       sourceType: 'm10-daily-hhr-grade',
       archiveSha256: report.source.archiveSha256,
       archiveFileSha256: report.source.archiveFileSha256,
       rowCount: report.rows.length,
     }));
   }
-  const exactRows = new Set(allRows.map(exactRowIdentity));
-  if (exactRows.size !== allRows.length) {
-    throw new Error('Cumulative HHR evidence contains duplicate exact offer identities.');
+
+  captureInputs.sort((left, right) =>
+    left.captureTimestamp.localeCompare(right.captureTimestamp) ||
+    left.captureKey.localeCompare(right.captureKey),
+  );
+  sources.sort((left, right) => left.captureKey.localeCompare(right.captureKey));
+  return Object.freeze({
+    captureInputs: Object.freeze(captureInputs),
+    sources: Object.freeze(sources),
+  });
+}
+
+function captureAwareSelectedRecords(captureInputs) {
+  const records = [];
+  for (const capture of captureInputs) {
+    const exactRows = new Set(capture.rows.map(exactRowIdentity));
+    if (exactRows.size !== capture.rows.length) {
+      throw new Error(
+        `HHR cumulative capture ${capture.captureKey} contains duplicate exact offer identities.`,
+      );
+    }
+    const selectedRows = selectOneModelSidePerProp(capture.rows).selectedRows;
+    for (const row of selectedRows) {
+      records.push(Object.freeze({
+        captureKey: capture.captureKey,
+        captureTimestamp: capture.captureTimestamp,
+        sourceType: capture.sourceType,
+        calibrationIdentity: calibrationPropIdentity(row),
+        row,
+      }));
+    }
   }
-  const selectedRows = selectOneModelSidePerProp(allRows).selectedRows;
+  return Object.freeze(records);
+}
+
+function deduplicateHhrSelectedRecordsByLatestCapture(records) {
+  const retainedByIdentity = new Map();
+  for (const record of records) {
+    const current = retainedByIdentity.get(record.calibrationIdentity);
+    if (current === undefined) {
+      retainedByIdentity.set(record.calibrationIdentity, record);
+      continue;
+    }
+    if (record.captureTimestamp > current.captureTimestamp) {
+      retainedByIdentity.set(record.calibrationIdentity, record);
+      continue;
+    }
+    if (
+      record.captureTimestamp === current.captureTimestamp &&
+      record.captureKey !== current.captureKey
+    ) {
+      throw new Error(
+        `HHR cumulative calibration identity ${record.calibrationIdentity} has multiple captures at the same timestamp; latest-capture selection is ambiguous.`,
+      );
+    }
+  }
+
+  const evidenceRows = records.map((record) => {
+    const retained = retainedByIdentity.get(record.calibrationIdentity);
+    const isRetained = retained.captureKey === record.captureKey;
+    const calibrationEligible = isRetained && record.row.outcome !== 'void';
+    return Object.freeze({
+      ...record.row,
+      captureKey: record.captureKey,
+      captureTimestamp: record.captureTimestamp,
+      sourceType: record.sourceType,
+      calibrationIdentity: record.calibrationIdentity,
+      calibrationDedupStatus: isRetained ? 'retained' : 'superseded',
+      supersededByCaptureKey: isRetained ? null : retained.captureKey,
+      calibrationEligible,
+      calibrationExclusionReason: isRetained
+        ? record.row.outcome === 'void'
+          ? 'void'
+          : null
+        : 'superseded-by-later-capture',
+    });
+  });
+  const retainedRows = evidenceRows.filter(
+    (row) => row.calibrationDedupStatus === 'retained',
+  );
+  const supersededRows = evidenceRows.filter(
+    (row) => row.calibrationDedupStatus === 'superseded',
+  );
+  return Object.freeze({
+    evidenceRows: Object.freeze(evidenceRows),
+    retainedRows: Object.freeze(retainedRows),
+    supersededRows: Object.freeze(supersededRows),
+  });
+}
+
+function buildHhrCumulativeSelectedEvidence({ step3Archive, gradeReports }) {
+  const inputs = buildHhrCumulativeCaptureInputs({ step3Archive, gradeReports });
+  const selectedRecords = captureAwareSelectedRecords(inputs.captureInputs);
+  const deduplicated = deduplicateHhrSelectedRecordsByLatestCapture(selectedRecords);
+  return Object.freeze({
+    ...inputs,
+    selectedRecords,
+    ...deduplicated,
+  });
+}
+
+export function buildM10HhrCumulativeSelectedSideReport({
+  step3Archive,
+  gradeReports,
+  generatedAt,
+}) {
+  timestamp(generatedAt, 'generatedAt');
+  const evidence = buildHhrCumulativeSelectedEvidence({ step3Archive, gradeReports });
+  const selectedRowsBeforeDedup = evidence.evidenceRows;
+  const selectedRows = evidence.retainedRows;
+  const selectedCalibrationRowsBeforeDedup = calibrationEligibleRows(selectedRowsBeforeDedup);
   const selectedCalibrationRows = calibrationEligibleRows(selectedRows);
   const perLine = {};
   for (const cohort of ['0.5', '1.5', '2.5+']) {
+    const beforeRows = selectedRowsBeforeDedup.filter((row) => lineCohort(row) === cohort);
     const rows = selectedRows.filter((row) => lineCohort(row) === cohort);
+    const beforeCalibrationRows = calibrationEligibleRows(beforeRows);
     const calibrationRows = calibrationEligibleRows(rows);
+    const gatePassed = calibrationRows.length >= M10_HHR_MINIMUM_CALIBRATION_BUCKET_COUNT;
     perLine[cohort] = Object.freeze({
       lineCohort: cohort,
+      selectedSideRowsBeforeDedup: beforeRows.length,
+      supersededSelectedSideRows: beforeRows.filter(
+        (row) => row.calibrationDedupStatus === 'superseded',
+      ).length,
+      calibrationEligiblePicksBeforeDedup: beforeCalibrationRows.length,
       summary: buildSelectedSidePerformanceSummary(rows),
       calibrationEligiblePicks: calibrationRows.length,
       calibration: Object.freeze(withEvidenceStatus(buildSelectedSideCalibration(calibrationRows))),
-      evidenceStatus:
-        calibrationRows.length >= M10_HHR_MINIMUM_CALIBRATION_BUCKET_COUNT
-          ? 'sufficient'
-          : 'insufficient',
+      evidenceStatus: gatePassed ? 'sufficient' : 'insufficient',
+      minimumCountGatePassed: gatePassed,
+      ownerDecisionRequired: true,
+      productionEnabled: false,
+      rankingEnabled: false,
     });
   }
-  sources.sort((left, right) => left.captureKey.localeCompare(right.captureKey));
-  const sourceSetSha256 = sha256Bytes(Buffer.from(stableJson(sources), 'utf8'));
+  const sourceSetSha256 = sha256Bytes(Buffer.from(stableJson(evidence.sources), 'utf8'));
   return Object.freeze({
     reportVersion: 1,
     reportType: M10_HHR_CUMULATIVE_VERSION,
     generatedAt: new Date(generatedAt).toISOString(),
     sourceSetSha256,
-    archivesIncluded: sources.length,
-    sources: Object.freeze(sources),
+    archivesIncluded: evidence.sources.length,
+    sources: evidence.sources,
     selectedSide: Object.freeze({
+      deduplicationVersion: HHR_CUMULATIVE_DEDUPLICATION_VERSION,
+      deduplicationIdentity: Object.freeze([
+        'providerGameId',
+        'providerPlayerId',
+        'providerMarketKey',
+        'offerType',
+        'postedLine',
+      ]),
+      deduplicationWinnerRule: 'most-recent-capture-timestamp-only',
+      selectedSideRowsBeforeDedup: selectedRowsBeforeDedup.length,
+      retainedSelectedSideRows: selectedRows.length,
+      supersededSelectedSideRows: evidence.supersededRows.length,
+      calibrationEligiblePicksBeforeDedup: selectedCalibrationRowsBeforeDedup.length,
+      evidenceRows: evidence.evidenceRows,
       summary: buildSelectedSidePerformanceSummary(selectedRows),
       calibrationEligiblePicks: selectedCalibrationRows.length,
       calibration: Object.freeze(withEvidenceStatus(buildSelectedSideCalibration(selectedCalibrationRows))),
@@ -875,6 +1042,7 @@ export function buildM10HhrCumulativeSelectedSideReport({
       productionEnabled: false,
       rankingEnabled: false,
       evidenceOnly: true,
+      ownerDecisionRequired: true,
       archivesModified: false,
       deepLineCohort: '2.5+',
       minimumCalibrationBucketCount: M10_HHR_MINIMUM_CALIBRATION_BUCKET_COUNT,
@@ -883,14 +1051,12 @@ export function buildM10HhrCumulativeSelectedSideReport({
 }
 
 export function hhrCumulativeInputDiagnostics({ step3Archive, gradeReports }) {
-  const reports = array(gradeReports, 'gradeReports');
-  const sourceRows = [
-    ...array(object(step3Archive, 'step3Archive').rows, 'step3Archive.rows'),
-    ...reports.flatMap((report) => array(object(report, 'gradeReport').rows, 'gradeReport.rows')),
-  ];
-  const selectedRows = selectOneModelSidePerProp(sourceRows).selectedRows;
-  const calibrationRows = calibrationEligibleRows(selectedRows);
+  const evidence = buildHhrCumulativeSelectedEvidence({ step3Archive, gradeReports });
+  const beforeCalibrationRows = calibrationEligibleRows(evidence.evidenceRows);
+  const calibrationRows = calibrationEligibleRows(evidence.retainedRows);
+  const lineCountsBeforeDedup = { '0.5': 0, '1.5': 0, '2.5+': 0 };
   const lineCounts = { '0.5': 0, '1.5': 0, '2.5+': 0 };
+  for (const row of beforeCalibrationRows) lineCountsBeforeDedup[lineCohort(row)] += 1;
   for (const row of calibrationRows) lineCounts[lineCohort(row)] += 1;
   const calibration = buildSelectedSideCalibration(calibrationRows).map((bucket) => ({
     label: bucket.label,
@@ -899,10 +1065,14 @@ export function hhrCumulativeInputDiagnostics({ step3Archive, gradeReports }) {
   return Object.freeze({
     diagnosticVersion: 1,
     diagnosticType: 'm10-hhr-cumulative-input-counts-before-thresholds',
-    archiveCount: 1 + reports.length,
-    selectedSideRows: selectedRows.length,
+    archiveCount: evidence.captureInputs.length,
+    selectedSideRowsBeforeDedup: evidence.evidenceRows.length,
+    selectedSideRows: evidence.retainedRows.length,
+    supersededSelectedSideRows: evidence.supersededRows.length,
+    calibrationEligibleRowsBeforeDedup: beforeCalibrationRows.length,
     calibrationEligibleRows: calibrationRows.length,
-    voidSelectedSideRows: selectedRows.length - calibrationRows.length,
+    voidSelectedSideRows: evidence.retainedRows.length - calibrationRows.length,
+    lineCountsBeforeDedup,
     lineCounts,
     calibration,
     thresholdsEvaluated: false,
