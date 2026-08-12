@@ -1,6 +1,6 @@
 # MLB Prop Analyzer — Canonical Math & Statistics Reference
 
-**Version:** 1.9
+**Version:** 1.10
 **Status:** Canonical probability mathematics
 **Empirical status:** Mathematical framework verified where marked; predictive accuracy not yet validated
 
@@ -473,6 +473,67 @@ Under Family B:
    fails closed. It may not be replaced by a shallower
    line, a standard line, a Family A approximation, or any
    fallback.
+
+9. A Family B count distribution may include one explicit
+   zero-mass correction when current-season fitting evidence
+   demonstrates systematic misspecification of P(T=0).
+   Approved forms are zero-inflated and hurdle
+   distributions.
+
+   Let Q(t | x) be an exact analytic directly fitted count
+   PMF over nonnegative integer T, conditioned on the
+   declared baseball-unit inputs x.
+
+   A zero-inflated form is:
+
+   P(T=0 | x)
+     = pi(x) + [1-pi(x)] Q(0 | x)
+
+   P(T=t | x)
+     = [1-pi(x)] Q(t | x), for t >= 1
+
+   with:
+
+   0 <= pi(x) < 1.
+
+   A hurdle form is:
+
+   P(T=0 | x)
+     = rho(x)
+
+   P(T=t | x)
+     = [1-rho(x)] Q(t | x) / [1-Q(0 | x)],
+       for t >= 1
+
+   with:
+
+   0 <= rho(x) <= 1
+   Q(0 | x) < 1.
+
+   The zero-mass component and the positive-count component
+   together produce one final normalized PMF for T. They
+   are not separate settlement distributions.
+
+10. The zero-mass parameter pi(x) or rho(x) must be fitted
+    and versioned from active-current-season evidence under
+    a declared conditioning-input contract. It may use the
+    approved Family B baseball-unit inputs or a declared
+    subset of them. It may not read the posted selected
+    side, posted line, multiplier, price, category, or
+    settlement result.
+
+11. A zero-mass correction is part of the baseball
+    statistic distribution. It is not a direct probability
+    adjustment or post-settlement calibration. After the
+    final PMF is formed, every Higher and Lower offer is
+    settled through the same generic settlement path.
+
+12. Zero-inflated and hurdle forms remain subject to the
+    exact analytic runtime requirement in item 3 and the
+    independent-marginal-convolution prohibition in item 5.
+    Their introduction does not authorize Monte Carlo,
+    line-specific statistic distributions, independent
+    Hits/Runs/RBI convolution, or any fallback distribution.
 
 Family B is an approved production family, not a
 provisional shortcut. Family A remains approved and may
@@ -1068,11 +1129,11 @@ The shared scenario must jointly affect opportunity counts and per-opportunity o
 
 Pitcher outcomes and workload are not conditionally separated by default. The production pitcher model must propagate the joint state and stopping process described in Sections 7 and 8.
 
-### 15.3 Residual overdispersion
+### 15.3 Residual overdispersion, zero-mass misspecification, and tail compression
 
-Test current-season distributions and line probabilities for overdispersion and tail compression.
+Test current-season distributions and line probabilities for overdispersion, zero-mass misspecification, and tail compression.
 
-Possible residual correlation sources:
+Possible residual correlation or distribution-shape sources:
 
 - unmodeled game environment
 - pitcher condition
@@ -1083,14 +1144,84 @@ Possible residual correlation sources:
 - cross-batter PA coupling
 - team-level offensive shocks
 - removal-hazard misspecification
+- an omitted zero-occurrence process not represented by a single-component count distribution
 
-If observed variance materially exceeds the analytic model or altline tails are compressed:
+If observed variance materially exceeds the analytic model, observed zero mass materially differs from the analytic model, or altline tails are compressed or otherwise materially misspecified:
 
 1. document the failure
-2. identify the specific omitted dependence
-3. propose a shared random effect, fuller state process, or another explicit correction
+2. identify the specific omitted dependence or distributional structure
+3. propose a shared random effect, fuller state process, zero-inflated form, hurdle form, or another explicit correction
 4. update this specification before changing production code
 5. revalidate chronologically
+
+#### Documented Hits + Runs + RBIs Family B failure — 2026-08-12
+
+The current HHR Family B fitting cohort contains 5,964
+current-season rows from 340 games over 2026-07-06 through
+2026-08-05.
+
+The fitted single-component NB2 distribution materially
+misspecifies the low-count PMF:
+
+T     observed   model     gap
+0     0.3315     0.3022   -0.0293
+1     0.2237     0.2587   +0.0350
+2     0.1636     0.1761   +0.0124
+3     0.1157     0.1099   -0.0058
+4     0.0733     0.0655   -0.0077
+5     0.0431     0.0381   -0.0050
+6     0.0228     0.0218   -0.0010
+7     0.0132     0.0123   -0.0010
+8+    0.0131     0.0155   +0.0024
+
+Maximum observed T is 17.
+
+The error is concentrated at T=0 and T=1 with opposite
+signs. The model understates P(T=0) by 0.0293 and
+overstates P(T=1) by 0.0350. For a 0.5 Higher offer,
+P(T>=1)=1-P(T=0), so the fitted PMF mechanically
+overstates that tail by 0.0293 before any later calibration.
+
+Dispersion respecification was tested and rejected as the
+active correction. Under the tested NB1 alternative, the
+P(T>=1) tail gap changed only from +0.0293 under NB2 to
++0.0267 under NB1. Changing the variance law did not remove
+the low-count error.
+
+Prospective out-of-fit graded evidence, six archives,
+422 retained selected-side rows, 418 decided:
+
+cohort        n     predicted  observed   gap      log loss
+0.5  Higher   85    0.6554     0.5412    -0.1142   0.7294
+1.5  mixed    322   0.5550     0.5590    +0.0040   0.6817
+2.5+ Lower    11    0.6723     0.2727    -0.3996   0.9174
+global        418   0.5785     0.5478    -0.0307   0.6976
+
+Reference: a coin flip scores 0.693 log loss. The 0.5
+cohort and the global result are worse than a coin flip.
+
+The 0.5 cohort is overconfident by 11.4 points on 85
+decided picks, approximately 2.2 binomial standard
+errors. The 1.5 cohort, which settles near the center of
+the distribution, is calibrated. The observed failure is
+confined to the cohorts settling on P(T>=1) and P(T<=2)
+— exactly the two thresholds where the in-sample PMF
+error is concentrated.
+
+The 2.5+ cohort is n=11 and is reported for direction
+only; it is not independently conclusive.
+
+The documented omitted structure is therefore systematic
+zero-mass behavior not represented by the current
+single-component count law. Section 8.3.2 authorizes
+zero-inflated and hurdle forms as explicit Family B
+candidate corrections.
+
+This finding does not select either candidate form and does
+not authorize production use. Candidate selection,
+freezing, chronological validation, untouched testing,
+calibration, and production enablement remain subject to
+Sections 14, 17, and 18.
 
 ---
 
@@ -1267,6 +1398,142 @@ Before ranking any real prop:
 45. Every market's mathematical family is read from the
     versioned registry in §12.2. No module infers,
     defaults, or substitutes a family at runtime.
+46. Every fitted Family B count model must pass a
+    distribution-shape diagnostic on its fitting evidence
+    before the candidate is frozen.
+
+    The fitting rows must be partitioned into versioned
+    bins by fitted mean mu. The binning rule, bin edges or
+    quantile rule, settlement thresholds, and all gate
+    tolerances must be declared before the diagnostic gate
+    is evaluated and must be identical across candidates
+    being compared under the same model version.
+
+    The diagnostic must contain at least five fitted-mu
+    bins, and every required bin must contain at least 200
+    fitting rows. The declared binning rule must yield no
+    fewer than five bins satisfying that minimum. A rule
+    that yields fewer than five qualifying bins, or any
+    required bin with fewer than 200 rows, fails the gate.
+
+    For every fitted-mu bin, report at least:
+
+    - row count
+    - mean fitted mu
+    - observed mean settlement statistic
+    - implied dispersion alpha
+    - observed zero mass
+    - mean model-predicted zero mass
+    - zero-mass observed-minus-predicted gap
+    - observed and model-predicted lower-tail probability
+      at every required settlement threshold
+    - observed and model-predicted upper-tail probability
+      at every required settlement threshold
+    - the observed-minus-predicted tail gap for each
+      threshold and direction
+
+    At minimum, the required distribution-shape targets
+    are:
+
+    P(T=0)
+    P(T>=1)
+    P(T>=2)
+    P(T>=3)
+
+    These cover settlement at posted lines 0.5, 1.5, and
+    2.5. Both Higher and Lower settlement tails must be
+    reported, including the complementary lower tails
+    P(T<=0), P(T<=1), and P(T<=2).
+
+    If the supported live market posts a deeper line, every
+    additional settlement threshold needed to settle that
+    line is also required. A candidate may not omit a
+    posted threshold from the diagnostic gate.
+
+    For the NB2 variance law:
+
+    Var(T_i | mu_i) = mu_i + alpha mu_i^2
+
+    the raw per-bin moment-equivalent implied alpha is:
+
+    alpha_implied(bin)
+      = sum_i [ (T_i-mu_i)^2 - mu_i ]
+        / sum_i mu_i^2
+
+    over rows i in that bin.
+
+    The reported implied alpha must not be clipped merely
+    to make the diagnostic appear valid. If another
+    analytic count form is evaluated, the same
+    moment-equivalent diagnostic must still be reported so
+    residual variance drift across fitted-mu bins remains
+    visible.
+
+    Let the versioned fitting artifact declare:
+
+    tau_alpha
+      = maximum permitted range of alpha_implied across
+        required fitted-mu bins
+
+    tau_zero
+      = maximum permitted absolute observed-versus-model
+        zero-mass gap in any required fitted-mu bin
+
+    tau_tail
+      = maximum permitted absolute observed-versus-model
+        tail-probability gap at any required settlement
+        threshold in any required fitted-mu bin
+
+    The following are canonical ceilings on those declared
+    tolerances:
+
+    tau_zero  <= 0.010
+    tau_tail  <= 0.010
+    tau_alpha <= 0.150
+
+    A versioned fitting artifact may declare a tighter
+    tolerance but never a looser one. A candidate declaring
+    tau_zero greater than 0.010, tau_tail greater than
+    0.010, or tau_alpha greater than 0.150 fails the gate
+    on that basis alone.
+
+    The fit-time distribution-shape gate fails when:
+
+    max_bin(alpha_implied)
+      - min_bin(alpha_implied)
+      > tau_alpha
+
+    or when:
+
+    max_bin |observed P(T=0)
+             - predicted P(T=0)|
+      > tau_zero
+
+    or when any required settlement-threshold tail has:
+
+    |observed tail probability
+      - predicted tail probability|
+      > tau_tail.
+
+    A missing required bin, insufficient required-bin row
+    count, missing required live settlement threshold,
+    undeclared tolerance, tolerance looser than the
+    canonical ceiling, post-hoc tolerance change, or
+    incomplete diagnostic report also fails the gate.
+
+    This gate is separate from later calibration and
+    untouched-test evaluation. Its purpose is to prevent a
+    candidate with visible in-sample distribution-shape
+    error from remaining frozen for weeks before the error
+    is discovered in prospective settlement results.
+
+    Failure blocks candidate freeze and production
+    validation. Any post-freeze respecification remains
+    subject to Section 14.1 and therefore requires a new
+    model version, a written reason recorded before
+    re-evaluation, and a newly reserved untouched
+    active-current-season test period not used to evaluate
+    the prior version.
 
 ---
 
@@ -1310,9 +1577,18 @@ The following must be fitted, documented, versioned, and validated before real-p
   Family A in the §12.2 registry
 - for any market assigned Family B: the versioned direct
   composite fit, its conditioning input contract, its
-  per-line calibration report including separate deep-line
-  buckets, its cross-market coherence tolerance, and its
-  fail-closed gate
+  exact analytic distribution form, any required
+  zero-mass correction under §8.3.2, its required §17
+  fit-time distribution-shape diagnostic and versioned
+  tolerances, its per-line calibration report including
+  separate deep-line buckets, its cross-market coherence
+  tolerance, and its fail-closed gate
+- when §15.3 or §17 establishes systematic zero-mass
+  misspecification, the selected zero-inflated, hurdle, or
+  later canonically approved explicit correction must be
+  frozen and versioned before chronological validation and
+  may not be replaced at runtime by the prior uncorrected
+  distribution
 - runner-identity and advancement data sufficiency
   (required for Family A; for Family B, required only to
   the extent it feeds the declared conditioning inputs)
@@ -1324,6 +1600,8 @@ The following must be fitted, documented, versioned, and validated before real-p
 ### Calibration
 
 - overdispersion correction, if required
+- zero-mass correction, if required by the §15.3 failure
+  analysis and §17 fit-time distribution-shape gate
 - hierarchical calibration method
 - calibration pooling strength
 - minimum calibration reporting volumes
@@ -1390,6 +1668,17 @@ P(T=t) = fitted directly over the settlement statistic T,
          conditioned on the declared baseball-unit inputs.
          The triple joint P(H=h,R=r,RBI=b) is not formed.
 
+Approved Family B zero-mass forms:
+Let Q(t|x) be an exact analytic directly fitted count PMF.
+
+Zero-inflated:
+P(T=0|x) = pi(x) + [1-pi(x)]Q(0|x)
+P(T=t|x) = [1-pi(x)]Q(t|x), t>=1
+
+Hurdle:
+P(T=0|x) = rho(x)
+P(T=t|x) = [1-rho(x)]Q(t|x)/[1-Q(0|x)], t>=1
+
 Batter Runs — Family B (§8.3.2):
 P(R=r) = fitted directly over the settlement statistic R,
          conditioned on the declared baseball-unit inputs.
@@ -1405,6 +1694,55 @@ no validated distribution → no ranked prop
 ---
 
 ## Changelog
+
+### Version 1.10 — 2026-08-12
+
+- Added zero-inflated and hurdle distributions as approved
+  explicit zero-mass forms within Family B while preserving
+  one final PMF over the official settlement statistic,
+  exact analytic runtime evaluation, shared baseline/altline
+  distribution reuse, and the prohibition on independent
+  Hits/Runs/RBI marginal convolution.
+- Required the zero-mass component to use declared,
+  versioned active-current-season baseball-unit inputs and
+  prohibited selected side, posted line, price, multiplier,
+  category, or settlement result from entering the
+  zero-mass predictor.
+- Documented the current HHR Family B single-component NB2
+  failure on 5,964 fitting rows: observed P(T=0)=0.3315
+  versus modeled 0.3022 and observed P(T=1)=0.2237 versus
+  modeled 0.2587.
+- Recorded prospective out-of-fit evidence from six
+  archives and 418 decided selected-side rows: the 0.5
+  Higher cohort was overconfident by 0.1142 with log loss
+  0.7294, while the 1.5 cohort remained calibrated; the
+  global log loss was 0.6976.
+- Recorded that dispersion respecification was tested and
+  rejected as the active correction because the tested NB1
+  alternative changed the P(T>=1) tail gap only from
+  +0.0293 to +0.0267.
+- Added a required pre-freeze Family B fit-time
+  distribution-shape diagnostic binned by fitted mu,
+  including raw implied-alpha drift, observed-versus-model
+  zero mass, and both settlement tails at every required
+  threshold.
+- Required at least five fitted-mu bins with at least 200
+  rows per required bin and required, at minimum,
+  P(T=0), P(T>=1), P(T>=2), and P(T>=3), with every
+  additional threshold required by deeper live posted
+  lines also included.
+- Established canonical maximum tolerances of
+  tau_zero <= 0.010, tau_tail <= 0.010, and
+  tau_alpha <= 0.150. Fitting artifacts may declare
+  tighter values but never looser values; a looser
+  declaration fails the gate by itself.
+- Added any evidence-required zero-mass correction and the
+  fit-time distribution-shape gate to the production
+  readiness requirements.
+- This revision approves candidate forms and verification
+  requirements only. It does not select a new HHR model,
+  authorize use of the previously evaluated untouched
+  cohort, or enable HHR production or ranking.
 
 ### Version 1.9 — 2026-08-11
 
