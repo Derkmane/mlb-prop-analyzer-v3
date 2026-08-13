@@ -1,6 +1,7 @@
 import { access, mkdir, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 
+import { createBdlAdaptiveRateLimiter } from './bdl-adaptive-rate-limit-utils.mjs';
 import { persistImmutableJson } from './m10-grade-saved-archive-utils.mjs';
 import {
   buildM10HhrCumulativeSelectedSideReport,
@@ -25,10 +26,33 @@ const STEP3_ARCHIVE_PATH = path.resolve(
 );
 const CAPTURE_PATTERN = /^(\d{8}T\d{9}Z--[a-f0-9]{64})\.json$/u;
 const ATTEMPT_ID = process.env.M10_GRADE_ATTEMPT_ID?.trim() || `local-${Date.now()}`;
-const MIN_REQUEST_INTERVAL_MS = Number(
-  process.env.M10_BDL_MIN_REQUEST_INTERVAL_MS?.trim() || '13000',
-);
+const manualIntervalRaw = process.env.M10_BDL_MIN_REQUEST_INTERVAL_MS?.trim();
+const MANUAL_MIN_REQUEST_INTERVAL_MS = manualIntervalRaw === undefined || manualIntervalRaw === ''
+  ? null
+  : Number(manualIntervalRaw);
+if (
+  MANUAL_MIN_REQUEST_INTERVAL_MS !== null &&
+  (!Number.isSafeInteger(MANUAL_MIN_REQUEST_INTERVAL_MS) || MANUAL_MIN_REQUEST_INTERVAL_MS < 0)
+) {
+  throw new Error('M10_BDL_MIN_REQUEST_INTERVAL_MS manual override must be a non-negative integer.');
+}
 const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+const bdlRateLimiter = createBdlAdaptiveRateLimiter({
+  fallbackDelayMs: 13_000,
+  utilization: 0.9,
+});
+let manualLastRequestStartedAt = 0;
+
+async function beforeBdlRequest() {
+  if (MANUAL_MIN_REQUEST_INTERVAL_MS === null) {
+    return bdlRateLimiter.beforeRequest();
+  }
+  const remaining =
+    manualLastRequestStartedAt + MANUAL_MIN_REQUEST_INTERVAL_MS - Date.now();
+  if (remaining > 0) await sleep(remaining);
+  manualLastRequestStartedAt = Date.now();
+  return Math.max(0, remaining);
+}
 
 async function exists(filePath) {
   try {
@@ -41,17 +65,19 @@ async function exists(filePath) {
 }
 
 async function fetchBdl(url, label) {
-  if (fetchBdl.lastAt) {
-    const elapsed = Date.now() - fetchBdl.lastAt;
-    if (elapsed < MIN_REQUEST_INTERVAL_MS) await sleep(MIN_REQUEST_INTERVAL_MS - elapsed);
-  }
   for (let attempt = 0; attempt <= 8; attempt += 1) {
+    await beforeBdlRequest();
     const response = await fetch(url, { headers: { Authorization: bdlKey } });
-    fetchBdl.lastAt = Date.now();
+    bdlRateLimiter.afterResponse({
+      status: response.status,
+      headers: response.headers,
+    });
     const text = await response.text();
     if (response.status === 429 && attempt < 8) {
       const retrySeconds = Number(response.headers.get('retry-after'));
-      await sleep(Number.isFinite(retrySeconds) ? retrySeconds * 1000 : MIN_REQUEST_INTERVAL_MS);
+      const retryFallbackMs =
+        MANUAL_MIN_REQUEST_INTERVAL_MS ?? bdlRateLimiter.snapshot().intervalMs;
+      await sleep(Number.isFinite(retrySeconds) ? retrySeconds * 1000 : retryFallbackMs);
       continue;
     }
     if (!response.ok) throw new Error(`${label} returned HTTP ${response.status}: ${text.slice(0, 500)}`);
@@ -59,7 +85,6 @@ async function fetchBdl(url, label) {
   }
   throw new Error(`${label} exhausted retries.`);
 }
-fetchBdl.lastAt = 0;
 
 function providerMeta(snapshot, label) {
   const meta = snapshot.body?.meta;
@@ -340,6 +365,9 @@ for (const [cohort, value] of Object.entries(cumulative.selectedSide.perLine)) {
 for (const bucket of cumulative.selectedSide.calibration) {
   console.log(`HHR OVERALL CALIBRATION\t${bucket.label}\tn=${bucket.picksGraded}\tstatus=${bucket.evidenceStatus}`);
 }
+const bdlRateLimitState = bdlRateLimiter.snapshot();
+console.log(`BDL RATE LIMIT PER MINUTE\t${bdlRateLimitState.limitPerMinute ?? 'unknown'}`);
+console.log(`BDL INTERVAL MS\t${bdlRateLimitState.intervalMs}`);
 console.log(`GRADED NOW\t${graded}`);
 console.log(`ALREADY GRADED\t${alreadyGraded}`);
 console.log(`SKIPPED NON-FINAL\t${skippedNonFinal}`);
