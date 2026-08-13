@@ -1,6 +1,6 @@
 # MLB Prop Analyzer — Canonical Math & Statistics Reference
 
-**Version:** 1.10
+**Version:** 1.11
 **Status:** Canonical probability mathematics
 **Empirical status:** Mathematical framework verified where marked; predictive accuracy not yet validated
 
@@ -458,21 +458,27 @@ Under Family B:
    combination of marginals. This prohibition is unchanged
    from Version 1.7.
 
-6. Calibration must be reported separately at each posted
-   line, with lines at 2.5 and above bucketed separately
-   from 0.5 and 1.5. Aggregate calibration that passes only
-   because shallow lines dominate the sample is not
-   acceptance.
+6. Family B calibration is governed by Section 14.2 and
+   must be evaluated independently for each posted-line
+   cohort. Lines at 2.5 and above remain bucketed
+   separately from 0.5 and 1.5. Each cohort must report
+   sample sufficiency and calibration agreement as distinct
+   states. Aggregate calibration that passes only because
+   shallow lines dominate the sample is not acceptance.
 
 7. When two or more Family B markets are fitted separately
    over related statistics, a cross-market coherence
    diagnostic must be computed and reported. Deviation
    beyond the declared versioned tolerance fails closed.
 
-8. A Family B distribution that fails its calibration gate
-   fails closed. It may not be replaced by a shallower
-   line, a standard line, a Family A approximation, or any
-   fallback.
+8. A Family B distribution fails its calibration gate when
+   any required posted-line cohort fails either required
+   Section 14.2 condition. A cohort with sufficient sample
+   volume but failed calibration agreement remains
+   calibration-failed and may not be reported as sufficient
+   overall. A failed cohort may not be replaced by a
+   shallower line, a standard line, a Family A
+   approximation, or any fallback.
 
 9. A Family B count distribution may include one explicit
    zero-mass correction when current-season fitting evidence
@@ -1107,6 +1113,191 @@ Still requiring explicit definition:
 - minimum reporting volumes
 - recalibration schedule
 
+### 14.2 Family B per-line calibration evidence gate
+
+For every required Family B posted-line cohort, calibration
+evidence is evaluated independently. A cohort contains the
+selected-side predictions assigned to that posted-line
+bucket. Voids are excluded from calibration. Only decided
+win/loss picks are calibration-eligible.
+
+Let:
+
+n = number of calibration-eligible decided picks
+W = observed number of wins
+p_i = archived P(Win | grades) for decided pick i
+
+The line-cohort gate has two distinct required conditions.
+
+#### A. Sample sufficiency
+
+n >= 30
+
+passes the sample-sufficiency condition.
+
+A cohort with fewer than 30 calibration-eligible decided
+picks is sample-insufficient. It cannot pass the overall
+line-cohort calibration evidence gate regardless of its
+observed agreement.
+
+#### B. Calibration agreement
+
+When the individual archived probabilities p_i are
+available, the primary calibration-agreement calculation is:
+
+E = sum_i p_i
+
+V = sum_i p_i(1-p_i)
+
+Z = (W-E) / sqrt(V)
+
+Calibration agreement passes when:
+
+|Z| <= 1.96
+
+and fails when:
+
+|Z| > 1.96.
+
+This heterogeneous-probability Poisson-binomial variance
+form is primary. Family B HHR picks do not in general share
+one common predicted probability, so their individual p_i
+values must be preserved and used whenever available.
+
+A pooled standard-error fallback is permitted ONLY when the
+individual per-pick probabilities are unavailable.
+
+For that fallback, let:
+
+p_bar = cohort mean predicted win probability
+
+E_pool = n p_bar
+
+V_pool = n p_bar(1-p_bar)
+
+Z_pool = (W-E_pool) / sqrt(V_pool)
+
+and apply the same agreement rule:
+
+|Z_pool| <= 1.96.
+
+The calibration report must state whether the primary
+per-pick calculation or the pooled fallback was used.
+Using the pooled fallback when the individual p_i values
+are available fails the evidence gate.
+
+Missing or non-finite required inputs, or a variance that
+does not permit the declared Z statistic to be evaluated,
+fails closed rather than being assigned a passing
+calibration status.
+
+#### Distinct reporting states and final verdict
+
+Every required line cohort must report at least:
+
+calibrationEligibleDecidedPicks
+sampleSufficiency
+calibrationAgreement
+observedWins
+expectedWins
+variance
+zStatistic
+absoluteZ
+calculationMethod
+overallCalibrationGate
+
+Sample sufficiency and calibration agreement are distinct
+states.
+
+A cohort with n >= 30 but |Z| > 1.96 is:
+
+sampleSufficiency = SUFFICIENT
+calibrationAgreement = FAIL
+overallCalibrationGate = FAIL
+
+It may not be described as calibrated, sufficient overall,
+accepted, or production-valid merely because its sample
+count reached 30.
+
+A line cohort passes this calibration evidence gate only
+when BOTH conditions pass:
+
+n >= 30
+AND
+|Z| <= 1.96
+
+Family B lines remain independent for this gate. Evidence
+from another line may not make a failing or insufficient
+line pass. Lines at 2.5 and above remain bucketed
+separately from 0.5 and 1.5 as required by Section 8.3.2.
+
+#### Current documented HHR evidence
+
+The current prospective out-of-fit HHR evidence uses the
+primary per-pick heterogeneous-probability calculation
+above. Voids are excluded.
+
+0.5 Higher:
+
+n = 85
+W = 46
+E = 55.705934323091086
+V = 19.147632302489143
+Z = -2.21809329367959
+|Z| = 2.21809329367959
+
+sampleSufficiency = SUFFICIENT
+calibrationAgreement = FAIL
+overallCalibrationGate = FAIL
+
+The 0.5 cohort therefore fails even though it exceeds the
+30-pick minimum. Its sample volume and its calibration
+agreement are separate facts.
+
+1.5 mixed:
+
+n = 322
+W = 180
+E = 178.71045438559202
+V = 79.15410537020644
+Z = 0.14494391461076958
+|Z| = 0.14494391461076958
+
+sampleSufficiency = SUFFICIENT
+calibrationAgreement = PASS
+overallCalibrationGate = PASS
+
+The 1.5 result is a pass of this line-cohort calibration
+evidence gate only. It does not by itself validate the
+Family B distribution or authorize production or ranking.
+
+2.5+ Lower:
+
+n = 11
+W = 3
+E = 7.395612920080345
+V = 2.4209433645934486
+Z = -2.8250564247543686
+|Z| = 2.8250564247543686
+
+sampleSufficiency = INSUFFICIENT
+calibrationAgreement = FAIL
+overallCalibrationGate = FAIL
+
+The 2.5+ cohort fails sample sufficiency independently of
+its calibration-agreement result. Its agreement statistic
+is reported but may not substitute for the required minimum
+sample volume.
+
+These previously evaluated observations document the
+current model's calibration status. They do not constitute
+a newly reserved untouched period for a later candidate
+revision. Section 14.1 continues to require a newly
+reserved untouched active-current-season test period that
+was not used to evaluate the prior version before a revised
+post-freeze candidate may receive its untouched
+evaluation.
+
 ---
 
 ## 15. Assumptions, dependence, and overdispersion
@@ -1383,10 +1574,26 @@ Before ranking any real prop:
 41. Projected-lineup diagnostics cannot change model probabilities,
     eligibility, void, confidence, category access, or ranking solely
     because lineup status is projected.
-42. Every Family B market reports calibration separately at
-    each posted line, with lines at 2.5 and above bucketed
-    separately. Aggregate calibration passing on
-    shallow-line volume alone is not acceptance.
+42. Every required Family B posted-line cohort independently
+    verifies both Section 14.2 calibration-evidence
+    conditions. Voids are excluded. The verification report
+    must preserve the calibration-eligible decided-pick
+    count, sample-sufficiency state, calibration-agreement
+    state, observed wins, expected wins, variance,
+    Z statistic, absolute Z, calculation method, and final
+    line-cohort verdict.
+
+    When individual per-pick probabilities are available,
+    verification must use the primary heterogeneous-
+    probability calculation defined in Section 14.2. The
+    pooled standard-error fallback is permitted only when
+    those individual probabilities are unavailable.
+
+    A cohort that reaches the minimum sample volume but
+    fails calibration agreement remains failed. Lines at
+    2.5 and above remain bucketed separately. Aggregate
+    calibration passing on shallow-line volume alone is not
+    acceptance.
 43. Family B cross-market coherence is computed and
     reported for related statistics fitted separately.
     Deviation beyond the declared versioned tolerance fails
@@ -1604,8 +1811,16 @@ The following must be fitted, documented, versioned, and validated before real-p
   analysis and §17 fit-time distribution-shape gate
 - hierarchical calibration method
 - calibration pooling strength
-- minimum calibration reporting volumes
+- minimum calibration reporting volumes for families other
+  than Family B
 - recalibration schedule
+
+For Family B, minimum per-line calibration evidence volume
+and the calibration-agreement acceptance rule are fixed by
+Section 14.2. This does not complete the still-required
+hierarchical calibration method, calibration pooling
+strength, or recalibration schedule, and does not define
+minimum reporting volumes for any other family.
 
 Infrastructure, interfaces, registries, fail-closed guards, and mathematical tests may be built earlier with labeled synthetic fixtures. No planned, disabled, or not-yet-production-validated market may appear as a production prediction.
 
@@ -1642,6 +1857,28 @@ P(V) = 1−P(A)+P(A)P(X=L|A)
 
 Ranking:
 P(Win|grades) = P(Win) / [P(Win)+P(Loss)]
+
+Family B per-line calibration evidence gate (§14.2):
+n = calibration-eligible decided selected-side picks
+voids excluded
+
+sample sufficiency:
+n >= 30
+
+primary heterogeneous-probability agreement:
+E = sum_i p_i
+V = sum_i p_i(1-p_i)
+Z = (observedWins-E) / sqrt(V)
+PASS when |Z| <= 1.96
+
+overall line-cohort gate:
+n >= 30 AND |Z| <= 1.96
+
+pooled fallback only when individual p_i are unavailable:
+p_bar = cohort mean predicted win probability
+E_pool = n p_bar
+V_pool = n p_bar(1-p_bar)
+Z_pool = (observedWins-E_pool) / sqrt(V_pool)
 
 Two-stage soft-line path:
 p_base(d,L)  = exact selected-side settlement of D_base
@@ -1694,6 +1931,51 @@ no validated distribution → no ranked prop
 ---
 
 ## Changelog
+
+### Version 1.11 — 2026-08-12
+
+- Defined the Family B per-line calibration evidence gate in
+  Section 14.2 as the sole mathematical owner of the gate.
+- Required at least 30 calibration-eligible decided
+  selected-side picks per posted-line cohort, with voids
+  excluded and every line cohort evaluated independently.
+- Defined the primary heterogeneous-probability calibration
+  agreement statistic as E=sum p_i,
+  V=sum p_i(1-p_i), and
+  Z=(observedWins-E)/sqrt(V), with agreement passing only
+  when |Z|<=1.96.
+- Permitted the pooled standard-error fallback only when
+  individual per-pick probabilities are unavailable and
+  required every report to identify which method was used.
+- Required sample sufficiency, calibration agreement, and
+  final gate verdict to remain distinct reported states. A
+  sample-sufficient cohort that fails agreement remains
+  calibration-failed and is not sufficient overall.
+- Recorded the current HHR primary-form per-line evidence:
+  the 0.5 Higher cohort has n=85, W=46,
+  E=55.705934323091086, V=19.147632302489143,
+  Z=-2.21809329367959 and therefore fails calibration
+  agreement despite sufficient sample volume; the 1.5
+  mixed cohort has n=322, W=180,
+  E=178.71045438559202, V=79.15410537020644,
+  Z=0.14494391461076958 and passes both conditions; the
+  2.5+ Lower cohort has n=11, W=3,
+  E=7.395612920080345, V=2.4209433645934486,
+  Z=-2.8250564247543686 and fails both sample sufficiency
+  and calibration agreement.
+- Preserved per-line independence, separate 2.5+ bucketing,
+  Family B fail-closed behavior, and production/ranking
+  disablement.
+- Preserved Section 14.1 unchanged: any post-freeze
+  candidate revision still requires a new model version,
+  a written pre-evaluation reason, and a newly reserved
+  untouched active-current-season test period not used to
+  evaluate the prior version. The previously evaluated HHR
+  evidence recorded above does not satisfy that future
+  untouched-period requirement.
+- Retained minimum calibration reporting volumes as an open
+  production-readiness definition for mathematical families
+  other than Family B.
 
 ### Version 1.10 — 2026-08-12
 

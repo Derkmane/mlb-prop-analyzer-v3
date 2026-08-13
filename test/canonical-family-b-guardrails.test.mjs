@@ -12,15 +12,29 @@ test("canonical Family B guardrails remain synchronized across authorities", asy
     readRepositoryFile("PROJECT_CHECKLIST.md"),
   ]);
 
-  assert.match(mathSpec, /\*\*Version:\*\* 1\.10/);
+  assert.match(mathSpec, /\*\*Version:\*\* 1\.11/);
   assert.match(projectRules, /\*\*Version:\*\* 2\.10\\/);
 
   assert.ok(
     mathSpec.includes(
-      "42. Every Family B market reports calibration separately at\n" +
-        "    each posted line, with lines at 2.5 and above bucketed\n" +
-        "    separately. Aggregate calibration passing on\n" +
-        "    shallow-line volume alone is not acceptance.",
+      "42. Every required Family B posted-line cohort independently\n" +
+        "    verifies both Section 14.2 calibration-evidence\n" +
+        "    conditions. Voids are excluded. The verification report\n" +
+        "    must preserve the calibration-eligible decided-pick\n" +
+        "    count, sample-sufficiency state, calibration-agreement\n" +
+        "    state, observed wins, expected wins, variance,\n" +
+        "    Z statistic, absolute Z, calculation method, and final\n" +
+        "    line-cohort verdict.\n\n" +
+        "    When individual per-pick probabilities are available,\n" +
+        "    verification must use the primary heterogeneous-\n" +
+        "    probability calculation defined in Section 14.2. The\n" +
+        "    pooled standard-error fallback is permitted only when\n" +
+        "    those individual probabilities are unavailable.\n\n" +
+        "    A cohort that reaches the minimum sample volume but\n" +
+        "    fails calibration agreement remains failed. Lines at\n" +
+        "    2.5 and above remain bucketed separately. Aggregate\n" +
+        "    calibration passing on shallow-line volume alone is not\n" +
+        "    acceptance.",
     ),
   );
   assert.ok(
