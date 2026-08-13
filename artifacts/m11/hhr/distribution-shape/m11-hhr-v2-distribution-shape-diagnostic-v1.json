@@ -1,0 +1,418 @@
+{
+  "reportVersion": 1,
+  "reportType": "m11-hhr-v2-family-b-distribution-shape-diagnostic",
+  "modelVersion": "m11-batter-hhr-direct-composite-v2",
+  "distributionBuilderVersion": "m11-batter-hhr-negative-binomial-v1",
+  "mathematicalFamily": "directly-fitted-composite",
+  "officialSettlementStatistic": "hits+runs+rbis",
+  "productionEnabled": false,
+  "rankingEnabled": false,
+  "source": {
+    "modelPath": "model-artifacts/m11-batter-hhr-direct-composite-v2.json",
+    "modelFileSha256": "4283ff1a61aeb1fbe4ec384b5f40fbba2e3ec444207412bd562876a77dcac203",
+    "fittingMatrixPath": "fixtures/sanitized/m11/hhr/respecified-v2/balldontlie-hhr-design-matrix-v2.json",
+    "fittingMatrixFileSha256": "dd90dae634b7eebb111e0cb2c9f6188ab7952ef68265d6c028f96d5f921decf7",
+    "boardPath": "fixtures/sanitized/m11/hhr/respecified-v2/the-odds-api-underdog-hhr-board-v2.json",
+    "boardFileSha256": "8d2b73c4b7d99a108698de58542592651ab31f1521072b868c3fd55b907603f5"
+  },
+  "fittingEvidence": {
+    "activeSeason": 2026,
+    "startDate": "2026-07-06",
+    "endDate": "2026-08-05",
+    "gameCount": 340,
+    "rowCount": 5964
+  },
+  "gate": {
+    "gateVersion": "family-b-distribution-shape-gate-v1",
+    "verdict": "FAIL",
+    "passed": false,
+    "configuration": {
+      "binningRule": "equal-count-by-fitted-mean-v1",
+      "binCount": 5,
+      "minimumRowsPerBin": 200,
+      "settlementThresholds": [
+        1,
+        2,
+        3
+      ],
+      "liveRequiredSettlementThresholds": [
+        1,
+        2,
+        3
+      ],
+      "tolerances": {
+        "tauZero": 0.01,
+        "tauTail": 0.01,
+        "tauAlpha": 0.15
+      }
+    },
+    "bins": [
+      {
+        "binIndex": 0,
+        "rowCount": 1193,
+        "fittedMeanRange": {
+          "minimum": 1.1290509412284861,
+          "maximum": 1.5260521318237732
+        },
+        "meanFittedMu": 1.4269251254447533,
+        "observedMeanT": 1.4534786253143337,
+        "impliedAlpha": 0.895667936445251,
+        "zeroMass": {
+          "observed": 0.4098910310142498,
+          "predicted": 0.3545448553243639,
+          "observedMinusPredicted": 0.05534617568988587
+        },
+        "tails": {
+          "1": {
+            "threshold": 1,
+            "upper": {
+              "observed": 0.5901089689857502,
+              "predicted": 0.6454551446756357,
+              "observedMinusPredicted": -0.055346175689885535
+            },
+            "lower": {
+              "observed": 0.4098910310142498,
+              "predicted": 0.3545448553243639,
+              "observedMinusPredicted": 0.05534617568988587
+            }
+          },
+          "2": {
+            "threshold": 2,
+            "upper": {
+              "observed": 0.36211232187761944,
+              "predicted": 0.3698594495714359,
+              "observedMinusPredicted": -0.007747127693816469
+            },
+            "lower": {
+              "observed": 0.6378876781223806,
+              "predicted": 0.6301405504285644,
+              "observedMinusPredicted": 0.007747127693816136
+            }
+          },
+          "3": {
+            "threshold": 3,
+            "upper": {
+              "observed": 0.2196144174350377,
+              "predicted": 0.20012069101285285,
+              "observedMinusPredicted": 0.01949372642218486
+            },
+            "lower": {
+              "observed": 0.7803855825649623,
+              "predicted": 0.7998793089871469,
+              "observedMinusPredicted": -0.01949372642218461
+            }
+          }
+        }
+      },
+      {
+        "binIndex": 1,
+        "rowCount": 1193,
+        "fittedMeanRange": {
+          "minimum": 1.526163880764729,
+          "maximum": 1.6823517622448214
+        },
+        "meanFittedMu": 1.604232635333204,
+        "observedMeanT": 1.5917854149203687,
+        "impliedAlpha": 0.550551786702573,
+        "zeroMass": {
+          "observed": 0.3520536462699078,
+          "predicted": 0.3224267446635157,
+          "observedMinusPredicted": 0.029626901606392142
+        },
+        "tails": {
+          "1": {
+            "threshold": 1,
+            "upper": {
+              "observed": 0.6479463537300922,
+              "predicted": 0.6775732553364863,
+              "observedMinusPredicted": -0.02962690160639403
+            },
+            "lower": {
+              "observed": 0.3520536462699078,
+              "predicted": 0.3224267446635157,
+              "observedMinusPredicted": 0.029626901606392142
+            }
+          },
+          "2": {
+            "threshold": 2,
+            "upper": {
+              "observed": 0.4191114836546521,
+              "predicted": 0.4105216042808548,
+              "observedMinusPredicted": 0.008589879373797293
+            },
+            "lower": {
+              "observed": 0.5808885163453479,
+              "predicted": 0.5894783957191444,
+              "observedMinusPredicted": -0.008589879373796516
+            }
+          },
+          "3": {
+            "threshold": 3,
+            "upper": {
+              "observed": 0.2564962279966471,
+              "predicted": 0.23537567352410851,
+              "observedMinusPredicted": 0.021120554472538605
+            },
+            "lower": {
+              "observed": 0.7435037720033529,
+              "predicted": 0.7646243264758921,
+              "observedMinusPredicted": -0.021120554472539133
+            }
+          }
+        }
+      },
+      {
+        "binIndex": 2,
+        "rowCount": 1193,
+        "fittedMeanRange": {
+          "minimum": 1.682439835881903,
+          "maximum": 1.8272955591205844
+        },
+        "meanFittedMu": 1.7575368150010673,
+        "observedMeanT": 1.7393126571668063,
+        "impliedAlpha": 0.5588552183422187,
+        "zeroMass": {
+          "observed": 0.3369656328583403,
+          "predicted": 0.2983772803133638,
+          "observedMinusPredicted": 0.0385883525449765
+        },
+        "tails": {
+          "1": {
+            "threshold": 1,
+            "upper": {
+              "observed": 0.6630343671416596,
+              "predicted": 0.701622719686636,
+              "observedMinusPredicted": -0.03858835254497639
+            },
+            "lower": {
+              "observed": 0.3369656328583403,
+              "predicted": 0.2983772803133638,
+              "observedMinusPredicted": 0.0385883525449765
+            }
+          },
+          "2": {
+            "threshold": 2,
+            "upper": {
+              "observed": 0.4509639564124057,
+              "predicted": 0.4427877973146724,
+              "observedMinusPredicted": 0.008176159097733338
+            },
+            "lower": {
+              "observed": 0.5490360435875943,
+              "predicted": 0.5572122026853276,
+              "observedMinusPredicted": -0.008176159097733282
+            }
+          },
+          "3": {
+            "threshold": 3,
+            "upper": {
+              "observed": 0.28583403185247275,
+              "predicted": 0.2650058771937237,
+              "observedMinusPredicted": 0.020828154658749043
+            },
+            "lower": {
+              "observed": 0.7141659681475272,
+              "predicted": 0.7349941228062757,
+              "observedMinusPredicted": -0.020828154658748543
+            }
+          }
+        }
+      },
+      {
+        "binIndex": 3,
+        "rowCount": 1193,
+        "fittedMeanRange": {
+          "minimum": 1.8273777122653752,
+          "maximum": 1.9605637263695102
+        },
+        "meanFittedMu": 1.892154660366477,
+        "observedMeanT": 1.9413243922883487,
+        "impliedAlpha": 0.5874856958996177,
+        "zeroMass": {
+          "observed": 0.2925398155909472,
+          "predicted": 0.2795227943204113,
+          "observedMinusPredicted": 0.013017021270535889
+        },
+        "tails": {
+          "1": {
+            "threshold": 1,
+            "upper": {
+              "observed": 0.7074601844090528,
+              "predicted": 0.7204772056795891,
+              "observedMinusPredicted": -0.013017021270536278
+            },
+            "lower": {
+              "observed": 0.2925398155909472,
+              "predicted": 0.2795227943204113,
+              "observedMinusPredicted": 0.013017021270535889
+            }
+          },
+          "2": {
+            "threshold": 2,
+            "upper": {
+              "observed": 0.49371332774518023,
+              "predicted": 0.469146632881321,
+              "observedMinusPredicted": 0.024566694863859206
+            },
+            "lower": {
+              "observed": 0.5062866722548198,
+              "predicted": 0.5308533671186786,
+              "observedMinusPredicted": -0.024566694863858762
+            }
+          },
+          "3": {
+            "threshold": 3,
+            "upper": {
+              "observed": 0.3076278290025147,
+              "predicted": 0.2902248442689186,
+              "observedMinusPredicted": 0.017402984733596083
+            },
+            "lower": {
+              "observed": 0.6923721709974854,
+              "predicted": 0.7097751557310811,
+              "observedMinusPredicted": -0.017402984733595694
+            }
+          }
+        }
+      },
+      {
+        "binIndex": 4,
+        "rowCount": 1192,
+        "fittedMeanRange": {
+          "minimum": 1.960731456372259,
+          "maximum": 2.795982343989355
+        },
+        "meanFittedMu": 2.0846643546127974,
+        "observedMeanT": 2.0385906040268456,
+        "impliedAlpha": 0.4703642271901301,
+        "zeroMass": {
+          "observed": 0.26593959731543626,
+          "predicted": 0.25612807585358305,
+          "observedMinusPredicted": 0.009811521461853212
+        },
+        "tails": {
+          "1": {
+            "threshold": 1,
+            "upper": {
+              "observed": 0.7340604026845637,
+              "predicted": 0.7438719241464181,
+              "observedMinusPredicted": -0.009811521461854378
+            },
+            "lower": {
+              "observed": 0.26593959731543626,
+              "predicted": 0.25612807585358305,
+              "observedMinusPredicted": 0.009811521461853212
+            }
+          },
+          "2": {
+            "threshold": 2,
+            "upper": {
+              "observed": 0.4983221476510067,
+              "predicted": 0.5033860977078131,
+              "observedMinusPredicted": -0.005063950056806377
+            },
+            "lower": {
+              "observed": 0.5016778523489933,
+              "predicted": 0.49661390229218677,
+              "observedMinusPredicted": 0.005063950056806543
+            }
+          },
+          "3": {
+            "threshold": 3,
+            "upper": {
+              "observed": 0.33640939597315433,
+              "predicted": 0.3245330472217929,
+              "observedMinusPredicted": 0.011876348751361454
+            },
+            "lower": {
+              "observed": 0.6635906040268457,
+              "predicted": 0.6754669527782062,
+              "observedMinusPredicted": -0.011876348751360566
+            }
+          }
+        }
+      }
+    ],
+    "summary": {
+      "alphaRange": 0.4253037092551209,
+      "maxZeroGap": 0.05534617568988587,
+      "maxTailGapByThreshold": {
+        "1": {
+          "threshold": 1,
+          "upper": 0.055346175689885535,
+          "lower": 0.05534617568988587,
+          "maximum": 0.05534617568988587
+        },
+        "2": {
+          "threshold": 2,
+          "upper": 0.024566694863859206,
+          "lower": 0.024566694863858762,
+          "maximum": 0.024566694863859206
+        },
+        "3": {
+          "threshold": 3,
+          "upper": 0.021120554472538605,
+          "lower": 0.021120554472539133,
+          "maximum": 0.021120554472539133
+        }
+      },
+      "substantiveChecks": {
+        "alphaRange": {
+          "passed": false,
+          "value": 0.4253037092551209,
+          "tolerance": 0.15
+        },
+        "zeroMass": {
+          "passed": false,
+          "value": 0.05534617568988587,
+          "tolerance": 0.01
+        },
+        "tails": {
+          "passed": false,
+          "byThreshold": {
+            "1": false,
+            "2": false,
+            "3": false
+          },
+          "tolerance": 0.01
+        }
+      },
+      "structuralFailure": false
+    },
+    "failureReasons": [
+      {
+        "code": "ALPHA_RANGE_EXCEEDED",
+        "message": "Implied-alpha range 0.4253037092551209 exceeds tauAlpha 0.15.",
+        "alphaRange": 0.4253037092551209,
+        "tauAlpha": 0.15
+      },
+      {
+        "code": "ZERO_MASS_GAP_EXCEEDED",
+        "message": "Maximum absolute zero-mass gap 0.05534617568988587 exceeds tauZero 0.01.",
+        "maxZeroGap": 0.05534617568988587,
+        "tauZero": 0.01
+      },
+      {
+        "code": "TAIL_GAP_EXCEEDED",
+        "message": "Maximum absolute tail gap at threshold 1 is 0.05534617568988587, exceeding tauTail 0.01.",
+        "threshold": 1,
+        "maxTailGap": 0.05534617568988587,
+        "tauTail": 0.01
+      },
+      {
+        "code": "TAIL_GAP_EXCEEDED",
+        "message": "Maximum absolute tail gap at threshold 2 is 0.024566694863859206, exceeding tauTail 0.01.",
+        "threshold": 2,
+        "maxTailGap": 0.024566694863859206,
+        "tauTail": 0.01
+      },
+      {
+        "code": "TAIL_GAP_EXCEEDED",
+        "message": "Maximum absolute tail gap at threshold 3 is 0.021120554472539133, exceeding tauTail 0.01.",
+        "threshold": 3,
+        "maxTailGap": 0.021120554472539133,
+        "tauTail": 0.01
+      }
+    ]
+  }
+}
