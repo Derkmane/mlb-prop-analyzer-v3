@@ -279,6 +279,7 @@ function gradedSeedPair() {
 }
 
 function runtimeProviderFixtures(mode) {
+  const sharedCaseA = mode === 'shared-case-a';
   const games = new Map([
     [7001, capturedGameResponse({ gameId: 7001, awayTeamName: 'Away 7001', homeTeamName: 'Home 7001' })],
     [7002, capturedGameResponse({ gameId: 7002, awayTeamName: 'Away 7002', homeTeamName: 'Home 7002' })],
@@ -288,10 +289,16 @@ function runtimeProviderFixtures(mode) {
     ? [
         { playerId: 1101, teamName: 'Home 7001', hits: 1, runs: 0, rbi: 0 },
       ]
-    : [
-        { playerId: 1101, teamName: 'Home 7001', hits: 1, runs: 0, rbi: 0 },
-        { playerId: 1199, teamName: 'Away 7001', hits: 0, runs: 0, rbi: 0 },
-      ];
+    : sharedCaseA
+      ? [
+          { playerId: 1101, teamName: 'Home 7001', hits: 1, runs: 0, rbi: 0 },
+          { playerId: 1201, teamName: 'Home 7001', hits: 1, runs: 1, rbi: 0 },
+          { playerId: 1199, teamName: 'Away 7001', hits: 0, runs: 0, rbi: 0 },
+        ]
+      : [
+          { playerId: 1101, teamName: 'Home 7001', hits: 1, runs: 0, rbi: 0 },
+          { playerId: 1199, teamName: 'Away 7001', hits: 0, runs: 0, rbi: 0 },
+        ];
 
   const stats = new Map([
     [7001, capturedStatsResponse({ gameId: 7001, rows: blockedStatsRows })],
@@ -304,10 +311,13 @@ function runtimeProviderFixtures(mode) {
     })],
   ]);
 
-  const blockedLineupRows = mode === 'case-a'
+  const blockedLineupRows = mode === 'case-a' || sharedCaseA
     ? [
         { playerId: 1101, teamName: 'Home 7001', battingOrder: 1 },
         { playerId: 1102, teamName: 'Home 7001', battingOrder: 2 },
+        ...(sharedCaseA
+          ? [{ playerId: 1201, teamName: 'Home 7001', battingOrder: 3 }]
+          : []),
         { playerId: 1199, teamName: 'Away 7001', battingOrder: 1 },
       ]
     : [
@@ -346,7 +356,7 @@ async function setupRuntimeScenario(mode) {
     capturedAt: '2026-08-10T21:54:25.735Z',
     sourceSetSha256: 'b'.repeat(64),
     eventId: 'good-event',
-    gameId: 7002,
+    gameId: mode === 'shared-case-a' ? 7001 : 7002,
     playerIds: [1201],
   });
 
@@ -620,6 +630,105 @@ test('Case A blocks only its capture, later captures grade, and the run exits no
   }
 });
 
+test('shared-game provider evidence is fetched once while Case A remains capture-local', async () => {
+  const scenario = await setupRuntimeScenario('shared-case-a');
+  try {
+    assert.equal(scenario.result.status, 1, scenario.output);
+    assert.match(
+      scenario.output,
+      /BLOCKED\t[^\n]+\t7001:1102\tMissing official HHR stats for 7001:1102\. Player is present in live final-game lineups; approved sources contradict\./u,
+    );
+    assert.ok(scenario.output.includes(`GRADED\t${scenario.goodArchive.captureKey}\t`), scenario.output);
+    assert.match(scenario.output, /BDL REQUESTS TOTAL\t3/u);
+    assert.match(scenario.output, /BDL GAME STATUS REQUESTS\t1/u);
+    assert.match(scenario.output, /BDL STATS REQUESTS\t1/u);
+    assert.match(scenario.output, /BDL LINEUP REQUESTS\t1/u);
+    assert.match(scenario.output, /BLOCKED NOW\t1/u);
+
+    const blockedProviderEvidence = JSON.parse(
+      await readFile(
+        path.join(
+          scenario.root,
+          scenario.blockedArchive.captureKey,
+          'provider-evidence',
+          `${scenario.attemptId}--stats-input.json`,
+        ),
+        'utf8',
+      ),
+    );
+    const goodProviderEvidence = JSON.parse(
+      await readFile(
+        path.join(
+          scenario.root,
+          scenario.goodArchive.captureKey,
+          'provider-evidence',
+          `${scenario.attemptId}--stats-input.json`,
+        ),
+        'utf8',
+      ),
+    );
+    assert.deepEqual(
+      blockedProviderEvidence.statsGameSnapshots.map((snapshot) => snapshot.gameId),
+      [7001],
+    );
+    assert.deepEqual(
+      goodProviderEvidence.statsGameSnapshots.map((snapshot) => snapshot.gameId),
+      [7001],
+    );
+    assert.deepEqual(
+      blockedProviderEvidence.lineupGameSnapshots.map((snapshot) => snapshot.gameId),
+      [7001],
+    );
+    assert.deepEqual(
+      goodProviderEvidence.lineupGameSnapshots.map((snapshot) => snapshot.gameId),
+      [7001],
+    );
+    assert.deepEqual(
+      blockedProviderEvidence.statsGameSnapshots,
+      goodProviderEvidence.statsGameSnapshots,
+    );
+    assert.deepEqual(
+      blockedProviderEvidence.lineupGameSnapshots,
+      goodProviderEvidence.lineupGameSnapshots,
+    );
+
+    await assert.rejects(
+      readFile(
+        path.join(
+          scenario.root,
+          scenario.blockedArchive.captureKey,
+          'grades',
+          `${M10_HHR_GRADE_VERSION}.json`,
+        ),
+        'utf8',
+      ),
+      (error) => error && typeof error === 'object' && error.code === 'ENOENT',
+    );
+    const goodGrade = JSON.parse(
+      await readFile(
+        path.join(
+          scenario.root,
+          scenario.goodArchive.captureKey,
+          'grades',
+          `${M10_HHR_GRADE_VERSION}.json`,
+        ),
+        'utf8',
+      ),
+    );
+    assert.equal(goodGrade.source.captureKey, scenario.goodArchive.captureKey);
+
+    const cumulativeEntries = await readdir(path.join(scenario.root, 'cumulative'));
+    assert.equal(cumulativeEntries.length, 1);
+    const cumulative = JSON.parse(
+      await readFile(path.join(scenario.root, 'cumulative', cumulativeEntries[0]), 'utf8'),
+    );
+    assert.ok(cumulative.sources.some((source) => source.captureKey === scenario.goodArchive.captureKey));
+    assert.ok(cumulative.sources.every((source) => source.captureKey !== scenario.blockedArchive.captureKey));
+  } finally {
+    await rm(scenario.root, { recursive: true, force: true });
+  }
+});
+
 test('stats completeness failure blocks only its capture, later captures grade, and the run exits non-zero', async () => {
   const scenario = await setupRuntimeScenario('stats-incomplete');
   try {
@@ -682,6 +791,8 @@ test('grading runtime fetches live lineups, persists provider meta, and uses typ
   const source = await readFile('scripts/grade-m10-hhr-pending-archives.mjs', 'utf8');
   assert.match(source, /https:\/\/api\.balldontlie\.io\/mlb\/v1\/lineups/u);
   assert.match(source, /url\.searchParams\.append\('game_ids\[\]', String\(gameId\)\)/u);
+  assert.match(source, /statusUnionGameIds/u);
+  assert.match(source, /settlementUnionGameIds/u);
   assert.match(source, /statsGameSnapshots: stats\.snapshots/u);
   assert.match(source, /statsRowCount: stats\.rows\.length/u);
   assert.match(source, /lineupGameSnapshots: lineups\.snapshots/u);
