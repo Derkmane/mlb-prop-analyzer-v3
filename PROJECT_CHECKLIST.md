@@ -636,7 +636,7 @@ rejected without escalation.
 - Synchronized the checklist with `CANONICAL_MATH_SPEC.md` Version 1.9, which replaced the Version 1.8 mandatory effective-date requirement with the mutually exclusive §12.1(a) operator-designated effective date / §12.1(b) verified publication-boundary contract.
 - Recorded that Underdog does not publish operator-designated effective dates and that Underdog settlement rules register under §12.1(b) publication boundaries.
 - Recorded `underdog-batter-hhr-settlement-v1` as registered after merged PR #70 (`e5bb8b5df08877152786aabace3d2b1efe28f601`); the domain type enforces exactly one temporal form, and post-merge main verify run `31554833774` passed 684 of 684 tests.
-- Explicitly left HHR nonstarter void handling open: current grading does not consume the registered rule and still throws when an archived player lacks an official HHR stats row.
+- Explicitly left HHR nonstarter void handling open: current grading does not consume the registered rule and still throws on a missing official HHR stats row.
 - Preserved HHR and Batter Hits production-disabled and ranking-disabled status. No other M11 item was marked complete.
 
 ### Version 4.2 — 2026-08-11
@@ -655,7 +655,7 @@ rejected without escalation.
 ### Version 4.0 — 2026-08-05
 
 - Replaced the sanitized-only grading caveat with the first real exact-archive result: 78 picks, 39 wins, 39 losses, 0 voids, observed 0.5 versus mean predicted 0.5, with archive modification false.
-- Recorded the verified daily 21:15 UTC prospective board capture and daily 09:00 UTC final-only grading schedules from implementation commit `aac2935f1856823ec8169a71e43b026d2c95ca4c` and GitHub Actions run 774 (580/580).
+- Recorded the verified daily 21:15 UTC prospective board capture and daily 09:00 UTC final-only grading schedules from implementation commit `aac2935f1856823ec8169a71e43b026d2c95ca4c`; GitHub Actions run 774 passed 580/580.
 - Left API entrypoints, UI display, deployment, and public-link verification unchecked.
 
 ### Version 3.9 — 2026-08-05
