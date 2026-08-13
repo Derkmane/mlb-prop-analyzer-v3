@@ -1,50 +1,246 @@
-name: Step D exact Hits patch bootstrap
+name: M9 prospective board archive
 
 on:
+  workflow_dispatch:
+    inputs:
+      phase2_enrichment:
+        description: Enable display-only Phase 2 enrichment for this run
+        required: true
+        default: 'off'
+        type: choice
+        options:
+          - 'off'
+          - 'on'
+  schedule:
+    # 21:15 UTC is 4:15 PM Central during the MLB regular season. With the
+    # warm daily shard cache, the board snapshot should land roughly 60-80
+    # minutes before the common 5:35-6:10 PM Central evening starts, after
+    # substantially more official lineups are available but before first pitch.
+    # The existing strict pregame gate still excludes any earlier-starting game.
+    - cron: '15 21 * * *'
   push:
     branches:
-      - codex/workstream1-step-d-bootstrap
+      - agent/m9-board-archiving
+    paths:
+      - .github/workflows/m9-board-archive.yml
 
 permissions:
   contents: write
 
+concurrency:
+  group: m9-prospective-board-archive
+  cancel-in-progress: false
+
 jobs:
-  patch:
+  archive:
+    name: Capture prospective Batter Hits and HHR boards
     runs-on: ubuntu-latest
+    timeout-minutes: 330
+    env:
+      BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+      THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
+      M8_CAPTURE_START_DATE: '2026-07-08'
+      M8_SHARD_OUTPUT_DIR: artifacts/m8-current-season-pa/shards-2026
+      M8_CURRENT_SEASON_SHARD_ROOT: artifacts/m8-current-season-pa/shards-2026
+      M10_ARCHIVE_ROOT: artifacts/board-archives/batter-hits
+      M10_HHR_ARCHIVE_ROOT: artifacts/board-archives/batter-hhr
+      # Live proof run 31512202775 passed with Phase 2 enrichment enabled.
+      PHASE2_ENRICHMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.phase2_enrichment || 'on' }}
+
     steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v6
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           package-manager-cache: false
-      - name: Verify and apply exact approved Hits replay patch
-        env:
-          EXPECTED_ORIGINAL_BLOB: bfdd758b17ef0dcade4cc84f31af5d8664e40c39
-          OLD_ONE: ICBjb25zdCBzbmFwc2hvdENhcHR1cmVkQXQgPSBjYXB0dXJlZEF0ID8/IG5ldyBEYXRlKCkudG9JU09TdHJpbmcoKTsKICBjb25zdCByZXNwb25zZSA9IGF3YWl0IGZldGNoKHVybCwgeyBoZWFkZXJzLCBzaWduYWwgfSk7
-          NEW_ONE: ICBjb25zdCByZXNwb25zZSA9IGF3YWl0IGZldGNoKHVybCwgeyBoZWFkZXJzLCBzaWduYWwgfSk7CiAgY29uc3QgcmVwbGF5U25hcHNob3RDYXB0dXJlZEF0ID0gcmVzcG9uc2UuaGVhZGVycy5nZXQoCiAgICAneC1tOS1ib2FyZC1zbmFwc2hvdC1jYXB0dXJlZC1hdCcsCiAgKTsKICBjb25zdCBzbmFwc2hvdENhcHR1cmVkQXQgPQogICAgcmVwbGF5U25hcHNob3RDYXB0dXJlZEF0ID8/IGNhcHR1cmVkQXQgPz8gbmV3IERhdGUoKS50b0lTT1N0cmluZygpOw==
-          OLD_TWO: ICBjb25zdCBjYXB0dXJlZEF0ID0gbm93LnRvSVNPU3RyaW5nKCk7CiAgY29uc3QgY2FwdHVyZURhdGVVdGMgPSBjYXB0dXJlZEF0LnNsaWNlKDAsIDEwKTs=
-          NEW_TWO: ICBjb25zdCBmaXJzdFNuYXBzaG90Q29tcGxldGVkQXQgPQogICAgcHJvY2Vzcy5lbnYuTTlfQk9BUkRfU05BUFNIT1RfQ0FQVFVSRURfQVQ/LnRyaW0oKTsKICBjb25zdCBjYXB0dXJlZEF0ID0KICAgIGZpcnN0U25hcHNob3RDb21wbGV0ZWRBdCAmJiBmaXJzdFNuYXBzaG90Q29tcGxldGVkQXQubGVuZ3RoID4gMAogICAgICA/IG5ldyBEYXRlKGZpcnN0U25hcHNob3RDb21wbGV0ZWRBdCkudG9JU09TdHJpbmcoKQogICAgICA6IG5vdy50b0lTT1N0cmluZygpOwogIGNvbnN0IGNhcHR1cmVEYXRlVXRjID0gY2FwdHVyZWRBdC5zbGljZSgwLCAxMCk7
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Build project
+        run: npm run build
+
+      - name: Restore verified current-season shards
+        id: restore-shards
+        uses: actions/cache/restore@v4
+        with:
+          path: artifacts/m8-current-season-pa/shards-2026
+          key: m8-current-season-shards-2026-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            m8-current-season-shards-2026-
+
+      - name: Restore immutable Batter Hits archive ledger
+        id: restore-board-archives
+        uses: actions/cache/restore@v4
+        with:
+          path: artifacts/board-archives/batter-hits
+          key: m9-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            m9-board-archive-ledger-
+
+      - name: Restore immutable HHR archive ledger
+        id: restore-hhr-board-archives
+        uses: actions/cache/restore@v4
+        with:
+          path: artifacts/board-archives/batter-hhr
+          key: m10-hhr-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            m10-hhr-board-archive-ledger-
+
+      - name: Snapshot immutable archive ledgers
+        run: |
+          mkdir -p artifacts/workflow-logs
+          node -e 'const fs=require("node:fs"),path=require("node:path");for(const [key,root] of [["hits","artifacts/board-archives/batter-hits"],["hhr","artifacts/board-archives/batter-hhr"]]){const dir=path.join(root,"captures");const names=fs.existsSync(dir)?fs.readdirSync(dir,{withFileTypes:true}).filter((entry)=>entry.isFile()&&entry.name.endsWith(".json")).map((entry)=>entry.name).sort():[];fs.writeFileSync(`artifacts/workflow-logs/${key}-captures-before.json`,`${JSON.stringify(names)}\n`);}'
+
+      - name: Set history end date
+        run: |
+          node -e "const d=new Date();d.setUTCDate(d.getUTCDate()-1);process.stdout.write('M8_CAPTURE_END_DATE='+d.toISOString().slice(0,10)+'\n')" >> "$GITHUB_ENV"
+
+      - name: Capture or resume verified historical shards
+        run: node scripts/capture-m8-current-season-pa-shards.mjs
+
+      - name: Run immutable M9 Batter Hits board archiver
+        id: capture-hits
         run: |
           set -euo pipefail
-          FILE=scripts/archive-m9-batter-hits-board.mjs
-          BEFORE="$(git hash-object "$FILE")"
-          echo "BEFORE_BLOB=$BEFORE"
-          if [ "$BEFORE" != "$EXPECTED_ORIGINAL_BLOB" ]; then
-            grep -F "x-m9-board-snapshot-captured-at" "$FILE" >/dev/null
-            grep -F "M9_BOARD_SNAPSHOT_CAPTURED_AT" "$FILE" >/dev/null
-            echo "PATCH_COMMIT=$(git rev-parse HEAD)"
-            echo "PATCHED_BLOB=$(git rev-parse HEAD:$FILE)"
-            git push origin --delete "$GITHUB_REF_NAME"
-            exit 0
+          mkdir -p artifacts/workflow-logs
+          node scripts/archive-m9-batter-hits-board.mjs 2>&1 | tee artifacts/workflow-logs/m9-board-archive.log
+
+      - name: Identify new immutable Batter Hits capture
+        id: identify-hits-capture
+        if: always() && steps.capture-hits.outcome == 'success'
+        run: |
+          node -e 'const fs=require("node:fs"),path=require("node:path");const dir="artifacts/board-archives/batter-hits/captures";const before=new Set(JSON.parse(fs.readFileSync("artifacts/workflow-logs/hits-captures-before.json","utf8")));const after=fs.existsSync(dir)?fs.readdirSync(dir,{withFileTypes:true}).filter((entry)=>entry.isFile()&&entry.name.endsWith(".json")).map((entry)=>entry.name).sort():[];const added=after.filter((name)=>!before.has(name));if(added.length!==1)throw new Error(`Expected exactly one new immutable Batter Hits capture after successful archiver; found ${added.length}.`);fs.appendFileSync(process.env.GITHUB_OUTPUT,`path=${path.join(dir,added[0])}\n`);console.log(`NEW BATTER HITS CAPTURE\t${path.join(dir,added[0])}`);'
+
+      - name: Run immutable HHR evidence archiver from the same prospective slate
+        id: capture-hhr
+        if: steps.capture-hits.outcome == 'success' && steps.identify-hits-capture.outcome == 'success'
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/workflow-logs
+          node --import ./scripts/m10-hhr-raw-board-preload.mjs scripts/archive-m10-batter-hhr-board.mjs 2>&1 | tee artifacts/workflow-logs/m10-hhr-board-archive.log
+
+      - name: Identify new immutable HHR capture
+        id: identify-hhr-capture
+        if: always() && steps.capture-hhr.outcome == 'success'
+        run: |
+          node -e 'const fs=require("node:fs"),path=require("node:path");const dir="artifacts/board-archives/batter-hhr/captures";const before=new Set(JSON.parse(fs.readFileSync("artifacts/workflow-logs/hhr-captures-before.json","utf8")));const after=fs.existsSync(dir)?fs.readdirSync(dir,{withFileTypes:true}).filter((entry)=>entry.isFile()&&entry.name.endsWith(".json")).map((entry)=>entry.name).sort():[];const added=after.filter((name)=>!before.has(name));if(added.length!==1)throw new Error(`Expected exactly one new immutable HHR capture after successful archiver; found ${added.length}.`);fs.appendFileSync(process.env.GITHUB_OUTPUT,`path=${path.join(dir,added[0])}\n`);console.log(`NEW HHR CAPTURE\t${path.join(dir,added[0])}`);'
+
+      - name: Build immutable trimmed display archives
+        id: build-display-archives
+        if: always() && steps.identify-hits-capture.outcome == 'success' && steps.identify-hhr-capture.outcome == 'success'
+        env:
+          HITS_CAPTURE_PATH: ${{ steps.identify-hits-capture.outputs.path }}
+          HHR_CAPTURE_PATH: ${{ steps.identify-hhr-capture.outputs.path }}
+        run: |
+          set -euo pipefail
+          if [ -z "${HITS_CAPTURE_PATH}" ] || [ -z "${HHR_CAPTURE_PATH}" ]; then
+            echo "Both full capture paths are required to build the display archives."
+            exit 1
           fi
-          node -e 'const fs=require("node:fs"),p=process.argv[1],a=Buffer.from(process.env.OLD_ONE,"base64").toString(),b=Buffer.from(process.env.NEW_ONE,"base64").toString(),c=Buffer.from(process.env.OLD_TWO,"base64").toString(),d=Buffer.from(process.env.NEW_TWO,"base64").toString();let s=fs.readFileSync(p,"utf8");for(const [oldText,newText,label] of [[a,b,"ONE"],[c,d,"TWO"]]){const first=s.indexOf(oldText);if(first<0||s.indexOf(oldText,first+1)>=0)throw new Error(`Expected exactly one ${label} replacement target.`);s=s.replace(oldText,newText)}fs.writeFileSync(p,s)' "$FILE"
-          node --check "$FILE"
-          git diff --check -- "$FILE"
-          git diff -- "$FILE"
-          git add -- "$FILE"
-          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "fix: preserve first-snapshot capture time in Hits archive"
-          echo "PATCH_COMMIT=$(git rev-parse HEAD)"
-          echo "PATCHED_BLOB=$(git rev-parse HEAD:$FILE)"
-          git push origin "HEAD:$GITHUB_REF_NAME"
+          HITS_CAPTURE_NAME="${HITS_CAPTURE_PATH##*/}"
+          HHR_CAPTURE_NAME="${HHR_CAPTURE_PATH##*/}"
+          HITS_DISPLAY_PATH="artifacts/display-archives/batter-hits/captures/${HITS_CAPTURE_NAME}"
+          HHR_DISPLAY_PATH="artifacts/display-archives/batter-hhr/captures/${HHR_CAPTURE_NAME}"
+          node scripts/build-phase1-display-archive.mjs batter-hits "${HITS_CAPTURE_PATH}" "${HITS_DISPLAY_PATH}"
+          node scripts/build-phase1-display-archive.mjs batter-hhr "${HHR_CAPTURE_PATH}" "${HHR_DISPLAY_PATH}"
+          printf 'hits_path=%s\n' "${HITS_DISPLAY_PATH}" >> "$GITHUB_OUTPUT"
+          printf 'hhr_path=%s\n' "${HHR_DISPLAY_PATH}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload full archives and diagnostics before repository persistence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m9-board-archive-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 90
+          path: |
+            artifacts/board-archives/batter-hits/**
+            artifacts/board-archives/batter-hhr/**
+            artifacts/workflow-logs/**
+
+      - name: Persist trimmed display archives to repository
+        id: persist-display-archives
+        if: always() && steps.build-display-archives.outcome == 'success'
+        env:
+          HITS_DISPLAY_PATH: ${{ steps.build-display-archives.outputs.hits_path }}
+          HHR_DISPLAY_PATH: ${{ steps.build-display-archives.outputs.hhr_path }}
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF_TYPE}" != "branch" ]; then
+            echo "Display archive persistence requires a branch ref; got ${GITHUB_REF_TYPE}."
+            exit 1
+          fi
+          if [ -z "${HITS_DISPLAY_PATH}" ] || [ -z "${HHR_DISPLAY_PATH}" ]; then
+            echo "Both trimmed display archives are required for one durable commit."
+            exit 1
+          fi
+          git add -f -- "${HITS_DISPLAY_PATH}" "${HHR_DISPLAY_PATH}"
+          if git diff --cached --quiet; then
+            echo "No trimmed display archives were staged."
+            exit 1
+          fi
+          node -e 'const cp=require("node:child_process");const staged=cp.execFileSync("git",["diff","--cached","--name-only"],{encoding:"utf8"}).trim().split(/\r?\n/u).filter(Boolean);const allowed=/^artifacts\/display-archives\/(batter-hits|batter-hhr)\/captures\/\d{8}T\d{9}Z--[a-f0-9]{64}\.json$/u;const invalid=staged.filter((value)=>!allowed.test(value));if(invalid.length>0)throw new Error(`Refusing to persist non-display paths: ${invalid.join(", ")}`);const markets=new Set(staged.map((value)=>allowed.exec(value)?.[1]).filter(Boolean));if(staged.length!==2||markets.size!==2)throw new Error(`Expected exactly two trimmed display archives, one per market; staged ${staged.length}.`);console.log(`STAGED TRIMMED DISPLAY ARCHIVES\t${staged.length}`);'
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "chore: persist trimmed display archives [skip ci]"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Save verified current-season shards
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: artifacts/m8-current-season-pa/shards-2026
+          key: m8-current-season-shards-2026-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Save immutable Batter Hits archive ledger
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: artifacts/board-archives/batter-hits
+          key: m9-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Save immutable HHR archive ledger
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: artifacts/board-archives/batter-hhr
+          key: m10-hhr-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Verify archive run status
+        if: always()
+        env:
+          HITS_CAPTURE_OUTCOME: ${{ steps.capture-hits.outcome }}
+          HITS_IDENTIFY_OUTCOME: ${{ steps.identify-hits-capture.outcome }}
+          HHR_CAPTURE_OUTCOME: ${{ steps.capture-hhr.outcome }}
+          HHR_IDENTIFY_OUTCOME: ${{ steps.identify-hhr-capture.outcome }}
+          DISPLAY_OUTCOME: ${{ steps.build-display-archives.outcome }}
+          PERSIST_OUTCOME: ${{ steps.persist-display-archives.outcome }}
+        run: |
+          set -euo pipefail
+          if [ "${HITS_CAPTURE_OUTCOME}" != "success" ]; then
+            echo "Batter Hits archive capture outcome: ${HITS_CAPTURE_OUTCOME}"
+            exit 1
+          fi
+          if [ "${HITS_IDENTIFY_OUTCOME}" != "success" ]; then
+            echo "Batter Hits immutable capture identification outcome: ${HITS_IDENTIFY_OUTCOME}"
+            exit 1
+          fi
+          if [ "${HHR_CAPTURE_OUTCOME}" != "success" ]; then
+            echo "HHR archive capture outcome: ${HHR_CAPTURE_OUTCOME}"
+            exit 1
+          fi
+          if [ "${HHR_IDENTIFY_OUTCOME}" != "success" ]; then
+            echo "HHR immutable capture identification outcome: ${HHR_IDENTIFY_OUTCOME}"
+            exit 1
+          fi
+          if [ "${DISPLAY_OUTCOME}" != "success" ]; then
+            echo "Trimmed display archive build outcome: ${DISPLAY_OUTCOME}"
+            exit 1
+          fi
+          if [ "${PERSIST_OUTCOME}" != "success" ]; then
+            echo "Durable trimmed display archive persistence outcome: ${PERSIST_OUTCOME}"
+            exit 1
+          fi
+          echo "Both full captures remain in the archive ledger/artifact and both trimmed display archives were durably persisted."
