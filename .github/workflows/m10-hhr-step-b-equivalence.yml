@@ -18,9 +18,6 @@ jobs:
     env:
       BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
       SOURCE_HHR_ROOT: artifacts/board-archives/batter-hhr
-      SCRATCH_HHR_ROOT: ${{ runner.temp }}/m10-hhr-step-b-scratch
-      REFERENCE_GRADE_ROOT: ${{ runner.temp }}/m10-hhr-step-b-reference-grades
-      REPORT_ROOT: ${{ runner.temp }}/m10-hhr-step-b-report
       HHR_GRADE_VERSION: m10-hhr-final-grade-v1
       EXPECTED_SOURCE_SET_SHA256: 8aabb3dc7403093eb6152378aa7784a909e0c3b4826f8d7334dd7d70113375de
       EXPECTED_RETAINED_ROWS: '422'
@@ -54,6 +51,10 @@ jobs:
       - name: Copy captures to scratch and verify byte hashes
         run: |
           set -euo pipefail
+          SCRATCH_HHR_ROOT="${RUNNER_TEMP}/m10-hhr-step-b-scratch"
+          REFERENCE_GRADE_ROOT="${RUNNER_TEMP}/m10-hhr-step-b-reference-grades"
+          REPORT_ROOT="${RUNNER_TEMP}/m10-hhr-step-b-report"
+          export SCRATCH_HHR_ROOT REFERENCE_GRADE_ROOT REPORT_ROOT
           rm -rf "${SCRATCH_HHR_ROOT}" "${REFERENCE_GRADE_ROOT}" "${REPORT_ROOT}"
           mkdir -p "${SCRATCH_HHR_ROOT}/captures" "${REFERENCE_GRADE_ROOT}" "${REPORT_ROOT}"
           node - <<'NODE'
@@ -138,6 +139,9 @@ jobs:
         id: run-grader
         run: |
           set -uo pipefail
+          SCRATCH_HHR_ROOT="${RUNNER_TEMP}/m10-hhr-step-b-scratch"
+          REPORT_ROOT="${RUNNER_TEMP}/m10-hhr-step-b-report"
+          export SCRATCH_HHR_ROOT REPORT_ROOT
           mkdir -p "${REPORT_ROOT}"
           LOG_PATH="${REPORT_ROOT}/grader.log"
           START_MS="$(node -e 'process.stdout.write(String(Date.now()))')"
@@ -165,6 +169,10 @@ jobs:
           ELAPSED_MS: ${{ steps.run-grader.outputs.elapsed_ms }}
         run: |
           set -euo pipefail
+          SCRATCH_HHR_ROOT="${RUNNER_TEMP}/m10-hhr-step-b-scratch"
+          REFERENCE_GRADE_ROOT="${RUNNER_TEMP}/m10-hhr-step-b-reference-grades"
+          REPORT_ROOT="${RUNNER_TEMP}/m10-hhr-step-b-report"
+          export SCRATCH_HHR_ROOT REFERENCE_GRADE_ROOT REPORT_ROOT
           mkdir -p "${REPORT_ROOT}"
           node - <<'NODE'
           const fs = require('node:fs');
