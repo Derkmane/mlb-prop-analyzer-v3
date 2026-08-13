@@ -636,7 +636,7 @@ rejected without escalation.
 - Synchronized the checklist with `CANONICAL_MATH_SPEC.md` Version 1.9, which replaced the Version 1.8 mandatory effective-date requirement with the mutually exclusive §12.1(a) operator-designated effective date / §12.1(b) verified publication-boundary contract.
 - Recorded that Underdog does not publish operator-designated effective dates and that Underdog settlement rules register under §12.1(b) publication boundaries.
 - Recorded `underdog-batter-hhr-settlement-v1` as registered after merged PR #70 (`e5bb8b5df08877152786aabace3d2b1efe28f601`); the domain type enforces exactly one temporal form, and post-merge main verify run `31554833774` passed 684 of 684 tests.
-- Explicitly left HHR nonstarter void handling open: current HHR grading does not consume the settlement registry and still throws on a missing official HHR stats row.
+- Explicitly left HHR nonstarter void handling open: current grading does not consume the registered rule and still throws on a missing official HHR stats row.
 - Preserved HHR and Batter Hits production-disabled and ranking-disabled status. No other M11 item was marked complete.
 
 ### Version 4.2 — 2026-08-11
@@ -674,7 +674,7 @@ rejected without escalation.
 - Recorded that Higher 2.5 Brier was microscopically worse for `D_final` but remained diagnostic only and could not alter the decision; the slightly larger untouched delta relative to the approximately `0.0004`-nat combined fitted improvement is within noise on 900 observations and is not evidence of better-than-expected factor performance.
 - Preserved rather than repaired 4 simultaneous multi-slot phase shifts, 4 unknown terminal results, 4 incomplete history-update games, and 8 excluded team sides.
 - Recorded final factor dispositions: game-specific offensive environment `APPLIED`, team-specific bullpen `APPLIED`, times-through-order `IDENTITY`, Defense `IDENTITY`, and park `VALIDATED NOT APPLIED`.
-- Recorded GitHub Actions verify run 674 passing 476 of 476 tests, with 260 modules and 782 dependencies inspected and zero violations; typecheck, script checks, build, selected-side, and protective-architecture gates passed.
+- Recorded GitHub Actions verify run 674 passing 476 of 476 tests, with 260 modules and 782 dependencies inspected and zero architecture violations; typecheck, script checks, build, selected-side, and protective-architecture gates passed.
 - Left `tau_soft` and hard-discovery recall validation unchecked because no hard predicate was proposed or validated; hard discovery filtering remains disabled. Production, ranking, hard discovery filtering, and retuning remain disabled.
 - Stated explicitly that four dates and 900 scored observations are not decisive evidence of predictive value and that this result is an acceptance check under the frozen rule, not proof that the context layer materially improves predictions.
 - Closed M8.5 without starting M9 implementation.
@@ -763,7 +763,7 @@ rejected without escalation.
 ### Version 2.8 — 2026-07-30
 
 - Added a fixture-backed test-only invariant proving baseline and alternate Batter Hits offer attributes do not create different baseball distributions.
-- Recorded that the committed board contains real baseline and alternate offers but no same-player pair, avoiding any unsupported provider claim.
+- Recorded that the committed board contains verified baseline and alternate offers but no same-player pair, avoiding any unsupported provider claim.
 - Held player, game, team, lineup, opposing starter, shared scenarios, and frozen model artifacts fixed while substituting only provider-observed alternate offer attributes.
 - Verified exact equality of the complete runtime and candidate statistic distributions while allowing side, line, price, multiplier, and settlement probabilities to differ.
 - Recorded 1-of-1 focused passing test and GitHub Actions verify run 420 with 347-of-347 tests passing; production ranking remains disabled and untouched-test rows remain sealed.
@@ -788,7 +788,7 @@ rejected without escalation.
 
 - Added the shared pregame game-eligibility gate and fixture-backed BALLDONTLIE game-state normalization.
 - Required a uniquely matched current-season regular-season game with exact scheduled status and an evaluation time strictly before both preserved provider start timestamps.
-- Verified that final, unknown, missing, duplicate, and start-time-reached game states fail closed before probability generation or ranking.
+- Verified that final, unknown, missing, duplicate, or start-time-reached game states fail closed before probability generation or ranking.
 - Preserved exact normalized offer identity, selected Higher/Lower side, and posted line for every surviving offer.
 - Recorded 4-of-4 focused passing tests and GitHub Actions verify run 408 with 341-of-341 tests passing; production ranking remains disabled.
 
@@ -797,7 +797,7 @@ rejected without escalation.
 - Connected fixture-backed real Underdog Batter Hits baseline and alternate board offers through strict The Odds API contracts and normalization.
 - Preserved event, bookmaker, market, offer type, uniquely linked player, Higher/Lower side, exact line, price, multiplier, market timestamp, and source snapshot identity.
 - Verified 34 normalized offers and fail-closed rejection of both unresolved James Jarvis offers.
-- Recorded 3-of-3 focused passing tests and GitHub Actions verify run 405 with 337-of-337 tests passing; probability generation and production ranking remain disabled.
+- Recorded 3-of-3 focused passing tests and GitHub Actions verify run 405 with 337-of-337 tests passing; probability generation and production ranking remains disabled.
 
 ### Version 2.3 — 2026-07-30
 
@@ -884,7 +884,7 @@ rejected without escalation.
 - Recorded preserved Underdog baseline and alternate fixtures, market keys, selected-side fields, lines, multipliers, and null source IDs.
 - Recorded preserved BALLDONTLIE game and lineup fixtures.
 - Recorded one observed cross-provider game join and the 17-of-18 player-linkage result with James Jarvis failing closed.
-- Kept complete pregame status semantics, PA/plays fixture promotion, terminal-category closure, and every M2 exit gates open.
+- Kept complete pregame status semantics, PA/plays fixture promotion, terminal-category closure, and every M2 exit gate open.
 - Did not begin provider-derived contracts.
 
 ### Version 1.1 — 2026-07-23
