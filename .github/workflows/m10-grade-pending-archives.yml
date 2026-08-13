@@ -28,7 +28,6 @@ jobs:
       M10_MULTI_MARKET_CUMULATIVE_ROOT: artifacts/board-archives/cumulative
       M10_ARCHIVE_BOOTSTRAP_ROOT: artifacts/bootstrap/m9-board-archive
       M10_GRADE_ATTEMPT_ID: github-run-${{ github.run_id }}-attempt-${{ github.run_attempt }}
-      M10_BDL_MIN_REQUEST_INTERVAL_MS: '13000'
 
     steps:
       - name: Check out repository
