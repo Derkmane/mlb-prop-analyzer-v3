@@ -1,6 +1,7 @@
 import { access, mkdir, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 
+import { createBdlAdaptiveRateLimiter } from './bdl-adaptive-rate-limit-utils.mjs';
 import {
   canonicalJsonBytes,
   persistImmutableJson,
@@ -22,10 +23,19 @@ const DEFAULT_ARCHIVE_ROOT = path.join(
   'board-archives',
   'batter-hits',
 );
-const DEFAULT_MINIMUM_REQUEST_INTERVAL_MS = 13_000;
 const MAXIMUM_RETRIES = 3;
 const REQUEST_TIMEOUT_MS = 30_000;
 const CAPTURE_FILE_PATTERN = /^(\d{8}T\d{9}Z--[a-f0-9]{64})\.json$/u;
+const manualIntervalRaw = process.env.M10_BDL_MIN_REQUEST_INTERVAL_MS?.trim();
+const MANUAL_MIN_REQUEST_INTERVAL_MS = manualIntervalRaw === undefined || manualIntervalRaw === ''
+  ? null
+  : Number(manualIntervalRaw);
+if (
+  MANUAL_MIN_REQUEST_INTERVAL_MS !== null &&
+  (!Number.isSafeInteger(MANUAL_MIN_REQUEST_INTERVAL_MS) || MANUAL_MIN_REQUEST_INTERVAL_MS < 0)
+) {
+  throw new Error('M10_BDL_MIN_REQUEST_INTERVAL_MS manual override must be a non-negative integer.');
+}
 
 function nonemptyEnvironment(name, fallback = null) {
   const raw = process.env[name]?.trim();
@@ -39,16 +49,6 @@ function safeAttemptId(value) {
     throw new Error('M10_GRADE_ATTEMPT_ID contains unsupported characters.');
   }
   return value;
-}
-
-function parseInterval(value) {
-  const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed < 0) {
-    throw new Error(
-      'M10_BDL_MIN_REQUEST_INTERVAL_MS must be a non-negative integer.',
-    );
-  }
-  return parsed;
 }
 
 function sleep(milliseconds) {
@@ -69,14 +69,21 @@ function retryAfterMilliseconds(response) {
   return 60_000;
 }
 
-function createRequestPacer(minimumIntervalMilliseconds) {
-  let lastStartedAt = 0;
-  return async () => {
-    const remaining =
-      lastStartedAt + minimumIntervalMilliseconds - Date.now();
-    if (remaining > 0) await sleep(remaining);
-    lastStartedAt = Date.now();
-  };
+const bdlRateLimiter = createBdlAdaptiveRateLimiter({
+  fallbackDelayMs: 13_000,
+  utilization: 0.9,
+});
+let manualLastRequestStartedAt = 0;
+
+async function pace() {
+  if (MANUAL_MIN_REQUEST_INTERVAL_MS === null) {
+    return bdlRateLimiter.beforeRequest();
+  }
+  const remaining =
+    manualLastRequestStartedAt + MANUAL_MIN_REQUEST_INTERVAL_MS - Date.now();
+  if (remaining > 0) await sleep(remaining);
+  manualLastRequestStartedAt = Date.now();
+  return Math.max(0, remaining);
 }
 
 async function fetchProviderJson({ url, apiKey, pace, label }) {
@@ -86,6 +93,10 @@ async function fetchProviderJson({ url, apiKey, pace, label }) {
     const response = await fetch(url, {
       headers: { Authorization: apiKey },
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    bdlRateLimiter.afterResponse({
+      status: response.status,
+      headers: response.headers,
     });
     const bodyText = await response.text();
     if (response.status === 429 && attempt < MAXIMUM_RETRIES) {
@@ -235,13 +246,6 @@ const attemptId = safeAttemptId(
   nonemptyEnvironment('M10_GRADE_ATTEMPT_ID', `local-${Date.now()}`),
 );
 const apiKey = requireSecret('BALLDONTLIE_API_KEY');
-const minimumIntervalMilliseconds = parseInterval(
-  nonemptyEnvironment(
-    'M10_BDL_MIN_REQUEST_INTERVAL_MS',
-    String(DEFAULT_MINIMUM_REQUEST_INTERVAL_MS),
-  ),
-);
-const pace = createRequestPacer(minimumIntervalMilliseconds);
 const capturesDirectory = path.join(archiveRoot, 'captures');
 await mkdir(capturesDirectory, { recursive: true });
 const entries = await readdir(capturesDirectory, { withFileTypes: true });
@@ -439,6 +443,9 @@ for (const capture of captures) {
   printCalibration(report);
 }
 
+const bdlRateLimitState = bdlRateLimiter.snapshot();
+console.log(`BDL RATE LIMIT PER MINUTE\t${bdlRateLimitState.limitPerMinute ?? 'unknown'}`);
+console.log(`BDL INTERVAL MS\t${bdlRateLimitState.intervalMs}`);
 console.log(`ALREADY GRADED: ${alreadyGraded}`);
 console.log(`SKIPPED NON-FINAL: ${skippedNonFinal}`);
 console.log(`ARCHIVES GRADED: ${graded}`);
