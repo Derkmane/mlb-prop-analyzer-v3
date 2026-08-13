@@ -132,7 +132,8 @@ function latestCapturedAt(entries, label) {
   return capturedAt;
 }
 
-async function fetchGamesById(gameIds) {
+async function fetchGames(gameIds) {
+  const rows = [];
   const evidenceByGameId = new Map();
   for (const gameId of gameIds) {
     const snapshot = await fetchBdl(
@@ -143,6 +144,7 @@ async function fetchGamesById(gameIds) {
     if (!game || typeof game !== 'object' || Array.isArray(game)) {
       throw new Error(`BDL HHR game status ${gameId} data must be an object.`);
     }
+    rows.push(game);
     evidenceByGameId.set(gameId, Object.freeze({
       game,
       capturedAt: snapshot.capturedAt,
@@ -151,7 +153,7 @@ async function fetchGamesById(gameIds) {
   return evidenceByGameId;
 }
 
-async function fetchStatsByGameId(gameIds) {
+async function fetchStatsForGames(gameIds) {
   const evidenceByGameId = new Map();
   for (const gameId of gameIds) {
     const url = new URL('https://api.balldontlie.io/mlb/v1/stats');
@@ -262,7 +264,7 @@ for (const capture of captures) {
 }
 
 const statusUnionGameIds = unionGameIds(pendingCaptures, (pending) => pending.gameIds);
-const gameStatusByGameId = await fetchGamesById(statusUnionGameIds);
+const gameStatusByGameId = await fetchGames(statusUnionGameIds);
 const readyCaptures = [];
 
 for (const pending of pendingCaptures) {
@@ -303,7 +305,7 @@ const settlementUnionGameIds = unionGameIds(
   readyCaptures,
   (pending) => statusEvidenceGameIds(pending.statusEvidence),
 );
-const statsByGameId = await fetchStatsByGameId(settlementUnionGameIds);
+const statsByGameId = await fetchStatsForGames(settlementUnionGameIds);
 const lineupsByGameId = await fetchLineupsByGameId(settlementUnionGameIds);
 
 for (const pending of readyCaptures) {
