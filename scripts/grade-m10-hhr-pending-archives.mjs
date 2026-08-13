@@ -75,9 +75,7 @@ async function fetchBdl(url, label) {
     const text = await response.text();
     if (response.status === 429 && attempt < 8) {
       const retrySeconds = Number(response.headers.get('retry-after'));
-      const retryFallbackMs =
-        MANUAL_MIN_REQUEST_INTERVAL_MS ?? bdlRateLimiter.snapshot().intervalMs;
-      await sleep(Number.isFinite(retrySeconds) ? retrySeconds * 1000 : retryFallbackMs);
+      await sleep(Number.isFinite(retrySeconds) ? retrySeconds * 1000 : 13_000);
       continue;
     }
     if (!response.ok) throw new Error(`${label} returned HTTP ${response.status}: ${text.slice(0, 500)}`);
