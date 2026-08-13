@@ -1,0 +1,347 @@
+name: M10 HHR Step B equivalence
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m10-hhr-step-b-equivalence
+  cancel-in-progress: false
+
+jobs:
+  equivalence:
+    name: Regrade HHR scratch copies and prove Step B equivalence
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+      SOURCE_HHR_ROOT: artifacts/board-archives/batter-hhr
+      SCRATCH_HHR_ROOT: ${{ runner.temp }}/m10-hhr-step-b-scratch
+      REFERENCE_GRADE_ROOT: ${{ runner.temp }}/m10-hhr-step-b-reference-grades
+      REPORT_ROOT: ${{ runner.temp }}/m10-hhr-step-b-report
+      HHR_GRADE_VERSION: m10-hhr-final-grade-v1
+      EXPECTED_SOURCE_SET_SHA256: 8aabb3dc7403093eb6152378aa7784a909e0c3b4826f8d7334dd7d70113375de
+      EXPECTED_RETAINED_ROWS: '422'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Build project
+        run: npm run build
+
+      - name: Restore immutable HHR grading ledger read-only
+        id: restore-hhr-ledger
+        uses: actions/cache/restore@v4
+        with:
+          path: artifacts/board-archives/batter-hhr
+          key: m10-hhr-board-archive-ledger-step-b-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            m10-hhr-board-archive-ledger-
+          fail-on-cache-miss: true
+
+      - name: Copy captures to scratch and verify byte hashes
+        run: |
+          set -euo pipefail
+          rm -rf "${SCRATCH_HHR_ROOT}" "${REFERENCE_GRADE_ROOT}" "${REPORT_ROOT}"
+          mkdir -p "${SCRATCH_HHR_ROOT}/captures" "${REFERENCE_GRADE_ROOT}" "${REPORT_ROOT}"
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const crypto = require('node:crypto');
+
+          const sourceRoot = process.env.SOURCE_HHR_ROOT;
+          const scratchRoot = process.env.SCRATCH_HHR_ROOT;
+          const referenceRoot = process.env.REFERENCE_GRADE_ROOT;
+          const reportRoot = process.env.REPORT_ROOT;
+          const gradeVersion = process.env.HHR_GRADE_VERSION;
+          const capturePattern = /^(\d{8}T\d{9}Z--[a-f0-9]{64})\.json$/u;
+          const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
+
+          const sourceCaptures = path.join(sourceRoot, 'captures');
+          if (!fs.existsSync(sourceCaptures)) {
+            throw new Error(`Restored HHR ledger has no captures directory: ${sourceCaptures}`);
+          }
+
+          const names = fs.readdirSync(sourceCaptures)
+            .filter((name) => capturePattern.test(name))
+            .sort();
+          if (names.length === 0) throw new Error('Restored HHR ledger has zero capture files.');
+
+          const hashLines = ['captureKey\tsourceByteSha256\tscratchByteSha256'];
+          const referenceLines = ['captureKey\treferenceGradeSha256'];
+          const gameIds = new Set();
+          let referenceGradeCount = 0;
+
+          for (const name of names) {
+            const captureKey = capturePattern.exec(name)[1];
+            const sourcePath = path.join(sourceCaptures, name);
+            const scratchPath = path.join(scratchRoot, 'captures', name);
+            const sourceBytes = fs.readFileSync(sourcePath);
+            const sourceHash = sha256(sourceBytes);
+            fs.writeFileSync(scratchPath, sourceBytes, { flag: 'wx' });
+            const scratchHash = sha256(fs.readFileSync(scratchPath));
+            if (sourceHash !== scratchHash) {
+              throw new Error(`Scratch capture byte hash mismatch for ${captureKey}: ${sourceHash} != ${scratchHash}`);
+            }
+
+            const archive = JSON.parse(sourceBytes.toString('utf8'));
+            if (archive.captureKey !== captureKey) {
+              throw new Error(`Capture key drift for ${captureKey}: archive says ${archive.captureKey}`);
+            }
+            if (!Array.isArray(archive.rows)) throw new Error(`Capture ${captureKey} rows must be an array.`);
+            for (const row of archive.rows) {
+              if (!Number.isSafeInteger(row.providerGameId) || row.providerGameId <= 0) {
+                throw new Error(`Capture ${captureKey} contains an invalid providerGameId.`);
+              }
+              gameIds.add(row.providerGameId);
+            }
+
+            hashLines.push(`${captureKey}\t${sourceHash}\t${scratchHash}`);
+            console.log(`CAPTURE HASH\t${captureKey}\t${sourceHash}\t${scratchHash}`);
+
+            const realGradePath = path.join(sourceRoot, captureKey, 'grades', `${gradeVersion}.json`);
+            if (fs.existsSync(realGradePath)) {
+              const gradeBytes = fs.readFileSync(realGradePath);
+              const gradeHash = sha256(gradeBytes);
+              fs.writeFileSync(path.join(referenceRoot, `${captureKey}.json`), gradeBytes, { flag: 'wx' });
+              referenceLines.push(`${captureKey}\t${gradeHash}`);
+              referenceGradeCount += 1;
+              console.log(`REFERENCE GRADE\t${captureKey}\t${gradeHash}`);
+            } else {
+              console.log(`REFERENCE GRADE MISSING\t${captureKey}`);
+            }
+          }
+
+          fs.writeFileSync(path.join(reportRoot, 'capture-hashes.tsv'), `${hashLines.join('\n')}\n`);
+          fs.writeFileSync(path.join(reportRoot, 'reference-grade-hashes.tsv'), `${referenceLines.join('\n')}\n`);
+          fs.writeFileSync(path.join(reportRoot, 'capture-count.txt'), `${names.length}\n`);
+          fs.writeFileSync(path.join(reportRoot, 'reference-grade-count.txt'), `${referenceGradeCount}\n`);
+          fs.writeFileSync(path.join(reportRoot, 'unique-game-count.txt'), `${gameIds.size}\n`);
+          console.log(`CAPTURES COPIED\t${names.length}`);
+          console.log(`REFERENCE GRADES FOUND\t${referenceGradeCount}`);
+          console.log(`UNIQUE GAME COUNT\t${gameIds.size}`);
+          NODE
+
+      - name: Run merged HHR grader against scratch ledger
+        id: run-grader
+        run: |
+          set -uo pipefail
+          mkdir -p "${REPORT_ROOT}"
+          LOG_PATH="${REPORT_ROOT}/grader.log"
+          START_MS="$(node -e 'process.stdout.write(String(Date.now()))')"
+          echo "HEAD SHA\t${GITHUB_SHA}" | tee "${REPORT_ROOT}/run-identity.tsv"
+          echo "RUN URL\thttps://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" | tee -a "${REPORT_ROOT}/run-identity.tsv"
+          echo "START MS\t${START_MS}" | tee -a "${REPORT_ROOT}/run-identity.tsv"
+          set +e
+          M10_HHR_ARCHIVE_ROOT="${SCRATCH_HHR_ROOT}" \
+          M10_GRADE_ATTEMPT_ID="step-b-${GITHUB_RUN_ID}-attempt-${GITHUB_RUN_ATTEMPT}" \
+          node scripts/grade-m10-hhr-pending-archives.mjs 2>&1 | tee "${LOG_PATH}"
+          GRADER_STATUS=${PIPESTATUS[0]}
+          set -e
+          END_MS="$(node -e 'process.stdout.write(String(Date.now()))')"
+          ELAPSED_MS=$((END_MS - START_MS))
+          echo "END MS\t${END_MS}" | tee -a "${REPORT_ROOT}/run-identity.tsv"
+          echo "WALL CLOCK MS\t${ELAPSED_MS}" | tee -a "${REPORT_ROOT}/run-identity.tsv"
+          echo "GRADER EXIT\t${GRADER_STATUS}" | tee -a "${REPORT_ROOT}/run-identity.tsv"
+          echo "grader_status=${GRADER_STATUS}" >> "$GITHUB_OUTPUT"
+          echo "elapsed_ms=${ELAPSED_MS}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate exact cumulative identity and per-capture outcomes
+        if: always()
+        env:
+          GRADER_STATUS: ${{ steps.run-grader.outputs.grader_status }}
+          ELAPSED_MS: ${{ steps.run-grader.outputs.elapsed_ms }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${REPORT_ROOT}"
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const crypto = require('node:crypto');
+
+          const scratchRoot = process.env.SCRATCH_HHR_ROOT;
+          const referenceRoot = process.env.REFERENCE_GRADE_ROOT;
+          const reportRoot = process.env.REPORT_ROOT;
+          const gradeVersion = process.env.HHR_GRADE_VERSION;
+          const expectedSha = process.env.EXPECTED_SOURCE_SET_SHA256;
+          const expectedRetainedRows = Number(process.env.EXPECTED_RETAINED_ROWS);
+          const graderStatus = Number(process.env.GRADER_STATUS);
+          const elapsedMs = Number(process.env.ELAPSED_MS);
+          const graderLogPath = path.join(reportRoot, 'grader.log');
+          const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
+          const appendSummary = (text) => fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${text}\n`);
+
+          const log = fs.existsSync(graderLogPath) ? fs.readFileSync(graderLogPath, 'utf8') : '';
+          const metric = (label) => {
+            const match = new RegExp(`^${label}\\t([^\\r\\n]+)$`, 'mu').exec(log);
+            return match ? match[1] : null;
+          };
+
+          const requestCounts = {
+            total: metric('BDL REQUESTS TOTAL'),
+            gameStatus: metric('BDL GAME STATUS REQUESTS'),
+            stats: metric('BDL STATS REQUESTS'),
+            lineups: metric('BDL LINEUP REQUESTS'),
+          };
+          const blockedFromLog = metric('BLOCKED NOW');
+          const uniqueGameCount = fs.existsSync(path.join(reportRoot, 'unique-game-count.txt'))
+            ? Number(fs.readFileSync(path.join(reportRoot, 'unique-game-count.txt'), 'utf8').trim())
+            : null;
+
+          const metricLines = [
+            'metric\tvalue',
+            `headSha\t${process.env.GITHUB_SHA}`,
+            `runUrl\thttps://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`,
+            `wallClockMs\t${elapsedMs}`,
+            `uniqueGameCount\t${uniqueGameCount}`,
+            `bdlRequestsTotal\t${requestCounts.total}`,
+            `bdlGameStatusRequests\t${requestCounts.gameStatus}`,
+            `bdlStatsRequests\t${requestCounts.stats}`,
+            `bdlLineupRequests\t${requestCounts.lineups}`,
+            `graderExit\t${graderStatus}`,
+            `blockedFromLog\t${blockedFromLog}`,
+          ];
+
+          const cumulativeDir = path.join(scratchRoot, 'cumulative');
+          const cumulativeNames = fs.existsSync(cumulativeDir)
+            ? fs.readdirSync(cumulativeDir)
+                .filter((name) => /^m10-hhr-cumulative-selected-side-v1--[a-f0-9]{64}\.json$/u.test(name))
+                .sort()
+            : [];
+          if (cumulativeNames.length !== 1) {
+            fs.writeFileSync(path.join(reportRoot, 'metrics.tsv'), `${metricLines.join('\n')}\n`);
+            throw new Error(`Expected exactly one scratch cumulative report; found ${cumulativeNames.length}.`);
+          }
+
+          const cumulativePath = path.join(cumulativeDir, cumulativeNames[0]);
+          const cumulative = JSON.parse(fs.readFileSync(cumulativePath, 'utf8'));
+          const actualSha = cumulative.sourceSetSha256;
+          const retainedRows = cumulative.selectedSide?.retainedSelectedSideRows;
+          const picksGraded = cumulative.selectedSide?.summary?.picksGraded;
+          metricLines.push(`sourceSetSha256\t${actualSha}`);
+          metricLines.push(`retainedSelectedSideRows\t${retainedRows}`);
+          metricLines.push(`selectedSidePicksGraded\t${picksGraded}`);
+          metricLines.push(`archivesIncluded\t${cumulative.archivesIncluded}`);
+          fs.writeFileSync(path.join(reportRoot, 'metrics.tsv'), `${metricLines.join('\n')}\n`);
+
+          console.log(`WALL CLOCK MS\t${elapsedMs}`);
+          console.log(`UNIQUE GAME COUNT\t${uniqueGameCount}`);
+          console.log(`BDL REQUESTS TOTAL\t${requestCounts.total}`);
+          console.log(`BDL GAME STATUS REQUESTS\t${requestCounts.gameStatus}`);
+          console.log(`BDL STATS REQUESTS\t${requestCounts.stats}`);
+          console.log(`BDL LINEUP REQUESTS\t${requestCounts.lineups}`);
+          console.log(`CUMULATIVE SOURCE SET SHA256\t${actualSha}`);
+          console.log(`RETAINED ROWS\t${retainedRows}`);
+          console.log(`BLOCKED COUNT\t${blockedFromLog}`);
+
+          appendSummary('## HHR Step B equivalence');
+          appendSummary(`- Head SHA: \`${process.env.GITHUB_SHA}\``);
+          appendSummary(`- Run: https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`);
+          appendSummary(`- Wall clock: ${elapsedMs} ms`);
+          appendSummary(`- Unique games: ${uniqueGameCount}`);
+          appendSummary(`- BDL requests: total=${requestCounts.total}, game=${requestCounts.gameStatus}, stats=${requestCounts.stats}, lineups=${requestCounts.lineups}`);
+          appendSummary(`- sourceSetSha256: \`${actualSha}\``);
+          appendSummary(`- Retained rows: ${retainedRows}`);
+          appendSummary(`- Blocked: ${blockedFromLog}`);
+
+          if (actualSha !== expectedSha) {
+            appendSummary(`- **FAIL: expected sourceSetSha256 \`${expectedSha}\`; stopping without adjustment.**`);
+            throw new Error(`Step B cumulative SHA mismatch: expected ${expectedSha}, got ${actualSha}. STOP; do not adjust Step B.`);
+          }
+          if (retainedRows !== expectedRetainedRows || picksGraded !== expectedRetainedRows) {
+            throw new Error(`Step B retained-row mismatch: expected ${expectedRetainedRows}, got retained=${retainedRows}, picksGraded=${picksGraded}.`);
+          }
+          if (blockedFromLog !== '0') {
+            throw new Error(`Step B blocked-count mismatch: expected 0, got ${blockedFromLog}.`);
+          }
+          if (!Number.isSafeInteger(graderStatus) || graderStatus !== 0) {
+            throw new Error(`Step B scratch grader exited ${process.env.GRADER_STATUS}.`);
+          }
+          if (Object.values(requestCounts).some((value) => value === null || !/^\d+$/u.test(value))) {
+            throw new Error('Step B grader did not emit complete BDL request counters.');
+          }
+
+          const referenceNames = fs.existsSync(referenceRoot)
+            ? fs.readdirSync(referenceRoot).filter((name) => name.endsWith('.json')).sort()
+            : [];
+          if (referenceNames.length === 0) throw new Error('No cache-restored reference grade reports were found.');
+
+          const scratchGradeKeys = [];
+          for (const entry of fs.readdirSync(scratchRoot, { withFileTypes: true })) {
+            if (!entry.isDirectory()) continue;
+            const gradePath = path.join(scratchRoot, entry.name, 'grades', `${gradeVersion}.json`);
+            if (fs.existsSync(gradePath)) scratchGradeKeys.push(entry.name);
+          }
+          scratchGradeKeys.sort();
+          const referenceKeys = referenceNames.map((name) => name.slice(0, -5));
+          if (JSON.stringify(scratchGradeKeys) !== JSON.stringify(referenceKeys)) {
+            throw new Error(`Scratch/reference graded capture sets differ: scratch=${scratchGradeKeys.join(',')} reference=${referenceKeys.join(',')}`);
+          }
+
+          const comparisonLines = [
+            'captureKey\treferenceGradeSha256\tscratchGradeSha256\trows\trowsIdentical\tsummaryIdentical\tlineageIdentical\toutcomesIdentical',
+          ];
+          let allIdentical = true;
+
+          for (const captureKey of referenceKeys) {
+            const referencePath = path.join(referenceRoot, `${captureKey}.json`);
+            const scratchPath = path.join(scratchRoot, captureKey, 'grades', `${gradeVersion}.json`);
+            const referenceBytes = fs.readFileSync(referencePath);
+            const scratchBytes = fs.readFileSync(scratchPath);
+            const reference = JSON.parse(referenceBytes.toString('utf8'));
+            const scratch = JSON.parse(scratchBytes.toString('utf8'));
+
+            const rowsIdentical = JSON.stringify(reference.rows) === JSON.stringify(scratch.rows);
+            const summaryIdentical = JSON.stringify(reference.summary) === JSON.stringify(scratch.summary);
+            const lineageIdentical =
+              reference.source?.captureKey === scratch.source?.captureKey &&
+              reference.source?.archiveSha256 === scratch.source?.archiveSha256 &&
+              reference.source?.archiveFileSha256 === scratch.source?.archiveFileSha256 &&
+              reference.source?.archiveModified === scratch.source?.archiveModified;
+            const outcomesIdentical = rowsIdentical && summaryIdentical && lineageIdentical;
+            allIdentical = allIdentical && outcomesIdentical;
+
+            comparisonLines.push([
+              captureKey,
+              sha256(referenceBytes),
+              sha256(scratchBytes),
+              Array.isArray(scratch.rows) ? scratch.rows.length : 'invalid',
+              rowsIdentical,
+              summaryIdentical,
+              lineageIdentical,
+              outcomesIdentical,
+            ].join('\t'));
+            console.log(`CAPTURE COMPARISON\t${captureKey}\trows=${scratch.rows?.length}\toutcomesIdentical=${outcomesIdentical}`);
+          }
+
+          fs.writeFileSync(path.join(reportRoot, 'per-capture-comparison.tsv'), `${comparisonLines.join('\n')}\n`);
+          appendSummary(`- Compared captures: ${referenceKeys.length}`);
+          appendSummary(`- Outcomes identical: ${allIdentical}`);
+
+          if (!allIdentical) throw new Error('One or more scratch grade outcomes differ from cache-restored real grade reports.');
+          console.log('OUTCOMES IDENTICAL\ttrue');
+          console.log('STEP B EQUIVALENCE\tPASS');
+          NODE
+
+      - name: Upload Step B scratch evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m10-hhr-step-b-equivalence-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 90
+          path: |
+            ${{ runner.temp }}/m10-hhr-step-b-scratch/**
+            ${{ runner.temp }}/m10-hhr-step-b-report/**
