@@ -155,8 +155,12 @@ async function fetchExactJsonSnapshot({
   signal,
 }) {
   if (beforeRequest) await beforeRequest();
-  const snapshotCapturedAt = capturedAt ?? new Date().toISOString();
   const response = await fetch(url, { headers, signal });
+  const replaySnapshotCapturedAt = response.headers.get(
+    'x-m9-board-snapshot-captured-at',
+  );
+  const snapshotCapturedAt =
+    replaySnapshotCapturedAt ?? capturedAt ?? new Date().toISOString();
   const rawBodyBytes = Buffer.from(await response.arrayBuffer());
   if (afterResponse) {
     afterResponse({ status: response.status, headers: response.headers });
@@ -1593,7 +1597,12 @@ export async function runM9ProspectiveBoardArchive({
 
   assertProductionDisabled();
   const registryBefore = JSON.stringify(PRODUCTION_REGISTRIES);
-  const capturedAt = now.toISOString();
+  const firstSnapshotCompletedAt =
+    process.env.M9_BOARD_SNAPSHOT_CAPTURED_AT?.trim();
+  const capturedAt =
+    firstSnapshotCompletedAt && firstSnapshotCompletedAt.length > 0
+      ? new Date(firstSnapshotCompletedAt).toISOString()
+      : now.toISOString();
   const captureDateUtc = capturedAt.slice(0, 10);
   let captureIdentity = null;
   let filePath = null;
