@@ -15,6 +15,8 @@ import {
 const LIVE_SCRIPT = 'scripts/archive-m9-batter-hits-board.mjs';
 const ARCHIVE_UTILS = 'scripts/m9-board-archive-utils.mjs';
 const FUNNEL_UTILS = 'scripts/m9-board-archive-funnel-utils.mjs';
+const CONTROLLER = 'scripts/m9-capture-controller.mjs';
+const SNAPSHOT_PRELOAD = 'scripts/m9-board-snapshot-preload.mjs';
 
 function checkSyntax(filePath) {
   const result = spawnSync(process.execPath, ['--check', filePath], {
@@ -30,12 +32,23 @@ function checkSyntax(filePath) {
 test('prospective archive scripts parse and the BDL 429 retry remains reachable without weakening other HTTP failures', async () => {
   checkSyntax(ARCHIVE_UTILS);
   checkSyntax(FUNNEL_UTILS);
+  checkSyntax(CONTROLLER);
+  checkSyntax(SNAPSHOT_PRELOAD);
   checkSyntax(LIVE_SCRIPT);
 
-  const [source, archiveUtils, funnelUtils, packageText] = await Promise.all([
+  const [
+    source,
+    archiveUtils,
+    funnelUtils,
+    controllerSource,
+    snapshotSource,
+    packageText,
+  ] = await Promise.all([
     readFile(LIVE_SCRIPT, 'utf8'),
     readFile(ARCHIVE_UTILS, 'utf8'),
     readFile(FUNNEL_UTILS, 'utf8'),
+    readFile(CONTROLLER, 'utf8'),
+    readFile(SNAPSHOT_PRELOAD, 'utf8'),
     readFile('package.json', 'utf8'),
   ]);
   const archivePathSource = `${source}\n${archiveUtils}\n${funnelUtils}`;
@@ -62,10 +75,24 @@ test('prospective archive scripts parse and the BDL 429 retry remains reachable 
     /snapshot\.response\.status < 200[\s\S]*snapshot\.response\.status >= 300/u,
   );
 
+  assert.match(source, /M9_BOARD_SNAPSHOT_CAPTURED_AT/u);
+  assert.match(source, /x-m9-board-snapshot-captured-at/u);
+  assert.match(source, /selectM9PregameEventsForCapture/u);
+  assert.match(controllerSource, /assertBoardSnapshotBeforeClaimedGames/u);
+  assert.match(snapshotSource, /replayEligibleEvents/u);
+
   const packageJson = JSON.parse(packageText);
   assert.match(
     packageJson.scripts['check:scripts'],
     /node --check scripts\/m9-board-archive-utils\.mjs/u,
+  );
+  assert.match(
+    packageJson.scripts['check:scripts'],
+    /node --check scripts\/m9-capture-controller\.mjs/u,
+  );
+  assert.match(
+    packageJson.scripts['check:scripts'],
+    /node --check scripts\/m9-board-snapshot-preload\.mjs/u,
   );
   assert.match(
     packageJson.scripts['check:scripts'],
