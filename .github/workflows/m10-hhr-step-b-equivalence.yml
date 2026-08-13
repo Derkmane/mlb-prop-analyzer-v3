@@ -21,6 +21,7 @@ jobs:
       HHR_GRADE_VERSION: m10-hhr-final-grade-v1
       EXPECTED_SOURCE_SET_SHA256: 8aabb3dc7403093eb6152378aa7784a909e0c3b4826f8d7334dd7d70113375de
       EXPECTED_RETAINED_ROWS: '422'
+      EXPECTED_ARCHIVES_INCLUDED: '6'
 
     steps:
       - name: Check out repository
@@ -48,7 +49,7 @@ jobs:
             m10-hhr-board-archive-ledger-
           fail-on-cache-miss: true
 
-      - name: Copy captures to scratch and verify byte hashes
+      - name: Copy pinned captures to scratch and verify byte hashes
         run: |
           set -euo pipefail
           SCRATCH_HHR_ROOT="${RUNNER_TEMP}/m10-hhr-step-b-scratch"
@@ -67,27 +68,32 @@ jobs:
           const referenceRoot = process.env.REFERENCE_GRADE_ROOT;
           const reportRoot = process.env.REPORT_ROOT;
           const gradeVersion = process.env.HHR_GRADE_VERSION;
-          const capturePattern = /^(\d{8}T\d{9}Z--[a-f0-9]{64})\.json$/u;
           const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
+          const requiredCaptureKeys = [
+            '20260809T215425735Z--bf82c90d786a675f6f915eae13991c9c2ac5796a02cea83cd356170b775e8708',
+            '20260810T220403246Z--6cc27b3aadbaae6062744a94aa4244d1b099df7ea0baa303c8e434da5e32d4a2',
+            '20260811T155654406Z--2710065f9cb8576117db2f3c05b19d48c8b4a86166b0ca456ab35d75736a7028',
+            '20260811T162447459Z--ddda7db0a4e092c737504e895ccea3a5c9d4b6f71ef3ed73edc7123623faab21',
+            '20260811T220644516Z--c51b24f0238599dab4dddd45cdca52edf1fa6aabfe1a9f538e18bf729f7fe886',
+          ];
 
           const sourceCaptures = path.join(sourceRoot, 'captures');
           if (!fs.existsSync(sourceCaptures)) {
             throw new Error(`Restored HHR ledger has no captures directory: ${sourceCaptures}`);
           }
 
-          const names = fs.readdirSync(sourceCaptures)
-            .filter((name) => capturePattern.test(name))
-            .sort();
-          if (names.length === 0) throw new Error('Restored HHR ledger has zero capture files.');
-
           const hashLines = ['captureKey\tsourceByteSha256\tscratchByteSha256'];
           const referenceLines = ['captureKey\treferenceGradeSha256'];
           const gameIds = new Set();
           let referenceGradeCount = 0;
 
-          for (const name of names) {
-            const captureKey = capturePattern.exec(name)[1];
+          for (const captureKey of requiredCaptureKeys) {
+            const name = `${captureKey}.json`;
             const sourcePath = path.join(sourceCaptures, name);
+            if (!fs.existsSync(sourcePath)) {
+              throw new Error(`Required Step B capture missing from restored HHR ledger: ${captureKey}`);
+            }
+
             const scratchPath = path.join(scratchRoot, 'captures', name);
             const sourceBytes = fs.readFileSync(sourcePath);
             const sourceHash = sha256(sourceBytes);
@@ -127,10 +133,12 @@ jobs:
 
           fs.writeFileSync(path.join(reportRoot, 'capture-hashes.tsv'), `${hashLines.join('\n')}\n`);
           fs.writeFileSync(path.join(reportRoot, 'reference-grade-hashes.tsv'), `${referenceLines.join('\n')}\n`);
-          fs.writeFileSync(path.join(reportRoot, 'capture-count.txt'), `${names.length}\n`);
+          fs.writeFileSync(path.join(reportRoot, 'capture-keys.txt'), `${requiredCaptureKeys.join('\n')}\n`);
+          fs.writeFileSync(path.join(reportRoot, 'capture-count.txt'), `${requiredCaptureKeys.length}\n`);
           fs.writeFileSync(path.join(reportRoot, 'reference-grade-count.txt'), `${referenceGradeCount}\n`);
           fs.writeFileSync(path.join(reportRoot, 'unique-game-count.txt'), `${gameIds.size}\n`);
-          console.log(`CAPTURES COPIED\t${names.length}`);
+          console.log(`PINNED CAPTURE WORKLOAD\t${requiredCaptureKeys.join(',')}`);
+          console.log(`CAPTURES COPIED\t${requiredCaptureKeys.length}`);
           console.log(`REFERENCE GRADES FOUND\t${referenceGradeCount}`);
           console.log(`UNIQUE GAME COUNT\t${gameIds.size}`);
           NODE
@@ -162,7 +170,7 @@ jobs:
           echo "grader_status=${GRADER_STATUS}" >> "$GITHUB_OUTPUT"
           echo "elapsed_ms=${ELAPSED_MS}" >> "$GITHUB_OUTPUT"
 
-      - name: Validate exact cumulative identity and per-capture outcomes
+      - name: Report Step B evidence and validate equivalence
         if: always()
         env:
           GRADER_STATUS: ${{ steps.run-grader.outputs.grader_status }}
@@ -185,11 +193,12 @@ jobs:
           const gradeVersion = process.env.HHR_GRADE_VERSION;
           const expectedSha = process.env.EXPECTED_SOURCE_SET_SHA256;
           const expectedRetainedRows = Number(process.env.EXPECTED_RETAINED_ROWS);
+          const expectedArchivesIncluded = Number(process.env.EXPECTED_ARCHIVES_INCLUDED);
           const graderStatus = Number(process.env.GRADER_STATUS);
           const elapsedMs = Number(process.env.ELAPSED_MS);
           const graderLogPath = path.join(reportRoot, 'grader.log');
-          const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
           const appendSummary = (text) => fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${text}\n`);
+          const validationErrors = [];
 
           const log = fs.existsSync(graderLogPath) ? fs.readFileSync(graderLogPath, 'utf8') : '';
           const metric = (label) => {
@@ -208,6 +217,112 @@ jobs:
             ? Number(fs.readFileSync(path.join(reportRoot, 'unique-game-count.txt'), 'utf8').trim())
             : null;
 
+          appendSummary('## HHR Step B equivalence');
+          appendSummary(`- Head SHA: \`${process.env.GITHUB_SHA}\``);
+          appendSummary(`- Run: https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`);
+
+          const captureHashPath = path.join(reportRoot, 'capture-hashes.tsv');
+          console.log('CAPTURE HASH VERIFICATION\tBEGIN');
+          if (fs.existsSync(captureHashPath)) {
+            process.stdout.write(fs.readFileSync(captureHashPath, 'utf8'));
+          } else {
+            console.log('CAPTURE HASH VERIFICATION\tUNAVAILABLE');
+            validationErrors.push('Capture hash evidence is unavailable.');
+          }
+          console.log('CAPTURE HASH VERIFICATION\tEND');
+
+          console.log(`UNIQUE GAME COUNT\t${uniqueGameCount}`);
+          console.log(`BDL GAME STATUS REQUESTS\t${requestCounts.gameStatus}`);
+          console.log(`BDL STATS REQUESTS\t${requestCounts.stats}`);
+          console.log(`BDL LINEUP REQUESTS\t${requestCounts.lineups}`);
+          console.log(`BDL REQUESTS TOTAL\t${requestCounts.total}`);
+          console.log(`WALL CLOCK MS\t${elapsedMs}`);
+          console.log(`BLOCKED COUNT\t${blockedFromLog}`);
+          appendSummary(`- Unique games: ${uniqueGameCount}`);
+          appendSummary(`- BDL requests: total=${requestCounts.total}, game=${requestCounts.gameStatus}, stats=${requestCounts.stats}, lineups=${requestCounts.lineups}`);
+          appendSummary(`- Wall clock: ${elapsedMs} ms`);
+          appendSummary(`- Blocked: ${blockedFromLog}`);
+
+          const expectedKeysPath = path.join(reportRoot, 'capture-keys.txt');
+          const expectedKeys = fs.existsSync(expectedKeysPath)
+            ? fs.readFileSync(expectedKeysPath, 'utf8').split(/\r?\n/u).filter(Boolean)
+            : [];
+          if (expectedKeys.length !== 5) {
+            validationErrors.push(`Pinned capture-key evidence must contain exactly five keys; found ${expectedKeys.length}.`);
+          }
+
+          const referenceNames = fs.existsSync(referenceRoot)
+            ? fs.readdirSync(referenceRoot).filter((name) => name.endsWith('.json')).sort()
+            : [];
+          const referenceKeys = referenceNames.map((name) => name.slice(0, -5));
+          const scratchGradeKeys = [];
+          if (fs.existsSync(scratchRoot)) {
+            for (const entry of fs.readdirSync(scratchRoot, { withFileTypes: true })) {
+              if (!entry.isDirectory()) continue;
+              const gradePath = path.join(scratchRoot, entry.name, 'grades', `${gradeVersion}.json`);
+              if (fs.existsSync(gradePath)) scratchGradeKeys.push(entry.name);
+            }
+          }
+          scratchGradeKeys.sort();
+
+          if (JSON.stringify(referenceKeys) !== JSON.stringify(expectedKeys)) {
+            validationErrors.push(`Reference graded capture set differs from pinned workload: expected=${expectedKeys.join(',')} reference=${referenceKeys.join(',')}`);
+          }
+          if (JSON.stringify(scratchGradeKeys) !== JSON.stringify(expectedKeys)) {
+            validationErrors.push(`Scratch graded capture set differs from pinned workload: expected=${expectedKeys.join(',')} scratch=${scratchGradeKeys.join(',')}`);
+          }
+
+          console.log('GRADE COMPARISON CONTRACT\trows, summary, and stable source lineage only; gradedAt and archive path are intentionally excluded because a scratch rerun must record its real rerun time and scratch location');
+          appendSummary('- Grade comparison contract: rows + summary + stable source lineage; `gradedAt` and archive path intentionally excluded.');
+
+          const comparisonLines = [
+            'captureKey\trows\trowsIdentical\tsummaryIdentical\tlineageIdentical\toutcomesIdentical',
+          ];
+          let allIdentical = expectedKeys.length === 5;
+
+          for (const captureKey of expectedKeys) {
+            const referencePath = path.join(referenceRoot, `${captureKey}.json`);
+            const scratchPath = path.join(scratchRoot, captureKey, 'grades', `${gradeVersion}.json`);
+            let rows = 'unavailable';
+            let rowsIdentical = false;
+            let summaryIdentical = false;
+            let lineageIdentical = false;
+            let outcomesIdentical = false;
+
+            if (fs.existsSync(referencePath) && fs.existsSync(scratchPath)) {
+              const reference = JSON.parse(fs.readFileSync(referencePath, 'utf8'));
+              const scratch = JSON.parse(fs.readFileSync(scratchPath, 'utf8'));
+              rows = Array.isArray(scratch.rows) ? scratch.rows.length : 'invalid';
+              rowsIdentical = JSON.stringify(reference.rows) === JSON.stringify(scratch.rows);
+              summaryIdentical = JSON.stringify(reference.summary) === JSON.stringify(scratch.summary);
+              lineageIdentical =
+                reference.source?.captureKey === scratch.source?.captureKey &&
+                reference.source?.archiveSha256 === scratch.source?.archiveSha256 &&
+                reference.source?.archiveFileSha256 === scratch.source?.archiveFileSha256 &&
+                reference.source?.archiveModified === scratch.source?.archiveModified;
+              outcomesIdentical = rowsIdentical && summaryIdentical && lineageIdentical;
+            }
+
+            allIdentical = allIdentical && outcomesIdentical;
+            comparisonLines.push([
+              captureKey,
+              rows,
+              rowsIdentical,
+              summaryIdentical,
+              lineageIdentical,
+              outcomesIdentical,
+            ].join('\t'));
+            console.log(`CAPTURE COMPARISON\t${captureKey}\trows=${rows}\trowsIdentical=${rowsIdentical}\tsummaryIdentical=${summaryIdentical}\tlineageIdentical=${lineageIdentical}\toutcomesIdentical=${outcomesIdentical}`);
+            if (!outcomesIdentical) {
+              validationErrors.push(`Scratch grade outcomes differ from cache-restored real grade report for ${captureKey}.`);
+            }
+          }
+
+          fs.writeFileSync(path.join(reportRoot, 'per-capture-comparison.tsv'), `${comparisonLines.join('\n')}\n`);
+          console.log(`OUTCOMES IDENTICAL\t${allIdentical}`);
+          appendSummary(`- Compared captures: ${expectedKeys.length}`);
+          appendSummary(`- Outcomes identical: ${allIdentical}`);
+
           const metricLines = [
             'metric\tvalue',
             `headSha\t${process.env.GITHUB_SHA}`,
@@ -222,125 +337,72 @@ jobs:
             `blockedFromLog\t${blockedFromLog}`,
           ];
 
+          let actualSha = null;
+          let retainedRows = null;
+          let picksGraded = null;
+          let archivesIncluded = null;
           const cumulativeDir = path.join(scratchRoot, 'cumulative');
           const cumulativeNames = fs.existsSync(cumulativeDir)
             ? fs.readdirSync(cumulativeDir)
                 .filter((name) => /^m10-hhr-cumulative-selected-side-v1--[a-f0-9]{64}\.json$/u.test(name))
                 .sort()
             : [];
-          if (cumulativeNames.length !== 1) {
-            fs.writeFileSync(path.join(reportRoot, 'metrics.tsv'), `${metricLines.join('\n')}\n`);
-            throw new Error(`Expected exactly one scratch cumulative report; found ${cumulativeNames.length}.`);
+
+          if (cumulativeNames.length === 1) {
+            const cumulativePath = path.join(cumulativeDir, cumulativeNames[0]);
+            const cumulative = JSON.parse(fs.readFileSync(cumulativePath, 'utf8'));
+            actualSha = cumulative.sourceSetSha256;
+            retainedRows = cumulative.selectedSide?.retainedSelectedSideRows;
+            picksGraded = cumulative.selectedSide?.summary?.picksGraded;
+            archivesIncluded = cumulative.archivesIncluded;
+          } else {
+            validationErrors.push(`Expected exactly one scratch cumulative report; found ${cumulativeNames.length}.`);
           }
 
-          const cumulativePath = path.join(cumulativeDir, cumulativeNames[0]);
-          const cumulative = JSON.parse(fs.readFileSync(cumulativePath, 'utf8'));
-          const actualSha = cumulative.sourceSetSha256;
-          const retainedRows = cumulative.selectedSide?.retainedSelectedSideRows;
-          const picksGraded = cumulative.selectedSide?.summary?.picksGraded;
           metricLines.push(`sourceSetSha256\t${actualSha}`);
           metricLines.push(`retainedSelectedSideRows\t${retainedRows}`);
           metricLines.push(`selectedSidePicksGraded\t${picksGraded}`);
-          metricLines.push(`archivesIncluded\t${cumulative.archivesIncluded}`);
+          metricLines.push(`archivesIncluded\t${archivesIncluded}`);
           fs.writeFileSync(path.join(reportRoot, 'metrics.tsv'), `${metricLines.join('\n')}\n`);
 
-          console.log(`WALL CLOCK MS\t${elapsedMs}`);
-          console.log(`UNIQUE GAME COUNT\t${uniqueGameCount}`);
-          console.log(`BDL REQUESTS TOTAL\t${requestCounts.total}`);
-          console.log(`BDL GAME STATUS REQUESTS\t${requestCounts.gameStatus}`);
-          console.log(`BDL STATS REQUESTS\t${requestCounts.stats}`);
-          console.log(`BDL LINEUP REQUESTS\t${requestCounts.lineups}`);
+          console.log(`CUMULATIVE ARCHIVES INCLUDED\t${archivesIncluded}`);
           console.log(`CUMULATIVE SOURCE SET SHA256\t${actualSha}`);
           console.log(`RETAINED ROWS\t${retainedRows}`);
-          console.log(`BLOCKED COUNT\t${blockedFromLog}`);
-
-          appendSummary('## HHR Step B equivalence');
-          appendSummary(`- Head SHA: \`${process.env.GITHUB_SHA}\``);
-          appendSummary(`- Run: https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`);
-          appendSummary(`- Wall clock: ${elapsedMs} ms`);
-          appendSummary(`- Unique games: ${uniqueGameCount}`);
-          appendSummary(`- BDL requests: total=${requestCounts.total}, game=${requestCounts.gameStatus}, stats=${requestCounts.stats}, lineups=${requestCounts.lineups}`);
+          appendSummary(`- Archives included: ${archivesIncluded}`);
           appendSummary(`- sourceSetSha256: \`${actualSha}\``);
           appendSummary(`- Retained rows: ${retainedRows}`);
-          appendSummary(`- Blocked: ${blockedFromLog}`);
 
           if (actualSha !== expectedSha) {
-            appendSummary(`- **FAIL: expected sourceSetSha256 \`${expectedSha}\`; stopping without adjustment.**`);
-            throw new Error(`Step B cumulative SHA mismatch: expected ${expectedSha}, got ${actualSha}. STOP; do not adjust Step B.`);
+            validationErrors.push(`Step B cumulative SHA mismatch: expected ${expectedSha}, got ${actualSha}.`);
+          }
+          if (archivesIncluded !== expectedArchivesIncluded) {
+            validationErrors.push(`Step B archive-count mismatch: expected ${expectedArchivesIncluded}, got ${archivesIncluded}.`);
           }
           if (retainedRows !== expectedRetainedRows || picksGraded !== expectedRetainedRows) {
-            throw new Error(`Step B retained-row mismatch: expected ${expectedRetainedRows}, got retained=${retainedRows}, picksGraded=${picksGraded}.`);
+            validationErrors.push(`Step B retained-row mismatch: expected ${expectedRetainedRows}, got retained=${retainedRows}, picksGraded=${picksGraded}.`);
           }
           if (blockedFromLog !== '0') {
-            throw new Error(`Step B blocked-count mismatch: expected 0, got ${blockedFromLog}.`);
+            validationErrors.push(`Step B blocked-count mismatch: expected 0, got ${blockedFromLog}.`);
           }
           if (!Number.isSafeInteger(graderStatus) || graderStatus !== 0) {
-            throw new Error(`Step B scratch grader exited ${process.env.GRADER_STATUS}.`);
+            validationErrors.push(`Step B scratch grader exited ${process.env.GRADER_STATUS}.`);
           }
           if (Object.values(requestCounts).some((value) => value === null || !/^\d+$/u.test(value))) {
-            throw new Error('Step B grader did not emit complete BDL request counters.');
+            validationErrors.push('Step B grader did not emit complete BDL request counters.');
+          }
+          if (!Number.isSafeInteger(elapsedMs) || elapsedMs < 0) {
+            validationErrors.push(`Step B grader did not emit a valid wall clock duration: ${process.env.ELAPSED_MS}.`);
           }
 
-          const referenceNames = fs.existsSync(referenceRoot)
-            ? fs.readdirSync(referenceRoot).filter((name) => name.endsWith('.json')).sort()
-            : [];
-          if (referenceNames.length === 0) throw new Error('No cache-restored reference grade reports were found.');
-
-          const scratchGradeKeys = [];
-          for (const entry of fs.readdirSync(scratchRoot, { withFileTypes: true })) {
-            if (!entry.isDirectory()) continue;
-            const gradePath = path.join(scratchRoot, entry.name, 'grades', `${gradeVersion}.json`);
-            if (fs.existsSync(gradePath)) scratchGradeKeys.push(entry.name);
-          }
-          scratchGradeKeys.sort();
-          const referenceKeys = referenceNames.map((name) => name.slice(0, -5));
-          if (JSON.stringify(scratchGradeKeys) !== JSON.stringify(referenceKeys)) {
-            throw new Error(`Scratch/reference graded capture sets differ: scratch=${scratchGradeKeys.join(',')} reference=${referenceKeys.join(',')}`);
+          if (validationErrors.length > 0) {
+            console.log('STEP B EQUIVALENCE\tFAIL');
+            for (const error of validationErrors) console.log(`VALIDATION ERROR\t${error}`);
+            appendSummary('- **Step B equivalence: FAIL**');
+            throw new Error(validationErrors.join(' | '));
           }
 
-          const comparisonLines = [
-            'captureKey\treferenceGradeSha256\tscratchGradeSha256\trows\trowsIdentical\tsummaryIdentical\tlineageIdentical\toutcomesIdentical',
-          ];
-          let allIdentical = true;
-
-          for (const captureKey of referenceKeys) {
-            const referencePath = path.join(referenceRoot, `${captureKey}.json`);
-            const scratchPath = path.join(scratchRoot, captureKey, 'grades', `${gradeVersion}.json`);
-            const referenceBytes = fs.readFileSync(referencePath);
-            const scratchBytes = fs.readFileSync(scratchPath);
-            const reference = JSON.parse(referenceBytes.toString('utf8'));
-            const scratch = JSON.parse(scratchBytes.toString('utf8'));
-
-            const rowsIdentical = JSON.stringify(reference.rows) === JSON.stringify(scratch.rows);
-            const summaryIdentical = JSON.stringify(reference.summary) === JSON.stringify(scratch.summary);
-            const lineageIdentical =
-              reference.source?.captureKey === scratch.source?.captureKey &&
-              reference.source?.archiveSha256 === scratch.source?.archiveSha256 &&
-              reference.source?.archiveFileSha256 === scratch.source?.archiveFileSha256 &&
-              reference.source?.archiveModified === scratch.source?.archiveModified;
-            const outcomesIdentical = rowsIdentical && summaryIdentical && lineageIdentical;
-            allIdentical = allIdentical && outcomesIdentical;
-
-            comparisonLines.push([
-              captureKey,
-              sha256(referenceBytes),
-              sha256(scratchBytes),
-              Array.isArray(scratch.rows) ? scratch.rows.length : 'invalid',
-              rowsIdentical,
-              summaryIdentical,
-              lineageIdentical,
-              outcomesIdentical,
-            ].join('\t'));
-            console.log(`CAPTURE COMPARISON\t${captureKey}\trows=${scratch.rows?.length}\toutcomesIdentical=${outcomesIdentical}`);
-          }
-
-          fs.writeFileSync(path.join(reportRoot, 'per-capture-comparison.tsv'), `${comparisonLines.join('\n')}\n`);
-          appendSummary(`- Compared captures: ${referenceKeys.length}`);
-          appendSummary(`- Outcomes identical: ${allIdentical}`);
-
-          if (!allIdentical) throw new Error('One or more scratch grade outcomes differ from cache-restored real grade reports.');
-          console.log('OUTCOMES IDENTICAL\ttrue');
           console.log('STEP B EQUIVALENCE\tPASS');
+          appendSummary('- **Step B equivalence: PASS**');
           NODE
 
       - name: Upload Step B scratch evidence
