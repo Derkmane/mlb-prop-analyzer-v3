@@ -42,6 +42,12 @@ const bdlRateLimiter = createBdlAdaptiveRateLimiter({
   utilization: 0.9,
 });
 let manualLastRequestStartedAt = 0;
+const bdlRequestCounts = {
+  total: 0,
+  gameStatus: 0,
+  stats: 0,
+  lineups: 0,
+};
 
 async function beforeBdlRequest() {
   if (MANUAL_MIN_REQUEST_INTERVAL_MS === null) {
@@ -64,9 +70,25 @@ async function exists(filePath) {
   }
 }
 
+function countBdlRequest(url) {
+  bdlRequestCounts.total += 1;
+  if (/^\/mlb\/v1\/games\/\d+$/u.test(url.pathname)) {
+    bdlRequestCounts.gameStatus += 1;
+    return;
+  }
+  if (url.pathname === '/mlb/v1/stats') {
+    bdlRequestCounts.stats += 1;
+    return;
+  }
+  if (url.pathname === '/mlb/v1/lineups') {
+    bdlRequestCounts.lineups += 1;
+  }
+}
+
 async function fetchBdl(url, label) {
   for (let attempt = 0; attempt <= 8; attempt += 1) {
     await beforeBdlRequest();
+    countBdlRequest(url);
     const response = await fetch(url, { headers: { Authorization: bdlKey } });
     bdlRateLimiter.afterResponse({
       status: response.status,
@@ -92,9 +114,27 @@ function providerMeta(snapshot, label) {
   return Object.freeze({ ...meta });
 }
 
+function requiredGameEvidence(map, gameId, label) {
+  const evidence = map.get(gameId);
+  if (evidence === undefined) {
+    throw new Error(`${label} missing shared evidence for game ${gameId}.`);
+  }
+  return evidence;
+}
+
+function latestCapturedAt(entries, label) {
+  const capturedAt = entries
+    .map((entry) => entry.capturedAt)
+    .filter((value) => typeof value === 'string' && Number.isFinite(Date.parse(value)))
+    .sort()
+    .at(-1);
+  if (capturedAt === undefined) throw new Error(`${label} requires capturedAt evidence.`);
+  return capturedAt;
+}
+
 async function fetchGames(gameIds) {
   const rows = [];
-  let capturedAt;
+  const evidenceByGameId = new Map();
   for (const gameId of gameIds) {
     const snapshot = await fetchBdl(
       new URL(`https://api.balldontlie.io/mlb/v1/games/${gameId}`),
@@ -105,20 +145,16 @@ async function fetchGames(gameIds) {
       throw new Error(`BDL HHR game status ${gameId} data must be an object.`);
     }
     rows.push(game);
-    capturedAt = snapshot.capturedAt;
+    evidenceByGameId.set(gameId, Object.freeze({
+      game,
+      capturedAt: snapshot.capturedAt,
+    }));
   }
-  if (capturedAt === undefined) {
-    throw new Error('BDL HHR game status requires at least one game ID.');
-  }
-  return Object.freeze({
-    body: Object.freeze({ data: Object.freeze(rows) }),
-    capturedAt,
-  });
+  return evidenceByGameId;
 }
 
 async function fetchStatsForGames(gameIds) {
-  const rows = [];
-  const snapshots = [];
+  const evidenceByGameId = new Map();
   for (const gameId of gameIds) {
     const url = new URL('https://api.balldontlie.io/mlb/v1/stats');
     url.searchParams.append('game_ids[]', String(gameId));
@@ -127,20 +163,21 @@ async function fetchStatsForGames(gameIds) {
     const data = snapshot.body?.data;
     if (!Array.isArray(data)) throw new Error(`BDL HHR stats game ${gameId} data must be an array.`);
     const meta = providerMeta(snapshot, `BDL HHR stats game ${gameId}`);
-    rows.push(...data);
-    snapshots.push(Object.freeze({
-      gameId,
-      capturedAt: snapshot.capturedAt,
-      rowCount: data.length,
-      meta,
+    evidenceByGameId.set(gameId, Object.freeze({
+      rows: Object.freeze([...data]),
+      snapshot: Object.freeze({
+        gameId,
+        capturedAt: snapshot.capturedAt,
+        rowCount: data.length,
+        meta,
+      }),
     }));
   }
-  return Object.freeze({ rows: Object.freeze(rows), snapshots: Object.freeze(snapshots) });
+  return evidenceByGameId;
 }
 
-async function fetchLineupsForGames(gameIds) {
-  const rows = [];
-  const snapshots = [];
+async function fetchLineupsByGameId(gameIds) {
+  const evidenceByGameId = new Map();
   for (const gameId of gameIds) {
     const url = new URL('https://api.balldontlie.io/mlb/v1/lineups');
     url.searchParams.append('game_ids[]', String(gameId));
@@ -149,15 +186,33 @@ async function fetchLineupsForGames(gameIds) {
     const data = snapshot.body?.data;
     if (!Array.isArray(data)) throw new Error(`BDL HHR lineups game ${gameId} data must be an array.`);
     const meta = providerMeta(snapshot, `BDL HHR lineups game ${gameId}`);
-    rows.push(...data);
-    snapshots.push(Object.freeze({
-      gameId,
-      capturedAt: snapshot.capturedAt,
-      rowCount: data.length,
-      meta,
+    evidenceByGameId.set(gameId, Object.freeze({
+      rows: Object.freeze([...data]),
+      snapshot: Object.freeze({
+        gameId,
+        capturedAt: snapshot.capturedAt,
+        rowCount: data.length,
+        meta,
+      }),
     }));
   }
-  return Object.freeze({ rows: Object.freeze(rows), snapshots: Object.freeze(snapshots) });
+  return evidenceByGameId;
+}
+
+function archiveGameIds(archive) {
+  return [...new Set(archive.rows.map((row) => row.providerGameId))].sort((a, b) => a - b);
+}
+
+function unionGameIds(captures, readGameIds) {
+  return [...new Set(captures.flatMap(readGameIds))].sort((a, b) => a - b);
+}
+
+function selectRowsAndSnapshots(gameIds, evidenceByGameId, label) {
+  const entries = gameIds.map((gameId) => requiredGameEvidence(evidenceByGameId, gameId, label));
+  return Object.freeze({
+    rows: Object.freeze(entries.flatMap((entry) => entry.rows)),
+    snapshots: Object.freeze(entries.map((entry) => entry.snapshot)),
+  });
 }
 
 const capturesDirectory = path.join(ARCHIVE_ROOT, 'captures');
@@ -176,6 +231,8 @@ let graded = 0;
 let skippedNonFinal = 0;
 let alreadyGraded = 0;
 const blockedCaptures = [];
+const pendingCaptures = [];
+
 for (const capture of captures) {
   const archiveBytes = await readFile(capture.filePath);
   const archive = verifyM10HhrArchiveBytes({
@@ -198,43 +255,73 @@ for (const capture of captures) {
     continue;
   }
 
-  const gameIds = [...new Set(archive.rows.map((row) => row.providerGameId))].sort((a, b) => a - b);
-  const gamesSnapshot = await fetchGames(gameIds);
-  const rawGames = gamesSnapshot.body?.data;
-  if (!Array.isArray(rawGames)) throw new Error('BDL HHR game status data must be an array.');
-  const statusEvidence = classifyHhrArchiveGameStatuses(archive, rawGames);
-  const statusPath = path.join(ARCHIVE_ROOT, capture.captureKey, 'status', `${ATTEMPT_ID}.json`);
+  pendingCaptures.push(Object.freeze({
+    capture,
+    archive,
+    gradePath,
+    gameIds: Object.freeze(archiveGameIds(archive)),
+  }));
+}
+
+const statusUnionGameIds = unionGameIds(pendingCaptures, (pending) => pending.gameIds);
+const gameStatusByGameId = await fetchGames(statusUnionGameIds);
+const readyCaptures = [];
+
+for (const pending of pendingCaptures) {
+  const gameStatusEntries = pending.gameIds.map((gameId) =>
+    requiredGameEvidence(gameStatusByGameId, gameId, 'HHR game status'),
+  );
+  const rawGames = gameStatusEntries.map((entry) => entry.game);
+  const statusEvidence = classifyHhrArchiveGameStatuses(pending.archive, rawGames);
+  const statusPath = path.join(
+    ARCHIVE_ROOT,
+    pending.capture.captureKey,
+    'status',
+    `${ATTEMPT_ID}.json`,
+  );
   await persistImmutableJson(statusPath, {
     statusEvidenceVersion: 1,
     statusEvidenceType: 'm10-hhr-final-status-before-gate',
-    captureKey: archive.captureKey,
-    checkedAt: gamesSnapshot.capturedAt,
+    captureKey: pending.capture.captureKey,
+    checkedAt: latestCapturedAt(gameStatusEntries, 'HHR game status'),
     games: statusEvidence.games,
     readyToGradeObserved: statusEvidence.readyToGrade,
     gateEvaluatedAfterPersistence: true,
     productionEnabled: false,
     rankingEnabled: false,
   });
-  console.log(`STATUS DIAGNOSTIC WRITTEN\t${capture.captureKey}\t${statusPath}`);
+  console.log(`STATUS DIAGNOSTIC WRITTEN\t${pending.capture.captureKey}\t${statusPath}`);
 
   if (!statusEvidence.readyToGrade) {
     skippedNonFinal += 1;
-    console.log(`SKIP NON-FINAL\t${capture.captureKey}\t${statusEvidence.nonFinalGames.map((row) => `${row.gameId}:${row.status}`).join(',')}`);
+    console.log(`SKIP NON-FINAL\t${pending.capture.captureKey}\t${statusEvidence.nonFinalGames.map((row) => `${row.gameId}:${row.status}`).join(',')}`);
     continue;
   }
 
-  const stats = await fetchStatsForGames(statusEvidence.requiredGameIds);
-  const lineups = await fetchLineupsForGames(statusEvidence.requiredGameIds);
+  readyCaptures.push(Object.freeze({ ...pending, statusEvidence }));
+}
+
+const settlementUnionGameIds = unionGameIds(
+  readyCaptures,
+  (pending) => statusEvidenceGameIds(pending.statusEvidence),
+);
+const statsByGameId = await fetchStatsForGames(settlementUnionGameIds);
+const lineupsByGameId = await fetchLineupsByGameId(settlementUnionGameIds);
+
+for (const pending of readyCaptures) {
+  const gameIds = statusEvidenceGameIds(pending.statusEvidence);
+  const stats = selectRowsAndSnapshots(gameIds, statsByGameId, 'HHR stats');
+  const lineups = selectRowsAndSnapshots(gameIds, lineupsByGameId, 'HHR lineups');
   const providerEvidencePath = path.join(
     ARCHIVE_ROOT,
-    capture.captureKey,
+    pending.capture.captureKey,
     'provider-evidence',
     `${ATTEMPT_ID}--stats-input.json`,
   );
   await persistImmutableJson(providerEvidencePath, {
     providerEvidenceVersion: 2,
     providerEvidenceType: 'm10-hhr-final-stats-and-lineups-before-grade',
-    captureKey: archive.captureKey,
+    captureKey: pending.capture.captureKey,
     capturedAt: new Date().toISOString(),
     provider: 'BALLDONTLIE MLB API',
     statsGameSnapshots: stats.snapshots,
@@ -249,13 +336,13 @@ for (const capture of captures) {
   let report;
   try {
     report = buildM10HhrFinalGradeReport({
-      archive,
+      archive: pending.archive,
       statsRows: stats.rows,
       statsSnapshots: stats.snapshots,
       lineupRows: lineups.rows,
       lineupSnapshots: lineups.snapshots,
       gradedAt: new Date().toISOString(),
-      gameStatusEvidence: statusEvidence,
+      gameStatusEvidence: pending.statusEvidence,
     });
   } catch (error) {
     if (!(error instanceof HhrCaptureEvidenceError)) throw error;
@@ -266,14 +353,14 @@ for (const capture of captures) {
     const providerIdentity = error.providerIdentity;
     const blockedStatusPath = path.join(
       ARCHIVE_ROOT,
-      capture.captureKey,
+      pending.capture.captureKey,
       'blocked-status',
       `${ATTEMPT_ID}.json`,
     );
     const blockedStatus = Object.freeze({
       blockedStatusVersion: 1,
       blockedStatusType: 'm10-hhr-capture-blocked-evidence',
-      captureKey: archive.captureKey,
+      captureKey: pending.capture.captureKey,
       blockedAt: new Date().toISOString(),
       evidenceCode: error.code,
       providerGameId,
@@ -287,14 +374,14 @@ for (const capture of captures) {
     });
     await persistImmutableJson(blockedStatusPath, blockedStatus);
     blockedCaptures.push(blockedStatus);
-    console.error(`BLOCKED\t${capture.captureKey}\t${providerIdentity}\t${message}`);
-    console.error(`BLOCKED STATUS WRITTEN\t${capture.captureKey}\t${blockedStatusPath}`);
+    console.error(`BLOCKED\t${pending.capture.captureKey}\t${providerIdentity}\t${message}`);
+    console.error(`BLOCKED STATUS WRITTEN\t${pending.capture.captureKey}\t${blockedStatusPath}`);
     continue;
   }
 
-  await persistImmutableJson(gradePath, report);
+  await persistImmutableJson(pending.gradePath, report);
   graded += 1;
-  console.log(`GRADED\t${capture.captureKey}\trows=${report.rows.length}\twins=${report.summary.wins}\tlosses=${report.summary.losses}\tvoids=${report.summary.voids}`);
+  console.log(`GRADED\t${pending.capture.captureKey}\trows=${report.rows.length}\twins=${report.summary.wins}\tlosses=${report.summary.losses}\tvoids=${report.summary.voids}`);
   console.log('ARCHIVE MODIFIED\tfalse');
 }
 
@@ -366,6 +453,10 @@ for (const bucket of cumulative.selectedSide.calibration) {
 const bdlRateLimitState = bdlRateLimiter.snapshot();
 console.log(`BDL RATE LIMIT PER MINUTE\t${bdlRateLimitState.limitPerMinute ?? 'unknown'}`);
 console.log(`BDL INTERVAL MS\t${bdlRateLimitState.intervalMs}`);
+console.log(`BDL REQUESTS TOTAL\t${bdlRequestCounts.total}`);
+console.log(`BDL GAME STATUS REQUESTS\t${bdlRequestCounts.gameStatus}`);
+console.log(`BDL STATS REQUESTS\t${bdlRequestCounts.stats}`);
+console.log(`BDL LINEUP REQUESTS\t${bdlRequestCounts.lineups}`);
 console.log(`GRADED NOW\t${graded}`);
 console.log(`ALREADY GRADED\t${alreadyGraded}`);
 console.log(`SKIPPED NON-FINAL\t${skippedNonFinal}`);
@@ -381,4 +472,8 @@ console.log('--- END M10 HHR FINAL-ONLY GRADING ---');
 
 if (blockedCaptures.length > 0) {
   process.exitCode = 1;
+}
+
+function statusEvidenceGameIds(statusEvidence) {
+  return [...statusEvidence.requiredGameIds].sort((a, b) => a - b);
 }
