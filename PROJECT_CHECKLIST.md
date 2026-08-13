@@ -1,6 +1,6 @@
 # MLB Prop Analyzer V3 — Master Project Checklist
 
-**Version:** 4.3
+**Version:** 4.4
 **Status:** Active source of execution truth  
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
 
@@ -449,6 +449,45 @@ M8.5 is closed. This closure authorizes the next M9 ranking milestone only; it d
 
 ---
 
+## Active project workstreams — 2026-08-12
+
+### Workstream 1 — Capture coverage — highest priority after this PR
+
+Suspected defect: the board archiver may run at a single fixed time, so games that started earlier are already off the board when capture runs. That loses whole games, and loses them non-randomly — day games differ systematically from night games in lineups, rest, and getaway-day usage. No distribution fix helps with props that were never captured.
+
+Proposed remedy if confirmed: **multiple captures per day**, timed to the actual schedule, so each game is captured while its props are still live. Projected lineups continue to run at full weight per locked rules; `lineupStatus` remains display-only.
+
+Open question to resolve before adding captures: cumulative dedup retains the newest capture per prop identity. That behavior has only ever been exercised across days. Confirm it handles multiple same-day captures correctly.
+
+### Workstream 2 — Model fix — in progress
+
+- [x] v1.10 — zero-inflated and hurdle approved as Family B forms; §17.46 fit-time distribution-shape gate canonical.
+- [x] §17.46 diagnostic implemented; frozen v2 fails all three checks (alpha range 0.4253, worst-bin zero gap 0.0553, tail gaps at all thresholds), runner exits 1.
+- [x] v1.11 — §14.2 per-line calibration gate. Recorded evidence: 0.5 FAIL Z=-2.218 / 1.5 PASS Z=+0.145 / 2.5+ FAIL n=11 Z=-2.825.
+- [ ] Step 5 — declare the reserved untouched test period in writing before freezing any candidate.
+- [ ] Step 6 — fit zero-inflated and hurdle candidates, evaluate both against the §17.46 per-bin gate. In-sample; needs no new games.
+- [ ] Step 7 — freeze selected candidate, then evaluate the reserved period once.
+
+### Workstream 3 — Front end — parallel, not blocked by model work
+
+The UI reads committed archives. It does not depend on model validation or capture coverage. Continue independently.
+
+- [ ] Phase 5 — refresh button. Read-only, no request-time model or ranking compute.
+- [ ] Surface capture coverage in the UI once Workstream 1 reports.
+- [ ] Item J — the trimmed display artifact lacks per-pick `p_i`, so §14.2 cannot be computed from it. When §14.2 is implemented, either extend the evidence path or have the display copy carry precomputed E, V, Z per cohort.
+
+### Existing queue — unchanged
+
+- A. Batter Hits 884 nonstarter — needs its own settlement rule.
+- B. Batter Hits one-sided prop `f21b2664.../123/0.5`.
+- C. Multi-market persist no-output no-op.
+- D. Rate limiter 13000ms vs ~112ms adaptive.
+- F. Checklist V1 category section contradicts `PROJECT_RULES.md`.
+- G. HHR Opportunity Miner not wired for HHR.
+- H. HHR Baseline Props gap — expected, alternate lines only.
+
+---
+
 ## Future planned markets
 
 These are intended investigations, not abandoned markets. No empty feature folders are created before implementation begins.
@@ -584,6 +623,14 @@ rejected without escalation.
 
 ## Changelog
 
+### Version 4.4 — 2026-08-12
+
+- Recorded Workstream 1 capture coverage as the highest priority after this documentation PR, including the suspected single-fixed-time coverage defect, the multiple-captures-per-day remedy if confirmed, and the open same-day cumulative-dedup question that must be resolved before adding captures.
+- Recorded Workstream 2 model-fix status through `CANONICAL_MATH_SPEC.md` Versions 1.10 and 1.11, the frozen v2 §17.46 failure evidence, the §14.2 per-line calibration evidence, and the ordered open Steps 5 through 7.
+- Recorded Workstream 3 as independent front-end work: Phase 5 refresh button, later capture-coverage display, and Item J for the §14.2 per-pick-probability evidence path or precomputed cohort E/V/Z.
+- Preserved existing queue items A, B, C, D, F, G, and H unchanged.
+- This checklist revision changes documentation and execution order only. It does not modify capture schedules, model fitting, candidate selection, workflows, runtime behavior, production enablement, or ranking enablement.
+
 ### Version 4.3 — 2026-08-11
 
 - Synchronized the checklist with `CANONICAL_MATH_SPEC.md` Version 1.9, which replaced the Version 1.8 mandatory effective-date requirement with the mutually exclusive §12.1(a) operator-designated effective date / §12.1(b) verified publication-boundary contract.
@@ -595,7 +642,7 @@ rejected without escalation.
 ### Version 4.2 — 2026-08-11
 
 - Closed only the first HHR M11 checklist item after direct repository verification of preserved The Odds API evidence for exact Underdog baseline and alternate HHR markets, sides, lines, and offer types.
-- Recorded immutable evidence commit `5278d63f123207772a76f25c482c5cecbb919331` and main verify run `31540589584`, which passed 678 of 678 tests.
+- Recorded immutable evidence commit `5278d63f123207772a76f25c482c5cecbb919331` and main verify run `31540589584`, which passed 678/678 including the baseline/alternate line-preservation and shared-distribution regression.
 - No provider logic, model fitting, probabilities, settlement, categories, production/ranking enablement, or canonical authority changed.
 
 ### Version 4.1 — 2026-08-11
@@ -615,7 +662,7 @@ rejected without escalation.
 
 - Closed Opportunity Miner, High Probability Baseline, High Probability Altline, one-prop-per-player, overlap, canonical final-probability sorting, and Top Five using commits `c00c4f98b84890093ef35678c82f8a8120a6cc4c`, `d8681e71819607bccc756eb9dac8be3c8c8e3d64`, `5625df541b2b94bdb603318156abe5830fd80c62`, `bc7cc1485b9e52b6e3a51383cdaeeef111d20c93`, `b1b038c5264125c9e22a5719e377c2be7b67402a`, and `9b55267b23ab9632cf0522530afb0c3f913ed497`; GitHub Actions runs 747, 749, 750, 751, and 759 supplied the direct gates.
 - Closed complete immutable saved-run storage and atomic persistence at commits `1c46ce7a884b27e2c9a83e7f4642aef141701b72` and `764a48bc97553e9d5148bc8ce3cb2188626ab9c6`; run 761 passed 560 of 560 tests.
-- Closed feature-independent historical-only rendering at commit `08df180bfd05dc45d81365cc36948a191611ecc3`; run 762 passed 562 of 562 tests.
+- Closed feature-independent historical-only rendering at commit `08df180bfd05dc45d81365cc36948a191611ecc3`; GitHub Actions run 762 passed 562 of 562 tests with zero active-feature imports.
 - Closed the versioned grading implementation at final corrective commit `ecf02030ad0108fd53e3772de119abdd5114d77a`; run 765 passed 567 of 567 tests. The grading path has been exercised only with sanitized deterministic test evidence and has not yet produced a real archived-board grade report.
 - Left API entrypoints, UI display, deployment, and public-link verification open. Production and ranking remain disabled, and no July 31 recovery work was performed.
 
@@ -689,7 +736,7 @@ rejected without escalation.
 
 - Closed the M8 Bridge after direct projected/confirmed runtime compliance and the immutable `M8BatterHitsBaseEvaluationV1` handoff passed.
 - Added one reusable, hash-verified `D_base` per identical baseball-input identity and exact side-and-line settlement for baseline and alternate offers without rebuilding the distribution.
-- Preserved complete model, settlement, provider, lineup, opposing-starter, artifact, and shared-scenario lineage while keeping discovery audit-only and `tau_soft` absent.
+- Preserved complete model, settlement, provider, lineup, opposing starter, artifact, and shared-scenario lineage while keeping discovery audit-only and `tau_soft` absent.
 - Recorded Higher/Lower symmetry, integer-line void, deterministic rerun, projected/confirmed invariance, frozen-output parity, and tamper-rejection evidence.
 - Recorded GitHub Actions verify run 492 passing 350 of 350 tests with production ranking disabled and untouched-test evidence sealed.
 - Corrected the inherited M9 archive/grading status: PR #21 remains isolated and its code and July 31 runtime bytes are not part of the clean M8 amendment branch.
