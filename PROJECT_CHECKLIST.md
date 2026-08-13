@@ -636,13 +636,13 @@ rejected without escalation.
 - Synchronized the checklist with `CANONICAL_MATH_SPEC.md` Version 1.9, which replaced the Version 1.8 mandatory effective-date requirement with the mutually exclusive §12.1(a) operator-designated effective date / §12.1(b) verified publication-boundary contract.
 - Recorded that Underdog does not publish operator-designated effective dates and that Underdog settlement rules register under §12.1(b) publication boundaries.
 - Recorded `underdog-batter-hhr-settlement-v1` as registered after merged PR #70 (`e5bb8b5df08877152786aabace3d2b1efe28f601`); the domain type enforces exactly one temporal form, and post-merge main verify run `31554833774` passed 684 of 684 tests.
-- Explicitly left HHR nonstarter void handling open: current grading does not consume the registered rule and still throws on a missing official HHR stats row.
+- Explicitly left HHR nonstarter void handling open: current HHR grading does not consume the settlement registry and still throws on a missing official HHR stats row.
 - Preserved HHR and Batter Hits production-disabled and ranking-disabled status. No other M11 item was marked complete.
 
 ### Version 4.2 — 2026-08-11
 
 - Closed only the first HHR M11 checklist item after direct repository verification of preserved The Odds API evidence for exact Underdog baseline and alternate HHR markets, sides, lines, and offer types.
-- Recorded immutable evidence commit `5278d63f123207772a76f25c482c5cecbb919331` and main verify run `31540589584`, which passed 678/678 including the baseline/alternate line-preservation and shared-distribution regression.
+- Recorded immutable evidence commit `5278d63f123207772a76f25c482c5cecbb919331` and main verify run `31540589584`, which passed 678 of 678 tests.
 - No provider logic, model fitting, probabilities, settlement, categories, production/ranking enablement, or canonical authority changed.
 
 ### Version 4.1 — 2026-08-11
@@ -662,7 +662,7 @@ rejected without escalation.
 
 - Closed Opportunity Miner, High Probability Baseline, High Probability Altline, one-prop-per-player, overlap, canonical final-probability sorting, and Top Five using commits `c00c4f98b84890093ef35678c82f8a8120a6cc4c`, `d8681e71819607bccc756eb9dac8be3c8c8e3d64`, `5625df541b2b94bdb603318156abe5830fd80c62`, `bc7cc1485b9e52b6e3a51383cdaeeef111d20c93`, `b1b038c5264125c9e22a5719e377c2be7b67402a`, and `9b55267b23ab9632cf0522530afb0c3f913ed497`; GitHub Actions runs 747, 749, 750, 751, and 759 supplied the direct gates.
 - Closed complete immutable saved-run storage and atomic persistence at commits `1c46ce7a884b27e2c9a83e7f4642aef141701b72` and `764a48bc97553e9d5148bc8ce3cb2188626ab9c6`; run 761 passed 560 of 560 tests.
-- Closed feature-independent historical-only rendering at commit `08df180bfd05dc45d81365cc36948a191611ecc3`; GitHub Actions run 762 passed 562 of 562 tests with zero active-feature imports.
+- Closed feature-independent historical-only rendering at commit `08df180bfd05dc45d81365cc36948a191611ecc3`; run 762 passed 562 of 562 tests.
 - Closed the versioned grading implementation at final corrective commit `ecf02030ad0108fd53e3772de119abdd5114d77a`; run 765 passed 567 of 567 tests. The grading path has been exercised only with sanitized deterministic test evidence and has not yet produced a real archived-board grade report.
 - Left API entrypoints, UI display, deployment, and public-link verification open. Production and ranking remain disabled, and no July 31 recovery work was performed.
 
@@ -674,7 +674,7 @@ rejected without escalation.
 - Recorded that Higher 2.5 Brier was microscopically worse for `D_final` but remained diagnostic only and could not alter the decision; the slightly larger untouched delta relative to the approximately `0.0004`-nat combined fitted improvement is within noise on 900 observations and is not evidence of better-than-expected factor performance.
 - Preserved rather than repaired 4 simultaneous multi-slot phase shifts, 4 unknown terminal results, 4 incomplete history-update games, and 8 excluded team sides.
 - Recorded final factor dispositions: game-specific offensive environment `APPLIED`, team-specific bullpen `APPLIED`, times-through-order `IDENTITY`, Defense `IDENTITY`, and park `VALIDATED NOT APPLIED`.
-- Recorded GitHub Actions verify run 674 passing 476 of 476 tests, with 260 modules and 782 dependencies inspected and zero architecture violations; typecheck, script checks, build, selected-side, and protective-architecture gates passed.
+- Recorded GitHub Actions verify run 674 passing 476 of 476 tests, with 260 modules and 782 dependencies inspected and zero violations; typecheck, script checks, build, selected-side, and protective-architecture gates passed.
 - Left `tau_soft` and hard-discovery recall validation unchecked because no hard predicate was proposed or validated; hard discovery filtering remains disabled. Production, ranking, hard discovery filtering, and retuning remain disabled.
 - Stated explicitly that four dates and 900 scored observations are not decisive evidence of predictive value and that this result is an acceptance check under the frozen rule, not proof that the context layer materially improves predictions.
 - Closed M8.5 without starting M9 implementation.
@@ -736,7 +736,7 @@ rejected without escalation.
 
 - Closed the M8 Bridge after direct projected/confirmed runtime compliance and the immutable `M8BatterHitsBaseEvaluationV1` handoff passed.
 - Added one reusable, hash-verified `D_base` per identical baseball-input identity and exact side-and-line settlement for baseline and alternate offers without rebuilding the distribution.
-- Preserved complete model, settlement, provider, lineup, opposing starter, artifact, and shared-scenario lineage while keeping discovery audit-only and `tau_soft` absent.
+- Preserved complete model, settlement, provider, lineup, opposing-starter, artifact, and shared-scenario lineage while keeping discovery audit-only and `tau_soft` absent.
 - Recorded Higher/Lower symmetry, integer-line void, deterministic rerun, projected/confirmed invariance, frozen-output parity, and tamper-rejection evidence.
 - Recorded GitHub Actions verify run 492 passing 350 of 350 tests with production ranking disabled and untouched-test evidence sealed.
 - Corrected the inherited M9 archive/grading status: PR #21 remains isolated and its code and July 31 runtime bytes are not part of the clean M8 amendment branch.
@@ -884,7 +884,7 @@ rejected without escalation.
 - Recorded preserved Underdog baseline and alternate fixtures, market keys, selected-side fields, lines, multipliers, and null source IDs.
 - Recorded preserved BALLDONTLIE game and lineup fixtures.
 - Recorded one observed cross-provider game join and the 17-of-18 player-linkage result with James Jarvis failing closed.
-- Kept complete pregame status semantics, PA/plays fixture promotion, terminal-category closure, and every M2 exit gate open.
+- Kept complete pregame status semantics, PA/plays fixture promotion, terminal-category closure, and every M2 exit gates open.
 - Did not begin provider-derived contracts.
 
 ### Version 1.1 — 2026-07-23
