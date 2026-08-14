@@ -1,0 +1,111 @@
+{
+  "reservationVersion": 1,
+  "reservationId": "m11-batter-hhr-zero-mass-untouched-reservation-v1",
+  "purpose": "Reserve a new prospective untouched active-current-season HHR test period before zero-mass successor candidate freezing or untouched evaluation.",
+  "activeSeason": 2026,
+  "seasonType": "regular",
+  "market": "batter_hits_runs_rbis",
+  "mathematicalFamily": "Family B directly fitted composite",
+  "projectRulesVersion": "2.10",
+  "canonicalMathSpecVersion": "1.11",
+  "productionEnabled": false,
+  "rankingEnabled": false,
+  "status": "reserved-by-rule-before-outcome-read",
+  "declarationDateAmericaChicago": "2026-08-14",
+  "startBoundary": {
+    "timeZone": "America/Chicago",
+    "rule": "The reservation starts at the first 00:00 America/Chicago occurring after this reservation commit reaches main.",
+    "resolvedStartInstant": null,
+    "resolutionMethod": "Derive mechanically from the reservation merge commit timestamp; do not hand-pick games or captures."
+  },
+  "entryRule": {
+    "source": "prospective scheduled D1 HHR captures",
+    "pregameOnly": true,
+    "selectedSideRowsOnly": true,
+    "sameDayDedupContract": "latest-capture selected-side cumulative-v2",
+    "sameDayDedupIdentity": [
+      "providerGameId",
+      "providerPlayerId",
+      "providerMarketKey",
+      "offerType",
+      "postedLine"
+    ],
+    "selectedSideCreatesNewIdentity": false,
+    "providerEventIdCreatesNewIdentity": false
+  },
+  "endCondition": {
+    "timeZone": "America/Chicago",
+    "rule": "Close at the end of the first complete America/Chicago calendar day on which reserved pregame selected-side counts reach at least 35 in both the 0.5 and 1.5 cohorts.",
+    "endpointSelectionUsesOutcomes": false,
+    "endpointSelectionUsesGrades": false,
+    "requiredPregameSelectedSideCounts": {
+      "0.5": 35,
+      "1.5": 35
+    },
+    "deepLineCohort": {
+      "bucket": "2.5+",
+      "targetForWindowClosure": null,
+      "reportWhateverCountIsReached": true,
+      "section14_2MinimumDecidedPicks": 30,
+      "ifBelowMinimum": "INSUFFICIENT",
+      "insufficientDoesNotExtendReservation": true
+    }
+  },
+  "untouchedSeal": {
+    "rowsIncluded": false,
+    "outcomesRead": false,
+    "gradesRead": false,
+    "evaluationRunCount": 0,
+    "candidateGenerationMayReadReservedCaptures": false,
+    "candidateFittingMayReadReservedCaptures": false,
+    "candidateSelectionMayReadReservedCaptures": false,
+    "candidateComparisonMayReadReservedCaptures": false,
+    "candidateCorroborationMayReadReservedCaptures": false,
+    "contaminationRule": "If any reserved outcome or grade is read during candidate generation, fitting, selection, comparison, corroboration, or revision, this reservation is contaminated and a new future untouched reservation is required before production validation can continue."
+  },
+  "approvedCandidateSet": [
+    "zero-inflated-negative-binomial",
+    "hurdle-negative-binomial"
+  ],
+  "fittingEvidencePin": {
+    "designMatrix": {
+      "path": "fixtures/sanitized/m11/hhr/respecified-v2/balldontlie-hhr-design-matrix-v2.json",
+      "gitBlobSha": "293843929a54c6822e53cebf0d8659c62b74af40",
+      "byteSize": 13234698,
+      "activeSeason": 2026,
+      "fitStartDate": "2026-07-06",
+      "fitEndDate": "2026-08-05",
+      "gameCount": 340,
+      "rowCount": 5964
+    },
+    "frozenV2": {
+      "path": "model-artifacts/m11-batter-hhr-direct-composite-v2.json",
+      "gitBlobSha": "f5520b5b88186d741c9a5ea006b90b327c13ed84",
+      "artifactSha256": "89b55f3e0953e84b96823ef0a52da68ec2a8e7c1a0fd489002aaa6759db08287",
+      "modelVersion": "m11-batter-hhr-direct-composite-v2",
+      "distributionBuilderVersion": "m11-batter-hhr-negative-binomial-v1",
+      "fitStartDate": "2026-07-06",
+      "fitEndDate": "2026-08-05",
+      "gameCount": 340,
+      "rowCount": 5964
+    },
+    "reservedPeriodIncludedInFitting": false
+  },
+  "priorEvaluatedEvidence": {
+    "prospectiveSelectedSideRows": 422,
+    "prospectiveDecidedRows": 418,
+    "reusableAsNewUntouchedTest": false,
+    "reason": "Previously evaluated prospective evidence documents the prior model and is spent under Canonical Math Spec Section 14.1."
+  },
+  "section14_2Reporting": {
+    "minimumCalibrationEligibleDecidedPicksPerCohort": 30,
+    "requiredCohorts": [
+      "0.5",
+      "1.5",
+      "2.5+"
+    ],
+    "deepLineInsufficiencyIsReportedNotBackfilled": true,
+    "noCrossCohortSubstitution": true
+  },
+  "noOutcomeBasedExtensionOrShortening": true
+}
