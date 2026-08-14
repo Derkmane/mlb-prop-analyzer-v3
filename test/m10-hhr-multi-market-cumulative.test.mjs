@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
@@ -11,20 +12,50 @@ import {
   M10_HHR_CUMULATIVE_VERSION,
 } from '../scripts/m10-hhr-evidence-utils.mjs';
 import {
+  M10_SELECTED_SIDE_CUMULATIVE_GRADE_METRICS_VERSION,
   M10_SELECTED_SIDE_GRADE_METRICS_VERSION,
 } from '../scripts/m10-selected-side-grade-metrics-utils.mjs';
 
 const SHA_A = 'a'.repeat(64);
 const SHA_B = 'b'.repeat(64);
 
+function stableJson(value) {
+  if (
+    value === null ||
+    typeof value === 'boolean' ||
+    typeof value === 'number' ||
+    typeof value === 'string'
+  ) {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`)
+    .join(',')}}`;
+}
+
+function digest(value) {
+  return createHash('sha256').update(stableJson(value)).digest('hex');
+}
+
 function hitsReport() {
   return {
-    reportVersion: M10_SELECTED_SIDE_GRADE_METRICS_VERSION,
+    reportVersion: M10_SELECTED_SIDE_CUMULATIVE_GRADE_METRICS_VERSION,
     reportType: 'cumulative-selected-side-and-opportunity-miner-grade-metrics',
     generatedAt: '2026-08-07T12:00:00.000Z',
     sourceSetSha256: SHA_A,
     archivesIncluded: 2,
     selectedSide: {
+      deduplicationVersion: 'batter-hits-latest-capture-per-prop-v1',
+      deduplicationIdentity: [
+        'providerGameId',
+        'providerPlayerId',
+        'providerMarketKey',
+        'offerType',
+        'postedLine',
+      ],
+      deduplicationWinnerRule: 'most-recent-capture-timestamp-only',
       summary: { picksGraded: 50 },
       calibration: [],
     },
@@ -65,13 +96,36 @@ function hhrReport() {
   };
 }
 
-test('combined M10 cumulative evidence keeps Batter Hits and HHR separate with no cross-market pooling', () => {
+test('combined M10 cumulative v2 keeps markets separate and hashes component contract identity', () => {
+  const hits = hitsReport();
+  const hhr = hhrReport();
   const combined = buildM10MultiMarketCumulativeReport({
-    batterHits: hitsReport(),
-    hhr: hhrReport(),
+    batterHits: hits,
+    hhr,
   });
+  assert.equal(combined.reportVersion, 2);
   assert.equal(combined.reportType, M10_MULTI_MARKET_CUMULATIVE_VERSION);
   assert.equal(combined.generatedAt, '2026-08-07T16:44:50.494Z');
+  assert.deepEqual(combined.source, {
+    batterHits: {
+      reportVersion: hits.reportVersion,
+      reportType: hits.reportType,
+      sourceSetSha256: hits.sourceSetSha256,
+    },
+    batterHitsRunsRbis: {
+      reportVersion: hhr.reportVersion,
+      reportType: hhr.reportType,
+      sourceSetSha256: hhr.sourceSetSha256,
+    },
+  });
+  assert.equal(combined.sourceSetSha256, digest(combined.source));
+  assert.notEqual(
+    combined.sourceSetSha256,
+    digest({
+      batterHitsSourceSetSha256: hits.sourceSetSha256,
+      hhrSourceSetSha256: hhr.sourceSetSha256,
+    }),
+  );
   assert.equal(combined.markets.batterHits.selectedSide.summary.picksGraded, 50);
   assert.equal(combined.markets.batterHitsRunsRbis.selectedSide.summary.picksGraded, 36);
   assert.equal(
@@ -83,7 +137,18 @@ test('combined M10 cumulative evidence keeps Batter Hits and HHR separate with n
   assert.equal(combined.safety.rankingEnabled, false);
 });
 
-test('identical cumulative source reports produce byte-identical combined evidence', () => {
+test('combined cumulative v2 rejects historical Batter Hits cumulative v1 instead of reinterpreting it', () => {
+  const historical = {
+    ...hitsReport(),
+    reportVersion: M10_SELECTED_SIDE_GRADE_METRICS_VERSION,
+  };
+  assert.throws(
+    () => buildM10MultiMarketCumulativeReport({ batterHits: historical, hhr: hhrReport() }),
+    /Batter Hits cumulative report contract is unsupported/u,
+  );
+});
+
+test('identical cumulative source reports produce byte-identical combined v2 evidence', () => {
   const first = buildM10MultiMarketCumulativeReport({
     batterHits: hitsReport(),
     hhr: hhrReport(),
@@ -111,7 +176,7 @@ test('HHR cumulative runtime derives generatedAt from immutable Step 3 grade and
   assert.doesNotMatch(buildBlock, /new Date/u);
 });
 
-test('existing M10 grading workflow isolates HHR evidence from a Batter Hits grading failure and still fails the job afterward', async () => {
+test('existing M10 grading workflow isolates HHR evidence from a Batter Hits grading failure and persists combined v2 afterward', async () => {
   const workflow = await readFile('.github/workflows/m10-grade-pending-archives.yml', 'utf8');
   assert.match(workflow, /build-m10-multi-market-cumulative-grades\.mjs/u);
   assert.match(
@@ -120,6 +185,14 @@ test('existing M10 grading workflow isolates HHR evidence from a Batter Hits gra
   );
   assert.match(workflow, /artifacts\/board-archives\/cumulative\/\*\*/u);
   assert.match(workflow, /if:\s*always\(\)[\s\S]*artifacts\/board-archives\/cumulative\/\*\*/u);
+  assert.match(
+    workflow,
+    /git add -f -- artifacts\/board-archives\/cumulative\/m10-multi-market-cumulative-selected-side-v2--\*\.json/u,
+  );
+  assert.doesNotMatch(
+    workflow,
+    /git add -f -- artifacts\/board-archives\/cumulative\/m10-multi-market-cumulative-selected-side-v1--\*\.json/u,
+  );
 
   const hitsIndex = workflow.indexOf('- name: Grade only Batter Hits archives whose exact games are final');
   const hhrIndex = workflow.indexOf('- name: Grade only HHR archives whose exact games are final and accumulate HHR evidence');
