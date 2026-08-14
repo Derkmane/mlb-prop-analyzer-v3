@@ -903,3 +903,49 @@ rejected without escalation.
 - Promoted current-season fitting and validation into a major dedicated phase.
 - Preserved H+R+RBI and Pitcher Strikeouts as planned future markets with their required joint model families.
 - Recorded the directly verified strict TypeScript, architecture, test, build, and CI foundation progress.
+---
+
+## Workstream 1 — Capture coverage implementation close-out — 2026-08-14
+
+### Coverage defect and timing evidence
+
+- [x] Capture coverage defect confirmed. The prior single 21:15 UTC board capture reached between 47% and 100% of the day's MLB slate depending on schedule shape. Every missing game was already started before the capture, confirming a systematic timing/coverage defect rather than a model-distribution defect.
+- [x] K4 lineup-timing evidence recorded: confirmed lineups were available a mean 86 minutes before first pitch; projected lineups were available a mean 630 minutes before first pitch. Projected lineup status remains full-weight baseball input under the locked projected-lineup rule and is not a probability penalty.
+
+### Grading/runtime prerequisite work
+
+- [x] Step A — adaptive rate limiter completed. Grading pacing improved from 41m23s to 21.4s. Provider pacing was verified at the approved 600 requests/minute ceiling and 112 ms request spacing.
+- [x] Step B — cross-archive provider reuse completed. The pinned five-capture workload required 78 provider requests for 26 unique games versus approximately 192 requests before reuse. Equivalence was proven with cumulative source-set SHA-256 `8aabb3dc7403093eb6152378aa7784a909e0c3b4826f8d7334dd7d70113375de` and 422 retained selected-side rows.
+- [x] Step C — settled by workflow run `31703407121`. Five previously ungraded archives completed in 9,977 ms.
+
+### D1 — schedule-aware multi-capture controller
+
+- [x] D1 merged in PR #90. The board archiver now runs on cron `0,30 * * * *`.
+- [x] NORMAL capture band is 40–110 minutes before first pitch for an uncovered game.
+- [x] RECOVERY capture band is greater than 0 and less than 40 minutes before first pitch for an uncovered game.
+- [x] Runs with no uncovered game in either band return NOOP.
+- [x] CAPTURE is snapshot-first: the immutable provider-board snapshot is completed before historical/enrichment work and the exact snapshot set is replayed to both Batter Hits and HHR.
+- [x] Coverage durability is gated on the full capture transaction. Coverage is not finalized until both archivers have consumed and verified the same immutable snapshot set. HHR archive-ledger durability occurs before Batter Hits archive-ledger durability, with the Batter Hits ledger last so an incomplete transaction remains retryable.
+- [x] Started games are never claimed.
+
+### Step 2 — Batter Hits cumulative same-day dedup
+
+- [x] Batter Hits cumulative latest-capture selected-side dedup v2 merged in PR #91.
+- [x] Cumulative dedup occurs only after immutable per-capture selected-side selection and before cumulative summary/calibration.
+- [x] Latest-capture identity is `providerGameId + providerPlayerId + providerMarketKey + offerType + postedLine`; `providerEventId` and selected side do not create new cumulative identities.
+- [x] HHR and Batter Hits now share one latest-capture reducer implementation.
+- [x] HHR real-evidence equivalence was re-proven after reducer generalization: source-set SHA-256 `8aabb3dc7403093eb6152378aa7784a909e0c3b4826f8d7334dd7d70113375de`, 422 retained rows, blocked count 0, outcomes identical.
+- [x] Combined multi-market cumulative contract advanced to v2 and includes component contract identity in its digest.
+- [x] Production and ranking remain disabled.
+
+### Item N — historical Batter Hits cumulative v1 evidence
+
+- [x] Any Batter Hits cumulative v1 file produced after PR #90 merged and before PR #91 merged is known over-counted under same-day multi-capture operation and must not be cited as calibration or validation evidence.
+- [x] Immutable per-capture Batter Hits archives and grade reports remain authoritative source evidence; cumulative v2 rebuilds from those immutable reports.
+
+### D1d — live scheduled-run acceptance
+
+- [x] Real scheduled NOOP proven by workflow run `31816364437`. The controller performed one schedule read, evaluated 14 provider events, returned NOOP because no uncovered game was inside the capture window, skipped all CAPTURE-only work, preserved ledger durability, and exited successfully.
+- [ ] Real scheduled CAPTURE proof pending. Required evidence remains: snapshot-first ordering, `runStartToSnapshotElapsedMs`, identical `snapshotSetSha256` across both replay receipts, both receipts complete, coverage written only after both archivers consumed the snapshot, HHR ledger saved before Batter Hits ledger, every claimed game's `boardSnapshotCompletedAt` strictly before first pitch, and full-day distinct-game coverage versus the actual MLB slate.
+
+Workstream 1 implementation is complete. Final live D1d CAPTURE and full-day coverage evidence remain open acceptance evidence and must be appended when observed.
