@@ -17,9 +17,11 @@ h1 { margin: 4px 0 8px; font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.04; 
 .meta-panel { min-width: 270px; border: 1px solid #25384a; border-radius: 14px; background: #0c1722cc; padding: 14px 16px; }
 .meta-row { display: flex; justify-content: space-between; gap: 18px; padding: 4px 0; font-size: .84rem; }
 .meta-row span:first-child { color: #8ea3b7; }
+.refresh-button { width: 100%; margin-top: 10px; }
 .logout-form { margin-top: 10px; }
 .button, button { border: 1px solid #38516a; background: #142538; color: #eef5fb; border-radius: 9px; padding: 9px 13px; cursor: pointer; }
 .button:hover, button:hover { background: #1b3149; }
+button:disabled { opacity: .6; cursor: wait; }
 .status { margin: 0 0 16px; padding: 12px 14px; border: 1px solid #283e52; border-radius: 10px; background: #0d1925; color: #a9bbca; }
 .status.error { border-color: #744049; color: #ffb5bd; background: #261217; }
 .evidence-panel { margin: 0 0 18px; border: 1px solid #273b4e; border-radius: 16px; background: #09141fdd; padding: 16px; }
@@ -126,6 +128,7 @@ export const HHR_DISPLAY_APP_JS = `
 
   const COIN_FLIP_LOG_LOSS = 0.693;
   const statusNode = document.getElementById('status');
+  const refreshButton = document.getElementById('refresh-board');
   const capturedAtNode = document.getElementById('captured-at');
   const boardVersionNode = document.getElementById('board-version');
   const modelVersionNode = document.getElementById('model-version');
@@ -135,6 +138,7 @@ export const HHR_DISPLAY_APP_JS = `
   const higherEvidenceNode = document.getElementById('hhr-05-higher-evidence');
   const lowerList = document.getElementById('hhr-25-lower-list');
   const higherList = document.getElementById('hhr-05-higher-list');
+  let loadInFlight = false;
 
   function element(tag, className, text) {
     const node = document.createElement(tag);
@@ -445,9 +449,26 @@ export const HHR_DISPLAY_APP_JS = `
     for (const pick of picks) node.append(renderPick(pick, cohort, lineEvidence));
   }
 
-  async function loadBoard() {
+  function renderBoard(board) {
+    capturedAtNode.textContent = freshness(board.capturedAt);
+    boardVersionNode.textContent = String(board.boardVersion);
+    modelVersionNode.textContent = String(board.modelVersion);
+    rationaleNode.textContent = String(board.rankingRationale);
+    renderCumulativeEvidence(board.cumulativeEvidence);
+    const lowerEvidence = renderSublistEvidence(lowerEvidenceNode, board.cumulativeEvidence, '2.5+');
+    const higherEvidence = renderSublistEvidence(higherEvidenceNode, board.cumulativeEvidence, '0.5');
+    renderList(lowerList, board.hhr25LowerAlternates, '2.5+', lowerEvidence);
+    renderList(higherList, board.hhr05HigherAlternates, '0.5', higherEvidence);
+  }
+
+  async function loadBoard(isRefresh = false) {
+    if (loadInFlight) return;
+    loadInFlight = true;
+    refreshButton.disabled = true;
     statusNode.className = 'status';
-    statusNode.textContent = 'Loading latest committed HHR display archive…';
+    statusNode.textContent = isRefresh
+      ? 'Refreshing latest committed HHR display archive…'
+      : 'Loading latest committed HHR display archive…';
     try {
       const response = await fetch('/api/hhr-display-board', { cache: 'no-store', credentials: 'same-origin' });
       if (response.status === 401) {
@@ -456,22 +477,22 @@ export const HHR_DISPLAY_APP_JS = `
       }
       if (!response.ok) throw new Error('board unavailable');
       const board = await response.json();
-      capturedAtNode.textContent = freshness(board.capturedAt);
-      boardVersionNode.textContent = String(board.boardVersion);
-      modelVersionNode.textContent = String(board.modelVersion);
-      rationaleNode.textContent = String(board.rankingRationale);
-      renderCumulativeEvidence(board.cumulativeEvidence);
-      const lowerEvidence = renderSublistEvidence(lowerEvidenceNode, board.cumulativeEvidence, '2.5+');
-      const higherEvidence = renderSublistEvidence(higherEvidenceNode, board.cumulativeEvidence, '0.5');
-      renderList(lowerList, board.hhr25LowerAlternates, '2.5+', lowerEvidence);
-      renderList(higherList, board.hhr05HigherAlternates, '0.5', higherEvidence);
+      renderBoard(board);
       statusNode.textContent = 'Loaded ' + board.hhr25LowerAlternates.length + ' Lower 2.5 picks and ' + board.hhr05HigherAlternates.length + ' Higher 0.5 picks. No rows are padded.';
     } catch {
       statusNode.className = 'status error';
-      statusNode.textContent = 'Latest HHR display board is unavailable. No stale fallback was loaded.';
+      statusNode.textContent = isRefresh
+        ? 'Refresh failed. Last loaded HHR display board remains visible.'
+        : 'Latest HHR display board is unavailable. No stale fallback was loaded.';
+    } finally {
+      loadInFlight = false;
+      refreshButton.disabled = false;
     }
   }
 
+  refreshButton.addEventListener('click', () => {
+    void loadBoard(true);
+  });
   void loadBoard();
 })();
 `;
@@ -527,6 +548,7 @@ export function renderHhrDisplayAppPage(): string {
         <div class="meta-row"><span>Capture</span><strong id="captured-at">Loading…</strong></div>
         <div class="meta-row"><span>Board contract</span><strong id="board-version">—</strong></div>
         <div class="meta-row"><span>Model</span><strong id="model-version">—</strong></div>
+        <button id="refresh-board" class="refresh-button" type="button">Refresh</button>
         <form class="logout-form" method="post" action="/logout"><button type="submit">Sign out</button></form>
       </aside>
     </header>
