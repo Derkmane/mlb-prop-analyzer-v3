@@ -8,6 +8,17 @@ import {
 
 export const M10_SELECTED_SIDE_GRADE_METRICS_VERSION =
   'm10-selected-side-cumulative-grade-metrics-v1';
+export const M10_SELECTED_SIDE_CUMULATIVE_GRADE_METRICS_VERSION =
+  'm10-selected-side-cumulative-grade-metrics-v2';
+export const M10_SELECTED_SIDE_CUMULATIVE_DEDUPLICATION_VERSION =
+  'batter-hits-latest-capture-per-prop-v1';
+export const M10_SELECTED_SIDE_CUMULATIVE_DEDUPLICATION_IDENTITY = Object.freeze([
+  'providerGameId',
+  'providerPlayerId',
+  'providerMarketKey',
+  'offerType',
+  'postedLine',
+]);
 
 export const M10_SELECTED_SIDE_CALIBRATION_BUCKETS = Object.freeze([
   Object.freeze({ label: '50-55%', lowerInclusive: 0.5, upperExclusive: 0.55 }),
@@ -21,6 +32,8 @@ export const M10_SELECTED_SIDE_CALIBRATION_BUCKETS = Object.freeze([
 
 const PROBABILITY_TOLERANCE = 1e-12;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
+const CUMULATIVE_CAPTURE_KEY_PATTERN =
+  /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(\d{3})?Z--[a-f0-9]{64}$/u;
 
 function object(value, label) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
@@ -114,6 +127,84 @@ export function sha256Bytes(value) {
 
 export function canonicalJsonBytes(value) {
   return Buffer.from(`${JSON.stringify(value, null, 2)}\n`, 'utf8');
+}
+
+export function captureTimestampFromCumulativeCaptureKey(captureKey, label) {
+  nonemptyString(captureKey, label);
+  const match = CUMULATIVE_CAPTURE_KEY_PATTERN.exec(captureKey);
+  if (match === null) throw new Error(`${label} is malformed.`);
+  const milliseconds = match[7] ?? '000';
+  const value = `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}.${milliseconds}Z`;
+  timestamp(value, `${label} timestamp`);
+  return value;
+}
+
+export function cumulativeSelectedSidePropIdentity(row) {
+  return stableJson([
+    row.providerGameId,
+    row.providerPlayerId,
+    row.providerMarketKey,
+    row.offerType,
+    row.postedLine,
+  ]);
+}
+
+export function deduplicateSelectedRecordsByLatestCapture(
+  records,
+  { ambiguityLabel = 'Cumulative selected-side identity' } = {},
+) {
+  const retainedByIdentity = new Map();
+  for (const record of array(records, 'selected records')) {
+    const current = retainedByIdentity.get(record.calibrationIdentity);
+    if (current === undefined) {
+      retainedByIdentity.set(record.calibrationIdentity, record);
+      continue;
+    }
+    if (record.captureTimestamp > current.captureTimestamp) {
+      retainedByIdentity.set(record.calibrationIdentity, record);
+      continue;
+    }
+    if (
+      record.captureTimestamp === current.captureTimestamp &&
+      record.captureKey !== current.captureKey
+    ) {
+      throw new Error(
+        `${ambiguityLabel} ${record.calibrationIdentity} has multiple captures at the same timestamp; latest-capture selection is ambiguous.`,
+      );
+    }
+  }
+
+  const evidenceRows = records.map((record) => {
+    const retained = retainedByIdentity.get(record.calibrationIdentity);
+    const isRetained = retained.captureKey === record.captureKey;
+    const calibrationEligible = isRetained && record.row.outcome !== 'void';
+    return Object.freeze({
+      ...record.row,
+      captureKey: record.captureKey,
+      captureTimestamp: record.captureTimestamp,
+      sourceType: record.sourceType,
+      calibrationIdentity: record.calibrationIdentity,
+      calibrationDedupStatus: isRetained ? 'retained' : 'superseded',
+      supersededByCaptureKey: isRetained ? null : retained.captureKey,
+      calibrationEligible,
+      calibrationExclusionReason: isRetained
+        ? record.row.outcome === 'void'
+          ? 'void'
+          : null
+        : 'superseded-by-later-capture',
+    });
+  });
+  const retainedRows = evidenceRows.filter(
+    (row) => row.calibrationDedupStatus === 'retained',
+  );
+  const supersededRows = evidenceRows.filter(
+    (row) => row.calibrationDedupStatus === 'superseded',
+  );
+  return Object.freeze({
+    evidenceRows: Object.freeze(evidenceRows),
+    retainedRows: Object.freeze(retainedRows),
+    supersededRows: Object.freeze(supersededRows),
+  });
 }
 
 function propIdentity(row) {
@@ -643,7 +734,23 @@ function validateAnalyticsReport(report, label) {
   return Object.freeze({ value, source, selectedRows, minerRows });
 }
 
-export function buildCumulativeSelectedSideMetricsReportV1({
+function deterministicSelectedRecordOrder(left, right) {
+  return (
+    left.captureTimestamp.localeCompare(right.captureTimestamp) ||
+    left.captureKey.localeCompare(right.captureKey) ||
+    left.calibrationIdentity.localeCompare(right.calibrationIdentity) ||
+    rowIdentity(left.row).localeCompare(rowIdentity(right.row))
+  );
+}
+
+function deterministicMinerRecordOrder(left, right) {
+  return (
+    left.captureKey.localeCompare(right.captureKey) ||
+    rowIdentity(left.row).localeCompare(rowIdentity(right.row))
+  );
+}
+
+export function buildCumulativeSelectedSideMetricsReportV2({
   reports,
   generatedAt,
 }) {
@@ -651,8 +758,8 @@ export function buildCumulativeSelectedSideMetricsReportV1({
   const inputs = array(reports, 'reports');
   const captures = new Set();
   const sourceReports = [];
-  const selectedRows = [];
-  const minerRows = [];
+  const selectedRecords = [];
+  const minerRecords = [];
   for (const [index, raw] of inputs.entries()) {
     const { value, source, selectedRows: selected, minerRows: miner } =
       validateAnalyticsReport(raw.report, `reports[${index}]`);
@@ -664,31 +771,49 @@ export function buildCumulativeSelectedSideMetricsReportV1({
       throw new Error(`Duplicate cumulative capture ${source.captureKey}.`);
     }
     captures.add(source.captureKey);
+    const captureTimestamp = captureTimestampFromCumulativeCaptureKey(
+      source.captureKey,
+      `reports[${index}].source.captureKey`,
+    );
     sourceReports.push(
       Object.freeze({
         captureKey: source.captureKey,
+        captureTimestamp,
         archiveSha256: source.archiveSha256,
         archiveFileSha256: source.archiveFileSha256,
         sourceGradeReportSha256: source.sourceGradeReportSha256,
         selectedMetricsReportSha256: reportSha256,
       }),
     );
-    selectedRows.push(...selected);
-    minerRows.push(...miner);
+    for (const row of selected) {
+      selectedRecords.push(
+        Object.freeze({
+          captureKey: source.captureKey,
+          captureTimestamp,
+          sourceType: M10_SELECTED_SIDE_GRADE_METRICS_VERSION,
+          calibrationIdentity: cumulativeSelectedSidePropIdentity(row),
+          row,
+        }),
+      );
+    }
+    for (const row of miner) {
+      minerRecords.push(Object.freeze({ captureKey: source.captureKey, row }));
+    }
   }
-  sourceReports.sort((left, right) =>
-    left.captureKey.localeCompare(right.captureKey),
-  );
-  selectedRows.sort((left, right) =>
-    `${left.providerGameId}:${left.providerPlayerId}:${left.providerMarketKey}:${left.offerType}:${left.postedLine}`.localeCompare(
-      `${right.providerGameId}:${right.providerPlayerId}:${right.providerMarketKey}:${right.offerType}:${right.postedLine}`,
-    ),
-  );
+  sourceReports.sort((left, right) => left.captureKey.localeCompare(right.captureKey));
+  selectedRecords.sort(deterministicSelectedRecordOrder);
+  minerRecords.sort(deterministicMinerRecordOrder);
+
+  const deduplicated = deduplicateSelectedRecordsByLatestCapture(selectedRecords, {
+    ambiguityLabel: 'Batter Hits cumulative calibration identity',
+  });
+  const selectedRows = deduplicated.retainedRows;
+  const minerRows = minerRecords.map((record) => record.row);
   const sourceSetSha256 = sha256Bytes(
     Buffer.from(stableJson(sourceReports), 'utf8'),
   );
   return Object.freeze({
-    reportVersion: M10_SELECTED_SIDE_GRADE_METRICS_VERSION,
+    reportVersion: M10_SELECTED_SIDE_CUMULATIVE_GRADE_METRICS_VERSION,
     reportType: 'cumulative-selected-side-and-opportunity-miner-grade-metrics',
     generatedAt,
     sourceSetSha256,
@@ -696,6 +821,13 @@ export function buildCumulativeSelectedSideMetricsReportV1({
     sources: Object.freeze(sourceReports),
     selectedSide: Object.freeze({
       label: 'CUMULATIVE MODEL-SELECTED SIDE PERFORMANCE',
+      deduplicationVersion: M10_SELECTED_SIDE_CUMULATIVE_DEDUPLICATION_VERSION,
+      deduplicationIdentity: M10_SELECTED_SIDE_CUMULATIVE_DEDUPLICATION_IDENTITY,
+      deduplicationWinnerRule: 'most-recent-capture-timestamp-only',
+      selectedSideRowsBeforeDedup: deduplicated.evidenceRows.length,
+      retainedSelectedSideRows: selectedRows.length,
+      supersededSelectedSideRows: deduplicated.supersededRows.length,
+      evidenceRows: deduplicated.evidenceRows,
       summary: buildSelectedSidePerformanceSummary(selectedRows),
       calibration: buildSelectedSideCalibration(selectedRows),
     }),

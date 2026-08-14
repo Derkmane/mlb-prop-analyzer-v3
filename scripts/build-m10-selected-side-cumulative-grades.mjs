@@ -4,9 +4,10 @@ import path from 'node:path';
 import { persistImmutableJson } from './m10-grade-saved-archive-utils.mjs';
 import { M10_SCHEDULED_ARCHIVE_GRADING_VERSION } from './m10-scheduled-archive-grading-utils.mjs';
 import {
-  buildCumulativeSelectedSideMetricsReportV1,
+  buildCumulativeSelectedSideMetricsReportV2,
   buildSelectedSideArchiveMetricsReportV1,
   canonicalJsonBytes,
+  M10_SELECTED_SIDE_CUMULATIVE_GRADE_METRICS_VERSION,
   M10_SELECTED_SIDE_GRADE_METRICS_VERSION,
   sha256Bytes,
   verifyAndProjectM10AnalyticsArchiveBytes,
@@ -176,14 +177,14 @@ if (cumulativeInputs.length > 0) {
     .map((input) => input.report.generatedAt)
     .sort()
     .at(-1);
-  const cumulative = buildCumulativeSelectedSideMetricsReportV1({
+  const cumulative = buildCumulativeSelectedSideMetricsReportV2({
     reports: cumulativeInputs,
     generatedAt,
   });
   cumulativePath = path.join(
     archiveRoot,
     'cumulative',
-    `${M10_SELECTED_SIDE_GRADE_METRICS_VERSION}--${cumulative.sourceSetSha256}.json`,
+    `${M10_SELECTED_SIDE_CUMULATIVE_GRADE_METRICS_VERSION}--${cumulative.sourceSetSha256}.json`,
   );
   const expectedBytes = canonicalJsonBytes(cumulative);
   if (await exists(cumulativePath)) {

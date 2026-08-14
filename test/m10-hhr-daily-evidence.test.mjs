@@ -407,7 +407,7 @@ test('daily workflows keep full ledgers in cache/artifacts and durably commit on
   );
   assert.match(
     gradeWorkflow,
-    /git add -f -- artifacts\/board-archives\/cumulative\/m10-multi-market-cumulative-selected-side-v1--\*\.json/u,
+    /git add -f -- artifacts\/board-archives\/cumulative\/m10-multi-market-cumulative-selected-side-v2--\*\.json/u,
   );
   assert.match(gradeWorkflow, /Refusing to persist non-cumulative paths/u);
   assert.match(
