@@ -188,8 +188,8 @@ jobs:
             echo "Cumulative grading persistence requires a branch ref; got ${GITHUB_REF_TYPE}."
             exit 1
           fi
-          git add -f -- artifacts/board-archives/cumulative/m10-multi-market-cumulative-selected-side-v1--*.json
-          node -e 'const cp=require("node:child_process");const staged=cp.execFileSync("git",["diff","--cached","--name-only"],{encoding:"utf8"}).trim().split(/\r?\n/u).filter(Boolean);const allowed=/^artifacts\/board-archives\/cumulative\/m10-multi-market-cumulative-selected-side-v1--[a-f0-9]{64}\.json$/u;const invalid=staged.filter((value)=>!allowed.test(value));if(invalid.length>0)throw new Error(`Refusing to persist non-cumulative paths: ${invalid.join(", ")}`);if(staged.length>1)throw new Error(`Expected at most one new cumulative report; staged ${staged.length}.`);console.log(`STAGED CUMULATIVE REPORTS\t${staged.length}`);'
+          git add -f -- artifacts/board-archives/cumulative/m10-multi-market-cumulative-selected-side-v2--*.json
+          node -e 'const cp=require("node:child_process");const staged=cp.execFileSync("git",["diff","--cached","--name-only"],{encoding:"utf8"}).trim().split(/\r?\n/u).filter(Boolean);const allowed=/^artifacts\/board-archives\/cumulative\/m10-multi-market-cumulative-selected-side-v2--[a-f0-9]{64}\.json$/u;const invalid=staged.filter((value)=>!allowed.test(value));if(invalid.length>0)throw new Error(`Refusing to persist non-cumulative paths: ${invalid.join(", ")}`);if(staged.length>1)throw new Error(`Expected at most one new cumulative report; staged ${staged.length}.`);console.log(`STAGED CUMULATIVE REPORTS\t${staged.length}`);'
           if git diff --cached --quiet; then
             echo "Cumulative grading report already persisted; no commit required."
             exit 0
