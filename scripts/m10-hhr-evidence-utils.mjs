@@ -10,6 +10,9 @@ import {
   buildSelectedSideCalibration,
   buildSelectedSidePerformanceSummary,
   canonicalJsonBytes,
+  captureTimestampFromCumulativeCaptureKey,
+  cumulativeSelectedSidePropIdentity,
+  deduplicateSelectedRecordsByLatestCapture,
   selectOneModelSidePerProp,
   sha256Bytes,
 } from './m10-selected-side-grade-metrics-utils.mjs';
@@ -793,29 +796,7 @@ function withEvidenceStatus(calibration) {
   );
 }
 
-const HHR_CUMULATIVE_CAPTURE_KEY_PATTERN =
-  /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(\d{3})?Z--[a-f0-9]{64}$/u;
 const HHR_CUMULATIVE_DEDUPLICATION_VERSION = 'hhr-latest-capture-per-prop-v1';
-
-function captureTimestampFromKey(captureKey, label) {
-  nonemptyString(captureKey, label);
-  const match = HHR_CUMULATIVE_CAPTURE_KEY_PATTERN.exec(captureKey);
-  if (match === null) throw new Error(`${label} is malformed.`);
-  const milliseconds = match[7] ?? '000';
-  const value = `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}.${milliseconds}Z`;
-  timestamp(value, `${label} timestamp`);
-  return value;
-}
-
-function calibrationPropIdentity(row) {
-  return stableJson([
-    row.providerGameId,
-    row.providerPlayerId,
-    row.providerMarketKey,
-    row.offerType,
-    row.postedLine,
-  ]);
-}
 
 function buildHhrCumulativeCaptureInputs({ step3Archive, gradeReports }) {
   const sources = [];
@@ -828,7 +809,7 @@ function buildHhrCumulativeCaptureInputs({ step3Archive, gradeReports }) {
     throw new Error('Step 3 HHR seed is not production-disabled.');
   }
   nonemptyString(seed.captureKey, 'step3Archive.captureKey');
-  const seedCaptureTimestamp = captureTimestampFromKey(
+  const seedCaptureTimestamp = captureTimestampFromCumulativeCaptureKey(
     seed.captureKey,
     'step3Archive.captureKey',
   );
@@ -855,7 +836,7 @@ function buildHhrCumulativeCaptureInputs({ step3Archive, gradeReports }) {
       throw new Error(`Duplicate cumulative capture ${report.source.captureKey}.`);
     }
     seenCaptureKeys.add(report.source.captureKey);
-    const captureTimestamp = captureTimestampFromKey(
+    const captureTimestamp = captureTimestampFromCumulativeCaptureKey(
       report.source.captureKey,
       'HHR grade report source.captureKey',
     );
@@ -901,7 +882,7 @@ function captureAwareSelectedRecords(captureInputs) {
         captureKey: capture.captureKey,
         captureTimestamp: capture.captureTimestamp,
         sourceType: capture.sourceType,
-        calibrationIdentity: calibrationPropIdentity(row),
+        calibrationIdentity: cumulativeSelectedSidePropIdentity(row),
         row,
       }));
     }
@@ -909,65 +890,12 @@ function captureAwareSelectedRecords(captureInputs) {
   return Object.freeze(records);
 }
 
-function deduplicateHhrSelectedRecordsByLatestCapture(records) {
-  const retainedByIdentity = new Map();
-  for (const record of records) {
-    const current = retainedByIdentity.get(record.calibrationIdentity);
-    if (current === undefined) {
-      retainedByIdentity.set(record.calibrationIdentity, record);
-      continue;
-    }
-    if (record.captureTimestamp > current.captureTimestamp) {
-      retainedByIdentity.set(record.calibrationIdentity, record);
-      continue;
-    }
-    if (
-      record.captureTimestamp === current.captureTimestamp &&
-      record.captureKey !== current.captureKey
-    ) {
-      throw new Error(
-        `HHR cumulative calibration identity ${record.calibrationIdentity} has multiple captures at the same timestamp; latest-capture selection is ambiguous.`,
-      );
-    }
-  }
-
-  const evidenceRows = records.map((record) => {
-    const retained = retainedByIdentity.get(record.calibrationIdentity);
-    const isRetained = retained.captureKey === record.captureKey;
-    const calibrationEligible = isRetained && record.row.outcome !== 'void';
-    return Object.freeze({
-      ...record.row,
-      captureKey: record.captureKey,
-      captureTimestamp: record.captureTimestamp,
-      sourceType: record.sourceType,
-      calibrationIdentity: record.calibrationIdentity,
-      calibrationDedupStatus: isRetained ? 'retained' : 'superseded',
-      supersededByCaptureKey: isRetained ? null : retained.captureKey,
-      calibrationEligible,
-      calibrationExclusionReason: isRetained
-        ? record.row.outcome === 'void'
-          ? 'void'
-          : null
-        : 'superseded-by-later-capture',
-    });
-  });
-  const retainedRows = evidenceRows.filter(
-    (row) => row.calibrationDedupStatus === 'retained',
-  );
-  const supersededRows = evidenceRows.filter(
-    (row) => row.calibrationDedupStatus === 'superseded',
-  );
-  return Object.freeze({
-    evidenceRows: Object.freeze(evidenceRows),
-    retainedRows: Object.freeze(retainedRows),
-    supersededRows: Object.freeze(supersededRows),
-  });
-}
-
 function buildHhrCumulativeSelectedEvidence({ step3Archive, gradeReports }) {
   const inputs = buildHhrCumulativeCaptureInputs({ step3Archive, gradeReports });
   const selectedRecords = captureAwareSelectedRecords(inputs.captureInputs);
-  const deduplicated = deduplicateHhrSelectedRecordsByLatestCapture(selectedRecords);
+  const deduplicated = deduplicateSelectedRecordsByLatestCapture(selectedRecords, {
+    ambiguityLabel: 'HHR cumulative calibration identity',
+  });
   return Object.freeze({
     ...inputs,
     selectedRecords,
