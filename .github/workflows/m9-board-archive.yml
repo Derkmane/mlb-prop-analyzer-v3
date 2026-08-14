@@ -153,14 +153,9 @@ jobs:
         run: |
           node -e 'const fs=require("node:fs"),path=require("node:path");const dir="artifacts/board-archives/batter-hhr/captures";const before=new Set(JSON.parse(fs.readFileSync("artifacts/workflow-logs/hhr-captures-before.json","utf8")));const after=fs.existsSync(dir)?fs.readdirSync(dir,{withFileTypes:true}).filter((entry)=>entry.isFile()&&entry.name.endsWith(".json")).map((entry)=>entry.name).sort():[];const added=after.filter((name)=>!before.has(name));if(added.length!==1)throw new Error(`Expected exactly one new immutable HHR capture after successful archiver; found ${added.length}.`);fs.appendFileSync(process.env.GITHUB_OUTPUT,`path=${path.join(dir,added[0])}\n`);console.log(`NEW HHR CAPTURE\t${path.join(dir,added[0])}`);'
 
-      - name: Finalize game coverage
-        id: finalize-coverage
-        if: steps.identify-hits-capture.outcome == 'success' && steps.identify-hhr-capture.outcome == 'success'
-        run: node scripts/m9-capture-controller.mjs finalize
-
       - name: Build immutable trimmed display archives
         id: build-display-archives
-        if: always() && steps.finalize-coverage.outcome == 'success' && steps.identify-hits-capture.outcome == 'success' && steps.identify-hhr-capture.outcome == 'success'
+        if: always() && steps.identify-hits-capture.outcome == 'success' && steps.identify-hhr-capture.outcome == 'success'
         env:
           HITS_CAPTURE_PATH: ${{ steps.identify-hits-capture.outputs.path }}
           HHR_CAPTURE_PATH: ${{ steps.identify-hhr-capture.outputs.path }}
@@ -180,6 +175,7 @@ jobs:
           printf 'hhr_path=%s\n' "${HHR_DISPLAY_PATH}" >> "$GITHUB_OUTPUT"
 
       - name: Upload full archives and diagnostics before repository persistence
+        id: upload-full-archives
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -193,7 +189,7 @@ jobs:
 
       - name: Persist trimmed display archives to repository
         id: persist-display-archives
-        if: always() && steps.build-display-archives.outcome == 'success'
+        if: always() && steps.build-display-archives.outcome == 'success' && steps.upload-full-archives.outcome == 'success'
         env:
           HITS_DISPLAY_PATH: ${{ steps.build-display-archives.outputs.hits_path }}
           HHR_DISPLAY_PATH: ${{ steps.build-display-archives.outputs.hhr_path }}
@@ -216,6 +212,41 @@ jobs:
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "chore: persist trimmed display archives [skip ci]"
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
+      - name: Verify capture prerequisites before coverage
+        id: verify-precoverage
+        if: steps.capture-plan.outputs.decision == 'CAPTURE'
+        env:
+          HITS_CAPTURE_OUTCOME: ${{ steps.capture-hits.outcome }}
+          HITS_IDENTIFY_OUTCOME: ${{ steps.identify-hits-capture.outcome }}
+          HHR_CAPTURE_OUTCOME: ${{ steps.capture-hhr.outcome }}
+          HHR_IDENTIFY_OUTCOME: ${{ steps.identify-hhr-capture.outcome }}
+          DISPLAY_OUTCOME: ${{ steps.build-display-archives.outcome }}
+          UPLOAD_OUTCOME: ${{ steps.upload-full-archives.outcome }}
+          PERSIST_OUTCOME: ${{ steps.persist-display-archives.outcome }}
+        run: |
+          set -euo pipefail
+          for pair in \
+            "Batter Hits archive capture:${HITS_CAPTURE_OUTCOME}" \
+            "Batter Hits capture identification:${HITS_IDENTIFY_OUTCOME}" \
+            "HHR archive capture:${HHR_CAPTURE_OUTCOME}" \
+            "HHR capture identification:${HHR_IDENTIFY_OUTCOME}" \
+            "Trimmed display archive build:${DISPLAY_OUTCOME}" \
+            "Full evidence upload:${UPLOAD_OUTCOME}" \
+            "Durable display persistence:${PERSIST_OUTCOME}"; do
+            label="${pair%%:*}"
+            outcome="${pair#*:}"
+            if [ "${outcome}" != "success" ]; then
+              echo "${label} outcome: ${outcome}; coverage will not be finalized."
+              exit 1
+            fi
+          done
+          echo "All capture prerequisites succeeded; coverage may be finalized."
+
+      - name: Finalize game coverage
+        id: finalize-coverage
+        if: steps.capture-plan.outputs.decision == 'CAPTURE' && steps.verify-precoverage.outcome == 'success'
+        run: node scripts/m9-capture-controller.mjs finalize
+
       - name: Save verified current-season shards
         if: always() && steps.capture-plan.outputs.decision == 'CAPTURE'
         uses: actions/cache/save@v4
@@ -223,19 +254,21 @@ jobs:
           path: artifacts/m8-current-season-pa/shards-2026
           key: m8-current-season-shards-2026-${{ github.run_id }}-${{ github.run_attempt }}
 
-      - name: Save immutable Batter Hits archive ledger
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: artifacts/board-archives/batter-hits
-          key: m9-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
-
       - name: Save immutable HHR archive ledger
-        if: always()
+        id: save-hhr-board-archives
+        if: steps.capture-plan.outputs.decision == 'NOOP' || steps.finalize-coverage.outcome == 'success'
         uses: actions/cache/save@v4
         with:
           path: artifacts/board-archives/batter-hhr
           key: m10-hhr-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Save immutable Batter Hits archive ledger
+        id: save-hits-board-archives
+        if: steps.capture-plan.outputs.decision == 'NOOP' || (steps.finalize-coverage.outcome == 'success' && steps.save-hhr-board-archives.outcome == 'success')
+        uses: actions/cache/save@v4
+        with:
+          path: artifacts/board-archives/batter-hits
+          key: m9-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Verify archive run status
         if: always()
@@ -247,6 +280,9 @@ jobs:
           HHR_CAPTURE_OUTCOME: ${{ steps.capture-hhr.outcome }}
           HHR_IDENTIFY_OUTCOME: ${{ steps.identify-hhr-capture.outcome }}
           COVERAGE_OUTCOME: ${{ steps.finalize-coverage.outcome }}
+          PRECOVERAGE_OUTCOME: ${{ steps.verify-precoverage.outcome }}
+          HHR_LEDGER_OUTCOME: ${{ steps.save-hhr-board-archives.outcome }}
+          HITS_LEDGER_OUTCOME: ${{ steps.save-hits-board-archives.outcome }}
           DISPLAY_OUTCOME: ${{ steps.build-display-archives.outcome }}
           PERSIST_OUTCOME: ${{ steps.persist-display-archives.outcome }}
         run: |
@@ -268,7 +304,10 @@ jobs:
             "Batter Hits capture identification:${HITS_IDENTIFY_OUTCOME}" \
             "HHR archive capture:${HHR_CAPTURE_OUTCOME}" \
             "HHR capture identification:${HHR_IDENTIFY_OUTCOME}" \
+            "Pre-coverage verification:${PRECOVERAGE_OUTCOME}" \
             "Coverage finalization:${COVERAGE_OUTCOME}" \
+            "HHR ledger durability:${HHR_LEDGER_OUTCOME}" \
+            "Batter Hits ledger durability:${HITS_LEDGER_OUTCOME}" \
             "Trimmed display archive build:${DISPLAY_OUTCOME}" \
             "Durable display persistence:${PERSIST_OUTCOME}"; do
             label="${pair%%:*}"

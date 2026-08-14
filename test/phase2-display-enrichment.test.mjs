@@ -105,7 +105,7 @@ test('Phase 2 flag defaults on and rejects unsupported values', () => {
 
 test('scheduled board archives enable Phase 2 while workflow_dispatch keeps the manual kill switch', () => {
   const workflow = fs.readFileSync(new URL('../.github/workflows/m9-board-archive.yml', import.meta.url), 'utf8');
-  assert.match(workflow, /schedule:\n[\s\S]*?- cron: '15 21 \* \* \*'/u);
+  assert.match(workflow, /schedule:\n[\s\S]*?- cron: '0,30 \* \* \* \*'/u);
   assert.match(workflow, /default: 'off'[\s\S]*?options:\n\s+- 'off'\n\s+- 'on'/u);
   assert.match(
     workflow,

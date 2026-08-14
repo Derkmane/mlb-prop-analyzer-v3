@@ -73,10 +73,53 @@ test('unified first-snapshot preload preserves every deleted HHR preload guard a
     /name: Upload full archives and diagnostics[\s\S]*if: always\(\)[\s\S]*artifacts\/board-archives\/batter-hhr\/\*\*/u,
   );
 
-  assert.ok(
-    workflow.indexOf('name: Finalize game coverage') >
-      workflow.indexOf('name: Identify new immutable HHR capture'),
+  const stepOrder = [
+    'name: Identify new immutable HHR capture',
+    'name: Build immutable trimmed display archives',
+    'name: Upload full archives and diagnostics before repository persistence',
+    'name: Persist trimmed display archives to repository',
+    'name: Verify capture prerequisites before coverage',
+    'name: Finalize game coverage',
+    'name: Save immutable HHR archive ledger',
+    'name: Save immutable Batter Hits archive ledger',
+  ];
+  const positions = stepOrder.map((label) => {
+    const at = workflow.indexOf(label);
+    assert.ok(at >= 0, `missing workflow step: ${label}`);
+    return at;
+  });
+  for (let i = 1; i < positions.length; i += 1) {
+    assert.ok(
+      positions[i] > positions[i - 1],
+      `${stepOrder[i]} must follow ${stepOrder[i - 1]}`,
+    );
+  }
+
+  assert.doesNotMatch(
+    workflow,
+    /id: build-display-archives\n\s+if:[^\n]*finalize-coverage/u,
   );
+  assert.match(
+    workflow,
+    /id: persist-display-archives\n\s+if:[^\n]*build-display-archives\.outcome == .success.[^\n]*upload-full-archives\.outcome == .success./u,
+  );
+  assert.match(
+    workflow,
+    /id: finalize-coverage\n\s+if:[^\n]*verify-precoverage\.outcome == .success./u,
+  );
+  assert.doesNotMatch(
+    workflow,
+    /id: finalize-coverage\n\s+if: always\(\)/u,
+  );
+  assert.match(
+    workflow,
+    /id: save-hhr-board-archives\n\s+if:[^\n]*finalize-coverage\.outcome == .success./u,
+  );
+  assert.match(
+    workflow,
+    /id: save-hits-board-archives\n\s+if:[^\n]*finalize-coverage\.outcome == .success.[^\n]*save-hhr-board-archives\.outcome == .success./u,
+  );
+  assert.match(workflow, /name: Verify archive run status/u);
 
   assert.match(source, /response\.clone\(\)\.arrayBuffer\(\)/u);
   assert.match(
