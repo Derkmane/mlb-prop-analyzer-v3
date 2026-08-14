@@ -295,7 +295,7 @@ test('grading workflow persists HHR-only cumulative display evidence before Batt
   assert.doesNotMatch(step, /build-m10-selected-side-cumulative-grades/u);
 
   assert.match(workflow, /- name: Persist small cumulative grading report to repository/u);
-  assert.match(workflow, /git add -f -- artifacts\/board-archives\/cumulative\/m10-multi-market-cumulative-selected-side-v1--\*\.json/u);
+  assert.match(workflow, /git add -f -- artifacts\/board-archives\/cumulative\/m10-multi-market-cumulative-selected-side-v2--\*\.json/u);
 });
 
 test('stale or unparseable historical HHR cumulative reports do not block persistence of the valid newest report', async (t) => {
