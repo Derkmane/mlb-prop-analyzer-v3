@@ -5,10 +5,10 @@ import { pathToFileURL } from 'node:url';
 
 import { persistImmutableJson } from './m10-grade-saved-archive-utils.mjs';
 import { M10_HHR_CUMULATIVE_VERSION } from './m10-hhr-evidence-utils.mjs';
-import { M10_SELECTED_SIDE_GRADE_METRICS_VERSION } from './m10-selected-side-grade-metrics-utils.mjs';
+import { M10_SELECTED_SIDE_CUMULATIVE_GRADE_METRICS_VERSION } from './m10-selected-side-grade-metrics-utils.mjs';
 
 export const M10_MULTI_MARKET_CUMULATIVE_VERSION =
-  'm10-multi-market-cumulative-selected-side-v1';
+  'm10-multi-market-cumulative-selected-side-v2';
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 
@@ -70,7 +70,7 @@ function digest(value) {
 function validateHitsCumulative(raw) {
   const report = object(raw, 'Batter Hits cumulative report');
   if (
-    report.reportVersion !== M10_SELECTED_SIDE_GRADE_METRICS_VERSION ||
+    report.reportVersion !== M10_SELECTED_SIDE_CUMULATIVE_GRADE_METRICS_VERSION ||
     report.reportType !== 'cumulative-selected-side-and-opportunity-miner-grade-metrics'
   ) {
     throw new Error('Batter Hits cumulative report contract is unsupported.');
@@ -124,11 +124,19 @@ export function buildM10MultiMarketCumulativeReport({ batterHits, hhr }) {
   const hhrReport = validateHhrCumulative(hhr);
   const generatedAt = [hitsReport.generatedAt, hhrReport.generatedAt].sort().at(-1);
   const source = Object.freeze({
-    batterHitsSourceSetSha256: hitsReport.sourceSetSha256,
-    hhrSourceSetSha256: hhrReport.sourceSetSha256,
+    batterHits: Object.freeze({
+      reportVersion: hitsReport.reportVersion,
+      reportType: hitsReport.reportType,
+      sourceSetSha256: hitsReport.sourceSetSha256,
+    }),
+    batterHitsRunsRbis: Object.freeze({
+      reportVersion: hhrReport.reportVersion,
+      reportType: hhrReport.reportType,
+      sourceSetSha256: hhrReport.sourceSetSha256,
+    }),
   });
   return Object.freeze({
-    reportVersion: 1,
+    reportVersion: 2,
     reportType: M10_MULTI_MARKET_CUMULATIVE_VERSION,
     generatedAt,
     sourceSetSha256: digest(source),
@@ -191,7 +199,7 @@ export async function main() {
   );
   const hits = await latestCumulative(
     path.join(hitsRoot, 'cumulative'),
-    M10_SELECTED_SIDE_GRADE_METRICS_VERSION,
+    M10_SELECTED_SIDE_CUMULATIVE_GRADE_METRICS_VERSION,
     validateHitsCumulative,
   );
   const hhr = await latestCumulative(
