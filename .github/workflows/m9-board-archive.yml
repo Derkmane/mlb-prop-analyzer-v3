@@ -12,12 +12,11 @@ on:
           - 'off'
           - 'on'
   schedule:
-    # 21:15 UTC is 4:15 PM Central during the MLB regular season. With the
-    # warm daily shard cache, the board snapshot should land roughly 60-80
-    # minutes before the common 5:35-6:10 PM Central evening starts, after
-    # substantially more official lineups are available but before first pitch.
-    # The existing strict pregame gate still excludes any earlier-starting game.
-    - cron: '15 21 * * *'
+    # Every 30 minutes. The controller performs one schedule read and captures
+    # only when an uncovered game is 40-110 minutes from first pitch, with an
+    # under-40-minute recovery band. A single missed scheduled run therefore
+    # leaves another normal-band look before recovery is needed.
+    - cron: '0,30 * * * *'
   push:
     branches:
       - agent/m9-board-archiving
@@ -44,7 +43,9 @@ jobs:
       M8_CURRENT_SEASON_SHARD_ROOT: artifacts/m8-current-season-pa/shards-2026
       M10_ARCHIVE_ROOT: artifacts/board-archives/batter-hits
       M10_HHR_ARCHIVE_ROOT: artifacts/board-archives/batter-hhr
-      # Live proof run 31512202775 passed with Phase 2 enrichment enabled.
+      M9_CAPTURE_CONTROLLER_PLAN: artifacts/workflow-logs/m9-capture-controller-plan.json
+      M9_HITS_REPLAY_RECEIPT: artifacts/workflow-logs/m9-board-replay-hits.json
+      M9_HHR_REPLAY_RECEIPT: artifacts/workflow-logs/m9-board-replay-hhr.json
       PHASE2_ENRICHMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.phase2_enrichment || 'on' }}
 
     steps:
@@ -56,21 +57,6 @@ jobs:
         with:
           node-version: 24
           package-manager-cache: false
-
-      - name: Install dependencies
-        run: npm install --ignore-scripts
-
-      - name: Build project
-        run: npm run build
-
-      - name: Restore verified current-season shards
-        id: restore-shards
-        uses: actions/cache/restore@v4
-        with:
-          path: artifacts/m8-current-season-pa/shards-2026
-          key: m8-current-season-shards-2026-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: |
-            m8-current-season-shards-2026-
 
       - name: Restore immutable Batter Hits archive ledger
         id: restore-board-archives
@@ -90,24 +76,58 @@ jobs:
           restore-keys: |
             m10-hhr-board-archive-ledger-
 
+      - name: Plan capture and take first board snapshot
+        id: capture-plan
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/workflow-logs
+          node scripts/m9-capture-controller.mjs plan 2>&1 | tee artifacts/workflow-logs/m9-capture-controller.log
+
+      - name: Install dependencies
+        if: steps.capture-plan.outputs.decision == 'CAPTURE'
+        run: npm install --ignore-scripts
+
+      - name: Build project
+        if: steps.capture-plan.outputs.decision == 'CAPTURE'
+        run: npm run build
+
+      - name: Restore verified current-season shards
+        if: steps.capture-plan.outputs.decision == 'CAPTURE'
+        id: restore-shards
+        uses: actions/cache/restore@v4
+        with:
+          path: artifacts/m8-current-season-pa/shards-2026
+          key: m8-current-season-shards-2026-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            m8-current-season-shards-2026-
+
       - name: Snapshot immutable archive ledgers
+        if: steps.capture-plan.outputs.decision == 'CAPTURE'
         run: |
           mkdir -p artifacts/workflow-logs
           node -e 'const fs=require("node:fs"),path=require("node:path");for(const [key,root] of [["hits","artifacts/board-archives/batter-hits"],["hhr","artifacts/board-archives/batter-hhr"]]){const dir=path.join(root,"captures");const names=fs.existsSync(dir)?fs.readdirSync(dir,{withFileTypes:true}).filter((entry)=>entry.isFile()&&entry.name.endsWith(".json")).map((entry)=>entry.name).sort():[];fs.writeFileSync(`artifacts/workflow-logs/${key}-captures-before.json`,`${JSON.stringify(names)}\n`);}'
 
       - name: Set history end date
+        if: steps.capture-plan.outputs.decision == 'CAPTURE'
         run: |
           node -e "const d=new Date();d.setUTCDate(d.getUTCDate()-1);process.stdout.write('M8_CAPTURE_END_DATE='+d.toISOString().slice(0,10)+'\n')" >> "$GITHUB_ENV"
 
       - name: Capture or resume verified historical shards
+        if: steps.capture-plan.outputs.decision == 'CAPTURE'
         run: node scripts/capture-m8-current-season-pa-shards.mjs
 
       - name: Run immutable M9 Batter Hits board archiver
         id: capture-hits
+        if: steps.capture-plan.outputs.decision == 'CAPTURE'
+        env:
+          M9_BOARD_SNAPSHOT_MANIFEST: ${{ steps.capture-plan.outputs.snapshot_manifest }}
+          M9_BOARD_SNAPSHOT_CONSUMER: hits
+          M9_BOARD_REPLAY_RECEIPT: ${{ env.M9_HITS_REPLAY_RECEIPT }}
+          M9_BOARD_SNAPSHOT_CAPTURED_AT: ${{ steps.capture-plan.outputs.snapshot_completed_at }}
         run: |
           set -euo pipefail
           mkdir -p artifacts/workflow-logs
-          node scripts/archive-m9-batter-hits-board.mjs 2>&1 | tee artifacts/workflow-logs/m9-board-archive.log
+          node --import ./scripts/m9-board-snapshot-preload.mjs scripts/archive-m9-batter-hits-board.mjs 2>&1 | tee artifacts/workflow-logs/m9-board-archive.log
 
       - name: Identify new immutable Batter Hits capture
         id: identify-hits-capture
@@ -118,10 +138,14 @@ jobs:
       - name: Run immutable HHR evidence archiver from the same prospective slate
         id: capture-hhr
         if: steps.capture-hits.outcome == 'success' && steps.identify-hits-capture.outcome == 'success'
+        env:
+          M9_BOARD_SNAPSHOT_MANIFEST: ${{ steps.capture-plan.outputs.snapshot_manifest }}
+          M9_BOARD_SNAPSHOT_CONSUMER: hhr
+          M9_BOARD_REPLAY_RECEIPT: ${{ env.M9_HHR_REPLAY_RECEIPT }}
         run: |
           set -euo pipefail
           mkdir -p artifacts/workflow-logs
-          node --import ./scripts/m10-hhr-raw-board-preload.mjs scripts/archive-m10-batter-hhr-board.mjs 2>&1 | tee artifacts/workflow-logs/m10-hhr-board-archive.log
+          node --import ./scripts/m9-board-snapshot-preload.mjs scripts/archive-m10-batter-hhr-board.mjs 2>&1 | tee artifacts/workflow-logs/m10-hhr-board-archive.log
 
       - name: Identify new immutable HHR capture
         id: identify-hhr-capture
@@ -151,6 +175,7 @@ jobs:
           printf 'hhr_path=%s\n' "${HHR_DISPLAY_PATH}" >> "$GITHUB_OUTPUT"
 
       - name: Upload full archives and diagnostics before repository persistence
+        id: upload-full-archives
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -164,7 +189,7 @@ jobs:
 
       - name: Persist trimmed display archives to repository
         id: persist-display-archives
-        if: always() && steps.build-display-archives.outcome == 'success'
+        if: always() && steps.build-display-archives.outcome == 'success' && steps.upload-full-archives.outcome == 'success'
         env:
           HITS_DISPLAY_PATH: ${{ steps.build-display-archives.outputs.hits_path }}
           HHR_DISPLAY_PATH: ${{ steps.build-display-archives.outputs.hhr_path }}
@@ -187,60 +212,109 @@ jobs:
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "chore: persist trimmed display archives [skip ci]"
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
-      - name: Save verified current-season shards
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: artifacts/m8-current-season-pa/shards-2026
-          key: m8-current-season-shards-2026-${{ github.run_id }}-${{ github.run_attempt }}
-
-      - name: Save immutable Batter Hits archive ledger
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: artifacts/board-archives/batter-hits
-          key: m9-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
-
-      - name: Save immutable HHR archive ledger
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: artifacts/board-archives/batter-hhr
-          key: m10-hhr-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
-
-      - name: Verify archive run status
-        if: always()
+      - name: Verify capture prerequisites before coverage
+        id: verify-precoverage
+        if: steps.capture-plan.outputs.decision == 'CAPTURE'
         env:
           HITS_CAPTURE_OUTCOME: ${{ steps.capture-hits.outcome }}
           HITS_IDENTIFY_OUTCOME: ${{ steps.identify-hits-capture.outcome }}
           HHR_CAPTURE_OUTCOME: ${{ steps.capture-hhr.outcome }}
           HHR_IDENTIFY_OUTCOME: ${{ steps.identify-hhr-capture.outcome }}
           DISPLAY_OUTCOME: ${{ steps.build-display-archives.outcome }}
+          UPLOAD_OUTCOME: ${{ steps.upload-full-archives.outcome }}
           PERSIST_OUTCOME: ${{ steps.persist-display-archives.outcome }}
         run: |
           set -euo pipefail
-          if [ "${HITS_CAPTURE_OUTCOME}" != "success" ]; then
-            echo "Batter Hits archive capture outcome: ${HITS_CAPTURE_OUTCOME}"
+          for pair in \
+            "Batter Hits archive capture:${HITS_CAPTURE_OUTCOME}" \
+            "Batter Hits capture identification:${HITS_IDENTIFY_OUTCOME}" \
+            "HHR archive capture:${HHR_CAPTURE_OUTCOME}" \
+            "HHR capture identification:${HHR_IDENTIFY_OUTCOME}" \
+            "Trimmed display archive build:${DISPLAY_OUTCOME}" \
+            "Full evidence upload:${UPLOAD_OUTCOME}" \
+            "Durable display persistence:${PERSIST_OUTCOME}"; do
+            label="${pair%%:*}"
+            outcome="${pair#*:}"
+            if [ "${outcome}" != "success" ]; then
+              echo "${label} outcome: ${outcome}; coverage will not be finalized."
+              exit 1
+            fi
+          done
+          echo "All capture prerequisites succeeded; coverage may be finalized."
+
+      - name: Finalize game coverage
+        id: finalize-coverage
+        if: steps.capture-plan.outputs.decision == 'CAPTURE' && steps.verify-precoverage.outcome == 'success'
+        run: node scripts/m9-capture-controller.mjs finalize
+
+      - name: Save verified current-season shards
+        if: always() && steps.capture-plan.outputs.decision == 'CAPTURE'
+        uses: actions/cache/save@v4
+        with:
+          path: artifacts/m8-current-season-pa/shards-2026
+          key: m8-current-season-shards-2026-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Save immutable HHR archive ledger
+        id: save-hhr-board-archives
+        if: steps.capture-plan.outputs.decision == 'NOOP' || steps.finalize-coverage.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: artifacts/board-archives/batter-hhr
+          key: m10-hhr-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Save immutable Batter Hits archive ledger
+        id: save-hits-board-archives
+        if: steps.capture-plan.outputs.decision == 'NOOP' || (steps.finalize-coverage.outcome == 'success' && steps.save-hhr-board-archives.outcome == 'success')
+        uses: actions/cache/save@v4
+        with:
+          path: artifacts/board-archives/batter-hits
+          key: m9-board-archive-ledger-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Verify archive run status
+        if: always()
+        env:
+          PLAN_OUTCOME: ${{ steps.capture-plan.outcome }}
+          PLAN_DECISION: ${{ steps.capture-plan.outputs.decision }}
+          HITS_CAPTURE_OUTCOME: ${{ steps.capture-hits.outcome }}
+          HITS_IDENTIFY_OUTCOME: ${{ steps.identify-hits-capture.outcome }}
+          HHR_CAPTURE_OUTCOME: ${{ steps.capture-hhr.outcome }}
+          HHR_IDENTIFY_OUTCOME: ${{ steps.identify-hhr-capture.outcome }}
+          COVERAGE_OUTCOME: ${{ steps.finalize-coverage.outcome }}
+          PRECOVERAGE_OUTCOME: ${{ steps.verify-precoverage.outcome }}
+          HHR_LEDGER_OUTCOME: ${{ steps.save-hhr-board-archives.outcome }}
+          HITS_LEDGER_OUTCOME: ${{ steps.save-hits-board-archives.outcome }}
+          DISPLAY_OUTCOME: ${{ steps.build-display-archives.outcome }}
+          PERSIST_OUTCOME: ${{ steps.persist-display-archives.outcome }}
+        run: |
+          set -euo pipefail
+          if [ "${PLAN_OUTCOME}" != "success" ]; then
+            echo "Capture controller outcome: ${PLAN_OUTCOME}"
             exit 1
           fi
-          if [ "${HITS_IDENTIFY_OUTCOME}" != "success" ]; then
-            echo "Batter Hits immutable capture identification outcome: ${HITS_IDENTIFY_OUTCOME}"
+          if [ "${PLAN_DECISION}" = "NOOP" ]; then
+            echo "Capture controller returned NOOP; no uncovered game is currently in the capture window."
+            exit 0
+          fi
+          if [ "${PLAN_DECISION}" != "CAPTURE" ]; then
+            echo "Unexpected capture controller decision: ${PLAN_DECISION}"
             exit 1
           fi
-          if [ "${HHR_CAPTURE_OUTCOME}" != "success" ]; then
-            echo "HHR archive capture outcome: ${HHR_CAPTURE_OUTCOME}"
-            exit 1
-          fi
-          if [ "${HHR_IDENTIFY_OUTCOME}" != "success" ]; then
-            echo "HHR immutable capture identification outcome: ${HHR_IDENTIFY_OUTCOME}"
-            exit 1
-          fi
-          if [ "${DISPLAY_OUTCOME}" != "success" ]; then
-            echo "Trimmed display archive build outcome: ${DISPLAY_OUTCOME}"
-            exit 1
-          fi
-          if [ "${PERSIST_OUTCOME}" != "success" ]; then
-            echo "Durable trimmed display archive persistence outcome: ${PERSIST_OUTCOME}"
-            exit 1
-          fi
-          echo "Both full captures remain in the archive ledger/artifact and both trimmed display archives were durably persisted."
+          for pair in \
+            "Batter Hits archive capture:${HITS_CAPTURE_OUTCOME}" \
+            "Batter Hits capture identification:${HITS_IDENTIFY_OUTCOME}" \
+            "HHR archive capture:${HHR_CAPTURE_OUTCOME}" \
+            "HHR capture identification:${HHR_IDENTIFY_OUTCOME}" \
+            "Pre-coverage verification:${PRECOVERAGE_OUTCOME}" \
+            "Coverage finalization:${COVERAGE_OUTCOME}" \
+            "HHR ledger durability:${HHR_LEDGER_OUTCOME}" \
+            "Batter Hits ledger durability:${HITS_LEDGER_OUTCOME}" \
+            "Trimmed display archive build:${DISPLAY_OUTCOME}" \
+            "Durable display persistence:${PERSIST_OUTCOME}"; do
+            label="${pair%%:*}"
+            outcome="${pair#*:}"
+            if [ "${outcome}" != "success" ]; then
+              echo "${label} outcome: ${outcome}"
+              exit 1
+            fi
+          done
+          echo "CAPTURE completed: both archivers consumed the first snapshot, coverage finalized, and display archives persisted."

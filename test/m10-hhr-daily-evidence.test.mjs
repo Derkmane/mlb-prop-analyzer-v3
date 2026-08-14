@@ -341,7 +341,7 @@ test('HHR cumulative evidence includes the Step 3 seed, fails duplicate capture 
 
 test('daily workflows keep full ledgers in cache/artifacts and durably commit only trimmed display and cumulative reports', async () => {
   const captureWorkflow = await readFile('.github/workflows/m9-board-archive.yml', 'utf8');
-  assert.match(captureWorkflow, /cron:\s*'15 21 \* \* \*'/u);
+  assert.match(captureWorkflow, /cron:\s*'0,30 \* \* \* \*'/u);
   assert.match(captureWorkflow, /permissions:\s*\n\s*contents:\s*write/u);
   assert.match(captureWorkflow, /Snapshot immutable archive ledgers/u);
   assert.match(captureWorkflow, /id:\s*capture-hits/u);

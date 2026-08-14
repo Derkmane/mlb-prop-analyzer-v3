@@ -339,7 +339,7 @@ test('daily capture and final-only grading workflows are scheduled, bounded, cac
     '.github/workflows/m9-board-archive.yml',
     'utf8',
   );
-  assert.match(captureWorkflow, /cron:\s*'15 21 \* \* \*'/u);
+  assert.match(captureWorkflow, /cron:\s*'0,30 \* \* \* \*'/u);
   assert.match(captureWorkflow, /timeout-minutes:\s*330/u);
   assert.match(captureWorkflow, /m9-board-archive-ledger-/u);
   assert.ok((captureWorkflow.match(/if:\s*always\(\)/gu) ?? []).length >= 3);
