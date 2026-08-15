@@ -254,7 +254,7 @@ export async function fetchMlbStatsProjectedLineup(
     'lineups.awayPlayers',
     selected.awayTeamName,
   );
-  const players = Object.freeze([...homePlayers, ...awayPlayers]);
+  const players = Object.freeze([...awayPlayers, ...homePlayers]);
   if (players.length === 0) {
     return Object.freeze({ ...common, status: 'unavailable' });
   }
