@@ -1,6 +1,6 @@
 # MLB Prop Analyzer — Canonical Math & Statistics Reference
 
-**Version:** 1.11
+**Version:** 1.12
 **Status:** Canonical probability mathematics
 **Empirical status:** Mathematical framework verified where marked; predictive accuracy not yet validated
 
@@ -519,6 +519,35 @@ Under Family B:
    The zero-mass component and the positive-count component
    together produce one final normalized PMF for T. They
    are not separate settlement distributions.
+
+   Under a hurdle form, the positive-count component may be
+   fitted only on observations with T >= 1 using the
+   corresponding zero-truncated likelihood:
+
+   Q_pos(t | x)
+     = Q(t | x) / [1-Q(0 | x)],
+       for t >= 1.
+
+   The positive-count component may estimate its mean
+   coefficients and dispersion parameter separately from
+   the zero-mass component under that zero-truncated
+   likelihood.
+
+   This positive-row fitting path does not authorize a new
+   conditioning-input contract or a different model
+   structure. The declared Family B conditioning inputs,
+   link function, offset role and fixed offset coefficient,
+   predictor order, and predictor standardization or other
+   declared transforms must remain unchanged unless a
+   separate canonical revision explicitly authorizes their
+   change.
+
+   Restricting the positive-component fitting likelihood to
+   T >= 1 changes only the fitting subset and likelihood for
+   that component. It does not authorize selected-side,
+   posted-line, multiplier, price, category, or settlement-
+   result inputs, line-specific statistic distributions, or
+   a runtime fallback.
 
 10. The zero-mass parameter pi(x) or rho(x) must be fitted
     and versioned from active-current-season evidence under
@@ -1414,6 +1443,117 @@ freezing, chronological validation, untouched testing,
 calibration, and production enablement remain subject to
 Sections 14, 17, and 18.
 
+#### HHR positive-count Stage 1 diagnostic — 2026-08-15
+
+Subsequent zero-mass candidate evaluation refined the
+earlier diagnosis above. The current defect is not adequately
+described as an isolated excess-zero process.
+
+The zero-mass-only development sequence tested scalar ZINB,
+scalar hurdle, conditioned ZINB, and conditioned hurdle.
+The conditioned-ZINB path included both the log(mu) form and
+the approved three-input form. None satisfied the required
+zero-mass and settlement-tail tolerances while the frozen
+positive-count mean and dispersion were held fixed.
+
+The conditioned hurdle isolated the positive-count
+distribution from the zero-mass component for the first
+time. A Stage 1 diagnostic therefore evaluated the 3,987
+fitting observations with T >= 1 under the frozen
+zero-truncated NB2 positive-count distribution. The
+original five fitted-mu bins were retained from the complete
+5,964-row fitting cohort.
+
+Observed-minus-predicted conditional mean gaps for
+E[T | T>=1] by fitted-mu bin were:
+
+bin 0   +0.2458095465
+bin 1   +0.0900069453
+bin 2   +0.1193160366
+bin 3   +0.1180341274
+bin 4   -0.0266851731
+
+Thus the frozen positive-count mean is systematically too
+low through the first four fitted-mu bins, with the bias
+approximately disappearing and slightly reversing only in
+the highest-mu bin.
+
+Observed-to-predicted conditional variance ratios by bin
+were:
+
+bin 0   1.3034204667
+bin 1   0.9098898377
+bin 2   0.9183746545
+bin 3   0.9560479544
+bin 4   0.8572370803
+
+Observed conditional variance therefore does not exceed the
+frozen zero-truncated NB2 prediction in most bins. General
+positive-count overdispersion is not supported as the
+primary remaining defect.
+
+The aggregate positive-row conditional PMF also shows a
+coherent shift away from the lowest positive count and
+toward intermediate positive counts. Observed-minus-
+predicted conditional PMF gaps were approximately:
+
+T=1    -0.03499
+T=2    -0.00734
+T=3    +0.01544
+T=4    +0.01540
+T=5    +0.00963
+T=6    +0.00273
+T=7    +0.00206
+T=8+   -0.00293
+
+The conditional means are not approximately matched, so
+the evidence does not support an isolated count-specific
+NB-family defect as the primary explanation.
+
+The resulting diagnosis is mean-structure misspecification
+caused by using one mean fit across both zero and positive
+observations. The all-row single-component fit allows the
+1,977 zero observations to pull the fitted mean downward.
+That depressed mean contributes simultaneously to the
+observed zero-mass error and to insufficient positive-count
+mass at higher counts. Zero-mass-only corrections cannot
+repair the positive-count mean while that frozen mean
+structure is retained.
+
+For the next HHR hurdle candidate, the positive-count NB2
+component is therefore authorized to refit its mean
+coefficients and dispersion parameter on the 3,987 rows
+with T >= 1 under the zero-truncated NB2 likelihood, as
+permitted by Section 8.3.2. The existing HHR Family B
+predictor set, predictor order, predictor standardization,
+log link, and expected-plate-appearances offset with fixed
+coefficient 1 remain unchanged. No new conditioning input
+is authorized.
+
+The successor candidate is accepted only if it satisfies the Section 17.46
+zero-mass and settlement-tail tolerances on every required fitted-mu bin:
+tau_zero <= 0.010 and tau_tail <= 0.010 at thresholds P(T=0), P(T>=1),
+P(T>=2), and P(T>=3), with complementary lower tails reported.
+
+The implied dispersion diagnostic remains reported but is not a rejection
+criterion for this candidate under the previously logged Item O ruling.
+Because the positive-count mean coefficients are refitted, alpha_implied may
+change and must be reported from the candidate's fitted mu values. Section
+17.46 alpha-gate scoping remains unresolved and is not amended in this
+revision.
+
+If the candidate fails any required bin at any required threshold, it is not
+frozen, the reserved untouched period is not read, and HHR remains
+production-disabled and ranking-disabled. A failed result may not be met by
+relaxing a canonical tolerance within this model version.
+
+The hurdle zero-mass component and the refitted
+positive-count component must still combine into one exact
+normalized PMF over T. This finding does not select or
+freeze the successor candidate, does not authorize access
+to reserved untouched evidence, and does not enable HHR
+production or ranking.
+
 ---
 
 ## 16. Verified worked example — Batter Hits
@@ -1878,7 +2018,7 @@ pooled fallback only when individual p_i are unavailable:
 p_bar = cohort mean predicted win probability
 E_pool = n p_bar
 V_pool = n p_bar(1-p_bar)
-Z_pool = (observedWins-E_pool) / sqrt(V_pool)
+Z_pool = (W-E_pool) / sqrt(V_pool)
 
 Two-stage soft-line path:
 p_base(d,L)  = exact selected-side settlement of D_base
@@ -1931,6 +2071,64 @@ no validated distribution → no ranked prop
 ---
 
 ## Changelog
+
+### Version 1.12 — 2026-08-15
+
+- Clarified the approved Family B hurdle fitting contract:
+  the positive-count component may be fitted on T >= 1
+  observations under its zero-truncated likelihood and may
+  estimate its own mean coefficients and dispersion
+  parameter separately from the hurdle zero-mass component.
+- Required that positive-row hurdle fitting preserve the
+  declared Family B conditioning-input contract, link,
+  offset role and fixed offset coefficient, predictor
+  order, and predictor standardization or other declared
+  transforms unless a separate canonical revision
+  explicitly authorizes their change.
+- Recorded the HHR Stage 1 positive-count diagnostic on
+  3,987 positive observations from the existing 5,964-row
+  current-season fitting cohort. Conditional mean gaps were
+  +0.2458095465, +0.0900069453, +0.1193160366,
+  +0.1180341274, and -0.0266851731 across the five
+  fitted-mu bins.
+- Recorded observed-to-predicted conditional variance
+  ratios of 1.3034204667, 0.9098898377, 0.9183746545,
+  0.9560479544, and 0.8572370803, rejecting general
+  positive-count overdispersion as the primary remaining
+  defect.
+- Recorded that scalar ZINB, scalar hurdle, conditioned
+  ZINB, and conditioned hurdle zero-mass-only development
+  paths failed to satisfy the required distribution-shape
+  tolerances while the frozen positive-count mean remained
+  fixed. The conditioned-ZINB path included both evaluated
+  conditioning forms.
+- Refined the HHR diagnosis from an isolated zero-mass
+  defect to single-mean misspecification: fitting one mean
+  across zero and positive observations depresses the mean
+  and contributes to both zero-mass error and insufficient
+  positive-count mass.
+- Authorized exactly one next HHR candidate path: retain
+  the existing six positive-count predictors, their order
+  and standardization, the log link, and expected-plate-
+  appearances offset with coefficient 1, while refitting
+  the positive-count mean coefficients and dispersionAlpha
+  on T >= 1 rows under the zero-truncated NB2 likelihood.
+- Preserved the requirement that the hurdle zero and
+  positive components form one exact analytic normalized
+  PMF and preserved all selected-side, line, multiplier,
+  price, category, and settlement-result input
+  prohibitions.
+- Predeclared the successor acceptance condition before fitting:
+  every required fitted-mu bin must satisfy tau_zero <= 0.010
+  and tau_tail <= 0.010 at P(T=0), P(T>=1), P(T>=2), and
+  P(T>=3), with complementary lower tails reported. Kept
+  alpha_implied informational under the separately logged Item O
+  ruling, required it to be recomputed from the candidate's fitted
+  mu values, prohibited post-result tolerance relaxation within
+  this model version, and left Section 17.46 unchanged.
+- Did not select or freeze a candidate, read reserved
+  untouched evidence, enable HHR production or ranking, or
+  alter Section 17.46.
 
 ### Version 1.11 — 2026-08-12
 
@@ -2087,7 +2285,7 @@ no validated distribution → no ranked prop
   branch where both apply.
 - Distinguished replacement factors, which substitute a complete terminal
   vector for a declared subset of plate appearances, from transformation
-  factors, which multiply a resulting vector elementwise and renormalize
+  factors, which multiply a resulting terminal vector elementwise and renormalize
   once across every plate appearance in scope.
 - Prohibited any plate appearance from receiving the same factor twice.
 - Added the category-support boundary: composition applies a factor only
