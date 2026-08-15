@@ -78,8 +78,9 @@ test('fetches schedule lineup hydration and preserves array order as batting slo
 });
 
 test('returns unavailable when the matched game has no lineup hydration yet', async () => {
-  const body = structuredClone(scheduleFixture);
-  delete (body.dates[0].games[0] as { lineups?: unknown }).lineups;
+  const baseGame = scheduleFixture.dates[0]!.games[0]!;
+  const { lineups: _lineups, ...gameWithoutLineups } = structuredClone(baseGame);
+  const body = { dates: [{ games: [gameWithoutLineups] }] };
   const result = await fetchMlbStatsProjectedLineup({
     gameDateUtc: '2026-08-15T22:10:00.000Z',
     homeTeamName: 'Tampa Bay Rays',
@@ -104,12 +105,21 @@ test('returns no-match rather than selecting the wrong game', async () => {
 });
 
 test('fails closed when two distinct gamePk values match the same teams and tolerance', async () => {
-  const body = structuredClone(scheduleFixture);
-  body.dates[0].games.push({
-    ...structuredClone(body.dates[0].games[0]),
-    gamePk: 822942,
-    gameDate: '2026-08-15T22:10:30Z',
-  });
+  const baseGame = scheduleFixture.dates[0]!.games[0]!;
+  const body = {
+    dates: [
+      {
+        games: [
+          structuredClone(baseGame),
+          {
+            ...structuredClone(baseGame),
+            gamePk: 822942,
+            gameDate: '2026-08-15T22:10:30Z',
+          },
+        ],
+      },
+    ],
+  };
   await assert.rejects(
     fetchMlbStatsProjectedLineup({
       gameDateUtc: '2026-08-15T22:10:00.000Z',
