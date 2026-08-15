@@ -472,7 +472,7 @@ Open question to resolve before adding captures: cumulative dedup retains the ne
 
 The UI reads committed archives. It does not depend on model validation or capture coverage. Continue independently.
 
-- [ ] Phase 5 — refresh button. Read-only, no request-time model or ranking compute.
+- [x] Phase 5 — refresh button. Read-only, no request-time model or ranking compute — implemented in merged PR #92; post-merge verify run `31820201741` passed 727/727 tests with the unchanged Phase 4 regression gate.
 - [ ] Surface capture coverage in the UI once Workstream 1 reports.
 - [ ] Item J — the trimmed display artifact lacks per-pick `p_i`, so §14.2 cannot be computed from it. When §14.2 is implemented, either extend the evidence path or have the display copy carry precomputed E, V, Z per cohort.
 
@@ -946,6 +946,7 @@ rejected without escalation.
 ### D1d — live scheduled-run acceptance
 
 - [x] Real scheduled NOOP proven by workflow run `31816364437`. The controller performed one schedule read, evaluated 14 provider events, returned NOOP because no uncovered game was inside the capture window, skipped all CAPTURE-only work, preserved ledger durability, and exited successfully.
-- [ ] Real scheduled CAPTURE proof pending. Required evidence remains: snapshot-first ordering, `runStartToSnapshotElapsedMs`, identical `snapshotSetSha256` across both replay receipts, both receipts complete, coverage written only after both archivers consumed the snapshot, HHR ledger saved before Batter Hits ledger, every claimed game's `boardSnapshotCompletedAt` strictly before first pitch, and full-day distinct-game coverage versus the actual MLB slate.
+- [x] Real scheduled CAPTURE proven by workflow run `31821096660`. The controller returned CAPTURE with 1 claimed game and `runStartToSnapshotElapsedMs=8043`. Batter Hits and HHR both replayed snapshot set SHA-256 `08ac45a2a1a49143fadf904a8a9550588d4ce5e5618c11f9493627b260dc1a3d` with `complete: true`. Coverage finalized only after both archivers consumed and verified that immutable snapshot; the HHR ledger was saved before the Batter Hits ledger. `boardSnapshotCompletedAt=2026-08-14T16:49:54.837Z`, strictly before St. Louis Cardinals at Chicago Cubs first pitch at `2026-08-14T18:20:00.000Z`; the other 13 games remained OUTSIDE_WINDOW for later scheduled runs.
+- [ ] Full-day distinct-game coverage versus the actual MLB slate remains pending until the complete 2026-08-14 slate has passed.
 
-Workstream 1 implementation is complete. Final live D1d CAPTURE and full-day coverage evidence remain open acceptance evidence and must be appended when observed.
+Workstream 1 implementation is complete. The scheduled NOOP and single-game CAPTURE subproofs are verified by runs 31816364437 and 31821096660. Overall D1d acceptance remains open until full-day distinct-game coverage versus the actual MLB slate is verified.
