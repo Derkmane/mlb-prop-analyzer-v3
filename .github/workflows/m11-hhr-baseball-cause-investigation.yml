@@ -1,0 +1,58 @@
+name: M11 HHR baseball cause investigation
+
+on:
+  push:
+    branches:
+      - agent/hhr-baseball-cause-investigation
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: m11-hhr-baseball-cause-investigation
+  cancel-in-progress: false
+
+jobs:
+  investigate:
+    name: Capture exact HHR baseball-cause evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+      HHR_CAUSE_SOURCE_ROOT: artifacts/source/batter-hhr
+      HHR_CAUSE_OUTPUT_ROOT: artifacts/m11/hhr/baseball-cause-investigation
+
+    steps:
+      - name: Check out diagnostic branch
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Download exact immutable HHR grading artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: m10-pending-archive-grades-31634804531-1
+          path: artifacts/source
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: Derkmane/mlb-prop-analyzer-v3
+          run-id: 31634804531
+
+      - name: Capture read-only baseball-cause evidence
+        run: node scripts/m11-hhr-baseball-cause-investigation.mjs
+
+      - name: Upload baseball-cause evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m11-hhr-baseball-cause-investigation-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 30
+          path: artifacts/m11/hhr/baseball-cause-investigation/raw-evidence.json
