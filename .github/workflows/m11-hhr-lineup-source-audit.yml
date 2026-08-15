@@ -48,11 +48,16 @@ jobs:
       - name: Run approved-source lineup audit
         run: node scripts/m11-hhr-lineup-source-audit.mjs
 
-      - name: Upload audit report
+      - name: Run current-team complete-nine gap audit
+        run: node scripts/m11-hhr-lineup-source-gap-audit.mjs
+
+      - name: Upload audit reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: m11-hhr-lineup-source-audit-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: error
           retention-days: 30
-          path: artifacts/diagnostics/m11-hhr-lineup-source-audit/report.json
+          path: |
+            artifacts/diagnostics/m11-hhr-lineup-source-audit/report.json
+            artifacts/diagnostics/m11-hhr-lineup-source-audit/current-team-gap-report.json
