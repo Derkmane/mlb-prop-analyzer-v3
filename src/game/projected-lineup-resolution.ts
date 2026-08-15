@@ -1,8 +1,7 @@
 import type { LineupSlot, LineupSourceStatus } from './contracts.js';
 
-export const PROJECTED_LINEUP_LOOKBACK_DAYS = 14;
 export const PROJECTED_LINEUP_EXCLUSION_REASON =
-  'no-slot-evidence-within-lookback' as const;
+  'no-current-or-projected-lineup-slot' as const;
 
 export interface CurrentLineupSlotEvidence {
   readonly gameId: string;
@@ -13,9 +12,9 @@ export interface CurrentLineupSlotEvidence {
   readonly sourceSnapshotSha256: string;
 }
 
-export interface HistoricalCompletedLineupStartEvidence {
-  readonly gameId: string;
-  readonly gameDateUtc: string;
+export interface ProjectedLineupSlotEvidence {
+  readonly sourceGameId: string;
+  readonly sourceGameDateUtc: string;
   readonly playerId: string;
   readonly teamId: string;
   readonly lineupSlot: LineupSlot;
@@ -25,12 +24,10 @@ export interface HistoricalCompletedLineupStartEvidence {
 
 export interface ResolveProjectedLineupSlotInput {
   readonly targetGameId: string;
-  readonly targetGameDateUtc: string;
   readonly playerId: string;
   readonly teamId: string;
   readonly currentGameEvidence: readonly CurrentLineupSlotEvidence[];
-  readonly historicalCompletedStarts: readonly HistoricalCompletedLineupStartEvidence[];
-  readonly lookbackDays?: number;
+  readonly projectedGameEvidence: readonly ProjectedLineupSlotEvidence[];
 }
 
 export interface ResolvedLineupSlot {
@@ -52,21 +49,6 @@ export type ProjectedLineupSlotResolution =
   | ResolvedLineupSlot
   | UnresolvedLineupSlot;
 
-function finiteTimestamp(value: string, label: string): number {
-  const timestamp = Date.parse(value);
-  if (!Number.isFinite(timestamp)) {
-    throw new TypeError(`${label} must be an ISO timestamp.`);
-  }
-  return timestamp;
-}
-
-function positiveLookbackDays(value: number): number {
-  if (!Number.isSafeInteger(value) || value <= 0) {
-    throw new RangeError('lookbackDays must be a positive integer.');
-  }
-  return value;
-}
-
 function evidenceMatches(
   evidence: Readonly<{
     playerId: string;
@@ -80,21 +62,13 @@ function evidenceMatches(
 
 /**
  * Resolves one expected starter's batting-order slot without making lineup
- * confirmation a model input. Current-game provider evidence wins. Otherwise,
- * the latest strictly-earlier completed start inside the approved lookback is
- * the active projected slot. No default or league-average slot exists.
+ * confirmation a model input. Exact current-game BALLDONTLIE evidence wins.
+ * Otherwise, the active approved projected-lineup source may supply the slot.
+ * No prior-game, default, or league-average slot fallback exists.
  */
 export function resolveProjectedLineupSlot(
   input: Readonly<ResolveProjectedLineupSlotInput>,
 ): ProjectedLineupSlotResolution {
-  const lookbackDays = positiveLookbackDays(
-    input.lookbackDays ?? PROJECTED_LINEUP_LOOKBACK_DAYS,
-  );
-  const targetTimestamp = finiteTimestamp(
-    input.targetGameDateUtc,
-    'targetGameDateUtc',
-  );
-
   const currentMatches = input.currentGameEvidence.filter(
     (evidence) =>
       evidence.gameId === input.targetGameId &&
@@ -118,26 +92,16 @@ export function resolveProjectedLineupSlot(
     });
   }
 
-  const maximumAgeMilliseconds = lookbackDays * 86_400_000;
-  const historical = input.historicalCompletedStarts
-    .filter((evidence) => {
-      if (!evidenceMatches(evidence, input.playerId, input.teamId)) return false;
-      const timestamp = finiteTimestamp(
-        evidence.gameDateUtc,
-        `historical game ${evidence.gameId} date`,
-      );
-      const age = targetTimestamp - timestamp;
-      return age > 0 && age <= maximumAgeMilliseconds;
-    })
-    .sort((left, right) => {
-      const dateOrder =
-        finiteTimestamp(right.gameDateUtc, 'right.gameDateUtc') -
-        finiteTimestamp(left.gameDateUtc, 'left.gameDateUtc');
-      return dateOrder || right.gameId.localeCompare(left.gameId);
-    });
-
-  const latest = historical[0];
-  if (latest === undefined) {
+  const projectedMatches = input.projectedGameEvidence.filter((evidence) =>
+    evidenceMatches(evidence, input.playerId, input.teamId),
+  );
+  if (projectedMatches.length > 1) {
+    throw new Error(
+      `Projected lineup evidence is ambiguous for player ${input.playerId} in game ${input.targetGameId}.`,
+    );
+  }
+  const projected = projectedMatches[0];
+  if (projected === undefined) {
     return Object.freeze({
       resolved: false,
       reason: PROJECTED_LINEUP_EXCLUSION_REASON,
@@ -147,10 +111,10 @@ export function resolveProjectedLineupSlot(
   return Object.freeze({
     resolved: true,
     lineupStatus: 'projected',
-    lineupSlot: latest.lineupSlot,
-    sourceGameId: latest.gameId,
-    sourceGameDateUtc: latest.gameDateUtc,
-    sourceCapturedAt: latest.sourceCapturedAt,
-    sourceSnapshotSha256: latest.sourceSnapshotSha256,
+    lineupSlot: projected.lineupSlot,
+    sourceGameId: projected.sourceGameId,
+    sourceGameDateUtc: projected.sourceGameDateUtc,
+    sourceCapturedAt: projected.sourceCapturedAt,
+    sourceSnapshotSha256: projected.sourceSnapshotSha256,
   });
 }
