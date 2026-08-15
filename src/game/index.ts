@@ -36,12 +36,11 @@ export {
 } from './named-hitter-opportunity.js';
 export {
   PROJECTED_LINEUP_EXCLUSION_REASON,
-  PROJECTED_LINEUP_LOOKBACK_DAYS,
   resolveProjectedLineupSlot,
 } from './projected-lineup-resolution.js';
 export type {
   CurrentLineupSlotEvidence,
-  HistoricalCompletedLineupStartEvidence,
+  ProjectedLineupSlotEvidence,
   ProjectedLineupSlotResolution,
   ResolvedLineupSlot,
   ResolveProjectedLineupSlotInput,

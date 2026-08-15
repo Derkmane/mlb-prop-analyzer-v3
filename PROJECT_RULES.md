@@ -1,6 +1,6 @@
 # MLB Prop Analyzer --- Project Rules
 
-**Version:** 2.10\
+**Version:** 2.11\
 **Status:** Canonical project rules\
 **Applies to:** MLB Prop Analyzer V3\
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
@@ -279,11 +279,33 @@ Used for verified available MLB data including:
 -   players
 -   games
 -   schedules
--   lineups
+-   confirmed current-game lineups
 -   statistics
 -   plate appearances
 -   plays
 -   current-season information exposed by the approved API
+
+For lineup resolution, an exact BALLDONTLIE current-game batting-order
+row has precedence over every projected-lineup source.
+
+### MLB Stats API (`statsapi.mlb.com`)
+
+Approved only for pregame projected starting-player and batting-order
+evidence when BALLDONTLIE does not expose an exact current-game lineup
+row for that player.
+
+Rules:
+
+-   use only verified MLB Stats API schedule/lineup response fields
+-   preserve the MLB Stats API game, player, batting-order, capture-time,
+    and source-snapshot lineage used for a projected slot
+-   do not use MLB Stats API performance statistics, probabilities,
+    prices, settlement data, or other model inputs under this approval
+-   MLB Stats API projected evidence may not overwrite an exact
+    BALLDONTLIE current-game batting-order row
+-   if neither BALLDONTLIE current-game evidence nor MLB Stats API
+    projected evidence supplies a unique slot for the player, fail
+    closed and do not inherit a batting order from an earlier game
 
 Not allowed without explicit approval:
 
@@ -1130,6 +1152,24 @@ There is no separate Project Knowledge deliverable.
 ------------------------------------------------------------------------
 
 ## Changelog
+
+### Version 2.11 — 2026-08-15
+
+-   Approved MLB Stats API (`statsapi.mlb.com`) only for pregame
+    projected starting-player and batting-order evidence when an exact
+    BALLDONTLIE current-game lineup row is absent.
+-   Preserved BALLDONTLIE current-game lineup precedence and required
+    MLB Stats projected evidence to preserve game, player, batting-order,
+    capture-time, and source-snapshot lineage.
+-   Prohibited MLB Stats API performance statistics or other model inputs
+    under this source approval.
+-   Removed authorization for inheriting a projected batting-order slot
+    from an earlier game: when neither current BALLDONTLIE evidence nor
+    MLB Stats projected evidence supplies a unique slot, lineup
+    resolution fails closed.
+-   Preserved projected status as display-only metadata with no
+    probability, eligibility, void, confidence, category, or ranking
+    penalty.
 
 ### Version 2.10 — 2026-08-05
 

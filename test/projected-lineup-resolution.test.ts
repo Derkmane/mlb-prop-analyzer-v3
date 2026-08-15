@@ -5,91 +5,77 @@ import {
   PROJECTED_LINEUP_EXCLUSION_REASON,
   resolveProjectedLineupSlot,
   type CurrentLineupSlotEvidence,
-  type HistoricalCompletedLineupStartEvidence,
+  type ProjectedLineupSlotEvidence,
 } from '../src/game/index.js';
-
-const targetGameDateUtc = '2026-08-08T19:05:00.000Z';
 
 function current(
   lineupSlot: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9,
 ): CurrentLineupSlotEvidence {
   return Object.freeze({
-    gameId: 'today',
+    gameId: 'bdl-today',
     playerId: '42',
     teamId: '7',
     lineupSlot,
-    sourceCapturedAt: '2026-08-08T14:00:00.000Z',
+    sourceCapturedAt: '2026-08-15T18:00:00.000Z',
     sourceSnapshotSha256: 'a'.repeat(64),
   });
 }
 
-function historical(
-  gameId: string,
-  gameDateUtc: string,
+function projected(
   lineupSlot: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9,
-): HistoricalCompletedLineupStartEvidence {
+): ProjectedLineupSlotEvidence {
   return Object.freeze({
-    gameId,
-    gameDateUtc,
+    sourceGameId: '822941',
+    sourceGameDateUtc: '2026-08-15T22:10:00.000Z',
     playerId: '42',
     teamId: '7',
     lineupSlot,
-    sourceCapturedAt: '2026-08-08T14:01:00.000Z',
+    sourceCapturedAt: '2026-08-15T18:00:01.000Z',
     sourceSnapshotSha256: 'b'.repeat(64),
   });
 }
 
-test('current-game slot wins and is confirmed even when historical evidence exists', () => {
+test('current BALLDONTLIE slot wins and is confirmed when projected evidence also exists', () => {
   const result = resolveProjectedLineupSlot({
-    targetGameId: 'today',
-    targetGameDateUtc,
+    targetGameId: 'bdl-today',
     playerId: '42',
     teamId: '7',
     currentGameEvidence: [current(3)],
-    historicalCompletedStarts: [
-      historical('yesterday', '2026-08-07T19:05:00.000Z', 1),
-    ],
+    projectedGameEvidence: [projected(2)],
   });
 
   assert.equal(result.resolved, true);
   if (!result.resolved) return;
   assert.equal(result.lineupStatus, 'confirmed');
   assert.equal(result.lineupSlot, 3);
-  assert.equal(result.sourceGameId, 'today');
+  assert.equal(result.sourceGameId, 'bdl-today');
+  assert.equal(result.sourceGameDateUtc, null);
 });
 
-test('latest strictly-earlier completed start inside 14 days supplies the projected slot', () => {
+test('projected source supplies the slot only when current BALLDONTLIE evidence is absent', () => {
   const result = resolveProjectedLineupSlot({
-    targetGameId: 'today',
-    targetGameDateUtc,
+    targetGameId: 'bdl-today',
     playerId: '42',
     teamId: '7',
     currentGameEvidence: [],
-    historicalCompletedStarts: [
-      historical('older', '2026-08-03T19:05:00.000Z', 6),
-      historical('latest', '2026-08-07T23:05:00.000Z', 2),
-      historical('future', '2026-08-08T20:05:00.000Z', 9),
-      historical('too-old', '2026-07-24T19:04:59.000Z', 8),
-    ],
+    projectedGameEvidence: [projected(2)],
   });
 
   assert.equal(result.resolved, true);
   if (!result.resolved) return;
   assert.equal(result.lineupStatus, 'projected');
   assert.equal(result.lineupSlot, 2);
-  assert.equal(result.sourceGameId, 'latest');
+  assert.equal(result.sourceGameId, '822941');
+  assert.equal(result.sourceGameDateUtc, '2026-08-15T22:10:00.000Z');
 });
 
-test('no current or in-lookback prior start fails closed with the authorized exclusion', () => {
+test('no current or projected slot fails closed instead of inheriting a prior-game slot', () => {
   const result = resolveProjectedLineupSlot({
-    targetGameId: 'today',
-    targetGameDateUtc,
+    targetGameId: 'bdl-today',
     playerId: '42',
     teamId: '7',
     currentGameEvidence: [],
-    historicalCompletedStarts: [
-      historical('too-old', '2026-07-24T19:04:59.000Z', 8),
-    ],
+    projectedGameEvidence: [],
   });
 
   assert.deepEqual(result, {
@@ -98,17 +84,30 @@ test('no current or in-lookback prior start fails closed with the authorized exc
   });
 });
 
-test('ambiguous current-game evidence fails closed instead of selecting or defaulting a slot', () => {
+test('ambiguous current-game evidence fails closed', () => {
   assert.throws(
     () =>
       resolveProjectedLineupSlot({
-        targetGameId: 'today',
-        targetGameDateUtc,
+        targetGameId: 'bdl-today',
         playerId: '42',
         teamId: '7',
         currentGameEvidence: [current(3), current(4)],
-        historicalCompletedStarts: [],
+        projectedGameEvidence: [projected(2)],
       }),
     /Current lineup evidence is ambiguous/u,
+  );
+});
+
+test('ambiguous projected evidence fails closed', () => {
+  assert.throws(
+    () =>
+      resolveProjectedLineupSlot({
+        targetGameId: 'bdl-today',
+        playerId: '42',
+        teamId: '7',
+        currentGameEvidence: [],
+        projectedGameEvidence: [projected(2), projected(5)],
+      }),
+    /Projected lineup evidence is ambiguous/u,
   );
 });
