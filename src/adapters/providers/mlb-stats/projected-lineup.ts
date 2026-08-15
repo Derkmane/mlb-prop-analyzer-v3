@@ -103,9 +103,9 @@ function lineupPlayers(
     rows.map((raw, index) => {
       const player = object(raw, `${label}[${index}]`);
       return Object.freeze({
-        mlbPlayerId: positiveInteger(player.id, `${label}[${index}].id`),
+        mlbPlayerId: positiveInteger(player['id'], `${label}[${index}].id`),
         playerName: nonemptyString(
-          player.fullName,
+          player['fullName'],
           `${label}[${index}].fullName`,
         ),
         teamName,
@@ -163,7 +163,8 @@ export async function fetchMlbStatsProjectedLineup(
     requestUrl: url.toString(),
   });
 
-  const dates = array(object(body, 'MLB Stats schedule').dates, 'MLB Stats schedule.dates');
+  const schedule = object(body, 'MLB Stats schedule');
+  const dates = array(schedule['dates'], 'MLB Stats schedule.dates');
   const candidates: Array<{
     readonly providerGamePk: number;
     readonly gameDateUtc: string;
@@ -174,22 +175,28 @@ export async function fetchMlbStatsProjectedLineup(
   }> = [];
 
   for (const [dateIndex, rawDate] of dates.entries()) {
-    const games = array(
-      object(rawDate, `dates[${dateIndex}]`).games,
-      `dates[${dateIndex}].games`,
-    );
+    const date = object(rawDate, `dates[${dateIndex}]`);
+    const games = array(date['games'], `dates[${dateIndex}].games`);
     for (const [gameIndex, rawGame] of games.entries()) {
       const label = `dates[${dateIndex}].games[${gameIndex}]`;
       const game = object(rawGame, label);
-      const teams = object(game.teams, `${label}.teams`);
-      const home = object(object(teams.home, `${label}.teams.home`).team, `${label}.teams.home.team`);
-      const away = object(object(teams.away, `${label}.teams.away`).team, `${label}.teams.away.team`);
-      const candidateHome = nonemptyString(home.name, `${label}.teams.home.team.name`);
-      const candidateAway = nonemptyString(away.name, `${label}.teams.away.team.name`);
+      const teams = object(game['teams'], `${label}.teams`);
+      const homeSide = object(teams['home'], `${label}.teams.home`);
+      const awaySide = object(teams['away'], `${label}.teams.away`);
+      const home = object(homeSide['team'], `${label}.teams.home.team`);
+      const away = object(awaySide['team'], `${label}.teams.away.team`);
+      const candidateHome = nonemptyString(
+        home['name'],
+        `${label}.teams.home.team.name`,
+      );
+      const candidateAway = nonemptyString(
+        away['name'],
+        `${label}.teams.away.team.name`,
+      );
       if (candidateHome !== homeTeamName || candidateAway !== awayTeamName) continue;
       const gameDateUtc = new Date(
         finiteTimestamp(
-          nonemptyString(game.gameDate, `${label}.gameDate`),
+          nonemptyString(game['gameDate'], `${label}.gameDate`),
           `${label}.gameDate`,
         ),
       ).toISOString();
@@ -199,16 +206,17 @@ export async function fetchMlbStatsProjectedLineup(
       if (differenceMilliseconds > input.maximumStartDifferenceMilliseconds) {
         continue;
       }
+      const rawLineups = game['lineups'];
       candidates.push(
         Object.freeze({
-          providerGamePk: positiveInteger(game.gamePk, `${label}.gamePk`),
+          providerGamePk: positiveInteger(game['gamePk'], `${label}.gamePk`),
           gameDateUtc,
           homeTeamName: candidateHome,
           awayTeamName: candidateAway,
           lineups:
-            game.lineups === undefined || game.lineups === null
+            rawLineups === undefined || rawLineups === null
               ? null
-              : object(game.lineups, `${label}.lineups`),
+              : object(rawLineups, `${label}.lineups`),
           differenceMilliseconds,
         }),
       );
@@ -230,16 +238,19 @@ export async function fetchMlbStatsProjectedLineup(
       left.providerGamePk - right.providerGamePk,
   );
   const selected = candidates[0];
+  if (selected === undefined) {
+    return Object.freeze({ ...common, status: 'no-match' });
+  }
   if (selected.lineups === null) {
     return Object.freeze({ ...common, status: 'unavailable' });
   }
   const homePlayers = lineupPlayers(
-    selected.lineups.homePlayers,
+    selected.lineups['homePlayers'],
     'lineups.homePlayers',
     selected.homeTeamName,
   );
   const awayPlayers = lineupPlayers(
-    selected.lineups.awayPlayers,
+    selected.lineups['awayPlayers'],
     'lineups.awayPlayers',
     selected.awayTeamName,
   );
