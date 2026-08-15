@@ -1,0 +1,50 @@
+name: M11 HHR scratch-rate diagnostic
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/hhr-scratch-rate-diagnostic
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  diagnose:
+    name: Measure committed graded HHR scratch rate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+      M10_HHR_ARCHIVE_ROOT: artifacts/board-archives/batter-hhr
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Restore immutable HHR archive and grade ledger
+        uses: actions/cache/restore@v4
+        with:
+          path: artifacts/board-archives/batter-hhr
+          key: m11-hhr-scratch-rate-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            m10-hhr-board-archive-ledger-
+
+      - name: Measure scratch rate from committed graded evidence
+        run: node scripts/m11-hhr-scratch-rate-diagnostic.mjs
+
+      - name: Upload diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m11-hhr-scratch-rate-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 30
+          path: artifacts/diagnostics/m11-hhr-scratch-rate/report.json
