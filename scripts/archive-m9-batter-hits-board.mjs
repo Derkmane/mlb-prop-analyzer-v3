@@ -3,7 +3,10 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { rankPredictionCandidates } from '../dist/src/application/index.js';
-import { loadFrozenBatterHitsProbabilityArtifactsFromFiles } from '../dist/src/adapters/index.js';
+import {
+  fetchMlbStatsProjectedLineup,
+  loadFrozenBatterHitsProbabilityArtifactsFromFiles,
+} from '../dist/src/adapters/index.js';
 import { classifyBallDontLieTerminalPa } from '../dist/src/adapters/providers/balldontlie/index.js';
 import {
   connectFrozenBatterHitsProbabilityOutput,
@@ -16,10 +19,7 @@ import {
   resolveBatterSideAgainstVerifiedStarter,
   verifyM8_5GameOffensiveEnvironmentModelArtifactV1,
 } from '../dist/src/features/batter-hits/index.js';
-import {
-  PROJECTED_LINEUP_LOOKBACK_DAYS,
-  resolveProjectedLineupSlot,
-} from '../dist/src/game/index.js';
+import { resolveProjectedLineupSlot } from '../dist/src/game/index.js';
 import { createBdlAdaptiveRateLimiter } from './bdl-adaptive-rate-limit-utils.mjs';
 import {
   attachPhase2DisplayEnrichment,
@@ -619,6 +619,10 @@ export function resolveExactBallDontLiePlayerIdentity({
       player.full_name,
       `${label}.full_name`,
     );
+    const batsThrows = nonemptyString(
+      player.bats_throws,
+      `${label}.bats_throws`,
+    );
     const team = playerLookupTeam(player, label);
     const rejectionReasons = [];
     if (firstName !== expectedFirstName) {
@@ -638,6 +642,7 @@ export function resolveExactBallDontLiePlayerIdentity({
       firstName,
       lastName,
       fullName,
+      batsThrows,
       providerTeamId: team.id,
       teamName: team.displayName,
       rejectionReasons: Object.freeze(rejectionReasons),
@@ -688,6 +693,7 @@ export function resolveExactBallDontLiePlayerIdentity({
       providerTeamId: match.providerTeamId,
       playerName: match.fullName,
       teamName: match.teamName,
+      batsThrows: match.batsThrows,
     }),
   });
 }
@@ -850,11 +856,33 @@ export function resolveActiveLineupIdentities({
   });
 }
 
+function normalizedResolvedHitterFromCurrentRow(row, label) {
+  const player = lineupPlayer(row, `${label}.player row`);
+  const team = lineupTeam(row, `${label}.team row`);
+  return Object.freeze({
+    providerPlayerId: player.id,
+    providerTeamId: team.id,
+    playerName: player.fullName,
+    teamName: team.displayName,
+    batsThrows: player.batsThrows,
+  });
+}
+
+function normalizedResolvedHitterFromIdentity(identity) {
+  return Object.freeze({
+    providerPlayerId: positiveInteger(identity.providerPlayerId, 'identity.providerPlayerId'),
+    providerTeamId: positiveInteger(identity.providerTeamId, 'identity.providerTeamId'),
+    playerName: exactName(identity.playerName, 'identity.playerName'),
+    teamName: exactName(identity.teamName, 'identity.teamName'),
+    batsThrows: nonemptyString(identity.batsThrows, 'identity.batsThrows'),
+  });
+}
+
 export function resolveProjectedLineupIdentity({
   game,
   identity: rawIdentity,
   currentLineups,
-  historicalLineups,
+  projectedLineup,
 }) {
   const identity = object(rawIdentity, 'identity');
   const gameId = positiveInteger(game.id, 'game.id');
@@ -864,17 +892,6 @@ export function resolveProjectedLineupIdentity({
   );
   const teamId = positiveInteger(identity.providerTeamId, 'identity.providerTeamId');
   const currentRows = lineupRows(currentLineups.body);
-  const historyRows =
-    historicalLineups === null ? [] : lineupRows(historicalLineups.lineups.body);
-  const historicalGameById = new Map(
-    (historicalLineups?.games ?? []).map((rawGame) => {
-      const historicalGame = object(rawGame, 'historical game');
-      return [
-        positiveInteger(historicalGame.id, 'historical game.id'),
-        historicalGame,
-      ];
-    }),
-  );
 
   const currentEvidence = currentRows.flatMap((raw, index) => {
     const row = object(raw, `current lineups[${index}]`);
@@ -900,70 +917,72 @@ export function resolveProjectedLineupIdentity({
     ];
   });
 
-  const historicalEvidence = historyRows.flatMap((raw, index) => {
-    const row = object(raw, `historical lineups[${index}]`);
-    const slot = battingOrder(row);
-    const historicalGame = historicalGameById.get(row.game_id);
-    if (
-      historicalGame === undefined ||
-      row.is_probable_pitcher !== false ||
-      slot === null ||
-      lineupPlayer(row, `historical lineups[${index}]`).id !== playerId ||
-      lineupTeam(row, `historical lineups[${index}]`).id !== teamId
-    ) {
-      return [];
-    }
-    return [
-      {
-        gameId: String(row.game_id),
-        gameDateUtc: normalizedGameDateUtc(
-          historicalGame,
-          `historical game ${row.game_id}`,
-        ),
-        playerId: String(playerId),
-        teamId: String(teamId),
-        lineupSlot: slot,
-        sourceCapturedAt: historicalLineups.lineups.capturedAt,
-        sourceSnapshotSha256: historicalLineups.lineups.combinedSha256,
-      },
-    ];
-  });
+  const projectedEvidence =
+    projectedLineup?.status === 'available'
+      ? projectedLineup.players.flatMap((player) => {
+          if (
+            exactName(player.playerName, 'projected player.playerName') !==
+              exactName(identity.playerName, 'identity.playerName') ||
+            exactName(player.teamName, 'projected player.teamName') !==
+              exactName(identity.teamName, 'identity.teamName')
+          ) {
+            return [];
+          }
+          return [
+            {
+              sourceGameId: String(projectedLineup.providerGamePk),
+              sourceGameDateUtc: projectedLineup.gameDateUtc,
+              playerId: String(playerId),
+              teamId: String(teamId),
+              lineupSlot: player.lineupSlot,
+              sourceCapturedAt: projectedLineup.sourceCapturedAt,
+              sourceSnapshotSha256: projectedLineup.sourceSnapshotSha256,
+            },
+          ];
+        })
+      : [];
 
   const resolution = resolveProjectedLineupSlot({
     targetGameId: String(gameId),
-    targetGameDateUtc: normalizedGameDateUtc(game, 'target game'),
     playerId: String(playerId),
     teamId: String(teamId),
     currentGameEvidence: currentEvidence,
-    historicalCompletedStarts: historicalEvidence,
-    lookbackDays: PROJECTED_LINEUP_LOOKBACK_DAYS,
+    projectedGameEvidence: projectedEvidence,
   });
   if (!resolution.resolved) {
-    return Object.freeze({ identity, resolution, row: null });
+    return Object.freeze({ identity, resolution, hitter: null });
   }
 
-  const sourceRows =
-    resolution.lineupStatus === 'confirmed' ? currentRows : historyRows;
-  const sourceGameId = Number(resolution.sourceGameId);
-  const selectedRows = sourceRows.filter((raw, index) => {
-    const row = object(raw, `resolved source lineups[${index}]`);
-    return (
-      row.game_id === sourceGameId &&
-      row.is_probable_pitcher === false &&
-      battingOrder(row) === resolution.lineupSlot &&
-      lineupPlayer(row, `resolved source lineups[${index}]`).id === playerId &&
-      lineupTeam(row, `resolved source lineups[${index}]`).id === teamId
-    );
-  });
-  if (selectedRows.length !== 1) {
-    throw new Error(
-      `Resolved lineup source for ${identity.offerPlayerName} must have exactly one row; found ${selectedRows.length}.`,
-    );
+  if (resolution.lineupStatus === 'confirmed') {
+    const selectedRows = currentRows.filter((raw, index) => {
+      const row = object(raw, `resolved current lineup[${index}]`);
+      return (
+        row.game_id === gameId &&
+        row.is_probable_pitcher === false &&
+        battingOrder(row) === resolution.lineupSlot &&
+        lineupPlayer(row, `resolved current lineup[${index}]`).id === playerId &&
+        lineupTeam(row, `resolved current lineup[${index}]`).id === teamId
+      );
+    });
+    if (selectedRows.length !== 1) {
+      throw new Error(
+        `Resolved current lineup source for ${identity.offerPlayerName} must have exactly one row; found ${selectedRows.length}.`,
+      );
+    }
+    return Object.freeze({
+      identity,
+      resolution,
+      hitter: normalizedResolvedHitterFromCurrentRow(
+        selectedRows[0],
+        `resolved current lineup ${identity.offerPlayerName}`,
+      ),
+    });
   }
+
   return Object.freeze({
     identity,
     resolution,
-    row: selectedRows[0],
+    hitter: normalizedResolvedHitterFromIdentity(identity),
   });
 }
 
@@ -971,7 +990,7 @@ export function resolveProjectedLineupIdentities({
   event,
   game,
   currentLineups,
-  historicalLineups,
+  projectedLineup,
   identities,
 }) {
   const resolutions = [];
@@ -984,7 +1003,7 @@ export function resolveProjectedLineupIdentities({
         game,
         identity,
         currentLineups,
-        historicalLineups,
+        projectedLineup,
       });
       if (!resolved.resolution.resolved) {
         lineupExclusions.push(
@@ -1032,18 +1051,35 @@ function runtimeObservation({
     lineup.resolution,
     `resolved lineup ${offer.playerName}.resolution`,
   );
-  if (resolution.resolved !== true || lineup.row === null || lineup.row === undefined) {
+  if (resolution.resolved !== true || lineup.hitter === null || lineup.hitter === undefined) {
     throw new Error(`Offer ${offer.playerName} requires one resolved lineup slot.`);
   }
-  const hitter = object(lineup.row, `hitter ${offer.playerName}`);
-  const hitterPlayer = lineupPlayer(hitter, `hitter ${offer.playerName}`);
-  const hitterTeam = lineupTeam(hitter, `hitter ${offer.playerName}`);
+  const hitter = object(lineup.hitter, `hitter ${offer.playerName}`);
+  const hitterPlayerId = positiveInteger(
+    hitter.providerPlayerId,
+    `hitter ${offer.playerName}.providerPlayerId`,
+  );
+  const hitterTeamId = positiveInteger(
+    hitter.providerTeamId,
+    `hitter ${offer.playerName}.providerTeamId`,
+  );
+  const hitterName = exactName(
+    hitter.playerName,
+    `hitter ${offer.playerName}.playerName`,
+  );
+  const hitterBatsThrows = nonemptyString(
+    hitter.batsThrows,
+    `hitter ${offer.playerName}.batsThrows`,
+  );
+  if (hitterPlayerId !== offer.providerPlayerId || hitterTeamId !== offer.providerTeamId) {
+    throw new Error(`Offer ${offer.playerName} resolved hitter identity drifted.`);
+  }
   const starters = rows.filter((raw, index) => {
     const row = object(raw, `lineups[${index}]`);
     return (
       row.game_id === gameId &&
       row.is_probable_pitcher === true &&
-      lineupTeam(row, `lineups[${index}]`).id !== hitterTeam.id
+      lineupTeam(row, `lineups[${index}]`).id !== hitterTeamId
     );
   });
   if (starters.length !== 1) {
@@ -1059,15 +1095,15 @@ function runtimeObservation({
     `${starterPlayer.fullName} bats_throws`,
   );
   const declaredHand = declaredBatterHand(
-    hitterPlayer.batsThrows,
-    `${hitterPlayer.fullName} bats_throws`,
+    hitterBatsThrows,
+    `${hitterName} bats_throws`,
   );
   const homeTeamId = positiveInteger(game.home_team?.id, 'game.home_team.id');
   const awayTeamId = positiveInteger(game.away_team?.id, 'game.away_team.id');
   const teamSide =
-    hitterTeam.id === homeTeamId
+    hitterTeamId === homeTeamId
       ? 'home'
-      : hitterTeam.id === awayTeamId
+      : hitterTeamId === awayTeamId
         ? 'away'
         : null;
   if (teamSide === null) {
@@ -1081,7 +1117,7 @@ function runtimeObservation({
     teamSide,
     ...(typeof game.venue === 'string' ? { venue: game.venue } : {}),
     lineupSlot: resolution.lineupSlot,
-    rawBatterBatsThrows: hitterPlayer.batsThrows,
+    rawBatterBatsThrows: hitterBatsThrows,
     declaredBatterHand: declaredHand,
     batterSide: resolveBatterSideAgainstVerifiedStarter(
       declaredHand,
@@ -1178,130 +1214,6 @@ async function captureLineups({ gameId, fetchBdl }) {
     gameIds: [gameId],
     fetchBdl,
     labelPrefix: `BALLDONTLIE lineups game ${gameId}`,
-  });
-}
-
-export async function captureProjectedLineupHistory({
-  game,
-  fetchBdl,
-  gameSnapshotCache = new Map(),
-}) {
-  if (!(gameSnapshotCache instanceof Map)) {
-    throw new TypeError('gameSnapshotCache must be a Map.');
-  }
-  const targetGameId = positiveInteger(game.id, 'game.id');
-  const targetGameDateUtc = normalizedGameDateUtc(
-    game,
-    'projected-lineup target game',
-  );
-  const targetTimestamp = Date.parse(targetGameDateUtc);
-  const homeTeamId = positiveInteger(game.home_team?.id, 'game.home_team.id');
-  const awayTeamId = positiveInteger(game.away_team?.id, 'game.away_team.id');
-  const earliestTimestamp =
-    targetTimestamp - PROJECTED_LINEUP_LOOKBACK_DAYS * 86_400_000;
-  const targetDateMidnight = Date.parse(
-    `${targetGameDateUtc.slice(0, 10)}T00:00:00.000Z`,
-  );
-  const dates = [];
-  for (
-    let offset = -PROJECTED_LINEUP_LOOKBACK_DAYS;
-    offset <= 0;
-    offset += 1
-  ) {
-    dates.push(
-      new Date(targetDateMidnight + offset * 86_400_000)
-        .toISOString()
-        .slice(0, 10),
-    );
-  }
-
-  const newSnapshots = [];
-  const historicalById = new Map();
-  for (const date of dates) {
-    let snapshot = gameSnapshotCache.get(date);
-    if (snapshot === undefined) {
-      const url = new URL('https://api.balldontlie.io/mlb/v1/games');
-      url.searchParams.append('dates[]', date);
-      url.searchParams.set('season_type', 'regular');
-      url.searchParams.set('per_page', '100');
-      snapshot = await fetchBdl({
-        label: `BALLDONTLIE projected-lineup history games ${date}`,
-        url,
-        requireNonemptyRecords: false,
-      });
-      gameSnapshotCache.set(date, snapshot);
-      newSnapshots.push(snapshot);
-    }
-    const gameRows = array(
-      object(snapshot.parsedBody, `history games ${date}`).data,
-      `history games ${date}.data`,
-    );
-    for (const raw of gameRows) {
-      const historicalGame = object(raw, `history game ${date}`);
-      const gameId = positiveInteger(historicalGame.id, 'history game.id');
-      if (
-        gameId === targetGameId ||
-        historicalGame.season !== ACTIVE_SEASON ||
-        historicalGame.postseason !== false ||
-        historicalGame.season_type !== 'regular' ||
-        historicalGame.status !== 'STATUS_FINAL'
-      ) {
-        continue;
-      }
-      const gameTimestamp = Date.parse(
-        normalizedGameDateUtc(historicalGame, `history game ${gameId}`),
-      );
-      if (gameTimestamp >= targetTimestamp || gameTimestamp < earliestTimestamp) {
-        continue;
-      }
-      const historicalHomeTeamId = positiveInteger(
-        historicalGame.home_team?.id,
-        `history game ${gameId} home team`,
-      );
-      const historicalAwayTeamId = positiveInteger(
-        historicalGame.away_team?.id,
-        `history game ${gameId} away team`,
-      );
-      if (
-        historicalHomeTeamId !== homeTeamId &&
-        historicalAwayTeamId !== homeTeamId &&
-        historicalHomeTeamId !== awayTeamId &&
-        historicalAwayTeamId !== awayTeamId
-      ) {
-        continue;
-      }
-      historicalById.set(gameId, historicalGame);
-    }
-  }
-
-  const games = [...historicalById.values()].sort(
-    (left, right) =>
-      Date.parse(normalizedGameDateUtc(left, 'left historical game')) -
-        Date.parse(normalizedGameDateUtc(right, 'right historical game')) ||
-      left.id - right.id,
-  );
-  if (games.length === 0) {
-    return Object.freeze({
-      games: Object.freeze([]),
-      lineups: Object.freeze({
-        snapshots: Object.freeze([]),
-        body: Object.freeze({ data: Object.freeze([]) }),
-        capturedAt: targetGameDateUtc,
-        combinedSha256: sha256Bytes(Buffer.from('[]')),
-      }),
-      snapshots: Object.freeze(newSnapshots),
-    });
-  }
-
-  const lineups = await captureLineupsForGameIds({
-    gameIds: games.map((historicalGame) => historicalGame.id),
-    fetchBdl,
-    labelPrefix: `BALLDONTLIE projected-lineup history for game ${targetGameId}`,
-  });
-  return Object.freeze({
-    games: Object.freeze(games),
-    lineups,
-    snapshots: Object.freeze([...newSnapshots, ...lineups.snapshots]),
   });
 }
 
@@ -1669,7 +1581,6 @@ export async function runM9ProspectiveBoardArchive({
     const environmentEvidence = [];
     const displayPlayerByKey = new Map();
     const playerLookupDiagnosticState = { printed: 0 };
-    const projectedLineupGameSnapshotCache = new Map();
 
     const eventsUrl = new URL(
       'https://api.the-odds-api.com/v4/sports/baseball_mlb/events',
@@ -1879,19 +1790,46 @@ export async function runM9ProspectiveBoardArchive({
         lineupsSnapshot: lineups.body,
         identities: identities.identities,
       });
-      let historicalLineups = null;
+      let projectedLineup = null;
       if (confirmedOnly.identities.length !== identities.identities.length) {
+        let statsCapturedAt = null;
         try {
-          historicalLineups = await captureProjectedLineupHistory({
-            game,
-            fetchBdl,
-            gameSnapshotCache: projectedLineupGameSnapshotCache,
+          projectedLineup = await fetchMlbStatsProjectedLineup({
+            gameDateUtc: normalizedGameDateUtc(game, 'projected-lineup target game'),
+            homeTeamName: exactName(game.home_team_name, 'game.home_team_name'),
+            awayTeamName: exactName(game.away_team_name, 'game.away_team_name'),
+            maximumStartDifferenceMilliseconds:
+              M9_GAME_COMMENCE_MATCH_POLICY.maximumAbsoluteDifferenceMilliseconds,
+            fetchImpl: async (input) => {
+              const url = input instanceof URL ? input : new URL(String(input));
+              const snapshot = await fetchExactJsonSnapshot({
+                provider: 'MLB Stats API',
+                label: `MLB Stats projected lineup game ${game.id}`,
+                url,
+                requireNonemptyRecords: false,
+              });
+              providerSnapshots.push(snapshot);
+              statsCapturedAt = snapshot.capturedAt;
+              return new Response(
+                Buffer.from(snapshot.rawBody.base64, 'base64'),
+                {
+                  status: snapshot.response.status,
+                  statusText: snapshot.response.statusText,
+                  headers: snapshot.response.headers,
+                },
+              );
+            },
+            now: () => {
+              if (statsCapturedAt === null) {
+                throw new Error('MLB Stats capture timestamp was not preserved.');
+              }
+              return new Date(statsCapturedAt);
+            },
           });
-          providerSnapshots.push(...historicalLineups.snapshots);
         } catch (error) {
           exclusions.push({
             providerEventId: event.id,
-            reason: 'PROJECTED_LINEUP_HISTORY_FAILED_CLOSED',
+            reason: 'PROJECTED_LINEUP_SOURCE_FAILED_CLOSED',
             detail: error instanceof Error ? error.message : String(error),
           });
         }
@@ -1900,7 +1838,7 @@ export async function runM9ProspectiveBoardArchive({
         event,
         game,
         currentLineups: lineups,
-        historicalLineups,
+        projectedLineup,
         identities: identities.identities,
       });
       const lineupSurvived = offerCountForNames(
