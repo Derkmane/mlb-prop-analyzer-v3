@@ -1,0 +1,36 @@
+name: M11 HHR expected PA diagnostic
+
+on:
+  push:
+    branches:
+      - agent/hhr-expected-pa-diagnostic
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: Measure frozen HHR expected PA bias
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out diagnostic branch
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Run read-only expected PA diagnostic
+        run: node scripts/m11-hhr-expected-pa-diagnostic.mjs
+
+      - name: Upload aggregate diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: m11-hhr-expected-pa-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/m11/hhr/expected-pa-diagnostic.json
+          if-no-files-found: error
+          retention-days: 30
