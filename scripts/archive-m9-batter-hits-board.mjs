@@ -619,10 +619,6 @@ export function resolveExactBallDontLiePlayerIdentity({
       player.full_name,
       `${label}.full_name`,
     );
-    const batsThrows = nonemptyString(
-      player.bats_throws,
-      `${label}.bats_throws`,
-    );
     const team = playerLookupTeam(player, label);
     const rejectionReasons = [];
     if (firstName !== expectedFirstName) {
@@ -642,7 +638,7 @@ export function resolveExactBallDontLiePlayerIdentity({
       firstName,
       lastName,
       fullName,
-      batsThrows,
+      rawBatsThrows: player.bats_throws,
       providerTeamId: team.id,
       teamName: team.displayName,
       rejectionReasons: Object.freeze(rejectionReasons),
@@ -693,7 +689,9 @@ export function resolveExactBallDontLiePlayerIdentity({
       providerTeamId: match.providerTeamId,
       playerName: match.fullName,
       teamName: match.teamName,
-      batsThrows: match.batsThrows,
+      ...(match.rawBatsThrows === undefined
+        ? {}
+        : { batsThrows: match.rawBatsThrows }),
     }),
   });
 }
@@ -874,7 +872,7 @@ function normalizedResolvedHitterFromIdentity(identity) {
     providerTeamId: positiveInteger(identity.providerTeamId, 'identity.providerTeamId'),
     playerName: exactName(identity.playerName, 'identity.playerName'),
     teamName: exactName(identity.teamName, 'identity.teamName'),
-    batsThrows: nonemptyString(identity.batsThrows, 'identity.batsThrows'),
+    batsThrows: identity.batsThrows,
   });
 }
 
