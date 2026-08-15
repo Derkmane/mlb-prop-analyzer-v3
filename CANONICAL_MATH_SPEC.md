@@ -2018,7 +2018,7 @@ pooled fallback only when individual p_i are unavailable:
 p_bar = cohort mean predicted win probability
 E_pool = n p_bar
 V_pool = n p_bar(1-p_bar)
-Z_pool = (W-E_pool) / sqrt(V_pool)
+Z_pool = (observedWins-E_pool) / sqrt(V_pool)
 
 Two-stage soft-line path:
 p_base(d,L)  = exact selected-side settlement of D_base
@@ -2285,7 +2285,7 @@ no validated distribution → no ranked prop
   branch where both apply.
 - Distinguished replacement factors, which substitute a complete terminal
   vector for a declared subset of plate appearances, from transformation
-  factors, which multiply a resulting terminal vector elementwise and renormalize
+  factors, which multiply a resulting vector elementwise and renormalize
   once across every plate appearance in scope.
 - Prohibited any plate appearance from receiving the same factor twice.
 - Added the category-support boundary: composition applies a factor only
