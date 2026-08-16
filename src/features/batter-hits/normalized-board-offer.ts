@@ -23,6 +23,7 @@ export const batterHitsPlayerIdentitySchema = z
     providerTeamId: z.number().int().positive(),
     playerName: z.string().min(1),
     teamName: z.string().min(1),
+    batsThrows: z.string().min(1).optional(),
   })
   .strict();
 

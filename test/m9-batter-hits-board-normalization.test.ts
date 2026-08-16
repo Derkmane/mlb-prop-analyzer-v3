@@ -182,6 +182,18 @@ test('normalizes committed Underdog baseline and alternate offers with exact sid
   assert.equal('pWinGivenGrades' in baselineLower, false);
 });
 
+test('accepts BDL bats/throws metadata on resolved player identities used by projected lineups', () => {
+  const identities = resolvedIdentities().map((identity) => ({
+    ...identity,
+    batsThrows: 'R/R',
+  }));
+
+  const board = normalize(readRawBoard(), identities);
+
+  assert.equal(board.offers.length, 34);
+  assert.equal(board.rejectedOffers.length, 2);
+});
+
 test('fails each event-scoped player with zero or multiple identity matches closed', () => {
   const identities = resolvedIdentities();
   const gavinSheets = identities.find(
