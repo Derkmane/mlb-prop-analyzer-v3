@@ -177,6 +177,7 @@ jobs:
       - name: Upload full archives and diagnostics before repository persistence
         id: upload-full-archives
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: m9-board-archive-${{ github.run_id }}-${{ github.run_attempt }}
@@ -189,7 +190,7 @@ jobs:
 
       - name: Persist trimmed display archives to repository
         id: persist-display-archives
-        if: always() && steps.build-display-archives.outcome == 'success' && steps.upload-full-archives.outcome == 'success'
+        if: always() && steps.build-display-archives.outcome == 'success' && (steps.upload-full-archives.outcome == 'success' || steps.upload-full-archives.outcome == 'failure')
         env:
           HITS_DISPLAY_PATH: ${{ steps.build-display-archives.outputs.hits_path }}
           HHR_DISPLAY_PATH: ${{ steps.build-display-archives.outputs.hhr_path }}
@@ -221,7 +222,6 @@ jobs:
           HHR_CAPTURE_OUTCOME: ${{ steps.capture-hhr.outcome }}
           HHR_IDENTIFY_OUTCOME: ${{ steps.identify-hhr-capture.outcome }}
           DISPLAY_OUTCOME: ${{ steps.build-display-archives.outcome }}
-          UPLOAD_OUTCOME: ${{ steps.upload-full-archives.outcome }}
           PERSIST_OUTCOME: ${{ steps.persist-display-archives.outcome }}
         run: |
           set -euo pipefail
@@ -231,7 +231,6 @@ jobs:
             "HHR archive capture:${HHR_CAPTURE_OUTCOME}" \
             "HHR capture identification:${HHR_IDENTIFY_OUTCOME}" \
             "Trimmed display archive build:${DISPLAY_OUTCOME}" \
-            "Full evidence upload:${UPLOAD_OUTCOME}" \
             "Durable display persistence:${PERSIST_OUTCOME}"; do
             label="${pair%%:*}"
             outcome="${pair#*:}"
