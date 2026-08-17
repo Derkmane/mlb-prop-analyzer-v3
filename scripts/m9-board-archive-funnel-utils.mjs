@@ -104,16 +104,63 @@ function stageDefinition(stageKey) {
   return definition;
 }
 
-export function selectM9PregameEventsForCapture({ rawEvents, capturedAt }) {
+function configuredClaimedEventIds() {
+  const raw = process.env.M9_BOARD_CLAIMED_EVENT_IDS?.trim();
+  if (!raw) return null;
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error('M9_BOARD_CLAIMED_EVENT_IDS must be a JSON array.');
+  }
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new Error('M9_BOARD_CLAIMED_EVENT_IDS must contain at least one event ID.');
+  }
+  const ids = parsed.map((value, index) =>
+    nonemptyString(value, `M9_BOARD_CLAIMED_EVENT_IDS[${index}]`),
+  );
+  if (new Set(ids).size !== ids.length) {
+    throw new Error('M9_BOARD_CLAIMED_EVENT_IDS must contain unique event IDs.');
+  }
+  return Object.freeze(ids);
+}
+
+export function selectM9PregameEventsForCapture({
+  rawEvents,
+  capturedAt,
+  claimedEventIds = configuredClaimedEventIds(),
+}) {
   const rows = array(rawEvents, 'The Odds API events');
   const captureTimestamp = isoTimestamp(capturedAt, 'capturedAt');
   const capturedMilliseconds = Date.parse(captureTimestamp);
+  const claimSet =
+    claimedEventIds === null
+      ? null
+      : new Set(
+          array(claimedEventIds, 'claimedEventIds').map((value, index) =>
+            nonemptyString(value, `claimedEventIds[${index}]`),
+          ),
+        );
+  if (claimSet !== null && claimSet.size === 0) {
+    throw new Error('claimedEventIds must contain at least one event ID.');
+  }
+  if (
+    claimSet !== null &&
+    claimSet.size !== array(claimedEventIds, 'claimedEventIds').length
+  ) {
+    throw new Error('claimedEventIds must contain unique event IDs.');
+  }
   const events = [];
   const drops = [];
+  const providerEventIds = new Set();
 
   rows.forEach((raw, index) => {
     const event = object(raw, `events[${index}]`);
     const eventId = nonemptyString(event.id, `events[${index}].id`);
+    if (providerEventIds.has(eventId)) {
+      throw new Error(`The Odds API events contain duplicate event ID ${eventId}.`);
+    }
+    providerEventIds.add(eventId);
     const sportKey = nonemptyString(
       event.sport_key,
       `events[${index}].sport_key`,
@@ -158,8 +205,34 @@ export function selectM9PregameEventsForCapture({ rawEvents, capturedAt }) {
       );
       return;
     }
+    if (claimSet !== null && !claimSet.has(eventId)) {
+      drops.push(
+        Object.freeze({
+          eventId,
+          commenceTimeUtc,
+          reason: 'outside controller claim',
+        }),
+      );
+      return;
+    }
     events.push(normalized);
   });
+
+  if (claimSet !== null) {
+    const missing = [...claimSet].filter((eventId) => !providerEventIds.has(eventId));
+    if (missing.length > 0) {
+      throw new Error(
+        `Controller claimed event IDs absent from replayed provider schedule: ${missing.join(', ')}.`,
+      );
+    }
+    const selectedIds = new Set(events.map((event) => event.eventId));
+    const notSelected = [...claimSet].filter((eventId) => !selectedIds.has(eventId));
+    if (notSelected.length > 0) {
+      throw new Error(
+        `Controller claimed event IDs failed the pregame event gate: ${notSelected.join(', ')}.`,
+      );
+    }
+  }
 
   events.sort(
     (left, right) =>
