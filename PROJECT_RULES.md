@@ -1,6 +1,6 @@
 # MLB Prop Analyzer --- Project Rules
 
-**Version:** 2.11\
+**Version:** 2.12\
 **Status:** Canonical project rules\
 **Applies to:** MLB Prop Analyzer V3\
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
@@ -286,26 +286,29 @@ Used for verified available MLB data including:
 -   current-season information exposed by the approved API
 
 For lineup resolution, an exact BALLDONTLIE current-game batting-order
-row has precedence over every projected-lineup source.
+row has precedence over MLB Stats API posted-lineup evidence.
 
 ### MLB Stats API (`statsapi.mlb.com`)
 
-Approved only for pregame projected starting-player and batting-order
-evidence when BALLDONTLIE does not expose an exact current-game lineup
-row for that player.
+Approved only for pregame posted current-game starting-player and
+batting-order evidence when BALLDONTLIE does not expose an exact
+current-game lineup row for that player.
 
 Rules:
 
 -   use only verified MLB Stats API schedule/lineup response fields
 -   preserve the MLB Stats API game, player, batting-order, capture-time,
-    and source-snapshot lineage used for a projected slot
+    and source-snapshot lineage used for a confirmed posted slot
 -   do not use MLB Stats API performance statistics, probabilities,
     prices, settlement data, or other model inputs under this approval
--   MLB Stats API projected evidence may not overwrite an exact
+-   a unique MLB Stats API posted lineup slot is confirmed lineup evidence,
+    not projected lineup evidence
+-   MLB Stats API posted lineup evidence may not overwrite an exact
     BALLDONTLIE current-game batting-order row
--   if neither BALLDONTLIE current-game evidence nor MLB Stats API
-    projected evidence supplies a unique slot for the player, fail
-    closed and do not inherit a batting order from an earlier game
+-   if neither BALLDONTLIE current-game evidence nor MLB Stats API posted
+    lineup evidence supplies a unique slot for the player, fail closed for
+    that capture attempt, leave the game eligible for a later scheduled
+    capture, and do not inherit a batting order from an earlier game
 
 Not allowed without explicit approval:
 
@@ -1152,6 +1155,21 @@ There is no separate Project Knowledge deliverable.
 ------------------------------------------------------------------------
 
 ## Changelog
+
+### Version 2.12 — 2026-08-17
+
+-   Corrected the MLB Stats API classification after direct live evidence
+    showed `schedule?hydrate=lineups` returns posted current-game lineup
+    data when available rather than a dependable pregame projection feed.
+-   Restricted MLB Stats API use to posted current-game starting-player
+    and batting-order evidence when an exact BALLDONTLIE current-game row
+    is absent, and classified a unique accepted MLB Stats slot as confirmed.
+-   Preserved exact BALLDONTLIE current-game lineup precedence, source
+    lineage, fail-closed behavior, and later scheduled retry when neither
+    approved source supplies a unique current-game slot.
+-   Added no projection model, confidence adjustment, third source,
+    probability change, eligibility penalty, category change, or ranking
+    change.
 
 ### Version 2.11 — 2026-08-15
 
