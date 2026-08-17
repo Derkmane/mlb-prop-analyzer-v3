@@ -3,6 +3,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   captureFirstBoardSnapshot,
+  REPLAY_CONTRACT,
   sha256Bytes,
   SNAPSHOT_CONTRACT,
 } from './m9-board-snapshot-preload.mjs';
@@ -10,8 +11,12 @@ import {
 export const NORMAL_WINDOW_MINUTES = 40;
 export const NORMAL_WINDOW_MAX_MINUTES = 110;
 export const BOARD_RUN_CONTRACT = 'm9-schedule-aware-board-run-v1';
-export const COVERAGE_CONTRACT = 'm9-game-coverage-receipt-v1';
-const REPLAY_CONTRACT = 'm9-board-snapshot-replay-receipt-v1';
+export const COVERAGE_CONTRACT = 'm9-game-coverage-receipt-v2';
+const LEGACY_COVERAGE_CONTRACT = 'm9-game-coverage-receipt-v1';
+const COVERAGE_CONTRACTS = new Set([
+  LEGACY_COVERAGE_CONTRACT,
+  COVERAGE_CONTRACT,
+]);
 
 const iso = (value) => new Date(value).toISOString();
 const gameKey = (event) => `${event.eventId}@${event.commenceTimeUtc}`;
@@ -149,8 +154,11 @@ async function coveredGames(root) {
     .filter((item) => item.isFile() && item.name.endsWith('.json'))
     .sort((a, b) => a.name.localeCompare(b.name))) {
     const receipt = await readJson(path.join(directory, entry.name));
-    if (receipt.contract !== COVERAGE_CONTRACT) {
+    if (!COVERAGE_CONTRACTS.has(receipt.contract)) {
       throw new Error(`Unknown coverage receipt contract: ${entry.name}`);
+    }
+    if (!Array.isArray(receipt.coveredGames)) {
+      throw new Error(`Coverage receipt has no coveredGames array: ${entry.name}`);
     }
     for (const game of receipt.coveredGames) covered.add(game.gameIdentity);
   }
@@ -263,6 +271,7 @@ export async function planBoardRun({
 function verifyReplay(receipt, consumer, manifest) {
   if (
     receipt.contract !== REPLAY_CONTRACT ||
+    receipt.version !== 2 ||
     receipt.consumer !== consumer ||
     receipt.complete !== true
   ) {
@@ -285,6 +294,171 @@ function verifyReplay(receipt, consumer, manifest) {
   }
 }
 
+function eventId(value, label) {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`${label} must be a nonempty event ID.`);
+  }
+  return value;
+}
+
+function safeArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function hhrEventByGameId(hhrArchive) {
+  const result = new Map();
+  for (const game of safeArray(hhrArchive.games)) {
+    if (
+      Number.isSafeInteger(game?.gameId) &&
+      typeof game?.providerEventId === 'string' &&
+      game.providerEventId.length > 0
+    ) {
+      result.set(game.gameId, game.providerEventId);
+    }
+  }
+  return result;
+}
+
+function hhrExclusionEventId(exclusion, byGameId) {
+  if (
+    typeof exclusion?.providerEventId === 'string' &&
+    exclusion.providerEventId.length > 0
+  ) {
+    return exclusion.providerEventId;
+  }
+  if (Number.isSafeInteger(exclusion?.gameId)) {
+    return byGameId.get(exclusion.gameId) ?? null;
+  }
+  return null;
+}
+
+export function decideClaimedGameCoverage({
+  claimedGames,
+  hitsArchive,
+  hhrArchive,
+}) {
+  if (!Array.isArray(claimedGames) || claimedGames.length === 0) {
+    throw new Error('Coverage decision requires claimed games.');
+  }
+  const claimedIds = claimedGames.map((game, index) =>
+    eventId(game?.eventId, `claimedGames[${index}].eventId`),
+  );
+  if (new Set(claimedIds).size !== claimedIds.length) {
+    throw new Error('Coverage decision received duplicate claimed event IDs.');
+  }
+  const claimSet = new Set(claimedIds);
+
+  const hitsPregameIds = new Set(
+    safeArray(hitsArchive?.pregameEvents).map((event, index) =>
+      eventId(event?.eventId, `hitsArchive.pregameEvents[${index}].eventId`),
+    ),
+  );
+  if (
+    hitsPregameIds.size !== claimSet.size ||
+    [...claimSet].some((id) => !hitsPregameIds.has(id))
+  ) {
+    throw new Error('Hits archive pregame event scope differs from controller claims.');
+  }
+
+  const hitsReady = new Set(
+    safeArray(hitsArchive?.rankedRows)
+      .map((row) => row?.normalizedOffer?.providerEventId)
+      .filter((id) => typeof id === 'string' && claimSet.has(id)),
+  );
+  const hitsBlocked = new Set();
+  let hitsUnscopedExclusion = false;
+  for (const exclusion of safeArray(hitsArchive?.exclusions)) {
+    if (
+      typeof exclusion?.providerEventId === 'string' &&
+      claimSet.has(exclusion.providerEventId)
+    ) {
+      hitsBlocked.add(exclusion.providerEventId);
+    } else if (
+      exclusion?.providerEventId === undefined ||
+      exclusion?.providerEventId === null
+    ) {
+      hitsUnscopedExclusion = true;
+    }
+  }
+
+  const hhrByGameId = hhrEventByGameId(hhrArchive);
+  const hhrResolved = new Set(
+    [...hhrByGameId.values()].filter((id) => claimSet.has(id)),
+  );
+  const hhrReady = new Set(
+    safeArray(hhrArchive?.rows)
+      .map((row) => row?.providerEventId)
+      .filter((id) => typeof id === 'string' && claimSet.has(id)),
+  );
+  const hhrBlocked = new Set();
+  let hhrUnscopedExclusion = false;
+  for (const exclusion of safeArray(hhrArchive?.exclusions)) {
+    const id = hhrExclusionEventId(exclusion, hhrByGameId);
+    if (id !== null && claimSet.has(id)) {
+      hhrBlocked.add(id);
+    } else if (id === null) {
+      hhrUnscopedExclusion = true;
+    }
+  }
+
+  const coveredEventIds = [];
+  const deferredGames = [];
+  for (const game of claimedGames) {
+    const reasons = [];
+    if (!hitsReady.has(game.eventId)) reasons.push('hits-no-ranked-candidate');
+    if (hitsBlocked.has(game.eventId) || hitsUnscopedExclusion) {
+      reasons.push('hits-has-unresolved-exclusion');
+    }
+    if (!hhrResolved.has(game.eventId)) reasons.push('hhr-game-not-resolved');
+    if (!hhrReady.has(game.eventId)) reasons.push('hhr-no-evidence-row');
+    if (hhrBlocked.has(game.eventId) || hhrUnscopedExclusion) {
+      reasons.push('hhr-has-unresolved-exclusion');
+    }
+    if (reasons.length === 0) {
+      coveredEventIds.push(game.eventId);
+    } else {
+      deferredGames.push(
+        Object.freeze({
+          eventId: game.eventId,
+          gameIdentity: game.gameIdentity,
+          reasons: Object.freeze(reasons),
+        }),
+      );
+    }
+  }
+
+  return Object.freeze({
+    coveredEventIds: Object.freeze(coveredEventIds),
+    deferredGames: Object.freeze(deferredGames),
+  });
+}
+
+async function archiveCapturedAt(root, capturedAt, label) {
+  const directory = path.join(root, 'captures');
+  const prefix = `${iso(capturedAt).replace(/[-:.]/gu, '')}--`;
+  const entries = await readdir(directory, { withFileTypes: true });
+  const matches = entries
+    .filter(
+      (entry) =>
+        entry.isFile() &&
+        entry.name.startsWith(prefix) &&
+        entry.name.endsWith('.json'),
+    )
+    .map((entry) => entry.name)
+    .sort();
+  if (matches.length !== 1) {
+    throw new Error(
+      `${label} coverage finalization expected exactly one capture at ${capturedAt}; found ${matches.length}.`,
+    );
+  }
+  const filePath = path.join(directory, matches[0]);
+  const value = await readJson(filePath);
+  if (iso(value.capturedAt) !== iso(capturedAt)) {
+    throw new Error(`${label} capture timestamp drifted during coverage finalization.`);
+  }
+  return Object.freeze({ filePath, value });
+}
+
 export async function finalizeCoverage({
   planPath = path.resolve(
     process.env.M9_CAPTURE_CONTROLLER_PLAN?.trim() ||
@@ -302,6 +476,10 @@ export async function finalizeCoverage({
     process.env.M10_ARCHIVE_ROOT?.trim() ||
       'artifacts/board-archives/batter-hits',
   ),
+  hhrRoot = path.resolve(
+    process.env.M10_HHR_ARCHIVE_ROOT?.trim() ||
+      'artifacts/board-archives/batter-hhr',
+  ),
   now = () => new Date().toISOString(),
   output = process.stdout,
 } = {}) {
@@ -312,6 +490,7 @@ export async function finalizeCoverage({
   const manifest = await readJson(plan.snapshotManifestPath);
   if (
     manifest.contract !== SNAPSHOT_CONTRACT ||
+    manifest.version !== 2 ||
     manifest.snapshotSetSha256 !== plan.snapshotSetSha256
   ) {
     throw new Error('Plan/snapshot identity mismatch.');
@@ -325,8 +504,19 @@ export async function finalizeCoverage({
     plan.claimedGames,
   );
 
+  const [hitsCapture, hhrCapture] = await Promise.all([
+    archiveCapturedAt(root, plan.boardSnapshotCompletedAt, 'Batter Hits'),
+    archiveCapturedAt(hhrRoot, plan.boardSnapshotCompletedAt, 'HHR'),
+  ]);
+  const coverageDecision = decideClaimedGameCoverage({
+    claimedGames: plan.claimedGames,
+    hitsArchive: hitsCapture.value,
+    hhrArchive: hhrCapture.value,
+  });
+  const coveredIds = new Set(coverageDecision.coveredEventIds);
+
   const receipt = Object.freeze({
-    version: 1,
+    version: 2,
     contract: COVERAGE_CONTRACT,
     snapshotId: manifest.snapshotId,
     snapshotSetSha256: manifest.snapshotSetSha256,
@@ -335,17 +525,24 @@ export async function finalizeCoverage({
     runStartToSnapshotElapsedMs: manifest.runStartToSnapshotElapsedMs,
     finalizedAt: iso(now()),
     coveredGames: Object.freeze(
-      plan.claimedGames.map((game) =>
-        Object.freeze({
-          eventId: game.eventId,
-          commenceTimeUtc: game.commenceTimeUtc,
-          homeTeamName: game.homeTeamName,
-          awayTeamName: game.awayTeamName,
-          gameIdentity: game.gameIdentity,
-          captureBand: game.classification,
-        }),
-      ),
+      plan.claimedGames
+        .filter((game) => coveredIds.has(game.eventId))
+        .map((game) =>
+          Object.freeze({
+            eventId: game.eventId,
+            commenceTimeUtc: game.commenceTimeUtc,
+            homeTeamName: game.homeTeamName,
+            awayTeamName: game.awayTeamName,
+            gameIdentity: game.gameIdentity,
+            captureBand: game.classification,
+          }),
+        ),
     ),
+    deferredGames: coverageDecision.deferredGames,
+    archiveEvidence: Object.freeze({
+      hitsCapturePath: hitsCapture.filePath,
+      hhrCapturePath: hhrCapture.filePath,
+    }),
     replayEvidence: Object.freeze({
       hitsReceiptSha256: sha256Bytes(hitsBytes),
       hhrReceiptSha256: sha256Bytes(hhrBytes),
@@ -363,7 +560,7 @@ export async function finalizeCoverage({
   );
   await appendOutputs({ coverage_receipt: receiptPath });
   output.write(
-    `M9 COVERAGE FINALIZED\tcovered=${receipt.coveredGames.length}\tsnapshotSetSha256=${manifest.snapshotSetSha256}\n`,
+    `M9 COVERAGE FINALIZED\tcovered=${receipt.coveredGames.length}\tdeferred=${receipt.deferredGames.length}\tsnapshotSetSha256=${manifest.snapshotSetSha256}\n`,
   );
   return Object.freeze({ receipt, receiptPath });
 }
