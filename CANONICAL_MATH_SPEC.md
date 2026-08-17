@@ -1554,7 +1554,7 @@ freeze the successor candidate, does not authorize access
 to reserved untouched evidence, and does not enable HHR
 production or ranking.
 
-#### HHR conditioned-hurdle zero component recovery — 2026-08-17
+#### HHR CONDITIONED-HURDLE ZERO COMPONENT RECOVERY
 
 The successor hurdle candidate uses the previously approved conditioned-hurdle
 zero component.
@@ -2367,7 +2367,7 @@ no validated distribution → no ranked prop
 
 - Replaced exact fixed-validation and walk-forward candidate-ID agreement with a full pairwise proper-score nondominance rule for pooled predictive models.
 - Defined stability as a non-empty intersection of fixed-validation and expanding walk-forward nondominated sets, followed by deterministic strongest-pooling selection.
-- Classified mathematical limit candidates, including the league starter-batters-faced distribution, as members of the same family without claiming a finite grid identifies the global continuous optimum.
+- Classified mathematical limit candidates, including the league starter-batters-faced distribution, as members of the same pooling family without claiming a finite grid identifies the global continuous optimum.
 - Reconciled the general walk-forward preference with component rules that require both fixed-window and walk-forward validation, so neither required design silently overrides the other.
 - Required explicit, ordered, versioned candidate sets; prohibited revisions within a frozen model version; and required a new model version, written pre-evaluation reason, and newly reserved untouched current-season test period for any post-freeze revision.
 - Preserved the untouched-test seal by prohibiting its use in candidate generation, selection, comparison, corroboration, or retuning.
