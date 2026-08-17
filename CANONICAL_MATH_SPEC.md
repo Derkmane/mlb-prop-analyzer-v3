@@ -2130,7 +2130,7 @@ no validated distribution → no ranked prop
   order, and predictor standardization or other declared
   transforms unless a separate canonical revision
   explicitly authorizes their change.
-- Recorded the 3,987-positive-row Stage 1 diagnostic on
+- Recorded the HHR Stage 1 positive-count diagnostic on
   3,987 positive observations from the existing 5,964-row
   current-season fitting cohort. Conditional mean gaps were
   +0.2458095465, +0.0900069453, +0.1193160366,
@@ -2168,7 +2168,7 @@ no validated distribution → no ranked prop
   and tau_tail <= 0.010 at P(T=0), P(T>=1), P(T>=2), and
   P(T>=3), with complementary lower tails reported. Kept
   alpha_implied informational under the separately logged Item O
-  ruling, required it to be recomputed from the candidate fitted
+  ruling, required it to be recomputed from the candidate's fitted
   mu values, prohibited post-result tolerance relaxation within
   this model version, and left Section 17.46 unchanged.
 - Did not select or freeze a candidate, read reserved
@@ -2367,7 +2367,7 @@ no validated distribution → no ranked prop
 
 - Replaced exact fixed-validation and walk-forward candidate-ID agreement with a full pairwise proper-score nondominance rule for pooled predictive models.
 - Defined stability as a non-empty intersection of fixed-validation and expanding walk-forward nondominated sets, followed by deterministic strongest-pooling selection.
-- Classified mathematical limit candidates, including the league starter-batters-faced distribution, as members of the same pooling family without claiming a finite grid identifies the global continuous optimum.
+- Classified mathematical limit candidates, including the league starter-batters-faced distribution, as members of the same family without claiming a finite grid identifies the global continuous optimum.
 - Reconciled the general walk-forward preference with component rules that require both fixed-window and walk-forward validation, so neither required design silently overrides the other.
 - Required explicit, ordered, versioned candidate sets; prohibited revisions within a frozen model version; and required a new model version, written pre-evaluation reason, and newly reserved untouched current-season test period for any post-freeze revision.
 - Preserved the untouched-test seal by prohibiting its use in candidate generation, selection, comparison, corroboration, or retuning.
