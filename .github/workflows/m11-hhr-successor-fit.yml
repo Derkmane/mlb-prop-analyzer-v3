@@ -1,0 +1,37 @@
+name: M11 HHR successor fit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Run focused successor math tests
+        run: node --test test/m11-hhr-hurdle-successor-fit.test.mjs
+      - name: Run canonical v1.12 successor fit gate
+        shell: bash
+        run: |
+          set +e
+          node scripts/fit-m11-batter-hhr-hurdle-successor.mjs 2>&1 | tee /tmp/m11-hhr-successor-fit.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo '--- SUCCESSOR FIT REPORT ---'
+          cat artifacts/m11/hhr/successor-fit/m11-hhr-hurdle-successor-fit-v1.json
+          echo '--- END SUCCESSOR FIT REPORT ---'
+          if [ -f model-artifacts/m11-batter-hhr-hurdle-successor-v1.json ]; then
+            echo '--- SUCCESSOR CANDIDATE ARTIFACT ---'
+            cat model-artifacts/m11-batter-hhr-hurdle-successor-v1.json
+            echo '--- END SUCCESSOR CANDIDATE ARTIFACT ---'
+          fi
+          exit "$status"
