@@ -8,6 +8,8 @@ export interface CurrentLineupSlotEvidence {
   readonly playerId: string;
   readonly teamId: string;
   readonly lineupSlot: LineupSlot;
+  readonly sourceGameId?: string;
+  readonly sourceGameDateUtc?: string | null;
   readonly sourceCapturedAt: string;
   readonly sourceSnapshotSha256: string;
 }
@@ -62,7 +64,7 @@ function evidenceMatches(
 
 /**
  * Resolves one expected starter's batting-order slot without making lineup
- * confirmation a model input. Exact current-game BALLDONTLIE evidence wins.
+ * confirmation a model input. Exact current-game confirmed evidence wins.
  * Otherwise, the active approved projected-lineup source may supply the slot.
  * No prior-game, default, or league-average slot fallback exists.
  */
@@ -85,8 +87,8 @@ export function resolveProjectedLineupSlot(
       resolved: true,
       lineupStatus: 'confirmed',
       lineupSlot: current.lineupSlot,
-      sourceGameId: current.gameId,
-      sourceGameDateUtc: null,
+      sourceGameId: current.sourceGameId ?? current.gameId,
+      sourceGameDateUtc: current.sourceGameDateUtc ?? null,
       sourceCapturedAt: current.sourceCapturedAt,
       sourceSnapshotSha256: current.sourceSnapshotSha256,
     });

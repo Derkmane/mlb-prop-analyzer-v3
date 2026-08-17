@@ -1,46 +1,46 @@
 import { createHash } from 'node:crypto';
 
-export const MLB_STATS_PROJECTED_LINEUP_PROVIDER = 'MLB Stats API' as const;
-export const MLB_STATS_PROJECTED_LINEUP_SOURCE_VERSION =
-  'mlb-stats-schedule-lineups-v1' as const;
+export const MLB_STATS_POSTED_LINEUP_PROVIDER = 'MLB Stats API' as const;
+export const MLB_STATS_POSTED_LINEUP_SOURCE_VERSION =
+  'mlb-stats-schedule-posted-lineups-v2' as const;
 
 export type MlbStatsLineupSlot = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
-export interface MlbStatsProjectedLineupPlayer {
+export interface MlbStatsPostedLineupPlayer {
   readonly mlbPlayerId: number;
   readonly playerName: string;
   readonly teamName: string;
   readonly lineupSlot: MlbStatsLineupSlot;
 }
 
-export interface MlbStatsProjectedLineupAvailable {
-  readonly status: 'available';
-  readonly sourceVersion: typeof MLB_STATS_PROJECTED_LINEUP_SOURCE_VERSION;
-  readonly provider: typeof MLB_STATS_PROJECTED_LINEUP_PROVIDER;
+export interface MlbStatsPostedLineupPosted {
+  readonly status: 'posted';
+  readonly sourceVersion: typeof MLB_STATS_POSTED_LINEUP_SOURCE_VERSION;
+  readonly provider: typeof MLB_STATS_POSTED_LINEUP_PROVIDER;
   readonly providerGamePk: number;
   readonly gameDateUtc: string;
   readonly homeTeamName: string;
   readonly awayTeamName: string;
-  readonly players: readonly MlbStatsProjectedLineupPlayer[];
+  readonly players: readonly MlbStatsPostedLineupPlayer[];
   readonly sourceCapturedAt: string;
   readonly sourceSnapshotSha256: string;
   readonly requestUrl: string;
 }
 
-export interface MlbStatsProjectedLineupUnavailable {
+export interface MlbStatsPostedLineupUnavailable {
   readonly status: 'unavailable' | 'no-match';
-  readonly sourceVersion: typeof MLB_STATS_PROJECTED_LINEUP_SOURCE_VERSION;
-  readonly provider: typeof MLB_STATS_PROJECTED_LINEUP_PROVIDER;
+  readonly sourceVersion: typeof MLB_STATS_POSTED_LINEUP_SOURCE_VERSION;
+  readonly provider: typeof MLB_STATS_POSTED_LINEUP_PROVIDER;
   readonly sourceCapturedAt: string;
   readonly sourceSnapshotSha256: string;
   readonly requestUrl: string;
 }
 
-export type MlbStatsProjectedLineupResult =
-  | MlbStatsProjectedLineupAvailable
-  | MlbStatsProjectedLineupUnavailable;
+export type MlbStatsPostedLineupResult =
+  | MlbStatsPostedLineupPosted
+  | MlbStatsPostedLineupUnavailable;
 
-export interface FetchMlbStatsProjectedLineupInput {
+export interface FetchMlbStatsPostedLineupInput {
   readonly gameDateUtc: string;
   readonly homeTeamName: string;
   readonly awayTeamName: string;
@@ -93,7 +93,7 @@ function lineupPlayers(
   value: unknown,
   label: string,
   teamName: string,
-): readonly MlbStatsProjectedLineupPlayer[] {
+): readonly MlbStatsPostedLineupPlayer[] {
   if (value === undefined || value === null) return Object.freeze([]);
   const rows = array(value, label);
   if (rows.length > 9) {
@@ -123,9 +123,9 @@ function buildRequestUrl(gameDateUtc: string): URL {
   return url;
 }
 
-export async function fetchMlbStatsProjectedLineup(
-  input: Readonly<FetchMlbStatsProjectedLineupInput>,
-): Promise<MlbStatsProjectedLineupResult> {
+export async function fetchMlbStatsPostedLineup(
+  input: Readonly<FetchMlbStatsPostedLineupInput>,
+): Promise<MlbStatsPostedLineupResult> {
   const targetTimestamp = finiteTimestamp(input.gameDateUtc, 'gameDateUtc');
   const homeTeamName = nonemptyString(input.homeTeamName, 'homeTeamName');
   const awayTeamName = nonemptyString(input.awayTeamName, 'awayTeamName');
@@ -144,20 +144,20 @@ export async function fetchMlbStatsProjectedLineup(
   const rawText = await response.text();
   if (!response.ok) {
     throw new Error(
-      `MLB Stats projected lineup returned HTTP ${response.status} ${response.statusText}.`,
+      `MLB Stats posted lineup returned HTTP ${response.status} ${response.statusText}.`,
     );
   }
   let body: unknown;
   try {
     body = JSON.parse(rawText);
   } catch {
-    throw new Error('MLB Stats projected lineup returned malformed JSON.');
+    throw new Error('MLB Stats posted lineup returned malformed JSON.');
   }
   const sourceCapturedAt = (input.now ?? (() => new Date()))().toISOString();
   const sourceSnapshotSha256 = sha256(rawText);
   const common = Object.freeze({
-    sourceVersion: MLB_STATS_PROJECTED_LINEUP_SOURCE_VERSION,
-    provider: MLB_STATS_PROJECTED_LINEUP_PROVIDER,
+    sourceVersion: MLB_STATS_POSTED_LINEUP_SOURCE_VERSION,
+    provider: MLB_STATS_POSTED_LINEUP_PROVIDER,
     sourceCapturedAt,
     sourceSnapshotSha256,
     requestUrl: url.toString(),
@@ -229,7 +229,7 @@ export async function fetchMlbStatsProjectedLineup(
   }
   if (uniqueGamePks.length > 1) {
     throw new Error(
-      `MLB Stats projected lineup game match is ambiguous across gamePk values ${uniqueGamePks.join(', ')}.`,
+      `MLB Stats posted lineup game match is ambiguous across gamePk values ${uniqueGamePks.join(', ')}.`,
     );
   }
   candidates.sort(
@@ -261,7 +261,7 @@ export async function fetchMlbStatsProjectedLineup(
 
   return Object.freeze({
     ...common,
-    status: 'available',
+    status: 'posted',
     providerGamePk: selected.providerGamePk,
     gameDateUtc: selected.gameDateUtc,
     homeTeamName: selected.homeTeamName,

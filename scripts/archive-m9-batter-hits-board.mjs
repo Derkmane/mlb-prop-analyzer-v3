@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 
 import { rankPredictionCandidates } from '../dist/src/application/index.js';
 import {
-  fetchMlbStatsProjectedLineup,
+  fetchMlbStatsPostedLineup,
   loadFrozenBatterHitsProbabilityArtifactsFromFiles,
 } from '../dist/src/adapters/index.js';
 import { classifyBallDontLieTerminalPa } from '../dist/src/adapters/providers/balldontlie/index.js';
@@ -130,6 +130,26 @@ function positiveInteger(value, label) {
 
 function exactName(value, label) {
   return nonemptyString(value, label).replace(/\s+/gu, ' ');
+}
+
+export function normalizeCrossProviderLineupText(value, label = 'lineup text') {
+  const ascii = nonemptyString(value, label)
+    .normalize('NFKD')
+    .replace(/\p{M}+/gu, '');
+  if (/[^\x00-\x7F]/u.test(ascii)) {
+    throw new Error(`${label} could not be normalized to ASCII without coercion.`);
+  }
+  const normalized = ascii
+    .replace(/\./gu, '')
+    .replace(/\s+/gu, ' ')
+    .trim()
+    .toLocaleLowerCase('en-US');
+  const tokens = normalized.split(' ');
+  const suffix = tokens.at(-1);
+  if (suffix === 'jr' || suffix === 'sr' || suffix === 'ii' || suffix === 'iii') {
+    tokens[tokens.length - 1] = suffix;
+  }
+  return tokens.join(' ');
 }
 
 function selectedResponseHeaders(headers) {
@@ -876,11 +896,11 @@ function normalizedResolvedHitterFromIdentity(identity) {
   });
 }
 
-export function resolveProjectedLineupIdentity({
+export function resolvePostedLineupIdentity({
   game,
   identity: rawIdentity,
   currentLineups,
-  projectedLineup,
+  postedLineup,
 }) {
   const identity = object(rawIdentity, 'identity');
   const gameId = positiveInteger(game.id, 'game.id');
@@ -915,26 +935,39 @@ export function resolveProjectedLineupIdentity({
     ];
   });
 
-  const projectedEvidence =
-    projectedLineup?.status === 'available'
-      ? projectedLineup.players.flatMap((player) => {
+  const postedCurrentEvidence =
+    currentEvidence.length === 0 && postedLineup?.status === 'posted'
+      ? postedLineup.players.flatMap((player) => {
           if (
-            exactName(player.playerName, 'projected player.playerName') !==
-              exactName(identity.playerName, 'identity.playerName') ||
-            exactName(player.teamName, 'projected player.teamName') !==
-              exactName(identity.teamName, 'identity.teamName')
+            normalizeCrossProviderLineupText(
+              player.playerName,
+              'posted player.playerName',
+            ) !==
+              normalizeCrossProviderLineupText(
+                identity.playerName,
+                'identity.playerName',
+              ) ||
+            normalizeCrossProviderLineupText(
+              player.teamName,
+              'posted player.teamName',
+            ) !==
+              normalizeCrossProviderLineupText(
+                identity.teamName,
+                'identity.teamName',
+              )
           ) {
             return [];
           }
           return [
             {
-              sourceGameId: String(projectedLineup.providerGamePk),
-              sourceGameDateUtc: projectedLineup.gameDateUtc,
+              gameId: String(gameId),
+              sourceGameId: String(postedLineup.providerGamePk),
+              sourceGameDateUtc: postedLineup.gameDateUtc,
               playerId: String(playerId),
               teamId: String(teamId),
               lineupSlot: player.lineupSlot,
-              sourceCapturedAt: projectedLineup.sourceCapturedAt,
-              sourceSnapshotSha256: projectedLineup.sourceSnapshotSha256,
+              sourceCapturedAt: postedLineup.sourceCapturedAt,
+              sourceSnapshotSha256: postedLineup.sourceSnapshotSha256,
             },
           ];
         })
@@ -944,14 +977,15 @@ export function resolveProjectedLineupIdentity({
     targetGameId: String(gameId),
     playerId: String(playerId),
     teamId: String(teamId),
-    currentGameEvidence: currentEvidence,
-    projectedGameEvidence: projectedEvidence,
+    currentGameEvidence:
+      currentEvidence.length > 0 ? currentEvidence : postedCurrentEvidence,
+    projectedGameEvidence: [],
   });
   if (!resolution.resolved) {
     return Object.freeze({ identity, resolution, hitter: null });
   }
 
-  if (resolution.lineupStatus === 'confirmed') {
+  if (currentEvidence.length === 1) {
     const selectedRows = currentRows.filter((raw, index) => {
       const row = object(raw, `resolved current lineup[${index}]`);
       return (
@@ -984,11 +1018,11 @@ export function resolveProjectedLineupIdentity({
   });
 }
 
-export function resolveProjectedLineupIdentities({
+export function resolvePostedLineupIdentities({
   event,
   game,
   currentLineups,
-  projectedLineup,
+  postedLineup,
   identities,
 }) {
   const resolutions = [];
@@ -997,11 +1031,11 @@ export function resolveProjectedLineupIdentities({
   for (const rawIdentity of identities) {
     const identity = object(rawIdentity, 'identity');
     try {
-      const resolved = resolveProjectedLineupIdentity({
+      const resolved = resolvePostedLineupIdentity({
         game,
         identity,
         currentLineups,
-        projectedLineup,
+        postedLineup,
       });
       if (!resolved.resolution.resolved) {
         lineupExclusions.push(
@@ -1788,12 +1822,12 @@ export async function runM9ProspectiveBoardArchive({
         lineupsSnapshot: lineups.body,
         identities: identities.identities,
       });
-      let projectedLineup = null;
+      let postedLineup = null;
       if (confirmedOnly.identities.length !== identities.identities.length) {
         let statsCapturedAt = null;
         try {
-          projectedLineup = await fetchMlbStatsProjectedLineup({
-            gameDateUtc: normalizedGameDateUtc(game, 'projected-lineup target game'),
+          postedLineup = await fetchMlbStatsPostedLineup({
+            gameDateUtc: normalizedGameDateUtc(game, 'posted-lineup target game'),
             homeTeamName: exactName(game.home_team_name, 'game.home_team_name'),
             awayTeamName: exactName(game.away_team_name, 'game.away_team_name'),
             maximumStartDifferenceMilliseconds:
@@ -1802,7 +1836,7 @@ export async function runM9ProspectiveBoardArchive({
               const url = input instanceof URL ? input : new URL(String(input));
               const snapshot = await fetchExactJsonSnapshot({
                 provider: 'MLB Stats API',
-                label: `MLB Stats projected lineup game ${game.id}`,
+                label: `MLB Stats posted lineup game ${game.id}`,
                 url,
                 requireNonemptyRecords: false,
               });
@@ -1827,16 +1861,16 @@ export async function runM9ProspectiveBoardArchive({
         } catch (error) {
           exclusions.push({
             providerEventId: event.id,
-            reason: 'PROJECTED_LINEUP_SOURCE_FAILED_CLOSED',
+            reason: 'POSTED_LINEUP_SOURCE_FAILED_CLOSED',
             detail: error instanceof Error ? error.message : String(error),
           });
         }
       }
-      const lineupResolution = resolveProjectedLineupIdentities({
+      const lineupResolution = resolvePostedLineupIdentities({
         event,
         game,
         currentLineups: lineups,
-        projectedLineup,
+        postedLineup,
         identities: identities.identities,
       });
       const lineupSurvived = offerCountForNames(

@@ -1,13 +1,13 @@
 export {
-  fetchMlbStatsProjectedLineup,
-  MLB_STATS_PROJECTED_LINEUP_PROVIDER,
-  MLB_STATS_PROJECTED_LINEUP_SOURCE_VERSION,
-} from './projected-lineup.js';
+  fetchMlbStatsPostedLineup,
+  MLB_STATS_POSTED_LINEUP_PROVIDER,
+  MLB_STATS_POSTED_LINEUP_SOURCE_VERSION,
+} from './posted-lineup.js';
 export type {
-  FetchMlbStatsProjectedLineupInput,
+  FetchMlbStatsPostedLineupInput,
   MlbStatsLineupSlot,
-  MlbStatsProjectedLineupAvailable,
-  MlbStatsProjectedLineupPlayer,
-  MlbStatsProjectedLineupResult,
-  MlbStatsProjectedLineupUnavailable,
-} from './projected-lineup.js';
+  MlbStatsPostedLineupPlayer,
+  MlbStatsPostedLineupPosted,
+  MlbStatsPostedLineupResult,
+  MlbStatsPostedLineupUnavailable,
+} from './posted-lineup.js';

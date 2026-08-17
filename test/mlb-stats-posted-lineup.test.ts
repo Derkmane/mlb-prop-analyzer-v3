@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  fetchMlbStatsProjectedLineup,
-  MLB_STATS_PROJECTED_LINEUP_SOURCE_VERSION,
+  fetchMlbStatsPostedLineup,
+  MLB_STATS_POSTED_LINEUP_SOURCE_VERSION,
 } from '../src/adapters/index.js';
 
 const scheduleFixture = {
@@ -41,9 +41,9 @@ function jsonResponse(body: unknown): Response {
   });
 }
 
-test('fetches schedule lineup hydration and preserves array order as batting slots', async () => {
+test('fetches posted schedule lineup hydration and preserves array order as batting slots', async () => {
   let requestedUrl = '';
-  const result = await fetchMlbStatsProjectedLineup({
+  const result = await fetchMlbStatsPostedLineup({
     gameDateUtc: '2026-08-15T22:10:00.000Z',
     homeTeamName: 'Tampa Bay Rays',
     awayTeamName: 'Baltimore Orioles',
@@ -55,9 +55,9 @@ test('fetches schedule lineup hydration and preserves array order as batting slo
     },
   });
 
-  assert.equal(result.status, 'available');
-  if (result.status !== 'available') return;
-  assert.equal(result.sourceVersion, MLB_STATS_PROJECTED_LINEUP_SOURCE_VERSION);
+  assert.equal(result.status, 'posted');
+  if (result.status !== 'posted') return;
+  assert.equal(result.sourceVersion, MLB_STATS_POSTED_LINEUP_SOURCE_VERSION);
   assert.equal(result.providerGamePk, 822941);
   assert.deepEqual(
     result.players.map((player) => [player.playerName, player.teamName, player.lineupSlot]),
@@ -77,11 +77,11 @@ test('fetches schedule lineup hydration and preserves array order as batting slo
   assert.equal(url.searchParams.get('hydrate'), 'lineups');
 });
 
-test('returns unavailable when the matched game has no lineup hydration yet', async () => {
+test('returns unavailable when the matched game has no posted lineup hydration yet', async () => {
   const baseGame = scheduleFixture.dates[0]!.games[0]!;
   const { lineups: _lineups, ...gameWithoutLineups } = structuredClone(baseGame);
   const body = { dates: [{ games: [gameWithoutLineups] }] };
-  const result = await fetchMlbStatsProjectedLineup({
+  const result = await fetchMlbStatsPostedLineup({
     gameDateUtc: '2026-08-15T22:10:00.000Z',
     homeTeamName: 'Tampa Bay Rays',
     awayTeamName: 'Baltimore Orioles',
@@ -93,7 +93,7 @@ test('returns unavailable when the matched game has no lineup hydration yet', as
 });
 
 test('returns no-match rather than selecting the wrong game', async () => {
-  const result = await fetchMlbStatsProjectedLineup({
+  const result = await fetchMlbStatsPostedLineup({
     gameDateUtc: '2026-08-15T22:10:00.000Z',
     homeTeamName: 'New York Yankees',
     awayTeamName: 'Boston Red Sox',
@@ -121,7 +121,7 @@ test('fails closed when two distinct gamePk values match the same teams and tole
     ],
   };
   await assert.rejects(
-    fetchMlbStatsProjectedLineup({
+    fetchMlbStatsPostedLineup({
       gameDateUtc: '2026-08-15T22:10:00.000Z',
       homeTeamName: 'Tampa Bay Rays',
       awayTeamName: 'Baltimore Orioles',
