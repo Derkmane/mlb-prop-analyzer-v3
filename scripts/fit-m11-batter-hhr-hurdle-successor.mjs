@@ -45,8 +45,7 @@ if (parentModel.fittingDetails?.expectedPlateAppearancesRole !== 'offset' || par
   throw new Error('Parent HHR expected-PA offset contract drifted.');
 }
 const parentPredictorOrder = parentModel.fittingDetails?.predictorOrder;
-const expectedParentOrder = ['intercept', ...HHR_SUCCESSOR_PREDICTOR_ORDER];
-if (JSON.stringify(parentPredictorOrder) !== JSON.stringify(expectedParentOrder)) throw new Error('Parent HHR predictor order drifted.');
+if (JSON.stringify(parentPredictorOrder) !== JSON.stringify(HHR_SUCCESSOR_PREDICTOR_ORDER)) throw new Error('Parent HHR predictor order drifted.');
 
 const transforms = parentModel.predictorTransforms;
 for (const name of HHR_SUCCESSOR_PREDICTOR_ORDER) {
@@ -173,7 +172,7 @@ if (!gate.passed) {
       expectedPlateAppearancesRole: 'offset',
       expectedPlateAppearancesCoefficient: 1,
       coefficientScale: parentModel.fittingDetails.coefficientScale,
-      predictorOrder: expectedParentOrder,
+      predictorOrder: HHR_SUCCESSOR_PREDICTOR_ORDER,
       predictorStandardDeviations: parentModel.fittingDetails.predictorStandardDeviations,
       optimizer: fit.optimizer,
     }),
