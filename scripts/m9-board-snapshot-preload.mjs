@@ -3,8 +3,9 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-export const SNAPSHOT_CONTRACT = 'm9-first-board-snapshot-v1';
-export const REPLAY_CONTRACT = 'm9-board-snapshot-replay-receipt-v1';
+export const SNAPSHOT_CONTRACT = 'm9-first-board-snapshot-v2';
+export const REPLAY_CONTRACT = 'm9-board-snapshot-replay-receipt-v2';
+export const CLAIMED_EVENT_IDS_ENV = 'M9_BOARD_CLAIMED_EVENT_IDS';
 const HITS_MARKETS = Object.freeze(['batter_hits', 'batter_hits_alternate']);
 const HHR_MARKETS = Object.freeze([
   'batter_hits_runs_rbis',
@@ -75,6 +76,49 @@ function stamp(now) {
   return new Date(now()).toISOString();
 }
 
+function claimedPregameEvents(events, claimedGames, runStartMs) {
+  if (!Array.isArray(claimedGames) || claimedGames.length === 0) {
+    throw new Error('CAPTURE snapshot requires at least one claimed game.');
+  }
+  const byId = new Map(events.map((event) => [event.eventId, event]));
+  if (byId.size !== events.length) {
+    throw new Error('Provider schedule contains duplicate event IDs.');
+  }
+  const seen = new Set();
+  const claimed = claimedGames.map((game, index) => {
+    const eventId = game?.eventId;
+    if (typeof eventId !== 'string' || eventId.length === 0) {
+      throw new Error(`Claimed game ${index} has no event ID.`);
+    }
+    if (seen.has(eventId)) {
+      throw new Error(`Claimed game event ID is duplicated: ${eventId}.`);
+    }
+    seen.add(eventId);
+    const event = byId.get(eventId);
+    if (!event) {
+      throw new Error(`Claimed game is absent from provider schedule: ${eventId}.`);
+    }
+    if (
+      event.commenceTimeUtc !== game.commenceTimeUtc ||
+      event.homeTeamName !== game.homeTeamName ||
+      event.awayTeamName !== game.awayTeamName
+    ) {
+      throw new Error(`Claimed game identity drifted from provider schedule: ${eventId}.`);
+    }
+    if (Date.parse(event.commenceTimeUtc) <= runStartMs) {
+      throw new Error(`Claimed game has already started: ${eventId}.`);
+    }
+    return event;
+  });
+  return Object.freeze(
+    claimed.sort(
+      (left, right) =>
+        left.commenceTimeUtc.localeCompare(right.commenceTimeUtc) ||
+        left.eventId.localeCompare(right.eventId),
+    ),
+  );
+}
+
 async function captureOne(fetchImpl, url, requestKey, consumer, now) {
   const response = await fetchImpl(url);
   const bytes = Buffer.from(await response.clone().arrayBuffer());
@@ -111,9 +155,7 @@ export async function captureFirstBoardSnapshot({
   now,
 }) {
   const runStartMs = Date.parse(runStartedAt);
-  const pregameEvents = events.filter(
-    (event) => Date.parse(event.commenceTimeUtc) > runStartMs,
-  );
+  const pregameEvents = claimedPregameEvents(events, claimedGames, runStartMs);
   const responses = [
     Object.freeze({
       requestKey: 'events',
@@ -177,7 +219,7 @@ export async function captureFirstBoardSnapshot({
   }
 
   const manifest = Object.freeze({
-    version: 1,
+    version: 2,
     contract: SNAPSHOT_CONTRACT,
     snapshotId,
     snapshotSetSha256,
@@ -278,6 +320,23 @@ function requiredKeys(manifest, consumer) {
   return keys.sort();
 }
 
+export function publishClaimedEventScope(manifest) {
+  if (!Array.isArray(manifest?.claimedGames) || manifest.claimedGames.length === 0) {
+    throw new Error('Snapshot manifest must contain at least one claimed game.');
+  }
+  const eventIds = manifest.claimedGames.map((game, index) => {
+    if (typeof game?.eventId !== 'string' || game.eventId.length === 0) {
+      throw new Error(`Snapshot claimed game ${index} has no event ID.`);
+    }
+    return game.eventId;
+  });
+  if (new Set(eventIds).size !== eventIds.length) {
+    throw new Error('Snapshot claimed event IDs must be unique.');
+  }
+  process.env[CLAIMED_EVENT_IDS_ENV] = JSON.stringify(eventIds);
+  return Object.freeze([...eventIds]);
+}
+
 function installReplay() {
   const manifestPath = process.env.M9_BOARD_SNAPSHOT_MANIFEST?.trim();
   if (!manifestPath) return;
@@ -289,9 +348,10 @@ function installReplay() {
     );
   }
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  if (manifest.contract !== SNAPSHOT_CONTRACT) {
+  if (manifest.contract !== SNAPSHOT_CONTRACT || manifest.version !== 2) {
     throw new Error('Wrong board snapshot contract.');
   }
+  publishClaimedEventScope(manifest);
 
   const expectedKeys = requiredKeys(manifest, consumer);
   const byKey = new Map(
@@ -314,7 +374,7 @@ function installReplay() {
       consumedKeys.length === expectedKeys.length &&
       consumedKeys.every((key, index) => key === expectedKeys[index]);
     const receipt = {
-      version: 1,
+      version: 2,
       contract: REPLAY_CONTRACT,
       consumer,
       snapshotId: manifest.snapshotId,
