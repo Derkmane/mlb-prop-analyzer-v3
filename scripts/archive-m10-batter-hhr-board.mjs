@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { fetchMlbStatsProjectedLineup } from '../dist/src/adapters/index.js';
+import { fetchMlbStatsPostedLineup } from '../dist/src/adapters/index.js';
 import {
   buildBatterHhrDirectCompositeDistribution,
   normalizeUnderdogBatterHhrCapture,
@@ -12,7 +12,7 @@ import {
   capturePlayerIdentityLookups,
   M9_GAME_COMMENCE_MATCH_POLICY,
   resolveExactBallDontLieGameMatch,
-  resolveProjectedLineupIdentity,
+  resolvePostedLineupIdentity,
 } from './archive-m9-batter-hits-board.mjs';
 import { createBdlAdaptiveRateLimiter } from './bdl-adaptive-rate-limit-utils.mjs';
 import {
@@ -478,7 +478,7 @@ for (const row of lineupRows) {
 const offersByEventId = new Map();
 const resolvedHitterByGameName = new Map();
 const playerLookupSnapshotSha256ByGame = new Map();
-const mlbStatsProjectedLineupSnapshotSha256ByGame = new Map();
+const mlbStatsPostedLineupSnapshotSha256ByGame = new Map();
 const lineupResolutionRows = [];
 const identityDiagnosticState = { printed: 0 };
 let zeroUnderdogHhrEventCount = 0;
@@ -518,19 +518,19 @@ for (const game of resolvedGames) {
   }
 
   const resolvedCurrent = new Map();
-  const identitiesNeedingProjection = [];
+  const identitiesNeedingPostedLineup = [];
   for (const identity of identityCapture.identities) {
     try {
-      const result = resolveProjectedLineupIdentity({
+      const result = resolvePostedLineupIdentity({
         game: rawGame,
         identity,
         currentLineups,
-        projectedLineup: null,
+        postedLineup: null,
       });
       if (result.resolution.resolved) {
         resolvedCurrent.set(identity.offerPlayerName, result);
       } else {
-        identitiesNeedingProjection.push(identity);
+        identitiesNeedingPostedLineup.push(identity);
       }
     } catch (error) {
       exclusions.push(Object.freeze({
@@ -543,11 +543,11 @@ for (const game of resolvedGames) {
     }
   }
 
-  let projectedLineup = null;
-  if (identitiesNeedingProjection.length > 0) {
+  let postedLineup = null;
+  if (identitiesNeedingPostedLineup.length > 0) {
     let statsCapturedAt = null;
     try {
-      projectedLineup = await fetchMlbStatsProjectedLineup({
+      postedLineup = await fetchMlbStatsPostedLineup({
         gameDateUtc: rawGame.date,
         homeTeamName: rawGame.home_team_name ?? rawGame.home_team?.display_name,
         awayTeamName: rawGame.away_team_name ?? rawGame.away_team?.display_name,
@@ -557,10 +557,10 @@ for (const game of resolvedGames) {
           const url = input instanceof URL ? input : new URL(String(input));
           const snapshot = await fetchSnapshot(
             url,
-            `MLB Stats projected lineup game ${game.gameId}`,
+            `MLB Stats posted lineup game ${game.gameId}`,
           );
           statsCapturedAt = snapshot.capturedAt;
-          mlbStatsProjectedLineupSnapshotSha256ByGame.set(
+          mlbStatsPostedLineupSnapshotSha256ByGame.set(
             String(game.gameId),
             snapshot.sha256,
           );
@@ -577,7 +577,7 @@ for (const game of resolvedGames) {
       exclusions.push(Object.freeze({
         gameId: game.gameId,
         providerEventId: game.providerEventId,
-        reason: 'projected-lineup-source-failed-closed',
+        reason: 'posted-lineup-source-failed-closed',
         detail: error instanceof Error ? error.message : String(error),
       }));
     }
@@ -585,13 +585,13 @@ for (const game of resolvedGames) {
 
   for (const identity of identityCapture.identities) {
     let resolved = resolvedCurrent.get(identity.offerPlayerName);
-    if (resolved === undefined && identitiesNeedingProjection.includes(identity)) {
+    if (resolved === undefined && identitiesNeedingPostedLineup.includes(identity)) {
       try {
-        resolved = resolveProjectedLineupIdentity({
+        resolved = resolvePostedLineupIdentity({
           game: rawGame,
           identity,
           currentLineups,
-          projectedLineup,
+          postedLineup,
         });
       } catch (error) {
         exclusions.push(Object.freeze({
@@ -655,8 +655,8 @@ await writeFile(
     lineupsSnapshotSha256: lineupsSnapshot.sha256,
     lineupsSnapshotPageSha256: lineupsSnapshot.pageSha256,
     playerLookupSnapshotSha256ByGame: Object.fromEntries(playerLookupSnapshotSha256ByGame),
-    mlbStatsProjectedLineupSnapshotSha256ByGame: Object.fromEntries(
-      mlbStatsProjectedLineupSnapshotSha256ByGame,
+    mlbStatsPostedLineupSnapshotSha256ByGame: Object.fromEntries(
+      mlbStatsPostedLineupSnapshotSha256ByGame,
     ),
     lineupStatusCountsBeforeRowGates,
     lineupResolutions: lineupResolutionRows,
@@ -865,8 +865,8 @@ const sourceSet = {
   bdlLineupsSnapshotSha256: lineupsSnapshot.sha256,
   bdlLineupsPageSha256: lineupsSnapshot.pageSha256,
   bdlPlayerLookupSnapshotSha256ByGame: Object.fromEntries(playerLookupSnapshotSha256ByGame),
-  mlbStatsProjectedLineupSnapshotSha256ByGame: Object.fromEntries(
-    mlbStatsProjectedLineupSnapshotSha256ByGame,
+  mlbStatsPostedLineupSnapshotSha256ByGame: Object.fromEntries(
+    mlbStatsPostedLineupSnapshotSha256ByGame,
   ),
   modelArtifactSha256: modelFile.sha256,
   terminalArtifactSha256: terminalFile.sha256,
@@ -912,7 +912,7 @@ const archive = buildM10HhrProspectiveArchive({
     balldontlie: Object.freeze({ provider: 'BALLDONTLIE MLB API', activeSeason: 2026 }),
     mlbStats: Object.freeze({
       provider: 'MLB Stats API',
-      use: 'pregame projected starting-player and batting-order evidence only',
+      use: 'pregame posted current-game starting-player and batting-order evidence only',
     }),
     sourceHitsCaptureKey: sourceHits.value.captureIdentity?.captureKey ?? path.basename(sourceHits.filePath, '.json'),
     artifactSha256: Object.freeze(sourceSet),
