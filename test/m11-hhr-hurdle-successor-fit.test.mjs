@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
 import {
@@ -73,4 +75,36 @@ test('successor gate ignores implied-alpha range and gates only zero mass and re
   assert.equal(gate.summary.alphaImpliedStatus, 'INFORMATIONAL');
   assert.ok(gate.summary.alphaImpliedRange > 0.15);
   assert.deepEqual(gate.failureReasons, []);
+});
+
+test('canonical v1.12 HHR successor fit passes before untouched evidence is read', { timeout: 120_000 }, () => {
+  const result = spawnSync(process.execPath, ['scripts/fit-m11-batter-hhr-hurdle-successor.mjs'], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    timeout: 115_000,
+    maxBuffer: 8 * 1024 * 1024,
+  });
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+
+  const reportPath = 'artifacts/m11/hhr/successor-fit/m11-hhr-hurdle-successor-fit-v1.json';
+  if (existsSync(reportPath)) {
+    console.log('--- SUCCESSOR FIT REPORT ---');
+    console.log(readFileSync(reportPath, 'utf8'));
+    console.log('--- END SUCCESSOR FIT REPORT ---');
+  }
+  const candidatePath = 'model-artifacts/m11-batter-hhr-hurdle-successor-v1.json';
+  if (existsSync(candidatePath)) {
+    console.log('--- SUCCESSOR CANDIDATE ARTIFACT ---');
+    console.log(readFileSync(candidatePath, 'utf8'));
+    console.log('--- END SUCCESSOR CANDIDATE ARTIFACT ---');
+  }
+
+  assert.equal(result.error, undefined, result.error?.message);
+  assert.equal(result.status, 0, `successor fit exited ${result.status}`);
+  assert.ok(existsSync(reportPath), 'successor fit report must be written');
+  assert.ok(existsSync(candidatePath), 'passing successor fit must write the frozen candidate artifact');
+  const report = JSON.parse(readFileSync(reportPath, 'utf8'));
+  assert.equal(report.gate.verdict, 'PASS');
+  assert.equal(report.untouchedReservationRead, false);
 });
