@@ -1,9 +1,11 @@
 import { compareRankableProbabilitiesForRanking } from '../core/index.js';
 import type { Probability } from '../domain/probability.js';
 
-/** Minimum immutable fields a category is permitted to inspect for ranking. */
+/** Minimum immutable prop identity and probability fields available to categories. */
 export interface CategoryRankableCandidate {
   readonly playerId: string;
+  readonly line: number;
+  readonly selectedSide: 'higher' | 'lower';
   readonly pVoid: Probability;
   readonly pWinGivenGrades: Probability | null;
 }
