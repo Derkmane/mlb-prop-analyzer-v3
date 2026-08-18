@@ -131,7 +131,7 @@ test('research board populates exactly three canonical Top Five categories from 
 
   assert.equal(board.productionCalibrated, false);
   assert.equal(board.disclosure, PRODUCT_RESEARCH_LABEL);
-  assert.deepEqual(board.sourceMarkets, ['batter-hits', 'batter-hhr']);
+  assert.deepEqual(board.sourceMarkets, ['batter-hits', BATTER_HHR_MARKET_KEY]);
   assert.deepEqual(
     board.categories.map((category) => category.title),
     [
