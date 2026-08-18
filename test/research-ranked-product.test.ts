@@ -1,15 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type {
-  ResearchDisplayArchive,
-  ResearchDisplayArchiveRepository,
-  ResearchDisplayMarket,
-  ResearchDisplayRow,
-} from '../src/adapters/display-archives/research-display-archive-repository.js';
 import {
   PRODUCT_RESEARCH_LABEL,
   readResearchProductBoardV2,
+  type ResearchDisplayArchive,
+  type ResearchDisplayArchiveRepository,
+  type ResearchDisplayMarket,
+  type ResearchDisplayRow,
 } from '../src/application/index.js';
 
 const CAPTURED_AT = '2026-08-18T20:00:00.000Z';
@@ -162,7 +160,7 @@ test('research board populates exactly three canonical Top Five categories from 
   assert.equal(altline.picks.some((pick) => pick.market === 'Hits'), true);
 });
 
-test('research cards preserve context, side-aware last five, and explicit calibration failures', async () => {
+test('research cards preserve context, side-aware last five, and explicit calibration states', async () => {
   const board = await readResearchProductBoardV2(repository());
   const shared = board.categories[1]!.picks[0]!;
 
@@ -178,13 +176,19 @@ test('research cards preserve context, side-aware last five, and explicit calibr
   assert.equal(shared.park, 'Research Park');
   assert.deepEqual(shared.lastFive.map((game) => game.outcome), ['cash', 'miss']);
   assert.equal(shared.calibration.status, 'failed');
+  assert.equal(shared.calibration.sampleSufficiency, 'sufficient');
+  assert.equal(shared.calibration.calibrationAgreement, 'fail');
+  assert.equal(shared.calibration.calculationMethod, 'primary-per-pick-heterogeneous');
   assert.equal(shared.calibration.predicted, 0.6554);
   assert.equal(shared.calibration.observed, 0.5412);
+  assert.match(shared.calibration.message, /Sample SUFFICIENT · Agreement FAIL/u);
   assert.match(shared.calibration.message, /model 65\.5%, actual 54\.1%/u);
 
   const hits = board.categories[1]!.picks.find((pick) => pick.market === 'Hits');
   assert.ok(hits);
   assert.equal(hits.calibration.status, 'pending');
+  assert.equal(hits.calibration.sampleSufficiency, 'unavailable');
+  assert.equal(hits.calibration.calibrationAgreement, 'unavailable');
   assert.equal(hits.park, null);
   assert.equal(hits.teamImpliedRunTotal, null);
 });
