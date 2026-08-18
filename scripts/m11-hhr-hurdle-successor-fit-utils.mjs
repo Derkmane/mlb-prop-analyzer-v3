@@ -367,6 +367,54 @@ function initialParameters(oldModel) {
   return [...beta, Math.log(alpha)];
 }
 
+export function diagnoseHhrPositiveGradient({ fixture, fixtureText, oldModel, parameterDelta = null, finiteDifferenceScale = 1e-4 }) {
+  if (!Number.isFinite(finiteDifferenceScale) || !(finiteDifferenceScale > 0)) {
+    throw new TypeError('finiteDifferenceScale must be positive and finite.');
+  }
+  const prepared = prepareRows(fixture, oldModel, fixtureText);
+  const positiveRows = prepared.prepared.filter((row) => row.target >= 1);
+  const baseParameters = initialParameters(oldModel);
+  const parameters = parameterDelta === null
+    ? baseParameters
+    : baseParameters.map((value, index) => value + finite(parameterDelta[index] ?? 0, `parameterDelta ${index}`));
+  if (parameters.length !== HHR_POSITIVE_PREDICTOR_ORDER.length + 2) {
+    throw new Error('HHR diagnostic parameter vector length drifted.');
+  }
+  const evaluate = zeroTruncatedNb2EvaluationFactory(positiveRows);
+  const analyticEvaluation = evaluate(parameters);
+  if (!Array.isArray(analyticEvaluation.gradient)) throw new Error('HHR analytic diagnostic gradient is unavailable.');
+  const numericalGradient = parameters.map((value, index) => {
+    const step = finiteDifferenceScale * Math.max(1, Math.abs(value));
+    const plus = [...parameters];
+    const minus = [...parameters];
+    plus[index] += step;
+    minus[index] -= step;
+    const plusObjective = evaluate(plus).objectiveValue;
+    const minusObjective = evaluate(minus).objectiveValue;
+    if (!Number.isFinite(plusObjective) || !Number.isFinite(minusObjective)) {
+      throw new Error(`HHR numerical diagnostic became non-finite at parameter ${index}.`);
+    }
+    return (plusObjective - minusObjective) / (2 * step);
+  });
+  const labels = Object.freeze(['intercept', ...HHR_POSITIVE_PREDICTOR_ORDER, 'logDispersionAlpha']);
+  const comparisons = labels.map((label, index) => {
+    const analytic = analyticEvaluation.gradient[index];
+    const numerical = numericalGradient[index];
+    const absoluteDifference = Math.abs(analytic - numerical);
+    const relativeDifference = absoluteDifference / Math.max(1, Math.abs(analytic), Math.abs(numerical));
+    return Object.freeze({ label, analytic, numerical, absoluteDifference, relativeDifference });
+  });
+  return Object.freeze({
+    objectiveValue: analyticEvaluation.objectiveValue,
+    parameters: Object.freeze(parameters),
+    labels,
+    comparisons: Object.freeze(comparisons),
+    maxAbsoluteDifference: Math.max(...comparisons.map((entry) => entry.absoluteDifference)),
+    maxRelativeDifference: Math.max(...comparisons.map((entry) => entry.relativeDifference)),
+    finiteDifferenceScale,
+  });
+}
+
 function fitPositiveZeroTruncatedNb2(preparedRows, oldModel) {
   const positiveRows = preparedRows.filter((row) => row.target >= 1);
   if (positiveRows.length !== EXPECTED_POSITIVE_ROW_COUNT) throw new Error('HHR positive-row subset identity drifted.');
