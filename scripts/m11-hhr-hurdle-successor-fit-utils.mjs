@@ -114,6 +114,22 @@ function numericalGradient(objective, parameters) {
   });
 }
 
+function armijoLineSearch(objective, parameters, objectiveValue, gradient, direction) {
+  const directionalDerivative = dot(gradient, direction);
+  if (!(directionalDerivative < 0) || !Number.isFinite(directionalDerivative)) return null;
+  let lineSearchStep = 1;
+  while (lineSearchStep >= MIN_LINE_SEARCH_STEP) {
+    const candidate = parameters.map((value, index) => value + lineSearchStep * direction[index]);
+    const candidateObjective = objective(candidate);
+    if (Number.isFinite(candidateObjective)
+      && candidateObjective <= objectiveValue + ARMIJO * lineSearchStep * directionalDerivative) {
+      return Object.freeze({ parameters: candidate, objectiveValue: candidateObjective, lineSearchStep });
+    }
+    lineSearchStep /= 2;
+  }
+  return null;
+}
+
 function optimizeBfgs(objective, initialParameters) {
   let parameters = [...initialParameters];
   let objectiveValue = objective(parameters);
@@ -123,6 +139,7 @@ function optimizeBfgs(objective, initialParameters) {
   let converged = false;
   let iteration = 0;
   let lastStepMaximum = null;
+  let restartCount = 0;
 
   for (; iteration < MAX_OPTIMIZER_ITERATIONS; iteration += 1) {
     if (maximumAbsolute(gradient) <= GRADIENT_TOLERANCE) {
@@ -131,31 +148,30 @@ function optimizeBfgs(objective, initialParameters) {
     }
 
     let direction = matrixVector(inverseHessian, gradient).map((value) => -value);
-    let directionalDerivative = dot(gradient, direction);
-    if (!(directionalDerivative < 0) || direction.some((value) => !Number.isFinite(value))) {
+    let usedSteepestDescent = false;
+    if (!(dot(gradient, direction) < 0) || direction.some((value) => !Number.isFinite(value))) {
       inverseHessian = identity(parameters.length);
       direction = gradient.map((value) => -value);
-      directionalDerivative = -dot(gradient, gradient);
+      usedSteepestDescent = true;
+      restartCount += 1;
     }
 
-    let lineSearchStep = 1;
-    let nextParameters = null;
-    let nextObjectiveValue = null;
-    while (lineSearchStep >= MIN_LINE_SEARCH_STEP) {
-      const candidate = parameters.map((value, index) => value + lineSearchStep * direction[index]);
-      const candidateObjective = objective(candidate);
-      if (Number.isFinite(candidateObjective)
-        && candidateObjective <= objectiveValue + ARMIJO * lineSearchStep * directionalDerivative) {
-        nextParameters = candidate;
-        nextObjectiveValue = candidateObjective;
-        break;
-      }
-      lineSearchStep /= 2;
+    let search = armijoLineSearch(objective, parameters, objectiveValue, gradient, direction);
+    if (search === null && !usedSteepestDescent) {
+      inverseHessian = identity(parameters.length);
+      direction = gradient.map((value) => -value);
+      usedSteepestDescent = true;
+      restartCount += 1;
+      search = armijoLineSearch(objective, parameters, objectiveValue, gradient, direction);
     }
-    if (nextParameters === null || nextObjectiveValue === null) {
-      throw new Error('HHR zero-truncated NB2 BFGS line search failed to find a descent step.');
+    if (search === null) {
+      throw new Error(
+        `HHR zero-truncated NB2 line search failed after steepest-descent restart; objective=${objectiveValue}; max gradient=${maximumAbsolute(gradient)}.`,
+      );
     }
 
+    const nextParameters = search.parameters;
+    const nextObjectiveValue = search.objectiveValue;
     const nextGradient = numericalGradient(objective, nextParameters);
     const stepVector = nextParameters.map((value, index) => value - parameters[index]);
     const gradientChange = nextGradient.map((value, index) => value - gradient[index]);
@@ -181,7 +197,8 @@ function optimizeBfgs(objective, initialParameters) {
     iterations: iteration,
     maxAbsoluteGradient: maximumAbsolute(gradient),
     lastStepMaximum,
-    convergence: 'bfgs-gradient-and-step-v1',
+    restartCount,
+    convergence: 'bfgs-with-steepest-descent-restart-v1',
   });
 }
 
