@@ -16,6 +16,10 @@ h1 { margin: 5px 0 8px; font-size: clamp(2rem, 5vw, 3.3rem); line-height: 1.02; 
 .meta-panel { min-width: 290px; border: 1px solid #2a4055; border-radius: 14px; background: #0b1723dd; padding: 14px 16px; }
 .meta-row { display: flex; justify-content: space-between; gap: 18px; padding: 4px 0; font-size: .82rem; }
 .meta-row span:first-child { color: #8ea3b7; }
+.freshness { font-size: .74rem; font-weight: 900; letter-spacing: .07em; }
+.freshness.today { color: #9ff0d1; }
+.freshness.stale { color: #ffadb5; }
+.freshness.unknown { color: #f2cf8f; }
 .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
 button { border: 1px solid #38516a; background: #142538; color: #eef5fb; border-radius: 9px; padding: 9px 13px; cursor: pointer; }
 button:hover { background: #1b3149; }
@@ -89,6 +93,7 @@ export const HHR_DISPLAY_APP_JS = `
   const statusNode = document.getElementById('status');
   const refreshButton = document.getElementById('refresh-board');
   const capturedAtNode = document.getElementById('captured-at');
+  const freshnessNode = document.getElementById('capture-freshness');
   const categoryTabsNode = document.getElementById('category-tabs');
   const categoryPanelsNode = document.getElementById('category-panels');
   const evidenceNode = document.getElementById('archived-evidence');
@@ -98,6 +103,12 @@ export const HHR_DISPLAY_APP_JS = `
     style: 'percent',
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
+  });
+  const centralDateFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   });
 
   function element(tag, className, text) {
@@ -114,6 +125,18 @@ export const HHR_DISPLAY_APP_JS = `
   function displayTime(value) {
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+  }
+
+  function centralSlateDate(value) {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : centralDateFormatter.format(date);
+  }
+
+  function boardFreshness(value) {
+    const capturedSlateDate = centralSlateDate(value);
+    const currentSlateDate = centralSlateDate(Date.now());
+    if (capturedSlateDate === null || currentSlateDate === null) return 'UNKNOWN';
+    return capturedSlateDate === currentSlateDate ? 'TODAY' : 'STALE';
   }
 
   function chip(text, className) {
@@ -277,10 +300,17 @@ export const HHR_DISPLAY_APP_JS = `
       }
       if (!response.ok) throw new Error('Board request failed with status ' + response.status + '.');
       const board = await response.json();
+      const freshness = boardFreshness(board.capturedAt);
       capturedAtNode.textContent = displayTime(board.capturedAt);
+      freshnessNode.textContent = freshness;
+      freshnessNode.className = 'freshness ' + freshness.toLowerCase();
       renderCategories(board.categories || []);
       renderArchivedEvidence(board.archivedEvidence);
-      statusNode.textContent = 'Saved board loaded. Production-disabled markets stay out of category picks.';
+      statusNode.textContent = freshness === 'TODAY'
+        ? 'Today’s saved board loaded. Production-disabled markets stay out of category picks.'
+        : freshness === 'STALE'
+          ? 'STALE saved board — this capture is not from today’s America/Chicago slate. Production-disabled markets stay out of category picks.'
+          : 'Saved board loaded, but capture freshness could not be determined. Production-disabled markets stay out of category picks.';
     } catch (error) {
       statusNode.className = 'status error';
       statusNode.textContent = error instanceof Error ? error.message : 'Unable to load the saved board.';
@@ -342,6 +372,7 @@ export function renderHhrDisplayAppPage(): string {
       </div>
       <aside class="meta-panel" aria-label="Board status">
         <div class="meta-row"><span>Saved capture</span><strong id="captured-at">Loading…</strong></div>
+        <div class="meta-row"><span>Slate freshness</span><strong id="capture-freshness" class="freshness unknown">CHECKING</strong></div>
         <div class="controls">
           <button id="refresh-board" type="button">Refresh</button>
           <form class="logout-form" action="/logout" method="post"><button type="submit">Log out</button></form>
