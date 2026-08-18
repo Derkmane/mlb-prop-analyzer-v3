@@ -11,4 +11,8 @@ export * from './providers/balldontlie/index.js';
 export * from './providers/mlb-stats/index.js';
 export * from './providers/the-odds-api/index.js';
 export * from './saved-runs/file-saved-run-store.js';
-export * from './ui/hhr-display-page.js';
+export {
+  renderHhrDisplayAppPage,
+  renderHhrDisplayLoginPage,
+} from './ui/hhr-display-page.js';
+export * from './ui/product-board-layout.js';
