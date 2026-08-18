@@ -1,0 +1,42 @@
+name: Full-market Underdog capability capture
+
+on:
+  push:
+    branches:
+      - codex/full-market-research-scope
+    paths:
+      - scripts/capture-full-market-capability.mjs
+      - .github/workflows/full-market-capability.yml
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v6
+        with:
+          ref: codex/full-market-research-scope
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Capture live Underdog market capability
+        run: node scripts/capture-full-market-capability.mjs
+
+      - name: Persist sanitized capability fixture
+        run: |
+          set -euo pipefail
+          FIXTURE=fixtures/sanitized/provider-capabilities/2026-08-18/full-market-underdog-capability.json
+          test -f "$FIXTURE"
+          git add -- "$FIXTURE"
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "evidence: capture full-market Underdog capability [skip ci]"
+          git push origin HEAD:codex/full-market-research-scope
