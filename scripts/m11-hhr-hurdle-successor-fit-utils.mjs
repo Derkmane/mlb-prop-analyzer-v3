@@ -45,8 +45,13 @@ const OLD_MODEL_VERSION = 'm11-batter-hhr-direct-composite-v2';
 const MAX_OPTIMIZER_ITERATIONS = 180;
 const GRADIENT_TOLERANCE = 2e-6;
 const PARAMETER_TOLERANCE = 1e-9;
-const ARMIJO = 1e-4;
-const MIN_LINE_SEARCH_STEP = 2 ** -24;
+const HESSIAN_DIFFERENCE_SCALE = 1e-4;
+const INITIAL_DAMPING = 1e-6;
+const MINIMUM_DAMPING = 1e-12;
+const DAMPING_GROWTH = 10;
+const DAMPING_SHRINK = 0.2;
+const MAX_DAMPING_ATTEMPTS = 18;
+const LINEAR_SOLVE_PIVOT_TOLERANCE = 1e-14;
 
 export function sha256Text(text) {
   return createHash('sha256').update(text).digest('hex');
@@ -69,111 +74,153 @@ function dot(left, right) {
   return left.reduce((sum, value, index) => sum + value * right[index], 0);
 }
 
-function identity(size) {
-  return Array.from({ length: size }, (_, row) =>
-    Array.from({ length: size }, (_, column) => row === column ? 1 : 0),
-  );
-}
-
-function matrixVector(matrix, vector) {
-  return matrix.map((row) => dot(row, vector));
-}
-
 function maximumAbsolute(vector) {
   return Math.max(...vector.map((value) => Math.abs(value)));
 }
 
-function bfgsInverseUpdate(inverseHessian, stepVector, gradientChange) {
-  const ys = dot(gradientChange, stepVector);
-  if (!Number.isFinite(ys) || ys <= 1e-10) return identity(stepVector.length);
-  const hy = matrixVector(inverseHessian, gradientChange);
-  const yhy = dot(gradientChange, hy);
-  const rho = 1 / ys;
-  const coefficient = (1 + yhy * rho) * rho;
-  return inverseHessian.map((row, rowIndex) => row.map((value, columnIndex) =>
-    value
-    + coefficient * stepVector[rowIndex] * stepVector[columnIndex]
-    - rho * (hy[rowIndex] * stepVector[columnIndex] + stepVector[rowIndex] * hy[columnIndex]),
-  ));
-}
-
-function armijoLineSearch(evaluate, parameters, objectiveValue, gradient, direction) {
-  const directionalDerivative = dot(gradient, direction);
-  if (!(directionalDerivative < 0) || !Number.isFinite(directionalDerivative)) return null;
-  let lineSearchStep = 1;
-  while (lineSearchStep >= MIN_LINE_SEARCH_STEP) {
-    const candidate = parameters.map((value, index) => value + lineSearchStep * direction[index]);
-    const candidateEvaluation = evaluate(candidate);
-    if (Number.isFinite(candidateEvaluation.objectiveValue)
-      && candidateEvaluation.objectiveValue <= objectiveValue + ARMIJO * lineSearchStep * directionalDerivative) {
-      return Object.freeze({ parameters: candidate, evaluation: candidateEvaluation, lineSearchStep });
-    }
-    lineSearchStep /= 2;
+function solveLinearSystem(matrixInput, vectorInput) {
+  const size = vectorInput.length;
+  if (!Array.isArray(matrixInput) || matrixInput.length !== size
+    || matrixInput.some((row) => !Array.isArray(row) || row.length !== size)) {
+    throw new Error('HHR damped-Newton linear system shape is invalid.');
   }
-  return null;
+  const augmented = matrixInput.map((row, index) => [...row, vectorInput[index]]);
+  if (augmented.some((row) => row.some((value) => !Number.isFinite(value)))) return null;
+
+  for (let column = 0; column < size; column += 1) {
+    let pivot = column;
+    for (let row = column + 1; row < size; row += 1) {
+      if (Math.abs(augmented[row][column]) > Math.abs(augmented[pivot][column])) pivot = row;
+    }
+    if (!(Math.abs(augmented[pivot][column]) > LINEAR_SOLVE_PIVOT_TOLERANCE)) return null;
+    [augmented[column], augmented[pivot]] = [augmented[pivot], augmented[column]];
+
+    for (let row = column + 1; row < size; row += 1) {
+      const factor = augmented[row][column] / augmented[column][column];
+      for (let entry = column; entry <= size; entry += 1) {
+        augmented[row][entry] -= factor * augmented[column][entry];
+      }
+    }
+  }
+
+  const solution = Array(size).fill(0);
+  for (let row = size - 1; row >= 0; row -= 1) {
+    let right = augmented[row][size];
+    for (let column = row + 1; column < size; column += 1) {
+      right -= augmented[row][column] * solution[column];
+    }
+    solution[row] = right / augmented[row][row];
+    if (!Number.isFinite(solution[row])) return null;
+  }
+  return solution;
 }
 
-function optimizeBfgs(evaluate, initialParameters) {
+function numericalHessianFromAnalyticGradient(evaluate, parameters) {
+  const size = parameters.length;
+  const raw = Array.from({ length: size }, () => Array(size).fill(0));
+
+  for (let column = 0; column < size; column += 1) {
+    const step = HESSIAN_DIFFERENCE_SCALE * Math.max(1, Math.abs(parameters[column]));
+    const plus = [...parameters];
+    const minus = [...parameters];
+    plus[column] += step;
+    minus[column] -= step;
+    const plusGradient = evaluate(plus).gradient;
+    const minusGradient = evaluate(minus).gradient;
+    if (!Array.isArray(plusGradient) || !Array.isArray(minusGradient)
+      || plusGradient.length !== size || minusGradient.length !== size
+      || plusGradient.some((value) => !Number.isFinite(value))
+      || minusGradient.some((value) => !Number.isFinite(value))) {
+      throw new Error(`HHR damped-Newton Hessian gradient became non-finite at parameter ${column}.`);
+    }
+    for (let row = 0; row < size; row += 1) {
+      raw[row][column] = (plusGradient[row] - minusGradient[row]) / (2 * step);
+    }
+  }
+
+  return raw.map((row, rowIndex) => row.map((value, columnIndex) => {
+    const symmetric = 0.5 * (value + raw[columnIndex][rowIndex]);
+    if (!Number.isFinite(symmetric)) throw new Error('HHR damped-Newton Hessian contains a non-finite value.');
+    return symmetric;
+  }));
+}
+
+function dampedNewtonMatrix(hessian, damping) {
+  return hessian.map((row, rowIndex) => row.map((value, columnIndex) => {
+    if (rowIndex !== columnIndex) return value;
+    const diagonalScale = Math.max(1, Math.abs(hessian[rowIndex][rowIndex]));
+    return value + damping * diagonalScale;
+  }));
+}
+
+function optimizeDampedNewton(evaluate, initialParameters) {
   let parameters = [...initialParameters];
   let evaluation = evaluate(parameters);
-  let objectiveValue = evaluation.objectiveValue;
-  if (!Number.isFinite(objectiveValue)) throw new Error('Initial HHR zero-truncated NB2 objective is non-finite.');
-  let gradient = evaluation.gradient;
-  if (!Array.isArray(gradient) || gradient.some((value) => !Number.isFinite(value))) {
+  if (!Number.isFinite(evaluation.objectiveValue)) {
+    throw new Error('Initial HHR zero-truncated NB2 objective is non-finite.');
+  }
+  if (!Array.isArray(evaluation.gradient) || evaluation.gradient.some((value) => !Number.isFinite(value))) {
     throw new Error('Initial HHR zero-truncated NB2 analytic gradient is non-finite.');
   }
-  let inverseHessian = identity(parameters.length);
+
+  let damping = INITIAL_DAMPING;
+  let lastStepMaximum = null;
+  let lastObjectiveDecrease = null;
+  let maximumAcceptedDamping = 0;
+  let totalDampingAttempts = 0;
   let converged = false;
   let iteration = 0;
-  let lastStepMaximum = null;
-  let restartCount = 0;
 
   for (; iteration < MAX_OPTIMIZER_ITERATIONS; iteration += 1) {
-    if (maximumAbsolute(gradient) <= GRADIENT_TOLERANCE) {
+    const gradient = evaluation.gradient;
+    const maxGradient = maximumAbsolute(gradient);
+    if (maxGradient <= GRADIENT_TOLERANCE) {
       converged = true;
       break;
     }
 
-    let direction = matrixVector(inverseHessian, gradient).map((value) => -value);
-    let usedSteepestDescent = false;
-    if (!(dot(gradient, direction) < 0) || direction.some((value) => !Number.isFinite(value))) {
-      inverseHessian = identity(parameters.length);
-      direction = gradient.map((value) => -value);
-      usedSteepestDescent = true;
-      restartCount += 1;
+    const hessian = numericalHessianFromAnalyticGradient(evaluate, parameters);
+    let accepted = null;
+    let localDamping = Math.max(MINIMUM_DAMPING, damping);
+
+    for (let attempt = 0; attempt < MAX_DAMPING_ATTEMPTS; attempt += 1) {
+      totalDampingAttempts += 1;
+      const matrix = dampedNewtonMatrix(hessian, localDamping);
+      const step = solveLinearSystem(matrix, gradient.map((value) => -value));
+      if (step !== null && step.every((value) => Number.isFinite(value)) && dot(gradient, step) < 0) {
+        const candidateParameters = parameters.map((value, index) => value + step[index]);
+        const candidateEvaluation = evaluate(candidateParameters);
+        if (Number.isFinite(candidateEvaluation.objectiveValue)
+          && Array.isArray(candidateEvaluation.gradient)
+          && candidateEvaluation.gradient.every((value) => Number.isFinite(value))
+          && candidateEvaluation.objectiveValue < evaluation.objectiveValue) {
+          accepted = Object.freeze({
+            parameters: candidateParameters,
+            evaluation: candidateEvaluation,
+            step,
+            damping: localDamping,
+          });
+          break;
+        }
+      }
+      localDamping *= DAMPING_GROWTH;
     }
 
-    let search = armijoLineSearch(evaluate, parameters, objectiveValue, gradient, direction);
-    if (search === null && !usedSteepestDescent) {
-      inverseHessian = identity(parameters.length);
-      direction = gradient.map((value) => -value);
-      usedSteepestDescent = true;
-      restartCount += 1;
-      search = armijoLineSearch(evaluate, parameters, objectiveValue, gradient, direction);
-    }
-    if (search === null) {
+    if (accepted === null) {
       throw new Error(
-        `HHR zero-truncated NB2 line search failed after steepest-descent restart; objective=${objectiveValue}; max analytic gradient=${maximumAbsolute(gradient)}.`,
+        `HHR zero-truncated NB2 damped Newton failed to find a decreasing step; objective=${evaluation.objectiveValue}; max analytic gradient=${maxGradient}; attempted damping through ${localDamping / DAMPING_GROWTH}.`,
       );
     }
 
-    const nextParameters = search.parameters;
-    const nextEvaluation = search.evaluation;
-    const nextObjectiveValue = nextEvaluation.objectiveValue;
-    const nextGradient = nextEvaluation.gradient;
-    if (!Array.isArray(nextGradient) || nextGradient.some((value) => !Number.isFinite(value))) {
-      throw new Error('HHR zero-truncated NB2 analytic gradient became non-finite after an accepted step.');
-    }
-    const stepVector = nextParameters.map((value, index) => value - parameters[index]);
-    const gradientChange = nextGradient.map((value, index) => value - gradient[index]);
-    lastStepMaximum = maximumAbsolute(stepVector);
-    inverseHessian = bfgsInverseUpdate(inverseHessian, stepVector, gradientChange);
-    parameters = nextParameters;
-    evaluation = nextEvaluation;
-    objectiveValue = nextObjectiveValue;
-    gradient = nextGradient;
+    lastStepMaximum = maximumAbsolute(accepted.step);
+    lastObjectiveDecrease = evaluation.objectiveValue - accepted.evaluation.objectiveValue;
+    maximumAcceptedDamping = Math.max(maximumAcceptedDamping, accepted.damping);
+    parameters = accepted.parameters;
+    evaluation = accepted.evaluation;
+    damping = Math.max(MINIMUM_DAMPING, accepted.damping * DAMPING_SHRINK);
 
-    if (lastStepMaximum <= PARAMETER_TOLERANCE && maximumAbsolute(gradient) <= GRADIENT_TOLERANCE * 5) {
+    if (lastStepMaximum <= PARAMETER_TOLERANCE
+      && maximumAbsolute(evaluation.gradient) <= GRADIENT_TOLERANCE * 5) {
       converged = true;
       iteration += 1;
       break;
@@ -181,16 +228,23 @@ function optimizeBfgs(evaluate, initialParameters) {
   }
 
   if (!converged) {
-    throw new Error(`HHR zero-truncated NB2 BFGS did not converge after ${MAX_OPTIMIZER_ITERATIONS} iterations; max analytic gradient=${maximumAbsolute(gradient)}.`);
+    throw new Error(
+      `HHR zero-truncated NB2 damped Newton did not converge after ${MAX_OPTIMIZER_ITERATIONS} iterations; max analytic gradient=${maximumAbsolute(evaluation.gradient)}.`,
+    );
   }
+
   return Object.freeze({
     parameters: Object.freeze(parameters),
-    objectiveValue,
+    objectiveValue: evaluation.objectiveValue,
     iterations: iteration,
-    maxAbsoluteGradient: maximumAbsolute(gradient),
+    maxAbsoluteGradient: maximumAbsolute(evaluation.gradient),
     lastStepMaximum,
-    restartCount,
-    convergence: 'bfgs-analytic-gradient-with-steepest-descent-restart-v1',
+    lastObjectiveDecrease,
+    finalDamping: damping,
+    maximumAcceptedDamping,
+    totalDampingAttempts,
+    hessianDifferenceScale: HESSIAN_DIFFERENCE_SCALE,
+    convergence: 'damped-newton-analytic-gradient-numerical-hessian-v1',
   });
 }
 
@@ -419,7 +473,7 @@ function fitPositiveZeroTruncatedNb2(preparedRows, oldModel) {
   const positiveRows = preparedRows.filter((row) => row.target >= 1);
   if (positiveRows.length !== EXPECTED_POSITIVE_ROW_COUNT) throw new Error('HHR positive-row subset identity drifted.');
   const evaluate = zeroTruncatedNb2EvaluationFactory(positiveRows);
-  const optimization = optimizeBfgs(evaluate, initialParameters(oldModel));
+  const optimization = optimizeDampedNewton(evaluate, initialParameters(oldModel));
   const beta = optimization.parameters.slice(0, -1);
   const dispersionAlpha = Math.exp(optimization.parameters.at(-1));
   if (!(dispersionAlpha > 0) || !Number.isFinite(dispersionAlpha)) throw new Error('HHR successor dispersion alpha is invalid.');
@@ -428,7 +482,7 @@ function fitPositiveZeroTruncatedNb2(preparedRows, oldModel) {
     coefficientNames.map((name, index) => [name, beta[index]]),
   ));
   return Object.freeze({
-    fittingMethod: 'zero-truncated-negative-binomial-2-log-link-bfgs-v1',
+    fittingMethod: 'zero-truncated-negative-binomial-2-log-link-damped-newton-v1',
     responseSubset: 'T>=1',
     rowCount: positiveRows.length,
     link: 'log',
