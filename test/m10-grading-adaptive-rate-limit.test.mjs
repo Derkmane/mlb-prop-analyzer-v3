@@ -8,7 +8,8 @@ import {
 } from '../scripts/bdl-adaptive-rate-limit-utils.mjs';
 
 const HHR_GRADER_PATH = 'scripts/grade-m10-hhr-pending-archives.mjs';
-const HITS_GRADER_PATH = 'scripts/grade-m10-pending-archives.mjs';
+const HITS_ENTRYPOINT_PATH = 'scripts/grade-m10-pending-archives.mjs';
+const HITS_GRADER_PATH = 'scripts/grade-m10-batter-hits-pending-archives-v2.mjs';
 const WORKFLOW_PATH = '.github/workflows/m10-grade-pending-archives.yml';
 
 test('grading adaptive pacing uses the provider header and retains the 13000ms no-header fallback', () => {
@@ -63,9 +64,10 @@ test('adaptive limiter continues to honor Retry-After for 429 responses', async 
 });
 
 test('both pending-archive graders are wired to adaptive pacing and visible rate-limit diagnostics', async () => {
-  const [hhr, hits] = await Promise.all([
+  const [hhr, hits, hitsEntrypoint] = await Promise.all([
     readFile(HHR_GRADER_PATH, 'utf8'),
     readFile(HITS_GRADER_PATH, 'utf8'),
+    readFile(HITS_ENTRYPOINT_PATH, 'utf8'),
   ]);
 
   for (const source of [hhr, hits]) {
@@ -77,6 +79,10 @@ test('both pending-archive graders are wired to adaptive pacing and visible rate
     assert.match(source, /BDL INTERVAL MS/u);
   }
 
+  assert.equal(
+    hitsEntrypoint,
+    "import './grade-m10-batter-hits-pending-archives-v2.mjs';\n",
+  );
   assert.doesNotMatch(
     hhr,
     /process\.env\.M10_BDL_MIN_REQUEST_INTERVAL_MS\?\.trim\(\) \|\| '13000'/u,
@@ -85,7 +91,7 @@ test('both pending-archive graders are wired to adaptive pacing and visible rate
   assert.doesNotMatch(hits, /createRequestPacer/u);
 });
 
-test('scheduled grading no longer forces a fixed interval and both existing 429 branches remain unchanged', async () => {
+test('scheduled grading no longer forces a fixed interval and both 429 branches retain Retry-After handling', async () => {
   const [workflow, hhr, hits] = await Promise.all([
     readFile(WORKFLOW_PATH, 'utf8'),
     readFile(HHR_GRADER_PATH, 'utf8'),
@@ -94,15 +100,9 @@ test('scheduled grading no longer forces a fixed interval and both existing 429 
 
   assert.doesNotMatch(workflow, /M10_BDL_MIN_REQUEST_INTERVAL_MS/u);
 
-  assert.ok(
-    hhr.includes(
-      "const retrySeconds = Number(response.headers.get('retry-after'));\n" +
-        '      await sleep(Number.isFinite(retrySeconds) ? retrySeconds * 1000 : 13_000);',
-    ),
-  );
-
-  assert.ok(hits.includes("if (raw === null) return 60_000;"));
-  assert.ok(hits.includes('const timestamp = Date.parse(raw);'));
-  assert.ok(hits.includes('const waitMilliseconds = retryAfterMilliseconds(response);'));
-  assert.ok(hits.includes('await sleep(waitMilliseconds);'));
+  const retryBranch =
+    "const retrySeconds = Number(response.headers.get('retry-after'));\n" +
+    '      await sleep(Number.isFinite(retrySeconds) ? retrySeconds * 1000 : 13_000);';
+  assert.ok(hhr.includes(retryBranch));
+  assert.ok(hits.includes(retryBranch));
 });
