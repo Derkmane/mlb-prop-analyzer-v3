@@ -297,8 +297,8 @@ current-game lineup row for that player.
 Rules:
 
 -   use only verified MLB Stats API schedule/lineup response fields
--   preserve the MLB Stats API game, player, batting-order, capture-time,
-    and source-snapshot lineage used for a confirmed posted slot
+-   preserve the MLB Stats API game, player, batting-order,
+    capture-time, and source-snapshot lineage used for a confirmed posted slot
 -   do not use MLB Stats API performance statistics, probabilities,
     prices, settlement data, or other model inputs under this approval
 -   a unique MLB Stats API posted lineup slot is confirmed lineup evidence,
@@ -565,8 +565,8 @@ For a planned market without an implementation folder, the
 planned-market catalog owns and exports its keys.
 
 When implementation begins, ownership transfers from the planned-market
-catalog to the feature manifest in one commit, and the old declaration is
-removed in that same commit.
+catalog to the feature manifest in one commit, and the old declaration
+is removed in that same commit.
 
 No handwritten second copy is allowed.
 
@@ -1303,7 +1303,7 @@ There is no separate Project Knowledge deliverable.
 
 -   Required every canonical revision to remove and replace the old
     active repository file in the same change with the complete approved
-    new file at the exact canonical path.
+    file at the exact canonical path.
 -   Prohibited reporting Project Source synchronization before the
     repository copy has been replaced and verified byte-for-byte
     identical.
@@ -1344,7 +1344,7 @@ There is no separate Project Knowledge deliverable.
     the target environment.
 -   Prohibited commands that place required work behind interactive
     installation, confirmation, authentication, package-manager, or
-    environment prompts.
+environment prompts.
 -   Required user-run commands to use verified installed tools, remain
     non-interactive, and be reduced to the smallest safe action.
 -   Prohibited large pasted scripts, heredocs, and fragile chained
@@ -1431,22 +1431,21 @@ There is no separate Project Knowledge deliverable.
 -   Replaced migration-first planning with a clean modular-monolith
     foundation while preserving verified mathematics and product
     requirements.
--   Locked strict TypeScript, runtime schema validation,
-    dependency-cruiser boundaries, feature public entrypoints, and no
-    empty future-feature folders.
+-   Locked strict TypeScript, runtime schema validation, dependency-cruiser
+    boundaries, feature public entrypoints, and no empty future-feature folders.
 -   Separated markets from product categories and centralized settlement
     and ranking in core.
--   Added single-source market-key ownership across feature manifests
-    and the planned-market catalog.
--   Added fail-closed feature disable/removal rules and historical
-    rendering independent of active features.
--   Required provider evidence and sanitized fixtures before
-    provider-derived contracts.
+-   Added single-source market-key ownership across feature manifests and
+    the planned-market catalog.
+-   Added fail-closed feature disable/removal rules and historical rendering
+    independent of active feature code.
+-   Required provider evidence and sanitized fixtures before provider-derived
+    contracts.
 -   Added the early terminal-PA and lineup capability gate.
--   Preserved H+R+RBI and Pitcher Strikeouts as planned markets with
-    their required mathematical families.
--   Added detailed failure classification and repeated-failure
-    structural escalation.
+-   Preserved H+R+RBI and Pitcher Strikeouts as planned markets with their
+    required mathematical families.
+-   Added detailed failure classification and repeated-failure structural
+    escalation.
 -   Prohibited daily caps and time estimates from controlling project
     execution.
 
