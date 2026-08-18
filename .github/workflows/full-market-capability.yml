@@ -1,21 +1,10 @@
 name: Full-market Underdog capability capture
 
 on:
-  push:
-    branches:
-      - codex/full-market-research-scope
-    paths:
-      - scripts/capture-full-market-capability.mjs
-      - .github/workflows/full-market-capability.yml
-  pull_request:
-    branches:
-      - main
-    paths:
-      - scripts/capture-full-market-capability.mjs
-      - .github/workflows/full-market-capability.yml
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   capture:
@@ -24,10 +13,8 @@ jobs:
     env:
       THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
     steps:
-      - name: Check out branch
+      - name: Check out requested ref
         uses: actions/checkout@v6
-        with:
-          ref: codex/full-market-research-scope
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -38,12 +25,9 @@ jobs:
       - name: Capture live Underdog market capability
         run: node scripts/capture-full-market-capability.mjs
 
-      - name: Persist sanitized capability fixture
-        if: github.event_name == 'push'
-        run: |
-          set -euo pipefail
-          FIXTURE=fixtures/sanitized/provider-capabilities/2026-08-18/full-market-underdog-capability.json
-          test -f "$FIXTURE"
-          git add -- "$FIXTURE"
-          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "evidence: capture full-market Underdog capability [skip ci]"
-          git push origin HEAD:codex/full-market-research-scope
+      - name: Upload sanitized capability fixture
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-market-underdog-capability
+          path: fixtures/sanitized/provider-capabilities/2026-08-18/full-market-underdog-capability.json
+          if-no-files-found: error
