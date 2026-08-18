@@ -33,11 +33,15 @@ export interface ProductLastFiveResult {
 }
 
 export interface ProductCalibrationDisclosure {
-  readonly status: 'failed' | 'passed' | 'insufficient' | 'pending';
+  readonly status: 'failed' | 'passed' | 'pending';
   readonly cohort: string;
   readonly predicted: number | null;
   readonly observed: number | null;
   readonly decidedPicks: number | null;
+  readonly sampleSufficiency: 'sufficient' | 'insufficient' | 'unavailable';
+  readonly calibrationAgreement: 'pass' | 'fail' | 'unavailable';
+  readonly calculationMethod: 'primary-per-pick-heterogeneous' | 'unavailable';
+  readonly evidenceSnapshot: string;
   readonly message: string;
 }
 
