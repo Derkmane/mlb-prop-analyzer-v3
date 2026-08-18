@@ -9,6 +9,7 @@ import {
   type ResearchDisplayMarket,
   type ResearchDisplayRow,
 } from '../src/application/index.js';
+import { BATTER_HHR_MARKET_KEY } from '../src/features/batter-hhr/manifest.js';
 
 const CAPTURED_AT = '2026-08-18T20:00:00.000Z';
 
@@ -112,12 +113,12 @@ function repository(): ResearchDisplayArchiveRepository {
     row({ market: 'batter-hits', playerId: 12, playerName: 'Hits Alt Two', offerType: 'alternate', side: 'lower', line: 1.5, p: 0.74 }),
     row({ market: 'batter-hits', playerId: 13, playerName: 'Hits Alt Three', offerType: 'alternate', side: 'lower', line: 1.5, p: 0.69 }),
   ]);
-  const hhr = archive('batter-hhr', [
-    row({ market: 'batter-hhr', playerId: 1, playerName: 'Shared Star', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.81, lastFive: [1, 0] }),
-    row({ market: 'batter-hhr', playerId: 20, playerName: 'HHR Baseline', offerType: 'baseline', side: 'higher', line: 1.5, p: 0.70 }),
-    row({ market: 'batter-hhr', playerId: 21, playerName: 'HHR Alt One', offerType: 'alternate', side: 'lower', line: 1.5, p: 0.83 }),
-    row({ market: 'batter-hhr', playerId: 22, playerName: 'HHR Alt Two', offerType: 'alternate', side: 'lower', line: 1.5, p: 0.78 }),
-    row({ market: 'batter-hhr', playerId: 23, playerName: 'HHR Deep', offerType: 'alternate', side: 'lower', line: 2.5, p: 0.72 }),
+  const hhr = archive(BATTER_HHR_MARKET_KEY, [
+    row({ market: BATTER_HHR_MARKET_KEY, playerId: 1, playerName: 'Shared Star', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.81, lastFive: [1, 0] }),
+    row({ market: BATTER_HHR_MARKET_KEY, playerId: 20, playerName: 'HHR Baseline', offerType: 'baseline', side: 'higher', line: 1.5, p: 0.70 }),
+    row({ market: BATTER_HHR_MARKET_KEY, playerId: 21, playerName: 'HHR Alt One', offerType: 'alternate', side: 'lower', line: 1.5, p: 0.83 }),
+    row({ market: BATTER_HHR_MARKET_KEY, playerId: 22, playerName: 'HHR Alt Two', offerType: 'alternate', side: 'lower', line: 1.5, p: 0.78 }),
+    row({ market: BATTER_HHR_MARKET_KEY, playerId: 23, playerName: 'HHR Deep', offerType: 'alternate', side: 'lower', line: 2.5, p: 0.72 }),
   ]);
   return Object.freeze({
     readLatest: async (market: ResearchDisplayMarket) =>
