@@ -19,7 +19,14 @@ import type { ImplementedMarketRegistration } from '../src/domain/market.js';
 import type { SettlementRuleRegistration } from '../src/domain/settlement-rule.js';
 import { BATTER_HHR_SETTLEMENT_RULE_VERSION } from '../src/features/batter-hhr/contracts.js';
 import { BATTER_HHR_FEATURE_ID, BATTER_HHR_MARKET_KEY } from '../src/features/batter-hhr/manifest.js';
-import { BATTER_HITS_FEATURE_ID, BATTER_HITS_MARKET_KEY } from '../src/features/batter-hits/manifest.js';
+import {
+  BATTER_HITS_FEATURE_ID,
+  BATTER_HITS_MARKET_KEY,
+} from '../src/features/batter-hits/manifest.js';
+import {
+  BATTER_HITS_SETTLEMENT_RULE_SOURCE_REFERENCE,
+  BATTER_HITS_SETTLEMENT_RULE_VERSION,
+} from '../src/features/batter-hits/settlement.js';
 
 type SettlementRuleWithoutTemporal = Omit<
   SettlementRuleRegistration,
@@ -113,13 +120,20 @@ test('production registries are explicit, frozen, and keep Batter Hits and HHR d
     { featureId: BATTER_HITS_FEATURE_ID, enabled: false, status: 'model-under-development' },
     { featureId: BATTER_HHR_FEATURE_ID, enabled: false, status: 'model-under-development' },
   ]);
-  assert.equal(SETTLEMENT_REGISTRY.version, 'settlement-registry-v2');
-  assert.equal(SETTLEMENT_REGISTRY.rules.length, 1);
-  assert.equal(SETTLEMENT_REGISTRY.rules[0]?.baseMarketKey, BATTER_HHR_MARKET_KEY);
-  assert.equal(SETTLEMENT_REGISTRY.rules[0]?.version, BATTER_HHR_SETTLEMENT_RULE_VERSION);
-  assert.equal(SETTLEMENT_REGISTRY.rules[0]?.officialSettlementStatistic, 'hits+runs+rbis');
+  assert.equal(SETTLEMENT_REGISTRY.version, 'settlement-registry-v3');
+  assert.equal(SETTLEMENT_REGISTRY.rules.length, 2);
+  const batterHitsRule = SETTLEMENT_REGISTRY.rules.find((row) => row.baseMarketKey === BATTER_HITS_MARKET_KEY);
+  const hhrRule = SETTLEMENT_REGISTRY.rules.find((row) => row.baseMarketKey === BATTER_HHR_MARKET_KEY);
+  assert.ok(batterHitsRule);
+  assert.equal(batterHitsRule.version, BATTER_HITS_SETTLEMENT_RULE_VERSION);
+  assert.equal(batterHitsRule.officialSettlementStatistic, 'hits');
+  assert.equal(batterHitsRule.ruleSourceReference, BATTER_HITS_SETTLEMENT_RULE_SOURCE_REFERENCE);
+  assert.ok(hhrRule);
+  assert.equal(hhrRule.version, BATTER_HHR_SETTLEMENT_RULE_VERSION);
+  assert.equal(hhrRule.officialSettlementStatistic, 'hits+runs+rbis');
   assert.ok(Object.isFrozen(SETTLEMENT_REGISTRY.rules));
   assert.ok(Object.isFrozen(SETTLEMENT_REGISTRY.rules[0]));
+  assert.ok(Object.isFrozen(SETTLEMENT_REGISTRY.rules[1]));
   assert.ok(Object.isFrozen(IMPLEMENTED_MARKET_REGISTRY));
   assert.ok(Object.isFrozen(FEATURE_REGISTRY));
   assert.ok(Object.isFrozen(SETTLEMENT_REGISTRY));
