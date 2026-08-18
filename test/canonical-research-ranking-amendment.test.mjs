@@ -14,7 +14,6 @@ test('canonical authorities separate research ranking from production calibratio
 
   for (const required of [
     'UNVALIDATED RESEARCH',
-    'versioned current-season fitted distribution',
     'versioned market-specific settlement rule',
     'deterministic and exact',
     'P(Win | grades)',
@@ -23,6 +22,7 @@ test('canonical authorities separate research ranking from production calibratio
     assert.ok(rules.includes(required), `PROJECT_RULES missing ${required}`);
   }
 
+  assert.match(rules, /explicitly versioned\s+current-season fitted distribution/u);
   assert.match(math, /frozen or otherwise explicitly versioned[\s\S]*current-season fitted distribution/u);
   assert.match(math, /exact posted selected side and line[\s\S]*generic[\s\S]*Higher\/Lower settlement/u);
   assert.match(math, /category ordering uses only `P\(Win \| grades\)` descending and `P\(Void\)`[\s\S]*ascending/u);
