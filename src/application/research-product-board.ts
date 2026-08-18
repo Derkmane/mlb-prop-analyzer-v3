@@ -67,12 +67,12 @@ function opponent(row: ResearchDisplayRow): string {
 
 function starterContext(row: ResearchDisplayRow): ProductStarterContext {
   const enrichment = row.enrichment;
-  const starter = objectOrNull(enrichment?.opposingStarter);
-  const last10 = objectOrNull(starter?.last10);
-  const starts = finiteOrNull(last10?.starts);
-  const innings = scalarText(last10?.inningsPitched);
-  const strikeouts = finiteOrNull(last10?.strikeouts);
-  const whip = finiteOrNull(last10?.whip);
+  const starter = objectOrNull(enrichment?.['opposingStarter']);
+  const last10 = objectOrNull(starter?.['last10']);
+  const starts = finiteOrNull(last10?.['starts']);
+  const innings = scalarText(last10?.['inningsPitched']);
+  const strikeouts = finiteOrNull(last10?.['strikeouts']);
+  const whip = finiteOrNull(last10?.['whip']);
   const workloadParts = [
     starts === null ? null : `${starts} starts`,
     innings === null ? null : `${innings} IP`,
@@ -81,33 +81,31 @@ function starterContext(row: ResearchDisplayRow): ProductStarterContext {
   ].filter((value): value is string => value !== null);
 
   return Object.freeze({
-    name: stringOrNull(starter?.name),
+    name: stringOrNull(starter?.['name']),
     hand:
-      stringOrNull(starter?.throwingHand) ??
+      stringOrNull(starter?.['throwingHand']) ??
       row.analysisContext.opposingStarterHand,
-    era: finiteOrNull(starter?.era),
-    // BALLDONTLIE Phase 2 does not preserve batters faced; K/IP is not K rate.
+    era: finiteOrNull(starter?.['era']),
     kRate: null,
     recentWorkload: workloadParts.length === 0 ? null : workloadParts.join(' · '),
   });
 }
 
 function lastFive(row: ResearchDisplayRow): readonly ProductLastFiveResult[] {
-  const lastFiveEnvelope = objectOrNull(row.enrichment?.lastFiveGames);
-  const games = Array.isArray(lastFiveEnvelope?.games)
-    ? lastFiveEnvelope.games
-    : [];
+  const lastFiveEnvelope = objectOrNull(row.enrichment?.['lastFiveGames']);
+  const gamesValue = lastFiveEnvelope?.['games'];
+  const games = Array.isArray(gamesValue) ? gamesValue : [];
   return Object.freeze(
     games.flatMap((raw) => {
       const game = objectOrNull(raw);
       if (game === null) return [];
       const actual = finiteOrNull(
-        row.market === 'batter-hits' ? game.hits : game.hrr,
+        row.market === 'batter-hits' ? game['hits'] : game['hrr'],
       );
-      const gameDate = stringOrNull(game.gameDate);
+      const gameDate = stringOrNull(game['gameDate']);
       const gameOpponent =
-        stringOrNull(game.opponentAbbreviation) ??
-        stringOrNull(game.opponentTeamName);
+        stringOrNull(game['opponentAbbreviation']) ??
+        stringOrNull(game['opponentTeamName']);
       if (
         actual === null ||
         !Number.isInteger(actual) ||
