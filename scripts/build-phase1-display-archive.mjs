@@ -138,25 +138,56 @@ function expectedValueFromPmf(raw, label) {
   return expected;
 }
 
-function batterHitsAnalysisContext(row, index) {
-  const candidate = object(row.candidate, `Batter Hits rankedRows[${index}].candidate`);
-  const featureData = object(candidate.featureData, `Batter Hits row ${index} featureData`);
-  const values = object(featureData.values, `Batter Hits row ${index} featureData.values`);
+function optionalObject(value, label) {
+  if (value === undefined || value === null) return null;
+  return object(value, label);
+}
+
+function batterHitsFeatureDetails(row, index) {
+  const candidate = optionalObject(
+    row.candidate,
+    `Batter Hits rankedRows[${index}].candidate`,
+  );
+  if (candidate === null) return null;
+  const featureData = optionalObject(
+    candidate.featureData,
+    `Batter Hits row ${index} featureData`,
+  );
+  if (featureData === null) return null;
+  const values = optionalObject(
+    featureData.values,
+    `Batter Hits row ${index} featureData.values`,
+  );
+  if (values === null) return null;
   const detailsEntries = Object.values(values);
+  if (detailsEntries.length === 0) return null;
   if (detailsEntries.length !== 1) {
     throw new Error(`Batter Hits row ${index} must have exactly one feature details envelope.`);
   }
-  const details = object(detailsEntries[0], `Batter Hits row ${index} feature details`);
-  const distribution = object(row.distribution, `Batter Hits row ${index} distribution`);
+  return object(detailsEntries[0], `Batter Hits row ${index} feature details`);
+}
+
+function batterHitsAnalysisContext(row, index) {
+  const details = batterHitsFeatureDetails(row, index);
+  const distribution = optionalObject(
+    row.distribution,
+    `Batter Hits row ${index} distribution`,
+  );
   return Object.freeze({
     expectedPlateAppearances: expectedValueFromPmf(
-      distribution.opportunityDistribution,
+      distribution?.opportunityDistribution,
       `Batter Hits row ${index} opportunityDistribution`,
     ),
-    lineupSlot: finiteNumberOrNull(details.lineupSlot ?? null, `Batter Hits row ${index} lineupSlot`),
-    batterSide: stringOrNull(details.batterSide ?? null, `Batter Hits row ${index} batterSide`),
+    lineupSlot: finiteNumberOrNull(
+      details?.lineupSlot ?? null,
+      `Batter Hits row ${index} lineupSlot`,
+    ),
+    batterSide: stringOrNull(
+      details?.batterSide ?? null,
+      `Batter Hits row ${index} batterSide`,
+    ),
     opposingStarterHand: stringOrNull(
-      details.opposingStarterHand ?? null,
+      details?.opposingStarterHand ?? null,
       `Batter Hits row ${index} opposingStarterHand`,
     ),
     venue: null,
