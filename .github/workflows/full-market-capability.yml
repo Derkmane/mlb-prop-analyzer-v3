@@ -7,6 +7,12 @@ on:
     paths:
       - scripts/capture-full-market-capability.mjs
       - .github/workflows/full-market-capability.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - scripts/capture-full-market-capability.mjs
+      - .github/workflows/full-market-capability.yml
 
 permissions:
   contents: write
@@ -33,6 +39,7 @@ jobs:
         run: node scripts/capture-full-market-capability.mjs
 
       - name: Persist sanitized capability fixture
+        if: github.event_name == 'push'
         run: |
           set -euo pipefail
           FIXTURE=fixtures/sanitized/provider-capabilities/2026-08-18/full-market-underdog-capability.json
