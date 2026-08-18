@@ -1,6 +1,6 @@
 # MLB Prop Analyzer — Canonical Math & Statistics Reference
 
-**Version:** 1.13
+**Version:** 1.14
 **Status:** Canonical probability mathematics
 **Empirical status:** Mathematical framework verified where marked; predictive accuracy not yet validated
 
@@ -569,6 +569,92 @@ Under Family B:
     Their introduction does not authorize Monte Carlo,
     line-specific statistic distributions, independent
     Hits/Runs/RBI convolution, or any fallback distribution.
+
+13. A Family B market may use a continuation-ratio
+    directly fitted discrete distribution when a prior
+    approved count-family candidate has demonstrated
+    settlement-tail misspecification that is not repaired by
+    an approved zero-mass correction or refitted positive
+    count component.
+
+    For nonnegative integer settlement statistic T, define
+    the continuation probability at threshold k as:
+
+        c_k(x)
+          = P(T >= k+1 | T >= k, x)
+
+    with:
+
+        0 < c_k(x) < 1.
+
+    For the HHR continuation-ratio candidate authorized in
+    Section 15.3, thresholds k = 0,...,7 are modeled as:
+
+        logit(c_k(x))
+          = a_k + beta' z(x)
+
+    where a_k is threshold-specific and beta is one shared
+    slope vector across thresholds.
+
+    The resulting exact probabilities over the supported
+    settlement partition are:
+
+        P(T=0 | x)
+          = 1 - c_0(x)
+
+        P(T=t | x)
+          = [ product_{j=0}^{t-1} c_j(x) ]
+            [ 1 - c_t(x) ],
+            for t = 1,...,7
+
+        P(T>=8 | x)
+          = product_{j=0}^{7} c_j(x).
+
+    These probabilities are one directly fitted Family B
+    distribution over the settlement statistic. They are
+    not separate binary settlement models and are not a
+    post-settlement calibration layer.
+
+    The same distribution must settle every supported
+    Higher and Lower baseline or alternate offer. Posted
+    side, posted line, multiplier, price, category, and
+    settlement result may not enter x, z(x), a_k, or beta.
+
+    The T>=8 terminal tail is sufficient only for settlement
+    thresholds that do not require distinguishing exact
+    values within that tail. A posted offer requiring an
+    exact distinction inside T>=8 fails closed unless a
+    later canonical revision extends the continuation
+    sequence. No probability mass may be invented or
+    redistributed inside the terminal tail at runtime.
+
+    The continuation-ratio survival curve is monotone by
+    construction. Let:
+
+        S_0(x) = 1
+        S_k(x) = P(T >= k | x)
+               = product_{j=0}^{k-1} c_j(x), for k >= 1.
+
+    Because every c_k(x) is strictly between 0 and 1:
+
+        S_(k+1)(x) = S_k(x) c_k(x) < S_k(x).
+
+    Therefore Higher settlement probability cannot increase
+    as the posted line rises, and the complementary Lower
+    settlement probability cannot decrease. The fit report
+    must nevertheless verify this numerically within every
+    required fitted-mu bin across every supported required
+    settlement threshold. The mean predicted survival in
+    each required bin must be strictly decreasing as the
+    threshold deepens, with complementary lower tails
+    strictly increasing. Any non-finite value, equality from
+    numerical saturation, or increase in a deeper survival
+    threshold is a numerical defect and fails closed.
+
+    A continuation-ratio Family B form remains subject to
+    the exact analytic runtime requirement and the
+    prohibition on independent Hits/Runs/RBI marginal
+    convolution.
 
 Family B is an approved production family, not a
 provisional shortcut. Family A remains approved and may
@@ -1592,6 +1678,190 @@ This recovery changes no positive-count predictors, fitting period, reserved
 untouched period, successor gate, calibration rule, ranking rule, or
 production status.
 
+#### HHR CONTINUATION-RATIO SUCCESSOR — 2026-08-17
+
+The conditioned-hurdle successor authorized by Versions
+1.12 and 1.13 was fitted on the approved 5,964-row
+current-season fitting cohort.
+
+Its numerical optimizer converged cleanly. The final
+candidate nevertheless failed the predeclared fit-time
+distribution-shape gate.
+
+Worst required-bin absolute gaps were:
+
+    P(T=0)     0.0206872
+    P(T>=1)    0.0206872
+    P(T>=2)    0.0212192
+    P(T>=3)    0.0128291
+
+all against the unchanged required tolerance of 0.010.
+
+A subsequent diagnostic conditioned each fitted-mu bin on
+T>=1, isolating the positive-count distribution from the
+hurdle zero component.
+
+Worst conditional positive-count absolute gaps were:
+
+    P(T>=2 | T>=1)    0.0312144
+    P(T>=3 | T>=1)    0.0232808
+
+The positive-count errors vary in direction across fitted
+bins. The evidence therefore rejects both a zero-only
+correction and the refitted zero-truncated NB2 positive
+component as sufficient descriptions of the remaining HHR
+distribution shape.
+
+The Version 1.12/1.13 successor is rejected. It is not
+frozen. Its reserved untouched evidence remains sealed and
+may not be used to select, fit, corroborate, or revise the
+next candidate.
+
+The next HHR Family B candidate is one continuation-ratio
+direct discrete distribution over:
+
+    T = Hits + Runs + RBIs.
+
+For k = 0,...,7:
+
+    c_k(x)
+      = P(T >= k+1 | T >= k, x)
+
+and:
+
+    logit(c_k(x))
+      = a_k + beta' z(x).
+
+The candidate has one threshold-specific intercept a_k for
+each k and one shared slope vector beta across all
+thresholds.
+
+The conditioning vector z(x), in exact order, is:
+
+    1. log(expectedPlateAppearances)
+    2. contextHitQualityLogit
+    3. centeredLineupSlot
+    4. platoonSplitCell
+    5. opposingStarterPooling
+    6. teamImpliedRunTotal
+    7. precedingLineupSlotsOnBaseQuality
+
+The six existing non-PA predictor definitions,
+standardizations, and transforms remain exactly those of
+the frozen HHR fitting evidence.
+
+log(expectedPlateAppearances) retains the same transform
+previously used by the NB2 offset, but it is now an ordinary
+predictor with an estimated shared coefficient. Its
+coefficient is no longer fixed at 1.
+
+No additional conditioning input is authorized.
+
+The candidate is fitted by deterministic maximum likelihood
+using only the existing approved 5,964-row fitting cohort.
+No later game, prospective grade, previously evaluated
+untouched outcome, or newly reserved period may enter this
+fit.
+
+The model directly produces:
+
+    P(T=0)
+    P(T=1)
+    ...
+    P(T=7)
+    P(T>=8)
+
+through the continuation-ratio identities in Section
+8.3.2.
+
+The Version 1.13 conditioned-hurdle zero component is not
+combined with this candidate. The continuation-ratio model
+owns zero mass and every supported positive transition
+inside one distribution. The Version 1.13 component remains
+historical evidence for the rejected predecessor only.
+
+No coefficient sweep, model-family fallback, line-specific
+distribution, selected-side input, multiplier input, price
+input, category input, or settlement-result input is
+authorized.
+
+No untouched period is reserved by this revision.
+
+Before any freeze or untouched reservation may be proposed,
+the fitted candidate must be reported against the existing
+fit-time distribution-shape evidence.
+
+The required zero-mass and settlement-tail tolerances remain
+unchanged:
+
+    tau_zero <= 0.010
+    tau_tail <= 0.010
+
+Required settlement targets remain at minimum:
+
+    P(T=0)
+    P(T>=1)
+    P(T>=2)
+    P(T>=3)
+
+with the complementary lower tails reported.
+
+The existing five-bin minimum, minimum row count, and
+predeclared fit-time failure behavior remain in force.
+
+Because this continuation-ratio candidate does not assume
+an NB dispersion parameter, the Section 17.46
+moment-equivalent alpha_implied calculation must still be
+reported for every required bin as a residual variance
+diagnostic, but alpha_implied is informational for this
+specific HHR candidate and is not an acceptance or rejection
+criterion. This candidate is accepted or rejected at fit
+time by the structural requirements and the unchanged
+zero-mass and settlement-tail requirements above.
+
+The fit report must show the complete per-bin observed and
+predicted zero mass and both upper and lower settlement
+tails at every required threshold. It must also verify the
+continuation-ratio survival curve numerically within every
+required fitted-mu bin: mean predicted survival must be
+strictly decreasing at each deeper supported threshold and
+the complementary lower tail must be strictly increasing.
+Any non-finite, equal, or reversed adjacent survival values
+fail closed as a numerical monotonicity defect.
+
+It must also provide an explicit comparison against every
+previously evaluated HHR structural candidate for which the
+corresponding fitting evidence exists, including at least:
+
+    frozen v2 single-component NB2
+    scalar ZINB
+    scalar hurdle
+    conditioned ZINB log(mu)
+    conditioned ZINB approved-input form
+    conditioned hurdle
+    Version 1.13 conditioned-hurdle / refitted
+      zero-truncated NB2 successor
+
+The comparison must report the applicable per-bin gaps and
+the worst-bin zero and settlement-tail gaps. Previously
+recorded results may not be rewritten to improve
+comparability.
+
+A fit-time failure does not authorize a tolerance change.
+The result must be reported before any candidate freeze,
+new untouched reservation, or production-validation step is
+proposed.
+
+If any required zero or settlement-tail condition fails,
+the candidate is not frozen.
+
+If every required fit-time condition passes, the result is
+still only a fitting-cohort pass. A separate later decision
+is required before reserving a new untouched
+active-current-season period or freezing the candidate.
+
+HHR remains production-disabled and ranking-disabled.
+
 ---
 
 ## 16. Verified worked example — Batter Hits
@@ -2109,6 +2379,50 @@ no validated distribution → no ranked prop
 ---
 
 ## Changelog
+
+### Version 1.14 — 2026-08-17
+
+- Recorded the converged rejection of the Version 1.12/1.13
+  HHR conditioned-hurdle successor: worst required-bin
+  zero/tail gaps remained above the unchanged 0.010
+  fit-time tolerance.
+- Recorded the conditional-positive diagnostic showing the
+  remaining defect is not zero-only: worst conditional
+  positive-count gaps were 0.0312144 at T>=2 and 0.0232808
+  at T>=3.
+- Authorized one next HHR Family B structural candidate:
+  an exact analytic continuation-ratio distribution fitted
+  directly over T=Hits+Runs+RBIs with threshold-specific
+  intercepts and one shared baseball-predictor slope vector.
+- Retained the existing six HHR predictors and their frozen
+  definitions and transforms; moved
+  log(expectedPlateAppearances) from a fixed coefficient-1
+  offset to an ordinary predictor with an estimated shared
+  coefficient.
+- Defined the continuation identities for T=0 through T=7
+  and the terminal T>=8 tail, with fail-closed behavior for
+  any posted settlement threshold requiring distinctions
+  inside that terminal tail.
+- Recorded that the continuation-ratio survival is strictly
+  decreasing by construction because every continuation
+  probability is in (0,1), and required per-bin numerical
+  verification of monotone Higher/Lower settlement tails;
+  non-finite, equal, or reversed adjacent survival values
+  fail closed.
+- Retired the Version 1.13 hurdle-zero component from the
+  new candidate while preserving it as historical evidence
+  for the rejected predecessor.
+- Kept tau_zero <= 0.010 and tau_tail <= 0.010 unchanged.
+  Required the moment-equivalent alpha diagnostic to remain
+  reported but made it informational for this non-NB HHR
+  candidate.
+- Required a complete per-bin comparison against the
+  previously evaluated HHR structural candidates before
+  any freeze decision.
+- Reserved no new untouched period, authorized no candidate
+  freeze, read no untouched outcomes, and made no
+  production, ranking, calibration, settlement, category,
+  or provider change.
 
 ### Version 1.13 — 2026-08-17
 
