@@ -32,12 +32,22 @@ test('all three category panels are visible and ranked picks read top to bottom'
   assert.equal(HHR_DISPLAY_APP_JS.includes('.sort('), false);
 });
 
-test('last five games render as a five-column visual against the current line', () => {
+test('desktop cards and probability/context columns stay compact', () => {
+  assert.match(HHR_DISPLAY_APP_CSS, /\.shell \{ width: min\(1120px, 100%\); \}/u);
+  assert.match(HHR_DISPLAY_APP_CSS, /width: min\(980px, 100%\);/u);
+  assert.match(HHR_DISPLAY_APP_CSS, /\.prob-grid \{ max-width: 760px; \}/u);
+  assert.match(HHR_DISPLAY_APP_CSS, /\.analysis-grid \{ max-width: 820px; \}/u);
+});
+
+test('last five games render as a compact readable five-column visual against the current line', () => {
   assert.match(HHR_DISPLAY_APP_CSS, /\.last-five-graph/u);
+  assert.match(HHR_DISPLAY_APP_CSS, /width: min\(620px, 100%\);/u);
   assert.match(HHR_DISPLAY_APP_CSS, /grid-template-columns: repeat\(5, minmax\(0, 1fr\)\)/u);
   assert.match(HHR_DISPLAY_APP_CSS, /\.last-five-line/u);
   assert.match(HHR_DISPLAY_APP_CSS, /\.last-five-bar\.cash/u);
   assert.match(HHR_DISPLAY_APP_CSS, /\.last-five-bar\.miss/u);
+  assert.match(HHR_DISPLAY_APP_CSS, /font-size: \.76rem;/u);
+  assert.match(HHR_DISPLAY_APP_CSS, /font-size: \.74rem;/u);
   assert.match(HHR_DISPLAY_APP_JS, /const decorateLastFiveGraph = \(lastFive\) =>/u);
   assert.match(HHR_DISPLAY_APP_JS, /String\(lineChip\?\.textContent \|\| ''\)\.slice\(5\)/u);
   assert.match(HHR_DISPLAY_APP_JS, /currentLine \/ plotMaximum/u);
