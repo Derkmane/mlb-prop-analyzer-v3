@@ -53,6 +53,12 @@ function stringOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
+function scalarText(value: unknown): string | null {
+  if (typeof value === 'string' && value.length > 0) return value;
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  return null;
+}
+
 function opponent(row: ResearchDisplayRow): string {
   if (row.teamName === row.homeTeamName) return row.awayTeamName;
   if (row.teamName === row.awayTeamName) return row.homeTeamName;
@@ -64,7 +70,7 @@ function starterContext(row: ResearchDisplayRow): ProductStarterContext {
   const starter = objectOrNull(enrichment?.opposingStarter);
   const last10 = objectOrNull(starter?.last10);
   const starts = finiteOrNull(last10?.starts);
-  const innings = stringOrNull(last10?.inningsPitched);
+  const innings = scalarText(last10?.inningsPitched);
   const strikeouts = finiteOrNull(last10?.strikeouts);
   const whip = finiteOrNull(last10?.whip);
   const workloadParts = [
@@ -80,8 +86,7 @@ function starterContext(row: ResearchDisplayRow): ProductStarterContext {
       stringOrNull(starter?.throwingHand) ??
       row.analysisContext.opposingStarterHand,
     era: finiteOrNull(starter?.era),
-    // The archived enrichment does not preserve batters faced, so do not
-    // mislabel K/IP or K/9 as strikeout rate.
+    // BALLDONTLIE Phase 2 does not preserve batters faced; K/IP is not K rate.
     kRate: null,
     recentWorkload: workloadParts.length === 0 ? null : workloadParts.join(' · '),
   });
@@ -243,12 +248,11 @@ function offerInput(
 }
 
 function newestTimestamp(archives: readonly ResearchDisplayArchive[]): string | null {
-  return archives.length === 0
-    ? null
-    : archives
-        .map((archive) => archive.capturedAt)
-        .sort()
-        .at(-1) ?? null;
+  let newest: string | null = null;
+  for (const archive of archives) {
+    if (newest === null || archive.capturedAt > newest) newest = archive.capturedAt;
+  }
+  return newest;
 }
 
 export async function readResearchProductBoardV2(
