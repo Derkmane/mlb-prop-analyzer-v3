@@ -1,4 +1,14 @@
-export type ResearchDisplayMarket = 'batter-hits' | 'batter-hhr';
+import { BATTER_HHR_MARKET_KEY } from '../features/batter-hhr/manifest.js';
+import { BATTER_HITS_MARKET_KEY } from '../features/batter-hits/manifest.js';
+
+export const RESEARCH_BATTER_HITS_MARKET = BATTER_HITS_MARKET_KEY;
+export const RESEARCH_BATTER_HHR_MARKET = BATTER_HHR_MARKET_KEY;
+export const RESEARCH_DISPLAY_MARKETS = Object.freeze([
+  RESEARCH_BATTER_HITS_MARKET,
+  RESEARCH_BATTER_HHR_MARKET,
+] as const);
+
+export type ResearchDisplayMarket = (typeof RESEARCH_DISPLAY_MARKETS)[number];
 export type ResearchOfferType = 'baseline' | 'alternate';
 export type ResearchSelectedSide = 'higher' | 'lower';
 
