@@ -2,11 +2,13 @@ import {
   settleObservedDiscreteStatisticV1,
   type ObservedSettlementOutcome,
 } from '../core/index.js';
+import type { ResearchDisplayArchiveRepository } from '../adapters/display-archives/research-display-archive-repository.js';
 import {
   emptyProductCategorySectionsV1,
   PRODUCT_DISPLAY_BOARD_VERSION,
   type ProductCategoryDisplaySection,
 } from './product-display-contract.js';
+import { readResearchProductBoardV2 } from './research-product-board.js';
 import {
   readLatestHhrDisplayBoard,
   type HhrDisplayArchiveRepository,
@@ -191,7 +193,7 @@ function archivedEvidence(
     productionValidated: false,
     rankingEnabled: false,
     notice:
-      'Archived model evidence only — this market is not production-validated and these rows are not current production picks.',
+      'Archived model evidence — probabilities are not production-calibrated.',
     capturedAt,
     groups: Object.freeze([
       Object.freeze({
@@ -210,23 +212,23 @@ function archivedEvidence(
   });
 }
 
-/**
- * Presentation-only enrichment. No probability or ranking math is performed
- * here. Production-disabled markets remain outside the three category arrays;
- * preserved HHR rows are exposed only as clearly labeled archived evidence.
- */
 export async function readLatestHhrDisplayUiBoard(
   repository: HhrDisplayArchiveRepository,
   cumulativeRepository?: HhrCumulativeDisplayEvidenceRepository,
+  researchRepository?: ResearchDisplayArchiveRepository,
 ): Promise<HhrDisplayUiBoard> {
   const board = await readLatestHhrDisplayBoard(repository);
   const cumulativeEvidence = await readCumulativeEvidence(cumulativeRepository);
   const hhr25LowerAlternates = Object.freeze(board.hhr25LowerAlternates.map(toUiPick));
   const hhr05HigherAlternates = Object.freeze(board.hhr05HigherAlternates.map(toUiPick));
+  const categories =
+    researchRepository === undefined
+      ? emptyProductCategorySectionsV1()
+      : (await readResearchProductBoardV2(researchRepository)).categories;
   return Object.freeze({
     ...board,
     productBoardVersion: PRODUCT_DISPLAY_BOARD_VERSION,
-    categories: emptyProductCategorySectionsV1(),
+    categories,
     archivedEvidence: archivedEvidence(
       board.capturedAt,
       hhr25LowerAlternates,
