@@ -6,10 +6,17 @@ import {
 const PRODUCT_BOARD_LAYOUT_CSS = `
 /* Product-board presentation override: keep all three canonical categories visible
  * and preserve the server ranking as an unambiguous top-to-bottom list. */
+.shell { width: min(1120px, 100%); }
 #category-tabs { display: none; }
 #category-panels { display: grid; gap: 18px; }
 .pick-list { grid-template-columns: 1fr !important; counter-reset: product-pick-rank; }
-.pick-list > .pick-card { position: relative; padding-top: 42px; counter-increment: product-pick-rank; }
+.pick-list > .pick-card {
+  position: relative;
+  width: min(980px, 100%);
+  margin-inline: auto;
+  padding-top: 42px;
+  counter-increment: product-pick-rank;
+}
 .pick-list > .pick-card::before {
   content: "#" counter(product-pick-rank);
   position: absolute;
@@ -20,14 +27,18 @@ const PRODUCT_BOARD_LAYOUT_CSS = `
   font-weight: 900;
   letter-spacing: .05em;
 }
+.prob-grid { max-width: 760px; }
+.analysis-grid { max-width: 820px; }
 .last-five.graph-ready { display: block; }
 .last-five-graph {
+  width: min(620px, 100%);
+  margin: 0 auto;
   border: 1px solid #263c50;
   border-radius: 10px;
   background: #08131d;
-  padding: 12px 10px 9px;
+  padding: 14px 14px 10px;
 }
-.last-five-plot { position: relative; height: 116px; }
+.last-five-plot { position: relative; height: 124px; }
 .last-five-line {
   position: absolute;
   left: 0;
@@ -39,12 +50,12 @@ const PRODUCT_BOARD_LAYOUT_CSS = `
 .last-five-line-label {
   position: absolute;
   right: 2px;
-  top: -18px;
-  padding: 1px 5px;
+  top: -19px;
+  padding: 2px 6px;
   border-radius: 5px;
   background: #211a0d;
   color: #e7ca8b;
-  font-size: .62rem;
+  font-size: .68rem;
   font-weight: 900;
   letter-spacing: .03em;
 }
@@ -53,7 +64,7 @@ const PRODUCT_BOARD_LAYOUT_CSS = `
   inset: 0;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
   align-items: end;
 }
 .last-five-column {
@@ -62,11 +73,12 @@ const PRODUCT_BOARD_LAYOUT_CSS = `
   align-items: flex-end;
   justify-content: center;
   min-width: 0;
-  padding-top: 18px;
+  padding-top: 20px;
 }
 .last-five-bar {
   position: relative;
-  width: min(44px, 72%);
+  width: 36px;
+  max-width: 72%;
   min-height: 4px;
   border: 1px solid #3c5267;
   border-radius: 7px 7px 2px 2px;
@@ -78,25 +90,43 @@ const PRODUCT_BOARD_LAYOUT_CSS = `
 .last-five-bar-value {
   position: absolute;
   left: 50%;
-  top: -18px;
+  top: -20px;
   transform: translateX(-50%);
-  color: #e8f0f6;
-  font-size: .68rem;
+  color: #f2f7fb;
+  font-size: .76rem;
   font-weight: 900;
 }
 .last-five-labels {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 7px;
+  gap: 10px;
+  margin-top: 8px;
   text-align: center;
 }
-.last-five-label { min-width: 0; font-size: .64rem; line-height: 1.25; color: #8fa5b8; }
-.last-five-label strong { display: block; color: #d4e1eb; font-size: .66rem; }
-.last-five-legend { margin-top: 8px; color: #8196a9; font-size: .63rem; }
+.last-five-label {
+  min-width: 0;
+  font-size: .7rem;
+  line-height: 1.3;
+  color: #9fb2c2;
+}
+.last-five-label strong {
+  display: block;
+  margin-bottom: 1px;
+  color: #e2ebf2;
+  font-size: .74rem;
+}
+.last-five-legend {
+  margin-top: 9px;
+  color: #8fa4b6;
+  font-size: .68rem;
+  text-align: center;
+}
 @media (max-width: 700px) {
+  .pick-list > .pick-card { width: 100%; }
+  .prob-grid, .analysis-grid { max-width: none; }
   .last-five-columns, .last-five-labels { gap: 4px; }
-  .last-five-graph { padding-left: 6px; padding-right: 6px; }
+  .last-five-graph { width: 100%; padding-left: 7px; padding-right: 7px; }
+  .last-five-bar { width: 30px; }
 }
 `;
 
