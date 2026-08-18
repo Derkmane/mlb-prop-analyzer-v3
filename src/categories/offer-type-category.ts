@@ -14,10 +14,10 @@ export interface CategoryOfferInput<
 > {
   readonly candidate: TCandidate;
   readonly offerType: CategoryOfferType;
-  readonly americanPrice: number;
-  readonly multiplier: number;
-  readonly postedImpliedProbability: number;
-  readonly priceEdge: number;
+  readonly americanPrice: number | null;
+  readonly multiplier: number | null;
+  readonly postedImpliedProbability: number | null;
+  readonly priceEdge: number | null;
 }
 
 export interface OfferTypeCategorySelectionV1<
