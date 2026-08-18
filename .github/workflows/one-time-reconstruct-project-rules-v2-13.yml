@@ -1,0 +1,50 @@
+name: One-time reconstruct Project Rules 2.13
+
+on:
+  push:
+    branches:
+      - codex/research-ranking-canonical-amendment
+    paths:
+      - 'scripts/one-time-reconstruct-project-rules-v2-13.mjs'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: one-time-reconstruct-project-rules-v2-13
+  cancel-in-progress: false
+
+jobs:
+  reconstruct:
+    name: Reconstruct Rules 2.13 from exact main baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out amendment branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Fetch exact main baseline
+        run: git fetch --no-tags origin main
+
+      - name: Reconstruct and byte-verify Project Rules
+        run: node scripts/one-time-reconstruct-project-rules-v2-13.mjs
+
+      - name: Verify only Project Rules changed
+        run: |
+          set -euo pipefail
+          git add -- PROJECT_RULES.md
+          node -e 'const cp=require("node:child_process");const staged=cp.execFileSync("git",["diff","--cached","--name-only"],{encoding:"utf8"}).trim().split(/\r?\n/u).filter(Boolean);if(staged.length!==1||staged[0]!=="PROJECT_RULES.md")throw new Error(`Expected only PROJECT_RULES.md staged; got ${staged.join(", ")}`);console.log("STAGED",staged[0]);'
+
+      - name: Commit deterministic reconstruction
+        run: |
+          set -euo pipefail
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "docs: deterministically reconstruct project rules 2.13"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
