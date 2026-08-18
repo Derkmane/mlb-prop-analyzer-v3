@@ -66,7 +66,7 @@ function repository(): HhrDisplayArchiveRepository {
   return Object.freeze({ readLatest: async () => archive });
 }
 
-test('product board exposes exactly the three canonical categories and fails closed with no production-authorized market', async () => {
+test('product board exposes exactly the three canonical categories and fails closed without a research repository', async () => {
   const board = await readLatestHhrDisplayUiBoard(repository());
 
   assert.equal(board.productBoardVersion, PRODUCT_DISPLAY_BOARD_VERSION);
@@ -92,15 +92,14 @@ test('product board exposes exactly the three canonical categories and fails clo
   }
 });
 
-test('HHR rows remain archived research evidence and never enter production category picks', async () => {
+test('legacy HHR evidence remains available separately from the research-ranked categories', async () => {
   const board = await readLatestHhrDisplayUiBoard(repository());
 
   assert.equal(board.archivedEvidence.market, 'Hits + Runs + RBIs');
   assert.equal(board.archivedEvidence.productionValidated, false);
   assert.equal(board.archivedEvidence.rankingEnabled, false);
   assert.equal(board.archivedEvidence.capturedAt, CAPTURED_AT);
-  assert.match(board.archivedEvidence.notice, /not production-validated/u);
-  assert.match(board.archivedEvidence.notice, /not current production picks/u);
+  assert.match(board.archivedEvidence.notice, /not production-calibrated/u);
   assert.deepEqual(
     board.archivedEvidence.groups.map((group) => ({
       title: group.title,
@@ -123,16 +122,16 @@ test('HHR rows remain archived research evidence and never enter production cate
       },
     ],
   );
-  assert.equal(board.categories.flatMap((category) => category.picks).length, 0);
 });
 
-test('product UI is category-first, human-readable, labels slate freshness, and contains no browser ranking or settlement implementation', () => {
+test('product UI is category-first, research-labeled, context-rich, slate-aware, and contains no browser ranking or settlement implementation', () => {
   const page = renderHhrDisplayAppPage();
   const login = renderHhrDisplayLoginPage();
 
   assert.match(page, /MLB Prop Analyzer/u);
   assert.match(page, /Prop categories/u);
   assert.match(page, /Archived research evidence/u);
+  assert.match(page, /UNVALIDATED RESEARCH/u);
   assert.match(page, /id="capture-freshness"/u);
   assert.match(login, /MLB Prop Analyzer/u);
 
@@ -155,8 +154,18 @@ test('product UI is category-first, human-readable, labels slate freshness, and 
     'P(Loss)',
     'P(Void)',
     'P(Win | grades)',
-    'Offer type',
-    'Captured',
+    'Expected PA',
+    'Lineup slot',
+    'Opposing starter',
+    'Starter hand',
+    'Starter ERA',
+    'Starter K rate',
+    'Recent workload',
+    'Platoon',
+    'Team implied runs',
+    'Park',
+    'Last five',
+    'Calibration',
     'Alternate',
     'Higher',
     'Lower',
