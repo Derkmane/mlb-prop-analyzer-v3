@@ -1,6 +1,8 @@
 import { validateProbability } from '../core/index.js';
-import type { PredictionCandidate } from '../domain/prediction-candidate.js';
-import { deduplicateAndSortPredictionCandidatesForCategory } from './category-ranking.js';
+import {
+  deduplicateAndSortPredictionCandidatesForCategory,
+  type CategoryRankableCandidate,
+} from './category-ranking.js';
 
 export const OPPORTUNITY_MINER_CATEGORY_ID =
   'opportunity-miner-favorites' as const;
@@ -14,7 +16,7 @@ export const OPPORTUNITY_MINER_PRICE_EDGE_RULE_V1 = Object.freeze({
 } as const);
 
 export interface OpportunityMinerCandidateInput<
-  TCandidate extends PredictionCandidate<unknown>,
+  TCandidate extends CategoryRankableCandidate,
 > {
   readonly candidate: TCandidate;
   readonly americanPrice: number;
@@ -32,13 +34,13 @@ export interface OpportunityMinerPriceDiagnosticV1 {
 }
 
 export type OpportunityMinerCandidateV1<
-  TCandidate extends PredictionCandidate<unknown>,
+  TCandidate extends CategoryRankableCandidate,
 > = TCandidate & {
   readonly opportunityMiner: OpportunityMinerPriceDiagnosticV1;
 };
 
 export interface OpportunityMinerSelectionV1<
-  TCandidate extends PredictionCandidate<unknown>,
+  TCandidate extends CategoryRankableCandidate,
 > {
   readonly categoryId: typeof OPPORTUNITY_MINER_CATEGORY_ID;
   readonly eligibilityRuleVersion: typeof OPPORTUNITY_MINER_PRICE_EDGE_RULE_V1.version;
@@ -78,12 +80,9 @@ export function indicativeImpliedProbabilityFromAmericanPrice(
   );
 }
 
-/**
- * Adds versioned diagnostic price evidence without changing any candidate
- * probability, distribution, selected side, line, or model lineage.
- */
+/** Adds versioned diagnostic price evidence without changing candidate math. */
 export function createOpportunityMinerCandidateV1<
-  TCandidate extends PredictionCandidate<unknown>,
+  TCandidate extends CategoryRankableCandidate,
 >(
   input: Readonly<OpportunityMinerCandidateInput<TCandidate>>,
 ): OpportunityMinerCandidateV1<TCandidate> {
@@ -119,11 +118,10 @@ export function createOpportunityMinerCandidateV1<
 /**
  * Applies only the versioned positive-price-edge eligibility gate, deduplicates
  * to one prop per player using the canonical comparator, and orders the final
- * category only by final P(Win | grades), then P(Void). Price edge and
- * multiplier are never ranking or tiebreak quantities.
+ * category only by final P(Win | grades), then P(Void).
  */
 export function selectOpportunityMinerFavoritesV1<
-  TCandidate extends PredictionCandidate<unknown>,
+  TCandidate extends CategoryRankableCandidate,
 >(
   inputs: readonly Readonly<OpportunityMinerCandidateInput<TCandidate>>[],
 ): OpportunityMinerSelectionV1<TCandidate> {
