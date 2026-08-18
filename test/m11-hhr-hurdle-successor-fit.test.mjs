@@ -50,7 +50,9 @@ test('HHR conditioned-hurdle successor fits positive rows deterministically and 
       positiveRowCount: 3987,
     });
     assert.equal(report.positiveFit.rowCount, 3987);
-    assert.equal(report.positiveFit.fittingMethod, 'zero-truncated-negative-binomial-2-log-link-bfgs-v1');
+    assert.equal(report.positiveFit.fittingMethod, 'zero-truncated-negative-binomial-2-log-link-damped-newton-v1');
+    assert.equal(report.positiveFit.optimization.convergence, 'damped-newton-analytic-gradient-numerical-hessian-v1');
+    assert.ok(report.positiveFit.optimization.maxAbsoluteGradient <= 2e-6);
     assert.equal(report.positiveFit.expectedPlateAppearancesCoefficient, 1);
     assert.equal(report.productionEnabled, false);
     assert.equal(report.rankingEnabled, false);
