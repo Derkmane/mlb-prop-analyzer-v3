@@ -1,6 +1,6 @@
 # MLB Prop Analyzer — Canonical Math & Statistics Reference
 
-**Version:** 1.14
+**Version:** 1.15
 **Status:** Canonical probability mathematics
 **Empirical status:** Mathematical framework verified where marked; predictive accuracy not yet validated
 
@@ -1051,14 +1051,19 @@ An observed provider market not listed in the approved registry is ineligible fo
 
 ### 12.3 Fail-closed requirement
 
+For research ranking:
+
 ```text
-no validated distribution builder
-→ no P(Win), P(Loss), or P(Void)
-→ no eligible prop
-→ no category ranking
+no fitted and versioned current-season research distribution builder
+→ no research P(Win), P(Loss), or P(Void)
+→ no eligible research prop
+→ no research category ranking
 ```
 
-There is no fallback to an audit model, deprecated model, generic projection, raw implied probability, or side-independent score.
+For production-calibrated output, the stricter production-validation and
+calibration requirements in Sections 14, 17, and 18 also apply.
+
+There is no fallback to an audit model, deprecated model, generic projection, raw implied probability, side-independent score, rejected unfrozen candidate, or another unapproved probability source.
 
 ---
 
@@ -1384,7 +1389,10 @@ overallCalibrationGate = PASS
 
 The 1.5 result is a pass of this line-cohort calibration
 evidence gate only. It does not by itself validate the
-Family B distribution or authorize production or ranking.
+Family B distribution or authorize production-calibrated
+output. A versioned archived HHR output may appear only in
+the explicitly labeled research-ranking path when all
+Section 18 research requirements are satisfied.
 
 2.5+ Lower:
 
@@ -1527,7 +1535,10 @@ This finding does not select either candidate form and does
 not authorize production use. Candidate selection,
 freezing, chronological validation, untouched testing,
 calibration, and production enablement remain subject to
-Sections 14, 17, and 18.
+Sections 14, 17, and 18. The preserved versioned archived
+outputs may be displayed only as **UNVALIDATED RESEARCH**
+under the Section 18 research-ranking contract with this
+known failure evidence surfaced.
 
 #### HHR positive-count Stage 1 diagnostic — 2026-08-15
 
@@ -1630,15 +1641,15 @@ revision.
 
 If the candidate fails any required bin at any required threshold, it is not
 frozen, the reserved untouched period is not read, and HHR remains
-production-disabled and ranking-disabled. A failed result may not be met by
-relaxing a canonical tolerance within this model version.
+production-disabled and production-ranking-disabled. A failed result may not
+be met by relaxing a canonical tolerance within this model version.
 
 The hurdle zero-mass component and the refitted
 positive-count component must still combine into one exact
 normalized PMF over T. This finding does not select or
 freeze the successor candidate, does not authorize access
 to reserved untouched evidence, and does not enable HHR
-production or ranking.
+production or production-calibrated ranking.
 
 #### HHR CONDITIONED-HURDLE ZERO COMPONENT RECOVERY
 
@@ -1860,7 +1871,10 @@ still only a fitting-cohort pass. A separate later decision
 is required before reserving a new untouched
 active-current-season period or freezing the candidate.
 
-HHR remains production-disabled and ranking-disabled.
+HHR remains production-disabled and production-ranking-disabled. The
+rejected, unfrozen continuation-ratio candidate is also ineligible for
+research ranking. Only separately eligible frozen/versioned archived HHR
+outputs may enter the Section 18 research-ranking path.
 
 ---
 
@@ -1954,7 +1968,16 @@ P(Win | grades)
 
 ## 17. Required verification suite
 
-Before ranking any real prop:
+The suite below protects both research ranking and production-calibrated
+output. Structural, deterministic, source, settlement, side-awareness, and
+ranking invariants apply to research ranking whenever relevant. Calibration,
+untouched-test acceptance, production fit-time gates, and other explicitly
+production-validation requirements continue to gate production-calibrated
+output. Section 18 defines the exact research-ranking admission subset and the
+additional disclosure requirements. Research ranking does not convert a failed
+production gate into a pass.
+
+Required verification items:
 
 1. Every normalized outcome vector sums to 1.
 2. Every count or stat distribution sums to 1.
@@ -2003,7 +2026,13 @@ Before ranking any real prop:
 31. Walk markets verify whether intentional walks are included and require a game-state component when they are.
 32. Every market-specific eligibility event `A` is linked to a versioned settlement rule.
 33. Baseline and alternate offers for the same base market use the same statistic distribution and differ only by posted offer attributes and settlement.
-34. Planned, disabled, or not-yet-production-validated markets fail closed and cannot reach ranking.
+34. Planned markets and any market lacking a fitted, frozen or otherwise
+    explicitly versioned current-season research distribution, a versioned
+    settlement rule and eligibility event, deterministic exact evaluation,
+    or side-aware exact settlement fail closed and cannot reach research
+    ranking. A market that is not production-validated may reach only the
+    explicitly labeled Section 18 research-ranking path; it may not appear as
+    production-calibrated output or be described as production-valid.
 35. Production engine modules cannot import audit, deprecated, prior-season, or unapproved fallback models.
 36. Base soft-line probability is produced by exact settlement of the
     versioned base distribution for the exact posted side and line.
@@ -2046,10 +2075,15 @@ Before ranking any real prop:
     reported for related statistics fitted separately.
     Deviation beyond the declared versioned tolerance fails
     closed rather than being silently accepted.
-44. A Family B distribution failing its calibration gate
-    fails closed and cannot reach ranking. It may not be
-    replaced by a shallower line, a standard line, a Family
-    A approximation, or any fallback distribution.
+44. A Family B distribution failing its calibration gate fails closed for
+    production-calibrated output and cannot be described as calibrated,
+    accepted, or production-valid. A frozen or otherwise explicitly
+    versioned archived Family B distribution may remain eligible for Section
+    18 **UNVALIDATED RESEARCH** ranking only when all research-ranking
+    requirements are satisfied and the failed or insufficient line-cohort
+    calibration state is displayed wherever corresponding evidence exists.
+    Calibration failure never authorizes substitution of a shallower line, a
+    standard line, a Family A approximation, or any fallback distribution.
 45. Every market's mathematical family is read from the
     versioned registry in §12.2. No module infers,
     defaults, or substitutes a family at runtime.
@@ -2192,9 +2226,75 @@ Before ranking any real prop:
 
 ---
 
-## 18. Definitions still required before production ranking
+## 18. Research ranking and production-calibration requirements
 
-The following must be fitted, documented, versioned, and validated before real-prop ranking:
+Research ranking and production-calibrated probability authorization are
+separate states. Research ranking exists to provide the user the product's
+canonical ordered candidate lists while preserving complete honesty about
+unfinished or failed calibration. It does not relax any production-calibration
+gate and does not change a market's production status.
+
+### 18.1 Research-ranking authorization
+
+A real pregame prop may enter the three product categories as
+**UNVALIDATED RESEARCH** only when all applicable requirements below are
+satisfied:
+
+- the base market is implemented and the exact posted offer is preserved from
+  an approved production board source
+- the output comes from a frozen or otherwise explicitly versioned
+  current-season fitted distribution already preserved by the repository or a
+  committed archive path
+- the distribution is deterministic and exact analytic under its declared
+  runtime model; random runtime simulation is prohibited
+- a versioned market-specific settlement rule and eligibility event `A` are
+  available with verified temporal applicability under Section 12.1
+- the exact posted selected side and line are settled through the generic
+  Higher/Lower settlement mathematics in Section 11
+- `P(Win)`, `P(Loss)`, `P(Void)`, and `P(Win | grades)` are preserved with
+  model and settlement versions
+- category ordering uses only `P(Win | grades)` descending and `P(Void)`
+  ascending, with one prop per player per category and the existing category
+  eligibility rules
+- any known calibration, distribution-shape, sample-sufficiency, or
+  validation evidence for the corresponding market/line cohort is preserved
+  and surfaced as evidence; a failed state remains visibly failed
+
+Every probability displayed through this path must be visibly labeled
+**UNVALIDATED RESEARCH**. Research-ranked percentages may be used to order
+candidates, but they may not be described as calibrated, accepted,
+production-valid, or established estimates of true win probability.
+
+Research ranking may proceed when production calibration is incomplete or has
+failed, including a Family B line cohort that fails Section 14.2, provided the
+eligible output is from an already frozen or otherwise explicitly versioned
+research/archived distribution and the known failure is displayed. This
+permission does not retrospectively freeze or authorize a rejected candidate.
+A candidate rejected before freeze, or a candidate that was never otherwise
+explicitly authorized for versioned archived evaluation, is ineligible for
+research ranking.
+
+Research ranking may not use:
+
+- synthetic fixtures or placeholder coefficients
+- an unfitted or unversioned model
+- a rejected unfrozen candidate
+- an audit-only, deprecated, prior-season, generic, implied-probability, or
+  side-independent fallback
+- a different line, shallower line, standard-line substitute, or different
+  model family to hide a failure
+- multiplier, price, edge, reputation, excitement, hidden score, or arbitrary
+  penalty as a ranking quantity
+
+A research-ranking admission path must remain separate from the production
+feature-enable gate. Admitting a research output does not production-enable a
+feature and does not authorize new production predictions.
+
+### 18.2 Definitions still required before production-calibrated output
+
+The following must be fitted, documented, versioned, and validated before a
+real prop may be presented as a production-calibrated prediction or its
+probability may be described as calibrated or production-valid:
 
 ### Shared and hitter components
 
@@ -2270,7 +2370,7 @@ hierarchical calibration method, calibration pooling
 strength, or recalibration schedule, and does not define
 minimum reporting volumes for any other family.
 
-Infrastructure, interfaces, registries, fail-closed guards, and mathematical tests may be built earlier with labeled synthetic fixtures. No planned, disabled, or not-yet-production-validated market may appear as a production prediction.
+Infrastructure, interfaces, registries, fail-closed guards, and mathematical tests may be built earlier with labeled synthetic fixtures. No planned, disabled, or not-yet-production-validated market may appear as a production-calibrated prediction. A market that satisfies Section 18.1 may appear only as explicitly labeled **UNVALIDATED RESEARCH** until all applicable production requirements pass.
 
 ---
 
@@ -2372,13 +2472,45 @@ Active family per market is read from the §12.2 registry.
 Neither family may be constructed by convolving independent
 Hits, Runs, and RBI marginals.
 
-Fail closed:
-no validated distribution → no ranked prop
+Research fail closed:
+no fitted/versioned eligible research distribution + settlement
+→ no research-ranked prop
+
+Production claim fail closed:
+no complete production validation/calibration
+→ no calibrated or production-valid probability claim
 ```
 
 ---
 
 ## Changelog
+
+### Version 1.15 — 2026-08-18
+
+- Separated research-ranking authorization from production-calibrated
+  probability authorization while preserving the unchanged Golden Rule
+  ordering by `P(Win | grades)` then `P(Void)`.
+- Added Section 18.1 permitting real pregame props from frozen or otherwise
+  explicitly versioned current-season fitted research/archive distributions to
+  populate the three categories only as visibly labeled `UNVALIDATED RESEARCH`
+  when deterministic exact evaluation, versioned settlement/eligibility, and
+  side-aware exact settlement requirements pass.
+- Required known calibration, distribution-shape, sample-sufficiency, and
+  validation failures to remain visible with the corresponding research output;
+  a failed state may not be relabeled as calibrated or production-valid.
+- Revised Section 17 items 34 and 44 so incomplete or failed production
+  calibration blocks production-calibrated output but does not by itself hide an
+  otherwise eligible versioned research ranking; prohibited all line/model
+  fallbacks remains unchanged.
+- Explicitly prohibited research ranking from using synthetic outputs,
+  unfitted/unversioned models, rejected unfrozen candidates, deprecated/audit
+  fallbacks, raw implied probability, or side-independent scores.
+- Preserved every Family B fit-time tolerance, candidate-freeze rule,
+  chronological validation requirement, calibration formula, per-line gate,
+  production status, and the rejection of the current unfrozen HHR successor.
+- Clarified Section 12.3, the Section 17 suite preamble, the documented HHR
+  evidence language, and the quick-reference fail-closed summary only as needed
+  to keep the research/production distinction internally consistent.
 
 ### Version 1.14 — 2026-08-17
 
@@ -2644,7 +2776,7 @@ no validated distribution → no ranked prop
   branch where both apply.
 - Distinguished replacement factors, which substitute a complete terminal
   vector for a declared subset of plate appearances, from transformation
-  factors, which multiply a resulting vector elementwise and renormalize
+  factors, which multiply a resulting terminal vector elementwise and renormalize
   once across every plate appearance in scope.
 - Prohibited any plate appearance from receiving the same factor twice.
 - Added the category-support boundary: composition applies a factor only
