@@ -1,6 +1,7 @@
 /** Public boundary for the adapters layer. */
 export * from './display-archives/hhr-cumulative-evidence-repository.js';
 export * from './display-archives/hhr-display-archive-repository.js';
+export * from './display-archives/research-display-archive-repository.js';
 export * from './http/hhr-display-app-http.js';
 export * from './http/hhr-display-board-http.js';
 export * from './model-artifacts/batter-hits-runtime-artifact-file.js';
