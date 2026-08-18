@@ -45,7 +45,6 @@ const OLD_MODEL_VERSION = 'm11-batter-hhr-direct-composite-v2';
 const MAX_OPTIMIZER_ITERATIONS = 180;
 const GRADIENT_TOLERANCE = 2e-6;
 const PARAMETER_TOLERANCE = 1e-9;
-const FINITE_DIFFERENCE_SCALE = 1e-5;
 const ARMIJO = 1e-4;
 const MIN_LINE_SEARCH_STEP = 2 ** -24;
 
@@ -98,43 +97,31 @@ function bfgsInverseUpdate(inverseHessian, stepVector, gradientChange) {
   ));
 }
 
-function numericalGradient(objective, parameters) {
-  return parameters.map((value, index) => {
-    const step = FINITE_DIFFERENCE_SCALE * Math.max(1, Math.abs(value));
-    const plus = [...parameters];
-    const minus = [...parameters];
-    plus[index] += step;
-    minus[index] -= step;
-    const plusValue = objective(plus);
-    const minusValue = objective(minus);
-    if (!Number.isFinite(plusValue) || !Number.isFinite(minusValue)) {
-      throw new Error(`HHR zero-truncated NB2 numerical gradient became non-finite at parameter ${index}.`);
-    }
-    return (plusValue - minusValue) / (2 * step);
-  });
-}
-
-function armijoLineSearch(objective, parameters, objectiveValue, gradient, direction) {
+function armijoLineSearch(evaluate, parameters, objectiveValue, gradient, direction) {
   const directionalDerivative = dot(gradient, direction);
   if (!(directionalDerivative < 0) || !Number.isFinite(directionalDerivative)) return null;
   let lineSearchStep = 1;
   while (lineSearchStep >= MIN_LINE_SEARCH_STEP) {
     const candidate = parameters.map((value, index) => value + lineSearchStep * direction[index]);
-    const candidateObjective = objective(candidate);
-    if (Number.isFinite(candidateObjective)
-      && candidateObjective <= objectiveValue + ARMIJO * lineSearchStep * directionalDerivative) {
-      return Object.freeze({ parameters: candidate, objectiveValue: candidateObjective, lineSearchStep });
+    const candidateEvaluation = evaluate(candidate);
+    if (Number.isFinite(candidateEvaluation.objectiveValue)
+      && candidateEvaluation.objectiveValue <= objectiveValue + ARMIJO * lineSearchStep * directionalDerivative) {
+      return Object.freeze({ parameters: candidate, evaluation: candidateEvaluation, lineSearchStep });
     }
     lineSearchStep /= 2;
   }
   return null;
 }
 
-function optimizeBfgs(objective, initialParameters) {
+function optimizeBfgs(evaluate, initialParameters) {
   let parameters = [...initialParameters];
-  let objectiveValue = objective(parameters);
+  let evaluation = evaluate(parameters);
+  let objectiveValue = evaluation.objectiveValue;
   if (!Number.isFinite(objectiveValue)) throw new Error('Initial HHR zero-truncated NB2 objective is non-finite.');
-  let gradient = numericalGradient(objective, parameters);
+  let gradient = evaluation.gradient;
+  if (!Array.isArray(gradient) || gradient.some((value) => !Number.isFinite(value))) {
+    throw new Error('Initial HHR zero-truncated NB2 analytic gradient is non-finite.');
+  }
   let inverseHessian = identity(parameters.length);
   let converged = false;
   let iteration = 0;
@@ -156,28 +143,33 @@ function optimizeBfgs(objective, initialParameters) {
       restartCount += 1;
     }
 
-    let search = armijoLineSearch(objective, parameters, objectiveValue, gradient, direction);
+    let search = armijoLineSearch(evaluate, parameters, objectiveValue, gradient, direction);
     if (search === null && !usedSteepestDescent) {
       inverseHessian = identity(parameters.length);
       direction = gradient.map((value) => -value);
       usedSteepestDescent = true;
       restartCount += 1;
-      search = armijoLineSearch(objective, parameters, objectiveValue, gradient, direction);
+      search = armijoLineSearch(evaluate, parameters, objectiveValue, gradient, direction);
     }
     if (search === null) {
       throw new Error(
-        `HHR zero-truncated NB2 line search failed after steepest-descent restart; objective=${objectiveValue}; max gradient=${maximumAbsolute(gradient)}.`,
+        `HHR zero-truncated NB2 line search failed after steepest-descent restart; objective=${objectiveValue}; max analytic gradient=${maximumAbsolute(gradient)}.`,
       );
     }
 
     const nextParameters = search.parameters;
-    const nextObjectiveValue = search.objectiveValue;
-    const nextGradient = numericalGradient(objective, nextParameters);
+    const nextEvaluation = search.evaluation;
+    const nextObjectiveValue = nextEvaluation.objectiveValue;
+    const nextGradient = nextEvaluation.gradient;
+    if (!Array.isArray(nextGradient) || nextGradient.some((value) => !Number.isFinite(value))) {
+      throw new Error('HHR zero-truncated NB2 analytic gradient became non-finite after an accepted step.');
+    }
     const stepVector = nextParameters.map((value, index) => value - parameters[index]);
     const gradientChange = nextGradient.map((value, index) => value - gradient[index]);
     lastStepMaximum = maximumAbsolute(stepVector);
     inverseHessian = bfgsInverseUpdate(inverseHessian, stepVector, gradientChange);
     parameters = nextParameters;
+    evaluation = nextEvaluation;
     objectiveValue = nextObjectiveValue;
     gradient = nextGradient;
 
@@ -189,7 +181,7 @@ function optimizeBfgs(objective, initialParameters) {
   }
 
   if (!converged) {
-    throw new Error(`HHR zero-truncated NB2 BFGS did not converge after ${MAX_OPTIMIZER_ITERATIONS} iterations; max gradient=${maximumAbsolute(gradient)}.`);
+    throw new Error(`HHR zero-truncated NB2 BFGS did not converge after ${MAX_OPTIMIZER_ITERATIONS} iterations; max analytic gradient=${maximumAbsolute(gradient)}.`);
   }
   return Object.freeze({
     parameters: Object.freeze(parameters),
@@ -198,7 +190,7 @@ function optimizeBfgs(objective, initialParameters) {
     maxAbsoluteGradient: maximumAbsolute(gradient),
     lastStepMaximum,
     restartCount,
-    convergence: 'bfgs-with-steepest-descent-restart-v1',
+    convergence: 'bfgs-analytic-gradient-with-steepest-descent-restart-v1',
   });
 }
 
@@ -283,40 +275,86 @@ function prepareRows(fixture, oldModel, fixtureText) {
   return Object.freeze({ prepared, transforms, zeroCount, positiveCount });
 }
 
-function zeroTruncatedNb2ObjectiveFactory(positiveRows) {
+function zeroTruncatedNb2EvaluationFactory(positiveRows) {
   const maximumTarget = Math.max(...positiveRows.map((row) => row.target));
   const logFactorial = logFactorials(maximumTarget);
+  const parameterCount = HHR_POSITIVE_PREDICTOR_ORDER.length + 2;
+
   return (parameters) => {
-    if (!Array.isArray(parameters) || parameters.length !== HHR_POSITIVE_PREDICTOR_ORDER.length + 2) return Number.POSITIVE_INFINITY;
+    if (!Array.isArray(parameters) || parameters.length !== parameterCount) {
+      return { objectiveValue: Number.POSITIVE_INFINITY, gradient: null };
+    }
     const logAlpha = parameters.at(-1);
-    if (!Number.isFinite(logAlpha)) return Number.POSITIVE_INFINITY;
+    if (!Number.isFinite(logAlpha)) return { objectiveValue: Number.POSITIVE_INFINITY, gradient: null };
     const alpha = Math.exp(logAlpha);
-    if (!Number.isFinite(alpha) || !(alpha > 0)) return Number.POSITIVE_INFINITY;
+    if (!Number.isFinite(alpha) || !(alpha > 0)) return { objectiveValue: Number.POSITIVE_INFINITY, gradient: null };
     const r = 1 / alpha;
-    if (!Number.isFinite(r) || !(r > 0)) return Number.POSITIVE_INFINITY;
+    if (!Number.isFinite(r) || !(r > 0)) return { objectiveValue: Number.POSITIVE_INFINITY, gradient: null };
+
     const beta = parameters.slice(0, -1);
     const risingLog = Array(maximumTarget + 1).fill(0);
+    const digammaDifference = Array(maximumTarget + 1).fill(0);
     for (let value = 1; value <= maximumTarget; value += 1) {
-      risingLog[value] = risingLog[value - 1] + Math.log(r + value - 1);
+      const shiftedR = r + value - 1;
+      risingLog[value] = risingLog[value - 1] + Math.log(shiftedR);
+      digammaDifference[value] = digammaDifference[value - 1] + 1 / shiftedR;
     }
+
     let negativeLogLikelihood = 0;
+    const gradient = Array(parameterCount).fill(0);
+    const logAlphaIndex = parameterCount - 1;
+
     for (const row of positiveRows) {
       const eta = row.logExpectedPlateAppearances + dot(row.design, beta);
-      if (!Number.isFinite(eta) || eta > 700 || eta < -700) return Number.POSITIVE_INFINITY;
+      if (!Number.isFinite(eta) || eta > 700 || eta < -700) {
+        return { objectiveValue: Number.POSITIVE_INFINITY, gradient: null };
+      }
       const mu = Math.exp(eta);
-      const logOnePlusAlphaMu = Math.log1p(alpha * mu);
+      const alphaMu = alpha * mu;
+      if (!Number.isFinite(alphaMu) || !(alphaMu > 0)) {
+        return { objectiveValue: Number.POSITIVE_INFINITY, gradient: null };
+      }
+      const logOnePlusAlphaMu = Math.log1p(alphaMu);
+      const q = alphaMu / (1 + alphaMu);
       const logQ0 = -r * logOnePlusAlphaMu;
+      const q0 = Math.exp(logQ0);
       const oneMinusQ0 = -Math.expm1(logQ0);
-      if (!Number.isFinite(oneMinusQ0) || !(oneMinusQ0 > 0) || !(oneMinusQ0 < 1)) return Number.POSITIVE_INFINITY;
-      const logQy = risingLog[row.target]
-        - logFactorial[row.target]
+      if (!Number.isFinite(oneMinusQ0) || !(oneMinusQ0 > 0) || !(oneMinusQ0 < 1)
+        || !Number.isFinite(q0) || !(q0 > 0) || !(q0 < 1)) {
+        return { objectiveValue: Number.POSITIVE_INFINITY, gradient: null };
+      }
+
+      const target = row.target;
+      const logQy = risingLog[target]
+        - logFactorial[target]
         - r * logOnePlusAlphaMu
-        + row.target * (Math.log(alpha * mu) - logOnePlusAlphaMu);
+        + target * (logAlpha + eta - logOnePlusAlphaMu);
       const logTruncated = logQy - Math.log(oneMinusQ0);
-      if (!Number.isFinite(logTruncated)) return Number.POSITIVE_INFINITY;
+      if (!Number.isFinite(logTruncated)) {
+        return { objectiveValue: Number.POSITIVE_INFINITY, gradient: null };
+      }
       negativeLogLikelihood -= logTruncated;
+
+      const dLogQyDeta = target - (target + r) * q;
+      const dLogOneMinusQ0Deta = (q0 * r * q) / oneMinusQ0;
+      const dLogTruncatedDeta = dLogQyDeta - dLogOneMinusQ0Deta;
+      for (let index = 0; index < row.design.length; index += 1) {
+        gradient[index] -= dLogTruncatedDeta * row.design[index];
+      }
+
+      const dLogQyDLogAlpha = target
+        - (target + r) * q
+        - r * (digammaDifference[target] - logOnePlusAlphaMu);
+      const dLogQ0DLogAlpha = r * (logOnePlusAlphaMu - q);
+      const dLogOneMinusQ0DLogAlpha = -(q0 * dLogQ0DLogAlpha) / oneMinusQ0;
+      const dLogTruncatedDLogAlpha = dLogQyDLogAlpha - dLogOneMinusQ0DLogAlpha;
+      gradient[logAlphaIndex] -= dLogTruncatedDLogAlpha;
     }
-    return negativeLogLikelihood;
+
+    if (!Number.isFinite(negativeLogLikelihood) || gradient.some((value) => !Number.isFinite(value))) {
+      return { objectiveValue: Number.POSITIVE_INFINITY, gradient: null };
+    }
+    return { objectiveValue: negativeLogLikelihood, gradient };
   };
 }
 
@@ -332,8 +370,8 @@ function initialParameters(oldModel) {
 function fitPositiveZeroTruncatedNb2(preparedRows, oldModel) {
   const positiveRows = preparedRows.filter((row) => row.target >= 1);
   if (positiveRows.length !== EXPECTED_POSITIVE_ROW_COUNT) throw new Error('HHR positive-row subset identity drifted.');
-  const objective = zeroTruncatedNb2ObjectiveFactory(positiveRows);
-  const optimization = optimizeBfgs(objective, initialParameters(oldModel));
+  const evaluate = zeroTruncatedNb2EvaluationFactory(positiveRows);
+  const optimization = optimizeBfgs(evaluate, initialParameters(oldModel));
   const beta = optimization.parameters.slice(0, -1);
   const dispersionAlpha = Math.exp(optimization.parameters.at(-1));
   if (!(dispersionAlpha > 0) || !Number.isFinite(dispersionAlpha)) throw new Error('HHR successor dispersion alpha is invalid.');
