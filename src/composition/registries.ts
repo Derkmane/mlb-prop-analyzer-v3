@@ -149,7 +149,7 @@ export function assertSingleSourceMarketKeyOwnership(
 ): readonly MarketKeyOwnership[] {
   const ownership = new Map<string, MarketKeyOwnership>();
   for (const market of plannedMarkets) {
-    if (ownership.has(market.baseMarketKey)) throw new DuplicateMarketKeyOwnershipError(baseMarketKey);
+    if (ownership.has(market.baseMarketKey)) throw new DuplicateMarketKeyOwnershipError(market.baseMarketKey);
     ownership.set(market.baseMarketKey, Object.freeze({ baseMarketKey: market.baseMarketKey, ownerType: 'planned-market-catalog', ownerId: 'planned-market-catalog' }));
   }
   for (const market of implementedMarkets) {
