@@ -28,6 +28,7 @@ import {
 
 interface ResearchRankCandidate extends ProductDisplayPick {
   readonly playerId: string;
+  readonly line: number;
 }
 
 export interface ResearchProductBoardV2 {
@@ -195,6 +196,7 @@ function productPick(row: ResearchDisplayRow): ResearchRankCandidate {
   const batterSide = row.analysisContext.batterSide;
   return Object.freeze({
     playerId: String(row.providerPlayerId),
+    line: row.postedLine,
     player: row.playerName,
     team: row.teamName,
     opponent: opponent(row),
