@@ -3,6 +3,11 @@ import {
   type ObservedSettlementOutcome,
 } from '../core/index.js';
 import {
+  emptyProductCategorySectionsV1,
+  PRODUCT_DISPLAY_BOARD_VERSION,
+  type ProductCategoryDisplaySection,
+} from './product-display-contract.js';
+import {
   readLatestHhrDisplayBoard,
   type HhrDisplayArchiveRepository,
   type HhrDisplayBoard,
@@ -109,7 +114,26 @@ export type HhrDisplayCumulativeEvidence =
       unavailableReason: null;
     }>;
 
+export interface ProductArchivedEvidenceGroup {
+  readonly title: string;
+  readonly market: 'Hits + Runs + RBIs';
+  readonly offerType: 'alternate';
+  readonly picks: readonly HhrDisplayUiPick[];
+}
+
+export interface ProductArchivedEvidence {
+  readonly market: 'Hits + Runs + RBIs';
+  readonly productionValidated: false;
+  readonly rankingEnabled: false;
+  readonly notice: string;
+  readonly capturedAt: string;
+  readonly groups: readonly ProductArchivedEvidenceGroup[];
+}
+
 export interface HhrDisplayUiBoard extends HhrDisplayBoard {
+  readonly productBoardVersion: typeof PRODUCT_DISPLAY_BOARD_VERSION;
+  readonly categories: readonly ProductCategoryDisplaySection[];
+  readonly archivedEvidence: ProductArchivedEvidence;
   readonly hhr25LowerAlternates: readonly HhrDisplayUiPick[];
   readonly hhr05HigherAlternates: readonly HhrDisplayUiPick[];
   readonly cumulativeEvidence: HhrDisplayCumulativeEvidence;
@@ -157,10 +181,39 @@ async function readCumulativeEvidence(
   }
 }
 
+function archivedEvidence(
+  capturedAt: string,
+  lower: readonly HhrDisplayUiPick[],
+  higher: readonly HhrDisplayUiPick[],
+): ProductArchivedEvidence {
+  return Object.freeze({
+    market: 'Hits + Runs + RBIs',
+    productionValidated: false,
+    rankingEnabled: false,
+    notice:
+      'Archived model evidence only — this market is not production-validated and these rows are not current production picks.',
+    capturedAt,
+    groups: Object.freeze([
+      Object.freeze({
+        title: '2.5 Lower alternate evidence',
+        market: 'Hits + Runs + RBIs' as const,
+        offerType: 'alternate' as const,
+        picks: lower,
+      }),
+      Object.freeze({
+        title: '0.5 Higher alternate evidence',
+        market: 'Hits + Runs + RBIs' as const,
+        offerType: 'alternate' as const,
+        picks: higher,
+      }),
+    ]),
+  });
+}
+
 /**
- * Presentation-only enrichment. Probabilities, persisted order, and cumulative
- * grading values are copied unchanged; missing/invalid cumulative evidence does
- * not suppress an otherwise valid archived board.
+ * Presentation-only enrichment. No probability or ranking math is performed
+ * here. Production-disabled markets remain outside the three category arrays;
+ * preserved HHR rows are exposed only as clearly labeled archived evidence.
  */
 export async function readLatestHhrDisplayUiBoard(
   repository: HhrDisplayArchiveRepository,
@@ -168,10 +221,19 @@ export async function readLatestHhrDisplayUiBoard(
 ): Promise<HhrDisplayUiBoard> {
   const board = await readLatestHhrDisplayBoard(repository);
   const cumulativeEvidence = await readCumulativeEvidence(cumulativeRepository);
+  const hhr25LowerAlternates = Object.freeze(board.hhr25LowerAlternates.map(toUiPick));
+  const hhr05HigherAlternates = Object.freeze(board.hhr05HigherAlternates.map(toUiPick));
   return Object.freeze({
     ...board,
-    hhr25LowerAlternates: Object.freeze(board.hhr25LowerAlternates.map(toUiPick)),
-    hhr05HigherAlternates: Object.freeze(board.hhr05HigherAlternates.map(toUiPick)),
+    productBoardVersion: PRODUCT_DISPLAY_BOARD_VERSION,
+    categories: emptyProductCategorySectionsV1(),
+    archivedEvidence: archivedEvidence(
+      board.capturedAt,
+      hhr25LowerAlternates,
+      hhr05HigherAlternates,
+    ),
+    hhr25LowerAlternates,
+    hhr05HigherAlternates,
     cumulativeEvidence,
   });
 }
