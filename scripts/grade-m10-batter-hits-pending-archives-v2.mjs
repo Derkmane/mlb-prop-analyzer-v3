@@ -31,7 +31,10 @@ if (!/^[A-Za-z0-9._-]+$/u.test(ATTEMPT_ID)) {
 }
 
 const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
-const rateLimiter = createBdlAdaptiveRateLimiter({ fallbackDelayMs: 13_000, utilization: 0.9 });
+const bdlRateLimiter = createBdlAdaptiveRateLimiter({
+  fallbackDelayMs: 13_000,
+  utilization: 0.9,
+});
 const requestCounts = { total: 0, gameStatus: 0, stats: 0, lineups: 0 };
 
 async function exists(filePath) {
@@ -61,13 +64,13 @@ function countRequest(url) {
 
 async function fetchBdl(url, label) {
   for (let attempt = 1; attempt <= MAXIMUM_RETRIES; attempt += 1) {
-    await rateLimiter.beforeRequest();
+    await bdlRateLimiter.beforeRequest();
     countRequest(url);
     const response = await fetch(url, {
       headers: { Authorization: apiKey },
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
-    rateLimiter.afterResponse({ status: response.status, headers: response.headers });
+    bdlRateLimiter.afterResponse({ status: response.status, headers: response.headers });
     const text = await response.text();
     if (response.status === 429 && attempt < MAXIMUM_RETRIES) {
       const retrySeconds = Number(response.headers.get('retry-after'));
@@ -351,12 +354,13 @@ for (const item of ready) {
   );
 }
 
-const limiter = rateLimiter.snapshot();
+const limiter = bdlRateLimiter.snapshot();
 console.log(`BDL REQUESTS GAME STATUS\t${requestCounts.gameStatus}`);
 console.log(`BDL REQUESTS STATS\t${requestCounts.stats}`);
 console.log(`BDL REQUESTS LINEUPS\t${requestCounts.lineups}`);
 console.log(`BDL REQUESTS TOTAL\t${requestCounts.total}`);
 console.log(`BDL RATE LIMIT PER MINUTE\t${limiter.limitPerMinute ?? 'unknown'}`);
+console.log(`BDL INTERVAL MS\t${limiter.intervalMs}`);
 console.log(`ALREADY GRADED\t${alreadyGraded}`);
 console.log(`SKIPPED NON-FINAL\t${skippedNonFinal}`);
 console.log(`ARCHIVES GRADED\t${graded}`);
