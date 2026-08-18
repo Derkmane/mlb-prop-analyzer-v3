@@ -66,9 +66,9 @@ async function login(origin: string): Promise<string> {
   return setCookie.split(';')[0]!;
 }
 
-test('Phase 5 refresh is a single-flight reread of the existing board API with transactional rendering', () => {
+test('Phase 5 refresh is a single-flight reread of the existing protected board API', () => {
   const html = renderHhrDisplayAppPage();
-  assert.match(html, /id="refresh-board" class="refresh-button" type="button">Refresh<\/button>/u);
+  assert.match(html, /id="refresh-board" type="button">Refresh<\/button>/u);
 
   assert.match(HHR_DISPLAY_APP_JS, /const refreshButton = document\.getElementById\('refresh-board'\);/u);
   assert.match(HHR_DISPLAY_APP_JS, /let loadInFlight = false;/u);
@@ -77,17 +77,16 @@ test('Phase 5 refresh is a single-flight reread of the existing board API with t
   assert.match(HHR_DISPLAY_APP_JS, /refreshButton\.disabled = false;/u);
   assert.match(
     HHR_DISPLAY_APP_JS,
-    /const response = await fetch\('\/api\/hhr-display-board', \{ cache: 'no-store', credentials: 'same-origin' \}\);/u,
+    /const response = await fetch\('\/api\/hhr-display-board', \{ cache: 'no-store' \}\);/u,
   );
-  assert.match(HHR_DISPLAY_APP_JS, /const board = await response\.json\(\);\s+renderBoard\(board\);/u);
+  assert.match(HHR_DISPLAY_APP_JS, /const board = await response\.json\(\);/u);
+  assert.match(HHR_DISPLAY_APP_JS, /renderCategories\(board\.categories \|\| \[\]\);/u);
+  assert.match(HHR_DISPLAY_APP_JS, /renderArchivedEvidence\(board\.archivedEvidence\);/u);
   assert.match(
     HHR_DISPLAY_APP_JS,
-    /refreshButton\.addEventListener\('click', \(\) => \{\s+void loadBoard\(true\);\s+\}\);/u,
+    /refreshButton\.addEventListener\('click', \(\) => void loadBoard\(\)\);/u,
   );
-  assert.match(
-    HHR_DISPLAY_APP_JS,
-    /Refresh failed\. Last loaded HHR display board remains visible\./u,
-  );
+  assert.match(HHR_DISPLAY_APP_JS, /Unable to load the saved board\./u);
   assert.equal(HHR_DISPLAY_APP_JS.match(/fetch\('/gu)?.length, 1);
   assert.equal(HHR_DISPLAY_APP_JS.includes('.sort('), false);
   assert.equal(HHR_DISPLAY_APP_JS.includes('.concat('), false);
@@ -122,22 +121,26 @@ test('successive authenticated board reads return the repository latest capture 
     const first = await firstResponse.json() as Record<string, unknown>;
     assert.equal(first['captureKey'], captures[0].captureKey);
     assert.equal(first['capturedAt'], captures[0].capturedAt);
+    assert.equal(first['productBoardVersion'], 'three-category-product-shell-v1');
 
     const secondResponse = await fetch(`${origin}/api/hhr-display-board`, { headers });
     assert.equal(secondResponse.status, 200);
     const second = await secondResponse.json() as Record<string, unknown>;
     assert.equal(second['captureKey'], captures[1].captureKey);
     assert.equal(second['capturedAt'], captures[1].capturedAt);
+    assert.equal(second['productBoardVersion'], 'three-category-product-shell-v1');
     assert.equal(reads, 2);
   });
 });
 
-test('refresh preserves separate Phase 4 sample-sufficiency and calibration-agreement presentation', () => {
-  assert.match(HHR_DISPLAY_APP_JS, /'Sample: ' \+ line\.evidenceStatus\.toUpperCase\(\)/u);
-  assert.match(HHR_DISPLAY_APP_JS, /'Calibration: ' \+ agreement\.label/u);
-  assert.match(HHR_DISPLAY_APP_JS, /'30-pick count gate'/u);
-  assert.match(HHR_DISPLAY_APP_JS, /Math\.abs\(gap\) <= twoStandardErrors/u);
-  assert.match(HHR_DISPLAY_APP_JS, /sample-' \+ line\.evidenceStatus/u);
-  assert.match(HHR_DISPLAY_APP_JS, /agreement\.className/u);
-  assert.equal(HHR_DISPLAY_APP_JS.includes("'Line ' + cohort + ' · '"), false);
+test('refresh rendering remains display-only with no browser ranking, settlement, or calibration computation', () => {
+  assert.match(HHR_DISPLAY_APP_JS, /renderCategories/u);
+  assert.match(HHR_DISPLAY_APP_JS, /renderArchivedEvidence/u);
+  assert.equal(HHR_DISPLAY_APP_JS.includes('.sort('), false);
+  assert.equal(HHR_DISPLAY_APP_JS.includes('.concat('), false);
+  assert.doesNotMatch(HHR_DISPLAY_APP_JS, /compareSettlementResultsForRanking/u);
+  assert.doesNotMatch(HHR_DISPLAY_APP_JS, /settleObserved|settleHigher|settleLower/u);
+  assert.doesNotMatch(HHR_DISPLAY_APP_JS, /COIN_FLIP_LOG_LOSS/u);
+  assert.doesNotMatch(HHR_DISPLAY_APP_JS, /Math\.sqrt/u);
+  assert.doesNotMatch(HHR_DISPLAY_APP_JS, /calibrationEligiblePicks/u);
 });

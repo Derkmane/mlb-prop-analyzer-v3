@@ -242,18 +242,33 @@ test('board availability is independent of missing or invalid cumulative display
   }
 });
 
-test('UI labels HHR lists as High Probability Altline display sublists without browser ranking or side settlement logic', () => {
+test('product shell replaces HHR-only navigation while browser remains display-only', async () => {
   const html = renderHhrDisplayAppPage();
-  assert.match(html, /High Probability Altline Props/u);
-  assert.match(html, /display sublists of this category, not standalone product categories/u);
-  assert.match(html, /HHR 2\.5 Lower Alt/u);
-  assert.match(html, /HHR 0\.5 Higher Alt/u);
+  assert.match(html, /MLB Prop Analyzer/u);
+  assert.match(html, /id="category-tabs"/u);
+  assert.match(html, /aria-label="Prop categories"/u);
+  assert.match(html, /id="archived-evidence"/u);
+  assert.doesNotMatch(html, /HHR 2\.5 Lower Alt/u);
+  assert.doesNotMatch(html, /HHR 0\.5 Higher Alt/u);
+
+  const board = await readLatestHhrDisplayUiBoard(boardRepository);
+  assert.deepEqual(
+    board.categories.map((category) => category.title),
+    [
+      'Opportunity Miner Favorites',
+      'High Probability Baseline Props',
+      'High Probability Altline Props',
+    ],
+  );
+  assert.equal(board.archivedEvidence.productionValidated, false);
+  assert.equal(board.archivedEvidence.rankingEnabled, false);
+
   assert.equal(HHR_DISPLAY_APP_JS.includes('.sort('), false);
-  assert.equal(HHR_DISPLAY_APP_JS.includes('selectedSide ==='), false);
   assert.equal(HHR_DISPLAY_APP_JS.includes('hrr >'), false);
   assert.equal(HHR_DISPLAY_APP_JS.includes('hrr <'), false);
-  assert.match(HHR_DISPLAY_APP_JS, /selectedSideOutcome/u);
-  assert.match(HHR_DISPLAY_APP_JS, /calibrationEligiblePicks/u);
+  assert.doesNotMatch(HHR_DISPLAY_APP_JS, /compareSettlementResultsForRanking/u);
+  assert.doesNotMatch(HHR_DISPLAY_APP_JS, /settleObserved|settleHigher|settleLower/u);
+  assert.doesNotMatch(HHR_DISPLAY_APP_JS, /Math\.sqrt/u);
 });
 
 test('missing display directory is clean while malformed safety evidence fails closed', async () => {

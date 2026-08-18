@@ -191,16 +191,6 @@ function sessionCookieFrom(response: Response): string {
   return setCookie.split(';')[0]!;
 }
 
-function expectedCalibrationLabel(
-  n: number,
-  predicted: number,
-  observedMinusPredicted: number,
-): 'CALIBRATED' | 'OVERCONFIDENT' | 'UNDERCONFIDENT' {
-  const standardError = Math.sqrt((predicted * (1 - predicted)) / n);
-  if (Math.abs(observedMinusPredicted) <= 2 * standardError) return 'CALIBRATED';
-  return observedMinusPredicted < 0 ? 'OVERCONFIDENT' : 'UNDERCONFIDENT';
-}
-
 test('Phase 4 password configuration fails closed with no default credential', () => {
   assert.throws(() => resolveHhrDisplayServerPassword(undefined), /HHR_DISPLAY_PASSWORD/u);
   assert.throws(() => resolveHhrDisplayServerPassword(''), /HHR_DISPLAY_PASSWORD/u);
@@ -258,7 +248,7 @@ test('login uses an HttpOnly strict session cookie and rejects a wrong password 
   });
 });
 
-test('authenticated app renders delivered order and API preserves probabilities plus core-derived last-five outcomes', async () => {
+test('authenticated app renders three-category shell while API preserves archived HHR evidence literally', async () => {
   let reads = 0;
   const repository: HhrDisplayArchiveRepository = Object.freeze({
     async readLatest() {
@@ -274,36 +264,50 @@ test('authenticated app renders delivered order and API preserves probabilities 
     const root = await fetch(`${origin}/`, { headers: authHeaders });
     assert.equal(root.status, 200);
     const html = await root.text();
-    assert.match(html, /High Probability Altline Props/u);
-    assert.match(html, /HHR 2\.5 Lower Alt/u);
-    assert.match(html, /HHR 0\.5 Higher Alt/u);
-    assert.match(html, /id="hhr-25-lower-evidence"/u);
-    assert.match(html, /id="hhr-05-higher-evidence"/u);
-    assert.match(html, /Board freshness/u);
+    assert.match(html, /MLB Prop Analyzer/u);
+    assert.match(html, /id="category-tabs"/u);
+    assert.match(html, /aria-label="Prop categories"/u);
+    assert.match(html, /id="archived-evidence"/u);
+    assert.doesNotMatch(html, /HHR 2\.5 Lower Alt/u);
+    assert.doesNotMatch(html, /HHR 0\.5 Higher Alt/u);
 
     const scriptResponse = await fetch(`${origin}/app.js`, { headers: authHeaders });
     assert.equal(scriptResponse.status, 200);
     const script = await scriptResponse.text();
     assert.equal(script, HHR_DISPLAY_APP_JS);
     assert.equal(script.includes('.sort('), false);
-    assert.equal(script.includes('selectedSide ==='), false);
-    assert.equal(script.includes('hrr >'), false);
-    assert.equal(script.includes('hrr <'), false);
-    assert.match(script, /selectedSideOutcome/u);
-    assert.match(script, /Green = selected side won · Red = selected side lost · Gray = void/u);
-    assert.match(script, /Unavailable in current display archive/u);
-    assert.match(script, /renderSublistEvidence\(lowerEvidenceNode, board\.cumulativeEvidence, '2\.5\+'\)/u);
-    assert.match(script, /renderSublistEvidence\(higherEvidenceNode, board\.cumulativeEvidence, '0\.5'\)/u);
-    assert.match(script, /renderList\(lowerList, board\.hhr25LowerAlternates, '2\.5\+', lowerEvidence\)/u);
-    assert.match(script, /renderList\(higherList, board\.hhr05HigherAlternates, '0\.5', higherEvidence\)/u);
-    assert.match(HHR_DISPLAY_APP_CSS, /@media \(max-width: 650px\)/u);
+    assert.doesNotMatch(script, /compareSettlementResultsForRanking/u);
+    assert.doesNotMatch(script, /settleObserved|settleHigher|settleLower/u);
+    assert.doesNotMatch(script, /Math\.sqrt/u);
+    assert.match(script, /renderCategories\(board\.categories \|\| \[\]\)/u);
+    assert.match(script, /renderArchivedEvidence\(board\.archivedEvidence\)/u);
+    assert.match(HHR_DISPLAY_APP_CSS, /@media \(max-width: 700px\)/u);
 
     const response = await fetch(`${origin}/api/hhr-display-board`, { headers: authHeaders });
     assert.equal(response.status, 200);
     assert.match(response.headers.get('content-security-policy') ?? '', /default-src 'self'/u);
     const board = await response.json() as Record<string, unknown>;
     assert.equal(board['boardVersion'], 'phase4-hhr-display-board-v2');
+    assert.equal(board['productBoardVersion'], 'three-category-product-shell-v1');
     assert.match(String(board['rankingRationale']), /P\(Win \| grades\).*P\(Void\)/u);
+
+    const categories = board['categories'] as Array<Record<string, unknown>>;
+    assert.deepEqual(
+      categories.map((category) => category['title']),
+      [
+        'Opportunity Miner Favorites',
+        'High Probability Baseline Props',
+        'High Probability Altline Props',
+      ],
+    );
+    assert.ok(categories.every((category) => Array.isArray(category['picks']) && (category['picks'] as unknown[]).length === 0));
+    assert.ok(categories.every((category) => category['emptyState'] === 'No production-validated market for this category yet.'));
+
+    const archivedEvidence = board['archivedEvidence'] as Record<string, unknown>;
+    assert.equal(archivedEvidence['market'], 'Hits + Runs + RBIs');
+    assert.equal(archivedEvidence['productionValidated'], false);
+    assert.equal(archivedEvidence['rankingEnabled'], false);
+    assert.match(String(archivedEvidence['notice']), /not production-validated/u);
 
     const lower = (board['hhr25LowerAlternates'] as Array<Record<string, unknown>>)[0]!;
     assert.equal(lower['player'], 'Lower Batter');
@@ -324,34 +328,14 @@ test('authenticated app renders delivered order and API preserves probabilities 
   });
 });
 
-test('Phase 4 separates sample sufficiency from calibration agreement using written cohort values', () => {
-  assert.equal(
-    expectedCalibrationLabel(85, 0.6553639332128363, -0.114187462624601),
-    'OVERCONFIDENT',
-  );
-  assert.equal(
-    expectedCalibrationLabel(322, 0.5550014111353789, 0.004004800044745238),
-    'CALIBRATED',
-  );
-  assert.equal(
-    expectedCalibrationLabel(11, 0.6723284472800314, -0.3996011745527587),
-    'OVERCONFIDENT',
-  );
-
-  assert.match(HHR_DISPLAY_APP_JS, /const COIN_FLIP_LOG_LOSS = 0\.693/u);
-  assert.match(HHR_DISPLAY_APP_JS, /Math\.sqrt\(\(predicted \* \(1 - predicted\)\) \/ n\)/u);
-  assert.match(HHR_DISPLAY_APP_JS, /Math\.abs\(gap\) <= twoStandardErrors/u);
-  assert.match(HHR_DISPLAY_APP_JS, /Sample: /u);
-  assert.match(HHR_DISPLAY_APP_JS, /Calibration: /u);
-  assert.match(HHR_DISPLAY_APP_JS, /Observed − predicted/u);
-  assert.match(HHR_DISPLAY_APP_JS, /coin flip 0\.693/u);
-  assert.match(HHR_DISPLAY_APP_JS, /COHORT · SAMPLE/u);
-  assert.match(HHR_DISPLAY_APP_JS, /CALIBRATION /u);
-  assert.equal(HHR_DISPLAY_APP_JS.includes("'Line ' + cohort + ' · '"), false);
+test('browser does not recompute ranking, settlement, or calibration', () => {
   assert.equal(HHR_DISPLAY_APP_JS.includes('.sort('), false);
-  assert.equal(HHR_DISPLAY_APP_JS.includes('selectedSide ==='), false);
-  assert.equal(HHR_DISPLAY_APP_JS.includes('hrr >'), false);
-  assert.equal(HHR_DISPLAY_APP_JS.includes('hrr <'), false);
+  assert.doesNotMatch(HHR_DISPLAY_APP_JS, /compareSettlementResultsForRanking/u);
+  assert.doesNotMatch(HHR_DISPLAY_APP_JS, /settleObserved|settleHigher|settleLower/u);
+  assert.doesNotMatch(HHR_DISPLAY_APP_JS, /COIN_FLIP_LOG_LOSS/u);
+  assert.doesNotMatch(HHR_DISPLAY_APP_JS, /Math\.sqrt/u);
+  assert.doesNotMatch(HHR_DISPLAY_APP_JS, /Math\.abs\(gap\)/u);
+  assert.doesNotMatch(HHR_DISPLAY_APP_JS, /calibrationEligiblePicks/u);
 });
 
 test('logout expires the session cookie and redirects to login without touching board evidence', async () => {

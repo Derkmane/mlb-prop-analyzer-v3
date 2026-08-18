@@ -4,3 +4,4 @@ export * from './feature-gate.js';
 export * from './hhr-display-board.js';
 export * from './hhr-display-ui.js';
 export * from './market-registry-gate.js';
+export * from './product-display-contract.js';
