@@ -194,6 +194,47 @@ test('Batter Hits display archive copies only frontend fields and preserves prob
     pVoid: 0,
     pWinGivenGrades: 0.61,
     lineupStatus: 'projected',
+    analysisContext: {
+      expectedPlateAppearances: null,
+      lineupSlot: null,
+      batterSide: null,
+      opposingStarterHand: null,
+      venue: null,
+      teamImpliedRunTotal: null,
+    },
+  });
+});
+
+test('Batter Hits display archive copies available analysis lineage without requiring missing fields', () => {
+  const archive = batterHitsFullArchive();
+  archive.rankedRows[0].candidate = {
+    featureData: {
+      values: {
+        batterHits: {
+          lineupSlot: 2,
+          batterSide: 'L',
+          opposingStarterHand: 'R',
+        },
+      },
+    },
+  };
+  archive.rankedRows[0].distribution = {
+    opportunityDistribution: {
+      probabilities: [0, 0, 0.1, 0.3, 0.4, 0.2],
+    },
+  };
+  const display = buildPhase1DisplayArchive({
+    market: 'batter-hits',
+    fullArchive: archive,
+    fullArchiveFileSha256: SHA_A,
+  });
+  assert.deepEqual(display.rows[0].analysisContext, {
+    expectedPlateAppearances: 3.7,
+    lineupSlot: 2,
+    batterSide: 'L',
+    opposingStarterHand: 'R',
+    venue: null,
+    teamImpliedRunTotal: null,
   });
 });
 
@@ -231,6 +272,14 @@ test('HHR display archive copies exact archived settlement probabilities and omi
     pVoid: 0,
     pWinGivenGrades: 0.67,
     lineupStatus: 'confirmed',
+    analysisContext: {
+      expectedPlateAppearances: null,
+      lineupSlot: null,
+      batterSide: null,
+      opposingStarterHand: null,
+      venue: null,
+      teamImpliedRunTotal: 4.5,
+    },
   });
 });
 

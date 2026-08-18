@@ -7,9 +7,10 @@ import {
   HHR_DISPLAY_APP_JS,
   renderHhrDisplayAppPage,
 } from '../src/adapters/index.js';
-import type {
-  HhrDisplayArchive,
-  HhrDisplayArchiveRepository,
+import {
+  PRODUCT_DISPLAY_BOARD_VERSION,
+  type HhrDisplayArchive,
+  type HhrDisplayArchiveRepository,
 } from '../src/application/index.js';
 import { createHhrDisplayAppServer } from '../src/composition/index.js';
 
@@ -34,6 +35,7 @@ async function withAppServer(
   const server = createHhrDisplayAppServer({
     repository,
     cumulativeRepository: Object.freeze({ readLatest: async () => null }),
+    researchRepository: Object.freeze({ readLatest: async () => null }),
     password: PASSWORD,
     sessionToken: SESSION_TOKEN,
   });
@@ -121,14 +123,14 @@ test('successive authenticated board reads return the repository latest capture 
     const first = await firstResponse.json() as Record<string, unknown>;
     assert.equal(first['captureKey'], captures[0].captureKey);
     assert.equal(first['capturedAt'], captures[0].capturedAt);
-    assert.equal(first['productBoardVersion'], 'three-category-product-shell-v1');
+    assert.equal(first['productBoardVersion'], PRODUCT_DISPLAY_BOARD_VERSION);
 
     const secondResponse = await fetch(`${origin}/api/hhr-display-board`, { headers });
     assert.equal(secondResponse.status, 200);
     const second = await secondResponse.json() as Record<string, unknown>;
     assert.equal(second['captureKey'], captures[1].captureKey);
     assert.equal(second['capturedAt'], captures[1].capturedAt);
-    assert.equal(second['productBoardVersion'], 'three-category-product-shell-v1');
+    assert.equal(second['productBoardVersion'], PRODUCT_DISPLAY_BOARD_VERSION);
     assert.equal(reads, 2);
   });
 });

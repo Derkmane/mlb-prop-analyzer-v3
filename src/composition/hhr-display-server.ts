@@ -7,12 +7,14 @@ import {
   createHhrDisplayAppHttpHandler,
   createHhrDisplayArchiveRepository,
   createHhrDisplayBoardHttpHandler,
+  createResearchDisplayArchiveRepository,
 } from '../adapters/index.js';
 import {
   readLatestHhrDisplayBoard,
   readLatestHhrDisplayUiBoard,
   type HhrCumulativeDisplayEvidenceRepository,
   type HhrDisplayArchiveRepository,
+  type ResearchDisplayArchiveRepository,
 } from '../application/index.js';
 
 export const DEFAULT_HHR_DISPLAY_SERVER_HOST = '0.0.0.0' as const;
@@ -35,7 +37,7 @@ export function resolveHhrDisplayServerPassword(rawPassword: string | undefined)
   return rawPassword;
 }
 
-/** Lower-level Phase 3b transport retained for focused API-boundary verification. */
+/** Lower-level transport retained for focused API-boundary verification. */
 export function createHhrDisplayBoardServer(
   repository: HhrDisplayArchiveRepository = createHhrDisplayArchiveRepository(),
 ): Server {
@@ -49,15 +51,23 @@ export interface HhrDisplayAppServerOptions {
   readonly password: string;
   readonly repository?: HhrDisplayArchiveRepository;
   readonly cumulativeRepository?: HhrCumulativeDisplayEvidenceRepository;
+  readonly researchRepository?: ResearchDisplayArchiveRepository;
   readonly sessionToken?: string;
 }
 
-/** Deployable composition: committed display archives -> password-gated read-only UI/API. */
+/** Deployable composition: committed archives -> password-gated read-only product UI/API. */
 export function createHhrDisplayAppServer(options: HhrDisplayAppServerOptions): Server {
   const repository = options.repository ?? createHhrDisplayArchiveRepository();
   const cumulativeRepository = options.cumulativeRepository ??
     createHhrCumulativeDisplayEvidenceRepository();
-  const readBoard = () => readLatestHhrDisplayUiBoard(repository, cumulativeRepository);
+  const researchRepository = options.researchRepository ??
+    createResearchDisplayArchiveRepository();
+  const readBoard = () =>
+    readLatestHhrDisplayUiBoard(
+      repository,
+      cumulativeRepository,
+      researchRepository,
+    );
   const handler = options.sessionToken === undefined
     ? createHhrDisplayAppHttpHandler({ readBoard, password: options.password })
     : createHhrDisplayAppHttpHandler({
@@ -97,6 +107,6 @@ if (isDirectInvocation()) {
   const port = resolveHhrDisplayServerPort(process.env['PORT']);
   const server = startHhrDisplayAppServer(password, port);
   server.once('listening', () => {
-    console.log(`HHR display app listening on port ${port}`);
+    console.log(`MLB prop analyzer listening on port ${port}`);
   });
 }

@@ -22,13 +22,18 @@ export type HhrAltlineCategoryExclusionReason =
   | 'duplicate-player'
   | 'top-20-cut';
 
+export interface HhrAltlineRankableCandidate extends CategoryRankableCandidate {
+  readonly line: number;
+  readonly selectedSide: 'higher' | 'lower';
+}
+
 /**
  * Category input deliberately excludes price, multiplier, lineup status, and
  * every model input. Those values may travel beside this object for evidence
  * and display, but the selector has no contract through which to read them.
  */
 export interface HhrAltlineCategoryOfferInput<
-  TCandidate extends CategoryRankableCandidate,
+  TCandidate extends HhrAltlineRankableCandidate,
 > {
   readonly candidate: TCandidate;
   readonly offerType: CategoryOfferType;
@@ -44,7 +49,7 @@ export interface HhrAltlineCategoryExclusionCounts {
 }
 
 export interface HhrAltlineCategorySelectionV1<
-  TCandidate extends CategoryRankableCandidate,
+  TCandidate extends HhrAltlineRankableCandidate,
 > {
   readonly categoryId: HhrAltlineCategoryId;
   readonly categoryTitle:
@@ -52,9 +57,7 @@ export interface HhrAltlineCategorySelectionV1<
     | typeof HHR_05_HIGHER_ALT_CATEGORY_TITLE;
   readonly requiredLine: 2.5 | 0.5;
   readonly requiredSide: 'lower' | 'higher';
-  /** Exact posted alternate offers at the required line and side before fail-closed checks. */
   readonly postedExactOfferCount: number;
-  /** Rankable one-per-player offers before the top-20 cut. */
   readonly availableOfferCount: number;
   readonly selectedCandidates: readonly HhrAltlineCategoryOfferInput<TCandidate>[];
   readonly exclusionCounts: Readonly<HhrAltlineCategoryExclusionCounts>;
@@ -69,7 +72,7 @@ interface HhrAltlineCategorySpec {
   readonly requiredSide: 'lower' | 'higher';
 }
 
-function compareInputs<TCandidate extends CategoryRankableCandidate>(
+function compareInputs<TCandidate extends HhrAltlineRankableCandidate>(
   left: HhrAltlineCategoryOfferInput<TCandidate>,
   right: HhrAltlineCategoryOfferInput<TCandidate>,
 ): number {
@@ -77,7 +80,7 @@ function compareInputs<TCandidate extends CategoryRankableCandidate>(
 }
 
 function selectHhrExactAltlineCategoryV1<
-  TCandidate extends CategoryRankableCandidate,
+  TCandidate extends HhrAltlineRankableCandidate,
 >(
   inputs: readonly Readonly<HhrAltlineCategoryOfferInput<TCandidate>>[],
   spec: Readonly<HhrAltlineCategorySpec>,
@@ -153,9 +156,8 @@ function selectHhrExactAltlineCategoryV1<
   });
 }
 
-/** Selects only exact posted HHR 2.5 Lower alternate offers. */
 export function selectHhr25LowerAltV1<
-  TCandidate extends CategoryRankableCandidate,
+  TCandidate extends HhrAltlineRankableCandidate,
 >(
   inputs: readonly Readonly<HhrAltlineCategoryOfferInput<TCandidate>>[],
 ): HhrAltlineCategorySelectionV1<TCandidate> {
@@ -167,9 +169,8 @@ export function selectHhr25LowerAltV1<
   });
 }
 
-/** Selects only exact posted HHR 0.5 Higher alternate offers. */
 export function selectHhr05HigherAltV1<
-  TCandidate extends CategoryRankableCandidate,
+  TCandidate extends HhrAltlineRankableCandidate,
 >(
   inputs: readonly Readonly<HhrAltlineCategoryOfferInput<TCandidate>>[],
 ): HhrAltlineCategorySelectionV1<TCandidate> {

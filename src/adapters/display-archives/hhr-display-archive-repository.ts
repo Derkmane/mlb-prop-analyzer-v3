@@ -65,6 +65,14 @@ const enrichmentRecord = z.strictObject({
   }),
   opposingStarter,
 });
+const analysisContext = z.strictObject({
+  expectedPlateAppearances: nullableFinite,
+  lineupSlot: nullableFinite,
+  batterSide: z.string().min(1).nullable(),
+  opposingStarterHand: z.string().min(1).nullable(),
+  venue: z.string().min(1).nullable(),
+  teamImpliedRunTotal: nullableFinite,
+});
 const row = z.strictObject({
   rank: z.number().int().positive(),
   providerEventId: z.string().min(1),
@@ -90,6 +98,7 @@ const row = z.strictObject({
   pVoid: probability,
   pWinGivenGrades: probability,
   lineupStatus: z.string().min(1),
+  analysisContext: analysisContext.optional(),
 });
 const archive = z.strictObject({
   displayArchiveVersion: z.literal(DISPLAY_ARCHIVE_VERSION),

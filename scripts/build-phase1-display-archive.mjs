@@ -127,6 +127,74 @@ function oneVersion(rows, readVersion, label) {
   return values[0];
 }
 
+function expectedValueFromPmf(raw, label) {
+  if (raw === undefined || raw === null) return null;
+  const pmf = object(raw, label);
+  const probabilities = array(pmf.probabilities, `${label}.probabilities`);
+  let expected = 0;
+  probabilities.forEach((value, index) => {
+    expected += index * probability(value, `${label}.probabilities[${index}]`);
+  });
+  return expected;
+}
+
+function optionalObject(value, label) {
+  if (value === undefined || value === null) return null;
+  return object(value, label);
+}
+
+function batterHitsFeatureDetails(row, index) {
+  const candidate = optionalObject(
+    row.candidate,
+    `Batter Hits rankedRows[${index}].candidate`,
+  );
+  if (candidate === null) return null;
+  const featureData = optionalObject(
+    candidate.featureData,
+    `Batter Hits row ${index} featureData`,
+  );
+  if (featureData === null) return null;
+  const values = optionalObject(
+    featureData.values,
+    `Batter Hits row ${index} featureData.values`,
+  );
+  if (values === null) return null;
+  const detailsEntries = Object.values(values);
+  if (detailsEntries.length === 0) return null;
+  if (detailsEntries.length !== 1) {
+    throw new Error(`Batter Hits row ${index} must have exactly one feature details envelope.`);
+  }
+  return object(detailsEntries[0], `Batter Hits row ${index} feature details`);
+}
+
+function batterHitsAnalysisContext(row, index) {
+  const details = batterHitsFeatureDetails(row, index);
+  const distribution = optionalObject(
+    row.distribution,
+    `Batter Hits row ${index} distribution`,
+  );
+  return Object.freeze({
+    expectedPlateAppearances: expectedValueFromPmf(
+      distribution?.opportunityDistribution,
+      `Batter Hits row ${index} opportunityDistribution`,
+    ),
+    lineupSlot: finiteNumberOrNull(
+      details?.lineupSlot ?? null,
+      `Batter Hits row ${index} lineupSlot`,
+    ),
+    batterSide: stringOrNull(
+      details?.batterSide ?? null,
+      `Batter Hits row ${index} batterSide`,
+    ),
+    opposingStarterHand: stringOrNull(
+      details?.opposingStarterHand ?? null,
+      `Batter Hits row ${index} opposingStarterHand`,
+    ),
+    venue: null,
+    teamImpliedRunTotal: null,
+  });
+}
+
 function batterHitsDisplayRow(raw, index) {
   const row = object(raw, `Batter Hits rankedRows[${index}]`);
   const offer = object(row.normalizedOffer, `Batter Hits rankedRows[${index}].normalizedOffer`);
@@ -160,6 +228,7 @@ function batterHitsDisplayRow(raw, index) {
     pVoid: probability(probabilities.pVoid, `Batter Hits row ${index} pVoid`),
     pWinGivenGrades: probability(probabilities.pWinGivenGrades, `Batter Hits row ${index} pWinGivenGrades`),
     lineupStatus: nonemptyString(lineage.lineupStatus, `Batter Hits row ${index} lineupStatus`),
+    analysisContext: batterHitsAnalysisContext(row, index),
   });
 }
 
@@ -195,6 +264,23 @@ function hhrDisplayRow(raw, gameById, index) {
     pVoid: probability(row.archivedPVoid, `HHR row ${index} pVoid`),
     pWinGivenGrades: probability(row.archivedPWinGivenGrades, `HHR row ${index} pWinGivenGrades`),
     lineupStatus: stringOrNull(row.lineupStatus ?? lineage.lineupStatus ?? null, `HHR row ${index} lineupStatus`),
+    analysisContext: Object.freeze({
+      expectedPlateAppearances: finiteNumberOrNull(
+        lineage.expectedPlateAppearances ?? null,
+        `HHR row ${index} expectedPlateAppearances`,
+      ),
+      lineupSlot: finiteNumberOrNull(lineage.lineupSlot ?? null, `HHR row ${index} lineupSlot`),
+      batterSide: stringOrNull(lineage.batterSide ?? null, `HHR row ${index} batterSide`),
+      opposingStarterHand: stringOrNull(
+        lineage.probableStarterHand ?? null,
+        `HHR row ${index} opposingStarterHand`,
+      ),
+      venue: stringOrNull(game.venue ?? null, `HHR row ${index} venue`),
+      teamImpliedRunTotal: finiteNumberOrNull(
+        lineage.teamImpliedRunTotal ?? null,
+        `HHR row ${index} teamImpliedRunTotal`,
+      ),
+    }),
   });
 }
 
