@@ -1,5 +1,6 @@
 export * from './manifest.js';
 export * from './contracts.js';
+export * from './settlement.js';
 export * from './distribution.js';
 export * from './predict.js';
 export * from './runtime-artifact.js';
