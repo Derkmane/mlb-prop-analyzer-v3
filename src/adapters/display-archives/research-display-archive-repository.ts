@@ -141,18 +141,18 @@ function analysisContext(value: unknown): ResearchAnalysisContext {
   const source = value === undefined ? {} : record(value, 'analysisContext');
   return Object.freeze({
     expectedPlateAppearances: nullableFinite(
-      source.expectedPlateAppearances,
+      source['expectedPlateAppearances'],
       'analysisContext.expectedPlateAppearances',
     ),
-    lineupSlot: nullableFinite(source.lineupSlot, 'analysisContext.lineupSlot'),
-    batterSide: nullableString(source.batterSide, 'analysisContext.batterSide'),
+    lineupSlot: nullableFinite(source['lineupSlot'], 'analysisContext.lineupSlot'),
+    batterSide: nullableString(source['batterSide'], 'analysisContext.batterSide'),
     opposingStarterHand: nullableString(
-      source.opposingStarterHand,
+      source['opposingStarterHand'],
       'analysisContext.opposingStarterHand',
     ),
-    venue: nullableString(source.venue, 'analysisContext.venue'),
+    venue: nullableString(source['venue'], 'analysisContext.venue'),
     teamImpliedRunTotal: nullableFinite(
-      source.teamImpliedRunTotal,
+      source['teamImpliedRunTotal'],
       'analysisContext.teamImpliedRunTotal',
     ),
   });
@@ -163,11 +163,16 @@ function enrichmentForRow(
   gameId: number,
   playerId: number,
 ): Readonly<Record<string, unknown>> | null {
-  if (archive.displayEnrichment === undefined) return null;
-  const enrichment = record(archive.displayEnrichment, 'displayEnrichment');
-  const byKey = record(enrichment.byGamePlayerKey, 'displayEnrichment.byGamePlayerKey');
+  if (archive['displayEnrichment'] === undefined) return null;
+  const enrichment = record(archive['displayEnrichment'], 'displayEnrichment');
+  const byKey = record(
+    enrichment['byGamePlayerKey'],
+    'displayEnrichment.byGamePlayerKey',
+  );
   const value = byKey[`${gameId}:${playerId}`];
-  return value === undefined ? null : Object.freeze(record(value, 'display enrichment row'));
+  return value === undefined
+    ? null
+    : Object.freeze(record(value, 'display enrichment row'));
 }
 
 function normalizeRow(
@@ -177,13 +182,16 @@ function normalizeRow(
   index: number,
 ): ResearchDisplayRow {
   const row = record(raw, `${market} rows[${index}]`);
-  const providerGameId = integer(row.providerGameId, `${market} providerGameId`);
-  const providerPlayerId = integer(row.providerPlayerId, `${market} providerPlayerId`);
-  const pWin = probability(row.pWin, `${market} pWin`);
-  const pLoss = probability(row.pLoss, `${market} pLoss`);
-  const pVoid = probability(row.pVoid, `${market} pVoid`);
+  const providerGameId = integer(row['providerGameId'], `${market} providerGameId`);
+  const providerPlayerId = integer(
+    row['providerPlayerId'],
+    `${market} providerPlayerId`,
+  );
+  const pWin = probability(row['pWin'], `${market} pWin`);
+  const pLoss = probability(row['pLoss'], `${market} pLoss`);
+  const pVoid = probability(row['pVoid'], `${market} pVoid`);
   const pWinGivenGrades = probability(
-    row.pWinGivenGrades,
+    row['pWinGivenGrades'],
     `${market} pWinGivenGrades`,
   );
   if (Math.abs(pWin + pLoss + pVoid - 1) > 1e-9) {
@@ -192,33 +200,39 @@ function normalizeRow(
 
   return Object.freeze({
     market,
-    captureKey: string(archive.captureKey, `${market} captureKey`),
-    capturedAt: string(archive.capturedAt, `${market} capturedAt`),
-    modelVersion: string(archive.modelVersion, `${market} modelVersion`),
+    captureKey: string(archive['captureKey'], `${market} captureKey`),
+    capturedAt: string(archive['capturedAt'], `${market} capturedAt`),
+    modelVersion: string(archive['modelVersion'], `${market} modelVersion`),
     distributionBuilderVersion: string(
-      archive.distributionBuilderVersion,
+      archive['distributionBuilderVersion'],
       `${market} distributionBuilderVersion`,
     ),
-    providerEventId: string(row.providerEventId, `${market} providerEventId`),
+    providerEventId: string(row['providerEventId'], `${market} providerEventId`),
     providerGameId,
     providerPlayerId,
-    playerName: string(row.playerName, `${market} playerName`),
-    teamName: string(row.teamName, `${market} teamName`),
-    homeTeamName: string(row.homeTeamName, `${market} homeTeamName`),
-    awayTeamName: string(row.awayTeamName, `${market} awayTeamName`),
-    eventCommenceTime: string(row.eventCommenceTime, `${market} eventCommenceTime`),
-    providerMarketKey: string(row.providerMarketKey, `${market} providerMarketKey`),
-    offerType: offerType(row.offerType),
-    selectedSide: selectedSide(row.selectedSide),
-    postedLine: finite(row.postedLine, `${market} postedLine`),
-    americanPrice: nullableFinite(row.americanPrice, `${market} americanPrice`),
-    multiplier: nullableFinite(row.multiplier, `${market} multiplier`),
+    playerName: string(row['playerName'], `${market} playerName`),
+    teamName: string(row['teamName'], `${market} teamName`),
+    homeTeamName: string(row['homeTeamName'], `${market} homeTeamName`),
+    awayTeamName: string(row['awayTeamName'], `${market} awayTeamName`),
+    eventCommenceTime: string(
+      row['eventCommenceTime'],
+      `${market} eventCommenceTime`,
+    ),
+    providerMarketKey: string(
+      row['providerMarketKey'],
+      `${market} providerMarketKey`,
+    ),
+    offerType: offerType(row['offerType']),
+    selectedSide: selectedSide(row['selectedSide']),
+    postedLine: finite(row['postedLine'], `${market} postedLine`),
+    americanPrice: nullableFinite(row['americanPrice'], `${market} americanPrice`),
+    multiplier: nullableFinite(row['multiplier'], `${market} multiplier`),
     pWin,
     pLoss,
     pVoid,
     pWinGivenGrades,
-    lineupStatus: lineupStatus(row.lineupStatus),
-    analysisContext: analysisContext(row.analysisContext),
+    lineupStatus: lineupStatus(row['lineupStatus']),
+    analysisContext: analysisContext(row['analysisContext']),
     enrichment: enrichmentForRow(archive, providerGameId, providerPlayerId),
   });
 }
@@ -228,22 +242,22 @@ function verifyArchiveIdentity(
   archive: Record<string, unknown>,
 ): void {
   if (
-    archive.displayArchiveVersion !== 1 ||
-    archive.displayArchiveContract !== 'phase1-trimmed-board-display-v1' ||
-    archive.market !== market
+    archive['displayArchiveVersion'] !== 1 ||
+    archive['displayArchiveContract'] !== 'phase1-trimmed-board-display-v1' ||
+    archive['market'] !== market
   ) {
     throw new Error(`${market} display archive contract is unsupported.`);
   }
   if (
-    archive.productionEnabled !== false ||
-    archive.productionRankingEnabled !== false
+    archive['productionEnabled'] !== false ||
+    archive['productionRankingEnabled'] !== false
   ) {
     throw new Error(`${market} research archive must remain production-disabled.`);
   }
   const expected = AUTHORIZED_RESEARCH_IDENTITIES[market];
   if (
-    archive.modelVersion !== expected.modelVersion ||
-    archive.distributionBuilderVersion !== expected.distributionBuilderVersion
+    archive['modelVersion'] !== expected.modelVersion ||
+    archive['distributionBuilderVersion'] !== expected.distributionBuilderVersion
   ) {
     throw new Error(`${market} display archive model identity is not research-authorized.`);
   }
@@ -280,7 +294,7 @@ async function readLatestFromDirectory(
   ) as unknown;
   const archive = record(parsed, `${market} display archive`);
   verifyArchiveIdentity(market, archive);
-  const rawRows = archive.rows;
+  const rawRows = archive['rows'];
   if (!Array.isArray(rawRows) || rawRows.length === 0) {
     throw new Error(`${market} display archive rows must be nonempty.`);
   }
@@ -289,11 +303,11 @@ async function readLatestFromDirectory(
   );
   return Object.freeze({
     market,
-    captureKey: string(archive.captureKey, `${market} captureKey`),
-    capturedAt: string(archive.capturedAt, `${market} capturedAt`),
-    modelVersion: string(archive.modelVersion, `${market} modelVersion`),
+    captureKey: string(archive['captureKey'], `${market} captureKey`),
+    capturedAt: string(archive['capturedAt'], `${market} capturedAt`),
+    modelVersion: string(archive['modelVersion'], `${market} modelVersion`),
     distributionBuilderVersion: string(
-      archive.distributionBuilderVersion,
+      archive['distributionBuilderVersion'],
       `${market} distributionBuilderVersion`,
     ),
     rows,
