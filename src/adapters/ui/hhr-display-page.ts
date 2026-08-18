@@ -26,8 +26,9 @@ button:hover { background: #1b3149; }
 button:disabled { opacity: .55; cursor: wait; }
 .logout-form { margin: 0; }
 .logout-form button { width: 100%; }
-.status { margin: 0 0 16px; padding: 12px 14px; border: 1px solid #283e52; border-radius: 10px; background: #0d1925; color: #a9bbca; }
+.status { margin: 0 0 16px; padding: 12px 14px; border: 1px solid #283e52; border-radius: 10px; background: #0d1925; color: #a9bbca; line-height: 1.45; }
 .status.error { border-color: #744049; color: #ffb5bd; background: #261217; }
+.research-banner { margin: 0 0 16px; padding: 13px 15px; border: 1px solid #7b612f; border-radius: 10px; color: #f0d296; background: #211a0e; font-size: .84rem; font-weight: 750; }
 .category-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0 0 18px; }
 .category-tab { min-height: 58px; text-align: center; font-weight: 800; border-radius: 12px; }
 .category-tab.active { border-color: #78b7ff; background: #17324a; box-shadow: inset 0 0 0 1px #4b83b7; }
@@ -43,6 +44,7 @@ button:disabled { opacity: .55; cursor: wait; }
 .player-name { margin: 0; font-size: 1.15rem; }
 .matchup { margin-top: 4px; color: #91a8bb; font-size: .84rem; }
 .market-badge { border: 1px solid #486c8b; border-radius: 999px; padding: 5px 9px; color: #b7d8f5; font-size: .72rem; font-weight: 800; white-space: nowrap; }
+.research-label { margin-top: 10px; display: inline-block; border: 1px solid #84692f; background: #241c0c; color: #f4d287; border-radius: 7px; padding: 6px 9px; font-size: .7rem; font-weight: 900; letter-spacing: .06em; }
 .chips { display: flex; flex-wrap: wrap; gap: 7px; margin: 12px 0; }
 .chip { border: 1px solid #35516b; border-radius: 999px; padding: 5px 9px; font-size: .74rem; font-weight: 750; background: #102033; }
 .chip.higher { border-color: #2f7462; color: #9ff0d1; }
@@ -51,10 +53,22 @@ button:disabled { opacity: .55; cursor: wait; }
 .chip.warning { border-color: #7a5a32; color: #f2cf8f; background: #221a0f; }
 .prob-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; margin: 12px 0; }
 .metric { border: 1px solid #21384b; background: #091520; border-radius: 9px; padding: 9px; }
+.metric.primary { border-color: #5c7046; background: #121c12; }
 .metric-label { display: block; color: #7f97ab; font-size: .66rem; text-transform: uppercase; letter-spacing: .04em; }
 .metric-value { display: block; margin-top: 3px; font-size: .96rem; font-weight: 800; }
-.details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 14px; margin-top: 12px; color: #9db0c0; font-size: .8rem; }
-.details strong { color: #d4e1eb; }
+.analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #203346; color: #9db0c0; font-size: .8rem; }
+.analysis-grid strong { color: #d4e1eb; }
+.section-label { margin: 14px 0 7px; color: #8fa5b8; font-size: .69rem; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
+.last-five { display: flex; flex-wrap: wrap; gap: 6px; }
+.game-result { border: 1px solid #34475b; border-radius: 8px; padding: 6px 8px; font-size: .72rem; background: #0a1621; }
+.game-result.cash { border-color: #34745f; color: #9ff0d1; background: #0c211a; }
+.game-result.miss { border-color: #74444b; color: #ffb0b8; background: #241116; }
+.game-result.void { border-color: #74653d; color: #e6ca8b; background: #211b0f; }
+.calibration { margin-top: 12px; border-radius: 9px; padding: 10px 11px; border: 1px solid #3a4e61; background: #0a1722; font-size: .78rem; line-height: 1.4; }
+.calibration.failed { border-color: #7c444b; color: #ffb2ba; background: #241216; }
+.calibration.passed { border-color: #36715e; color: #a1e7cf; background: #0c211a; }
+.calibration.insufficient, .calibration.pending { border-color: #756238; color: #e7cc92; background: #211a0d; }
+.calibration strong { display: block; margin-bottom: 3px; color: inherit; }
 .empty-state { padding: 42px 22px; text-align: center; color: #a9bbca; }
 .empty-state strong { display: block; color: #eef5fb; font-size: 1.05rem; margin-bottom: 7px; }
 .evidence-shell { margin-top: 22px; border: 1px solid #5d4b30; border-radius: 16px; background: #16130ddd; overflow: hidden; }
@@ -72,9 +86,7 @@ button:disabled { opacity: .55; cursor: wait; }
 .login-card input { width: 100%; padding: 12px; border-radius: 9px; border: 1px solid #385067; background: #08111a; color: #fff; }
 .login-card button { width: 100%; margin-top: 12px; }
 .login-error { margin-top: 12px; color: #ff9ba6; font-size: .84rem; }
-@media (max-width: 900px) {
-  .pick-list, .evidence-grid { grid-template-columns: 1fr; }
-}
+@media (max-width: 900px) { .pick-list, .evidence-grid { grid-template-columns: 1fr; } }
 @media (max-width: 700px) {
   .shell { padding: 14px; }
   .topbar { flex-direction: column; }
@@ -82,7 +94,7 @@ button:disabled { opacity: .55; cursor: wait; }
   .category-tabs { grid-template-columns: 1fr; }
   .category-tab { min-height: 46px; }
   .prob-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .details { grid-template-columns: 1fr; }
+  .analysis-grid { grid-template-columns: 1fr; }
 }
 `;
 
@@ -100,15 +112,13 @@ export const HHR_DISPLAY_APP_JS = `
   let loadInFlight = false;
 
   const percentFormatter = new Intl.NumberFormat(undefined, {
-    style: 'percent',
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
+    style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1,
+  });
+  const decimalFormatter = new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 1, maximumFractionDigits: 2,
   });
   const centralDateFormatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Chicago',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+    timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit',
   });
 
   function element(tag, className, text) {
@@ -119,7 +129,15 @@ export const HHR_DISPLAY_APP_JS = `
   }
 
   function percentage(value) {
-    return value === null || value === undefined ? '—' : percentFormatter.format(Number(value));
+    return value === null || value === undefined ? 'Unavailable' : percentFormatter.format(Number(value));
+  }
+
+  function decimal(value) {
+    return value === null || value === undefined ? 'Unavailable' : decimalFormatter.format(Number(value));
+  }
+
+  function textValue(value) {
+    return value === null || value === undefined || value === '' ? 'Unavailable' : String(value);
   }
 
   function displayTime(value) {
@@ -143,8 +161,8 @@ export const HHR_DISPLAY_APP_JS = `
     return element('span', 'chip' + (className ? ' ' + className : ''), text);
   }
 
-  function metric(label, value) {
-    const node = element('div', 'metric');
+  function metric(label, value, primary) {
+    const node = element('div', 'metric' + (primary ? ' primary' : ''));
     node.append(element('span', 'metric-label', label));
     node.append(element('span', 'metric-value', percentage(value)));
     return node;
@@ -152,9 +170,33 @@ export const HHR_DISPLAY_APP_JS = `
 
   function detail(label, value) {
     const node = element('div');
-    const labelNode = element('strong', null, label + ': ');
-    node.append(labelNode, document.createTextNode(value === null || value === undefined ? '—' : String(value)));
+    node.append(element('strong', null, label + ': '));
+    node.append(document.createTextNode(textValue(value)));
     return node;
+  }
+
+  function renderLastFive(pick) {
+    const wrap = element('div');
+    wrap.append(element('div', 'section-label', 'Last five · selected side + current line'));
+    const games = element('div', 'last-five');
+    if (!Array.isArray(pick.lastFive) || pick.lastFive.length === 0) {
+      games.append(element('span', 'game-result', 'Unavailable in archived lineage'));
+    } else {
+      pick.lastFive.forEach((game) => {
+        const label = game.gameDate + ' vs ' + game.opponent + ' · ' + game.actual;
+        games.append(element('span', 'game-result ' + game.outcome, label));
+      });
+    }
+    wrap.append(games);
+    return wrap;
+  }
+
+  function renderCalibration(pick) {
+    const calibration = pick.calibration || { status: 'pending', cohort: 'Unavailable', message: 'Calibration evidence unavailable.' };
+    const box = element('div', 'calibration ' + calibration.status);
+    box.append(element('strong', null, 'Calibration · ' + calibration.cohort + ' · ' + String(calibration.status).toUpperCase()));
+    box.append(document.createTextNode(calibration.message));
+    return box;
   }
 
   function renderProductPick(pick) {
@@ -165,24 +207,38 @@ export const HHR_DISPLAY_APP_JS = `
     identity.append(element('div', 'matchup', pick.team + ' vs ' + pick.opponent + ' · ' + displayTime(pick.gameTime)));
     head.append(identity, element('span', 'market-badge', pick.market));
     card.append(head);
+    card.append(element('span', 'research-label', pick.probabilityLabel || 'UNVALIDATED RESEARCH'));
 
     const chips = element('div', 'chips');
     chips.append(chip(pick.selectedSide === 'higher' ? 'Higher' : 'Lower', pick.selectedSide));
     chips.append(chip('Line ' + pick.postedLine));
     chips.append(chip(pick.offerType === 'baseline' ? 'Baseline' : 'Alternate'));
-    chips.append(chip(pick.lineupStatus, 'lineup'));
+    if (pick.lineupStatus) chips.append(chip(pick.lineupStatus === 'confirmed' ? 'Lineup confirmed' : 'Lineup projected', 'lineup'));
     card.append(chips);
 
     const probabilities = element('div', 'prob-grid');
-    probabilities.append(metric('P(Win)', pick.pWin));
-    probabilities.append(metric('P(Loss)', pick.pLoss));
-    probabilities.append(metric('P(Void)', pick.pVoid));
-    probabilities.append(metric('P(Win | grades)', pick.pWinGivenGrades));
+    probabilities.append(metric('P(Win | grades)', pick.pWinGivenGrades, true));
+    probabilities.append(metric('P(Win)', pick.pWin, false));
+    probabilities.append(metric('P(Loss)', pick.pLoss, false));
+    probabilities.append(metric('P(Void)', pick.pVoid, false));
     card.append(probabilities);
 
-    const details = element('div', 'details');
-    details.append(detail('Captured', displayTime(pick.capturedAt)));
-    card.append(details);
+    const starter = pick.opposingStarter || {};
+    const analysis = element('div', 'analysis-grid');
+    analysis.append(detail('Expected PA', decimal(pick.expectedPlateAppearances)));
+    analysis.append(detail('Lineup slot', pick.lineupSlot));
+    analysis.append(detail('Opposing starter', starter.name));
+    analysis.append(detail('Starter hand', starter.hand));
+    analysis.append(detail('Starter ERA', starter.era === null || starter.era === undefined ? null : decimal(starter.era)));
+    analysis.append(detail('Starter K rate', starter.kRate === null || starter.kRate === undefined ? null : percentage(starter.kRate)));
+    analysis.append(detail('Recent workload', starter.recentWorkload));
+    analysis.append(detail('Platoon', pick.platoon));
+    analysis.append(detail('Team implied runs', pick.teamImpliedRunTotal === null || pick.teamImpliedRunTotal === undefined ? null : decimal(pick.teamImpliedRunTotal)));
+    analysis.append(detail('Park', pick.park));
+    analysis.append(detail('Captured', displayTime(pick.capturedAt)));
+    card.append(analysis);
+    card.append(renderLastFive(pick));
+    card.append(renderCalibration(pick));
     return card;
   }
 
@@ -200,7 +256,6 @@ export const HHR_DISPLAY_APP_JS = `
   function renderCategories(categories) {
     categoryTabsNode.replaceChildren();
     categoryPanelsNode.replaceChildren();
-
     categories.forEach((category, index) => {
       const tab = element('button', 'category-tab', category.title);
       tab.type = 'button';
@@ -215,13 +270,13 @@ export const HHR_DISPLAY_APP_JS = `
       panel.hidden = index !== 0;
       const heading = element('div', 'category-heading');
       heading.append(element('h2', null, category.title));
-      heading.append(element('p', null, 'Top Five is the first five eligible picks in the server-provided category order.'));
+      heading.append(element('p', null, 'Top Five · server-ranked by P(Win | grades), then P(Void). Research probabilities are not production calibrated.'));
       panel.append(heading);
 
       if (!Array.isArray(category.picks) || category.picks.length === 0) {
         const empty = element('div', 'empty-state');
-        empty.append(element('strong', null, 'No eligible production picks right now'));
-        empty.append(document.createTextNode(category.emptyState || 'No production-validated market for this category yet.'));
+        empty.append(element('strong', null, 'No research-authorized picks right now'));
+        empty.append(document.createTextNode(category.emptyState || 'No research-authorized pregame prop is available for this category right now.'));
         panel.append(empty);
       } else {
         const list = element('div', 'pick-list');
@@ -240,38 +295,31 @@ export const HHR_DISPLAY_APP_JS = `
     identity.append(element('div', 'matchup', pick.team + ' vs ' + pick.opponent + ' · ' + displayTime(pick.gameTime)));
     head.append(identity, element('span', 'market-badge', group.market));
     card.append(head);
-
     const chips = element('div', 'chips');
     chips.append(chip(pick.selectedSide === 'higher' ? 'Higher' : 'Lower', pick.selectedSide));
     chips.append(chip('Line ' + pick.postedLine));
     chips.append(chip('Alternate'));
-    chips.append(chip(pick.lineupStatus, 'lineup'));
     chips.append(chip('Archived evidence', 'warning'));
     card.append(chips);
-
     const probabilities = element('div', 'prob-grid');
-    probabilities.append(metric('P(Win)', pick.pWin));
-    probabilities.append(metric('P(Loss)', pick.pLoss));
-    probabilities.append(metric('P(Void)', pick.pVoid));
-    probabilities.append(metric('P(Win | grades)', pick.pWinGivenGrades));
+    probabilities.append(metric('P(Win | grades)', pick.pWinGivenGrades, true));
+    probabilities.append(metric('P(Win)', pick.pWin, false));
+    probabilities.append(metric('P(Loss)', pick.pLoss, false));
+    probabilities.append(metric('P(Void)', pick.pVoid, false));
     card.append(probabilities);
-
-    const details = element('div', 'details');
-    details.append(detail('Offer type', group.offerType === 'alternate' ? 'Alternate' : 'Baseline'));
-    details.append(detail('Captured', displayTime(capturedAt)));
-    card.append(details);
+    const analysis = element('div', 'analysis-grid');
+    analysis.append(detail('Captured', displayTime(capturedAt)));
+    card.append(analysis);
     return card;
   }
 
   function renderArchivedEvidence(archivedEvidence) {
     evidenceNode.replaceChildren();
     if (!archivedEvidence) return;
-
     const heading = element('div', 'evidence-heading');
     heading.append(element('h2', null, 'Archived Research Evidence'));
     heading.append(element('p', null, archivedEvidence.notice));
     evidenceNode.append(heading);
-
     archivedEvidence.groups.forEach((group) => {
       const groupNode = element('section', 'evidence-group');
       groupNode.append(element('h3', null, group.market + ' · ' + group.title));
@@ -307,10 +355,10 @@ export const HHR_DISPLAY_APP_JS = `
       renderCategories(board.categories || []);
       renderArchivedEvidence(board.archivedEvidence);
       statusNode.textContent = freshness === 'TODAY'
-        ? 'Today’s saved board loaded. Production-disabled markets stay out of category picks.'
+        ? 'Today’s saved board loaded. Ranked picks are UNVALIDATED RESEARCH, not production-calibrated probabilities.'
         : freshness === 'STALE'
-          ? 'STALE saved board — this capture is not from today’s America/Chicago slate. Production-disabled markets stay out of category picks.'
-          : 'Saved board loaded, but capture freshness could not be determined. Production-disabled markets stay out of category picks.';
+          ? 'STALE saved board — this capture is not from today’s America/Chicago slate. Ranked rows remain research evidence only.'
+          : 'Saved board loaded, but capture freshness could not be determined. Ranked rows remain research evidence only.';
     } catch (error) {
       statusNode.className = 'status error';
       statusNode.textContent = error instanceof Error ? error.message : 'Unable to load the saved board.';
@@ -368,7 +416,7 @@ export function renderHhrDisplayAppPage(): string {
       <div>
         <div class="eyebrow">Underdog MLB · Pregame</div>
         <h1>MLB Prop Analyzer</h1>
-        <p class="subtle">Today’s best eligible picks are organized by the three product categories below.</p>
+        <p class="subtle">Best available research-ranked picks, with the baseball context behind each one.</p>
       </div>
       <aside class="meta-panel" aria-label="Board status">
         <div class="meta-row"><span>Saved capture</span><strong id="captured-at">Loading…</strong></div>
@@ -380,6 +428,7 @@ export function renderHhrDisplayAppPage(): string {
       </aside>
     </header>
 
+    <div class="research-banner">UNVALIDATED RESEARCH — rankings use the model’s selected-side probabilities, but displayed percentages are not production-calibrated truth claims. Known calibration misses are shown on the cards.</div>
     <div id="status" class="status" role="status">Loading saved board data…</div>
     <nav id="category-tabs" class="category-tabs" role="tablist" aria-label="Prop categories"></nav>
     <div id="category-panels"></div>
