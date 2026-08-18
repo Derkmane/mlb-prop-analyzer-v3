@@ -16,6 +16,7 @@ import type { ImplementedMarketRegistration } from '../src/domain/market.js';
 import { BATTER_HHR_SETTLEMENT_RULE_VERSION } from '../src/features/batter-hhr/contracts.js';
 import { BATTER_HHR_FEATURE_ID, BATTER_HHR_MARKET_KEY } from '../src/features/batter-hhr/manifest.js';
 import { BATTER_HITS_FEATURE_ID, BATTER_HITS_MARKET_KEY } from '../src/features/batter-hits/manifest.js';
+import { BATTER_HITS_SETTLEMENT_RULE_VERSION } from '../src/features/batter-hits/settlement.js';
 
 function collectTypeScriptFiles(directory: string): string[] {
   const files: string[] = [];
@@ -56,9 +57,11 @@ test('implemented Batter Hits and HHR remain disabled and fail closed for produc
     'context-adjusted-terminal-outcome-vector','expected-plate-appearances','lineup-slot','platoon-split-cell',
     'opposing-starter-pooling','team-implied-run-total','preceding-lineup-slots-on-base-quality',
   ]);
-  assert.equal(SETTLEMENT_REGISTRY.rules.length, 1);
-  assert.equal(SETTLEMENT_REGISTRY.rules[0]?.baseMarketKey, BATTER_HHR_MARKET_KEY);
-  assert.equal(SETTLEMENT_REGISTRY.rules[0]?.version, BATTER_HHR_SETTLEMENT_RULE_VERSION);
+  assert.equal(SETTLEMENT_REGISTRY.rules.length, 2);
+  const batterHitsRule = SETTLEMENT_REGISTRY.rules.find((rule) => rule.baseMarketKey === BATTER_HITS_MARKET_KEY);
+  const hhrRule = SETTLEMENT_REGISTRY.rules.find((rule) => rule.baseMarketKey === BATTER_HHR_MARKET_KEY);
+  assert.equal(batterHitsRule?.version, BATTER_HITS_SETTLEMENT_RULE_VERSION);
+  assert.equal(hhrRule?.version, BATTER_HHR_SETTLEMENT_RULE_VERSION);
 });
 
 test('duplicate ownership across the planned catalog and a feature manifest is rejected', () => {

@@ -3,6 +3,8 @@ import path from 'node:path';
 
 import { persistImmutableJson } from './m10-grade-saved-archive-utils.mjs';
 import { M10_SCHEDULED_ARCHIVE_GRADING_VERSION } from './m10-scheduled-archive-grading-utils.mjs';
+import { M10_BATTER_HITS_GRADE_VERSION_V2 } from './m10-batter-hits-final-grade-v2-utils.mjs';
+import { verifyBatterHitsFinalGradeReportV2 } from './m10-batter-hits-grade-v2-verifier.mjs';
 import {
   buildCumulativeSelectedSideMetricsReportV2,
   buildSelectedSideArchiveMetricsReportV1,
@@ -73,6 +75,34 @@ function printCalibration(prefix, calibration) {
   }
 }
 
+async function readLatestSupportedGrade({ reportRoot, projection }) {
+  const v2Path = path.join(
+    reportRoot,
+    'grades',
+    `${M10_BATTER_HITS_GRADE_VERSION_V2}.json`,
+  );
+  if (await exists(v2Path)) {
+    const bytes = await readFile(v2Path);
+    return Object.freeze({
+      path: v2Path,
+      report: verifyBatterHitsFinalGradeReportV2({ reportBytes: bytes, projection }),
+    });
+  }
+  const v1Path = path.join(
+    reportRoot,
+    'grades',
+    `${M10_SCHEDULED_ARCHIVE_GRADING_VERSION}.json`,
+  );
+  if (await exists(v1Path)) {
+    const bytes = await readFile(v1Path);
+    return Object.freeze({
+      path: v1Path,
+      report: verifyScheduledGradeReportV1({ reportBytes: bytes, projection }),
+    });
+  }
+  return null;
+}
+
 const archiveRoot = environment('M10_ARCHIVE_ROOT', DEFAULT_ARCHIVE_ROOT);
 const capturesDirectory = path.join(archiveRoot, 'captures');
 await mkdir(capturesDirectory, { recursive: true });
@@ -102,21 +132,13 @@ for (const capture of captures) {
     expectedCaptureKey: capture.captureKey,
   });
   const reportRoot = path.join(archiveRoot, capture.captureKey);
-  const sourceGradePath = path.join(
-    reportRoot,
-    'grades',
-    `${M10_SCHEDULED_ARCHIVE_GRADING_VERSION}.json`,
-  );
-  if (!(await exists(sourceGradePath))) {
+  const sourceGradeInput = await readLatestSupportedGrade({ reportRoot, projection });
+  if (sourceGradeInput === null) {
     ungradedArchives += 1;
     console.log(`SKIP UNGRADED\t${capture.captureKey}`);
     continue;
   }
-  const sourceGradeBytes = await readFile(sourceGradePath);
-  const sourceGrade = verifyScheduledGradeReportV1({
-    reportBytes: sourceGradeBytes,
-    projection,
-  });
+  const sourceGrade = sourceGradeInput.report;
   const report = buildSelectedSideArchiveMetricsReportV1({
     projection,
     gradeReport: sourceGrade,
@@ -148,6 +170,7 @@ for (const capture of captures) {
   cumulativeInputs.push(Object.freeze({ report, reportSha256 }));
 
   console.log(`CAPTURE\t${capture.captureKey}`);
+  console.log(`SOURCE GRADE\t${sourceGrade.reportVersion}\t${sourceGradeInput.path}`);
   printSummary('SELECTED SIDE', report.selectedSide.summary);
   printCalibration('SELECTED SIDE', report.selectedSide.calibration);
   printSummary('OPPORTUNITY MINER', report.opportunityMiner.summary);
