@@ -1,6 +1,6 @@
 # MLB Prop Analyzer --- Project Rules
 
-**Version:** 2.12\
+**Version:** 2.13\
 **Status:** Canonical project rules\
 **Applies to:** MLB Prop Analyzer V3\
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
@@ -612,15 +612,22 @@ Batter Hits is the first intended production vertical slice.
 
 ## 16. Feature enable, disable, and removal --- LOCKED
 
-The central feature registry owns production enable/disable state.
+The central feature registry owns **production** enable/disable state.
 
-Disabling a feature must fail closed:
+Disabling a feature in the production registry must fail closed for the
+production path:
 
--   no new prediction
--   no category eligibility
--   no ranking
+-   no new production prediction
+-   no production category eligibility
+-   no production ranking
 -   no silent fallback to old, audit, deprecated, generic,
     implied-probability, or side-independent logic
+
+A production-disabled feature may participate only in the separately
+versioned **research-ranking** path defined in Section 18 when every
+Section 18 research-ranking requirement is satisfied. Research ranking
+must not change production enablement or make a disabled feature
+available to the production prediction path.
 
 Removal procedure:
 
@@ -669,18 +676,67 @@ dependency analysis is sufficient.
 
 ------------------------------------------------------------------------
 
-## 18. Mathematical authority and production readiness --- LOCKED
+## 18. Mathematical authority, research ranking, and production readiness --- LOCKED
 
-All production probability calculations must follow
+All displayed probability calculations must follow
 `CANONICAL_MATH_SPEC.md`.
 
-No real prop may rank until its distribution builder, eligibility event,
-settlement rule, current-season fit, chronological validation, and
-calibration status satisfy the canonical requirements.
+**Research ranking** and **production-calibrated probability authorization**
+are separate states.
 
-Synthetic fixtures may be used for architecture and mathematical tests
-but must be unmistakably synthetic and may never appear as production
-predictions.
+### Research ranking
+
+A real pregame prop may appear in the three product categories as
+**UNVALIDATED RESEARCH** when all of the following are true:
+
+-   the market is implemented and the exact posted offer comes from an
+    approved production board source
+-   the prediction uses a frozen or otherwise explicitly versioned
+    current-season fitted distribution already preserved by the repository
+    or a committed archive path
+-   runtime probability evaluation is deterministic and exact under the
+    declared model
+-   a versioned market-specific settlement rule and eligibility event are
+    available
+-   the exact posted Higher or Lower side and line are settled through the
+    generic side-aware settlement path
+-   category ordering remains `P(Win | grades)` descending, then `P(Void)`
+    ascending
+-   any known calibration, distribution-shape, sample-sufficiency, or
+    validation failure is preserved and surfaced where corresponding
+    evidence exists
+
+Research ranking does not assert that the displayed probability is
+calibrated, production-valid, or a validated estimate of true win
+probability. Every probability displayed through the research-ranking path
+must be visibly labeled **UNVALIDATED RESEARCH**. A known failed cohort may
+remain visible for research ranking only if the failure is displayed; it may
+not be relabeled as passing, calibrated, or production-valid.
+
+Research ranking may not use synthetic fixtures, an unfitted or unversioned
+model, a rejected candidate that was never frozen or otherwise authorized for
+archived evaluation, a deprecated model, a generic projection, raw implied
+probability, a side-independent score, or another fallback. A failed or
+insufficient calibration result never authorizes substitution of a different
+line, model family, or probability source.
+
+The central production feature enable/disable state continues to gate
+production predictions. A separately versioned research-ranking admission
+path may read eligible versioned or committed archived research outputs
+without changing production enablement. It must not silently convert a
+disabled feature into a production-enabled feature.
+
+### Production calibration and production-valid probability claims
+
+No real prop may be presented as a production-calibrated prediction, and no
+displayed probability may be described as calibrated or production-valid,
+until its distribution builder, eligibility event, settlement rule,
+current-season fit, chronological validation, and calibration status satisfy
+all canonical production requirements.
+
+Synthetic fixtures may be used for architecture and mathematical tests but
+must be unmistakably synthetic and may never appear as real research-ranked
+or production predictions.
 
 Baseline and alternate offers for the same statistic use the same
 official-statistic distribution and differ only through posted offer
@@ -728,7 +784,9 @@ proposed change:
 10. implement the shared game and hitter opportunity foundation
 11. create a synthetic removable Batter Hits vertical slice
 12. fit, version, and validate current-season models
-13. enable real-prop ranking only after acceptance gates pass
+13. enable research ranking only through Section 18's research gate; enable
+    production-calibrated real-prop output only after all production
+    acceptance gates pass
 14. implement complete categories, saved-run workflows, grading, API/UI
     presentation, and deployment
 
@@ -1155,6 +1213,28 @@ There is no separate Project Knowledge deliverable.
 ------------------------------------------------------------------------
 
 ## Changelog
+
+### Version 2.13 — 2026-08-18
+
+-   Separated explicitly labeled research ranking from production-calibrated
+    probability authorization so versioned current-season research outputs may
+    populate the three product categories without claiming calibration.
+-   Required every research-ranked probability to display `UNVALIDATED
+    RESEARCH` and required known calibration, distribution-shape,
+    sample-sufficiency, and validation failures to remain visible where
+    corresponding evidence exists.
+-   Required research ranking to use approved board sources, a versioned
+    current-season fitted distribution, deterministic exact evaluation, a
+    versioned settlement/eligibility rule, exact side-and-line settlement, and
+    the unchanged canonical ranking order.
+-   Prohibited research ranking from using synthetic fixtures, unfitted or
+    unversioned models, rejected unfrozen candidates, deprecated/generic/raw
+    implied-probability fallbacks, or side-independent scores.
+-   Preserved production feature disablement and every production calibration
+    requirement for any claim that a probability is calibrated or
+    production-valid; research ranking does not production-enable a feature.
+-   Clarified Section 16 and the build-order wording only as necessary to keep
+    the new research/production distinction internally consistent.
 
 ### Version 2.12 — 2026-08-17
 
