@@ -10,11 +10,6 @@ import {
   type CategoryOfferInput,
 } from '../categories/index.js';
 import { settleObservedDiscreteStatisticV1 } from '../core/index.js';
-import type {
-  ResearchDisplayArchive,
-  ResearchDisplayArchiveRepository,
-  ResearchDisplayRow,
-} from '../adapters/display-archives/research-display-archive-repository.js';
 import {
   PRODUCT_DISPLAY_BOARD_VERSION,
   PRODUCT_RESEARCH_LABEL,
@@ -25,6 +20,11 @@ import {
   type ProductLastFiveResult,
   type ProductStarterContext,
 } from './product-display-contract.js';
+import type {
+  ResearchDisplayArchive,
+  ResearchDisplayArchiveRepository,
+  ResearchDisplayRow,
+} from './research-display-archive.js';
 
 interface ResearchRankCandidate extends ProductDisplayPick {
   readonly playerId: string;
@@ -153,7 +153,8 @@ function hhrCalibration(row: ResearchDisplayRow): ProductCalibrationDisclosure {
       calibrationAgreement: 'fail',
       calculationMethod: 'primary-per-pick-heterogeneous',
       evidenceSnapshot: HHR_CALIBRATION_SNAPSHOT,
-      message: 'Documented calibration agreement failed: model 65.5%, actual 54.1% (46/85).',
+      message:
+        'Sample SUFFICIENT · Agreement FAIL. Documented model 65.5%, actual 54.1% (46/85).',
     });
   }
   if (row.postedLine === 1.5) {
@@ -167,7 +168,8 @@ function hhrCalibration(row: ResearchDisplayRow): ProductCalibrationDisclosure {
       calibrationAgreement: 'pass',
       calculationMethod: 'primary-per-pick-heterogeneous',
       evidenceSnapshot: HHR_CALIBRATION_SNAPSHOT,
-      message: 'Documented cohort: model 55.5%, actual 55.9% (180/322).',
+      message:
+        'Sample SUFFICIENT · Agreement PASS. Documented model 55.5%, actual 55.9% (180/322).',
     });
   }
   if (row.postedLine >= 2.5 && row.selectedSide === 'lower') {
@@ -181,7 +183,8 @@ function hhrCalibration(row: ResearchDisplayRow): ProductCalibrationDisclosure {
       calibrationAgreement: 'fail',
       calculationMethod: 'primary-per-pick-heterogeneous',
       evidenceSnapshot: HHR_CALIBRATION_SNAPSHOT,
-      message: 'Documented sample is insufficient and calibration agreement failed: model 67.2%, actual 27.3% (3/11).',
+      message:
+        'Sample INSUFFICIENT · Agreement FAIL. Documented model 67.2%, actual 27.3% (3/11).',
     });
   }
   return Object.freeze({
@@ -194,7 +197,8 @@ function hhrCalibration(row: ResearchDisplayRow): ProductCalibrationDisclosure {
     calibrationAgreement: 'unavailable',
     calculationMethod: 'unavailable',
     evidenceSnapshot: HHR_CALIBRATION_SNAPSHOT,
-    message: 'No matching documented calibration snapshot is available for this exact HHR line and side.',
+    message:
+      'Sample UNAVAILABLE · Agreement UNAVAILABLE. No matching documented calibration snapshot is available for this exact HHR line and side.',
   });
 }
 
@@ -210,7 +214,8 @@ function calibration(row: ResearchDisplayRow): ProductCalibrationDisclosure {
     calibrationAgreement: 'unavailable',
     calculationMethod: 'unavailable',
     evidenceSnapshot: 'Batter Hits prospective calibration pending',
-    message: 'Batter Hits prospective calibration evidence is still pending.',
+    message:
+      'Sample UNAVAILABLE · Agreement UNAVAILABLE. Batter Hits prospective calibration evidence is still pending.',
   });
 }
 
@@ -254,7 +259,9 @@ function offerInput(
   candidate: ResearchRankCandidate,
 ): CategoryOfferInput<ResearchRankCandidate> {
   const postedImpliedProbability =
-    row.americanPrice !== null && Number.isInteger(row.americanPrice) && row.americanPrice !== 0
+    row.americanPrice !== null &&
+    Number.isInteger(row.americanPrice) &&
+    row.americanPrice !== 0
       ? indicativeImpliedProbabilityFromAmericanPrice(row.americanPrice)
       : null;
   return Object.freeze({
@@ -336,7 +343,10 @@ export async function readResearchProductBoardV2(
     sourceMarkets: Object.freeze(archives.map((archive) => archive.market)),
     categories: Object.freeze([
       productCategorySectionV2(OPPORTUNITY_MINER_CATEGORY_ID, opportunityPicks),
-      productCategorySectionV2(HIGH_PROBABILITY_BASELINE_CATEGORY_ID, baselinePicks),
+      productCategorySectionV2(
+        HIGH_PROBABILITY_BASELINE_CATEGORY_ID,
+        baselinePicks,
+      ),
       productCategorySectionV2(HIGH_PROBABILITY_ALTLINE_CATEGORY_ID, altlinePicks),
     ]),
   });
