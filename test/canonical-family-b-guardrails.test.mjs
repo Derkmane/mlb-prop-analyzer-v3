@@ -12,8 +12,8 @@ test("canonical Family B guardrails remain synchronized across authorities", asy
     readRepositoryFile("PROJECT_CHECKLIST.md"),
   ]);
 
-  assert.match(mathSpec, /\*\*Version:\*\* 1\.14/);
-  assert.match(projectRules, /\*\*Version:\*\* 2\.12\\/);
+  assert.match(mathSpec, /\*\*Version:\*\* 1\.15/);
+  assert.match(projectRules, /\*\*Version:\*\* 2\.13/);
 
   assert.ok(
     mathSpec.includes(
@@ -80,10 +80,15 @@ test("canonical Family B guardrails remain synchronized across authorities", asy
   );
   assert.ok(
     mathSpec.includes(
-      "44. A Family B distribution failing its calibration gate\n" +
-        "    fails closed and cannot reach ranking. It may not be\n" +
-        "    replaced by a shallower line, a standard line, a Family\n" +
-        "    A approximation, or any fallback distribution.",
+      "44. A Family B distribution failing its calibration gate fails closed for\n" +
+        "    production-calibrated output and cannot be described as calibrated,\n" +
+        "    accepted, or production-valid. A frozen or otherwise explicitly\n" +
+        "    versioned archived Family B distribution may remain eligible for Section\n" +
+        "    18 **UNVALIDATED RESEARCH** ranking only when all research-ranking\n" +
+        "    requirements are satisfied and the failed or insufficient line-cohort\n" +
+        "    calibration state is displayed wherever corresponding evidence exists.\n" +
+        "    Calibration failure never authorizes substitution of a shallower line, a\n" +
+        "    standard line, a Family A approximation, or any fallback distribution.",
     ),
   );
   assert.ok(
