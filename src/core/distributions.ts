@@ -159,6 +159,62 @@ export function mixBernoulliOutcomesOverCountDistribution(
   );
 }
 
+export function mixDiscreteOutcomesOverCountDistribution(
+  opportunityCountDistribution: ProbabilityMassFunction,
+  perOpportunityDistributions: readonly ProbabilityMassFunction[],
+): ProbabilityMassFunction {
+  const countDistribution = validateProbabilityMassFunction(
+    opportunityCountDistribution,
+    'opportunity count distribution',
+  );
+  const maximumOpportunityCount = countDistribution.probabilities.length - 1;
+  if (perOpportunityDistributions.length < maximumOpportunityCount) {
+    throw new RangeError(
+      'one discrete outcome distribution is required for every possible opportunity',
+    );
+  }
+  const outcomes = perOpportunityDistributions.map((distribution, index) =>
+    validateProbabilityMassFunction(
+      distribution,
+      `opportunity outcome distribution[${index}]`,
+    ),
+  );
+
+  let conditional = createProbabilityMassFunction(
+    [1],
+    'zero-opportunity discrete outcome distribution',
+  );
+  const mixed: number[] = [];
+
+  for (
+    let opportunityCount = 0;
+    opportunityCount <= maximumOpportunityCount;
+    opportunityCount += 1
+  ) {
+    if (opportunityCount > 0) {
+      const nextOutcome = outcomes[opportunityCount - 1];
+      if (nextOutcome === undefined) {
+        throw new Error('internal discrete-outcome opportunity indexing failure');
+      }
+      conditional = convolveProbabilityMassFunctions(conditional, nextOutcome);
+    }
+
+    const countMass = countDistribution.probabilities[opportunityCount];
+    if (countMass === undefined) {
+      throw new Error('internal opportunity-count indexing failure');
+    }
+    for (const [value, conditionalMass] of conditional.probabilities.entries()) {
+      while (mixed.length <= value) mixed.push(0);
+      mixed[value] = (mixed[value] ?? 0) + countMass * conditionalMass;
+    }
+  }
+
+  return createProbabilityMassFunction(
+    mixed,
+    'count-mixture discrete outcome distribution',
+  );
+}
+
 export function buildBernoulliCountProbabilityMassFunction(
   survivalProbabilities: readonly number[],
   opportunitySuccessProbabilities: readonly number[],
