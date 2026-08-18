@@ -8,13 +8,13 @@ import {
   createHhrDisplayArchiveRepository,
   createHhrDisplayBoardHttpHandler,
   createResearchDisplayArchiveRepository,
-  type ResearchDisplayArchiveRepository,
 } from '../adapters/index.js';
 import {
   readLatestHhrDisplayBoard,
   readLatestHhrDisplayUiBoard,
   type HhrCumulativeDisplayEvidenceRepository,
   type HhrDisplayArchiveRepository,
+  type ResearchDisplayArchiveRepository,
 } from '../application/index.js';
 
 export const DEFAULT_HHR_DISPLAY_SERVER_HOST = '0.0.0.0' as const;
