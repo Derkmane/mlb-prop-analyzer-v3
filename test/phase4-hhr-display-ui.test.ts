@@ -8,9 +8,11 @@ import {
   HHR_DISPLAY_APP_JS,
   HHR_DISPLAY_SESSION_COOKIE,
 } from '../src/adapters/index.js';
-import type {
-  HhrDisplayArchive,
-  HhrDisplayArchiveRepository,
+import {
+  PRODUCT_DISPLAY_BOARD_VERSION,
+  PRODUCT_EMPTY_CATEGORY_REASON,
+  type HhrDisplayArchive,
+  type HhrDisplayArchiveRepository,
 } from '../src/application/index.js';
 import {
   createHhrDisplayAppServer,
@@ -157,6 +159,8 @@ async function withAppServer(
 ): Promise<void> {
   const server = createHhrDisplayAppServer({
     repository,
+    cumulativeRepository: Object.freeze({ readLatest: async () => null }),
+    researchRepository: Object.freeze({ readLatest: async () => null }),
     password: PASSWORD,
     sessionToken: SESSION_TOKEN,
   });
@@ -288,7 +292,7 @@ test('authenticated app renders three-category shell while API preserves archive
     assert.match(response.headers.get('content-security-policy') ?? '', /default-src 'self'/u);
     const board = await response.json() as Record<string, unknown>;
     assert.equal(board['boardVersion'], 'phase4-hhr-display-board-v2');
-    assert.equal(board['productBoardVersion'], 'three-category-product-shell-v1');
+    assert.equal(board['productBoardVersion'], PRODUCT_DISPLAY_BOARD_VERSION);
     assert.match(String(board['rankingRationale']), /P\(Win \| grades\).*P\(Void\)/u);
 
     const categories = board['categories'] as Array<Record<string, unknown>>;
@@ -301,13 +305,13 @@ test('authenticated app renders three-category shell while API preserves archive
       ],
     );
     assert.ok(categories.every((category) => Array.isArray(category['picks']) && (category['picks'] as unknown[]).length === 0));
-    assert.ok(categories.every((category) => category['emptyState'] === 'No production-validated market for this category yet.'));
+    assert.ok(categories.every((category) => category['emptyState'] === PRODUCT_EMPTY_CATEGORY_REASON));
 
     const archivedEvidence = board['archivedEvidence'] as Record<string, unknown>;
     assert.equal(archivedEvidence['market'], 'Hits + Runs + RBIs');
     assert.equal(archivedEvidence['productionValidated'], false);
     assert.equal(archivedEvidence['rankingEnabled'], false);
-    assert.match(String(archivedEvidence['notice']), /not production-validated/u);
+    assert.match(String(archivedEvidence['notice']), /not production-calibrated/u);
 
     const lower = (board['hhr25LowerAlternates'] as Array<Record<string, unknown>>)[0]!;
     assert.equal(lower['player'], 'Lower Batter');
