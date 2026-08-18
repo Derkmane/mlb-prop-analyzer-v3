@@ -547,12 +547,13 @@ export function buildSelectedSidePerformanceSummary(rows) {
 }
 
 export function buildSelectedSideCalibration(rows) {
-  const picks = array(rows, 'selected-side rows');
-  for (const row of picks) {
+  const allPicks = array(rows, 'selected-side rows');
+  for (const row of allPicks) {
     if (row.archivedPWinGivenGrades < 0.5) {
       throw new Error('Selected-side calibration cannot contain a probability below 0.5.');
     }
   }
+  const picks = allPicks.filter((row) => row.outcome !== 'void');
   const buckets = M10_SELECTED_SIDE_CALIBRATION_BUCKETS.map((definition) => {
     const bucketRows = picks.filter(
       (row) =>
@@ -574,7 +575,7 @@ export function buildSelectedSideCalibration(rows) {
   );
   if (conserved !== picks.length) {
     throw new Error(
-      `Selected-side calibration must conserve every pick; expected ${picks.length}, received ${conserved}.`,
+      `Selected-side calibration must conserve every calibration-eligible decided pick; expected ${picks.length}, received ${conserved}.`,
     );
   }
   return Object.freeze(buckets);
