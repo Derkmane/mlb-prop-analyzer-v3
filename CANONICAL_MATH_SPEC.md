@@ -2444,7 +2444,12 @@ no validated distribution → no ranked prop
   order, and predictor standardization or other declared
   transforms unless a separate canonical revision
   explicitly authorizes their change.
-- Recorded the 3,987-positive-row Stage 1 diagnostic and the mean-structure diagnosis.
+- Recorded the HHR Stage 1 positive-count diagnostic on
+  3,987 positive observations from the existing 5,964-row
+  current-season fitting cohort. Conditional mean gaps were
+  +0.2458095465, +0.0900069453, +0.1193160366,
+  +0.1180341274, and -0.0266851731 across the five
+  fitted-mu bins.
 - Recorded observed-to-predicted conditional variance
   ratios of 1.3034204667, 0.9098898377, 0.9183746545,
   0.9560479544, and 0.8572370803, rejecting general
