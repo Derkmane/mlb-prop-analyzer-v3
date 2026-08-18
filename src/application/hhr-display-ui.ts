@@ -2,12 +2,12 @@ import {
   settleObservedDiscreteStatisticV1,
   type ObservedSettlementOutcome,
 } from '../core/index.js';
-import type { ResearchDisplayArchiveRepository } from '../adapters/display-archives/research-display-archive-repository.js';
 import {
   emptyProductCategorySectionsV1,
   PRODUCT_DISPLAY_BOARD_VERSION,
   type ProductCategoryDisplaySection,
 } from './product-display-contract.js';
+import type { ResearchDisplayArchiveRepository } from './research-display-archive.js';
 import { readResearchProductBoardV2 } from './research-product-board.js';
 import {
   readLatestHhrDisplayBoard,
