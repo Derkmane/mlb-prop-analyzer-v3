@@ -40,6 +40,9 @@ export interface ResearchProductBoardV2 {
   readonly categories: readonly ProductCategoryDisplaySection[];
 }
 
+const HHR_CALIBRATION_SNAPSHOT =
+  'CANONICAL_MATH_SPEC v1.15 documented 422-row prospective snapshot';
+
 function objectOrNull(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -146,7 +149,11 @@ function hhrCalibration(row: ResearchDisplayRow): ProductCalibrationDisclosure {
       predicted: 0.6554,
       observed: 0.5412,
       decidedPicks: 85,
-      message: 'Calibration agreement failed: model 65.5%, actual 54.1% (46/85).',
+      sampleSufficiency: 'sufficient',
+      calibrationAgreement: 'fail',
+      calculationMethod: 'primary-per-pick-heterogeneous',
+      evidenceSnapshot: HHR_CALIBRATION_SNAPSHOT,
+      message: 'Documented calibration agreement failed: model 65.5%, actual 54.1% (46/85).',
     });
   }
   if (row.postedLine === 1.5) {
@@ -156,7 +163,11 @@ function hhrCalibration(row: ResearchDisplayRow): ProductCalibrationDisclosure {
       predicted: 0.555,
       observed: 0.559,
       decidedPicks: 322,
-      message: 'Prospective cohort: model 55.5%, actual 55.9% (180/322).',
+      sampleSufficiency: 'sufficient',
+      calibrationAgreement: 'pass',
+      calculationMethod: 'primary-per-pick-heterogeneous',
+      evidenceSnapshot: HHR_CALIBRATION_SNAPSHOT,
+      message: 'Documented cohort: model 55.5%, actual 55.9% (180/322).',
     });
   }
   if (row.postedLine >= 2.5 && row.selectedSide === 'lower') {
@@ -166,7 +177,11 @@ function hhrCalibration(row: ResearchDisplayRow): ProductCalibrationDisclosure {
       predicted: 0.6723,
       observed: 0.2727,
       decidedPicks: 11,
-      message: 'Sample is insufficient and calibration agreement failed: model 67.2%, actual 27.3% (3/11).',
+      sampleSufficiency: 'insufficient',
+      calibrationAgreement: 'fail',
+      calculationMethod: 'primary-per-pick-heterogeneous',
+      evidenceSnapshot: HHR_CALIBRATION_SNAPSHOT,
+      message: 'Documented sample is insufficient and calibration agreement failed: model 67.2%, actual 27.3% (3/11).',
     });
   }
   return Object.freeze({
@@ -175,7 +190,11 @@ function hhrCalibration(row: ResearchDisplayRow): ProductCalibrationDisclosure {
     predicted: null,
     observed: null,
     decidedPicks: null,
-    message: 'No matching committed prospective calibration cohort is available yet.',
+    sampleSufficiency: 'unavailable',
+    calibrationAgreement: 'unavailable',
+    calculationMethod: 'unavailable',
+    evidenceSnapshot: HHR_CALIBRATION_SNAPSHOT,
+    message: 'No matching documented calibration snapshot is available for this exact HHR line and side.',
   });
 }
 
@@ -187,6 +206,10 @@ function calibration(row: ResearchDisplayRow): ProductCalibrationDisclosure {
     predicted: null,
     observed: null,
     decidedPicks: null,
+    sampleSufficiency: 'unavailable',
+    calibrationAgreement: 'unavailable',
+    calculationMethod: 'unavailable',
+    evidenceSnapshot: 'Batter Hits prospective calibration pending',
     message: 'Batter Hits prospective calibration evidence is still pending.',
   });
 }
