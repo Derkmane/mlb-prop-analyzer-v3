@@ -126,13 +126,14 @@ test('HHR rows remain archived research evidence and never enter production cate
   assert.equal(board.categories.flatMap((category) => category.picks).length, 0);
 });
 
-test('product UI is category-first, human-readable, and contains no browser ranking or settlement implementation', () => {
+test('product UI is category-first, human-readable, labels slate freshness, and contains no browser ranking or settlement implementation', () => {
   const page = renderHhrDisplayAppPage();
   const login = renderHhrDisplayLoginPage();
 
   assert.match(page, /MLB Prop Analyzer/u);
   assert.match(page, /Prop categories/u);
   assert.match(page, /Archived research evidence/u);
+  assert.match(page, /id="capture-freshness"/u);
   assert.match(login, /MLB Prop Analyzer/u);
 
   for (const forbidden of ['M8', 'M9', 'M11', 'Family B']) {
@@ -140,6 +141,10 @@ test('product UI is category-first, human-readable, and contains no browser rank
     assert.doesNotMatch(login, new RegExp(forbidden, 'u'));
   }
 
+  assert.match(HHR_DISPLAY_APP_JS, /timeZone: 'America\/Chicago'/u);
+  assert.match(HHR_DISPLAY_APP_JS, /capturedSlateDate === currentSlateDate \? 'TODAY' : 'STALE'/u);
+  assert.match(HHR_DISPLAY_APP_JS, /Today’s saved board loaded/u);
+  assert.match(HHR_DISPLAY_APP_JS, /STALE saved board/u);
   assert.doesNotMatch(HHR_DISPLAY_APP_JS, /\.sort\s*\(/u);
   assert.doesNotMatch(HHR_DISPLAY_APP_JS, /compareSettlementResultsForRanking/u);
   assert.doesNotMatch(HHR_DISPLAY_APP_JS, /settleObserved|settleHigher|settleLower/u);
