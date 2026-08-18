@@ -122,7 +122,8 @@ function repository(): ResearchDisplayArchiveRepository {
     row({ market: 'batter-hhr', playerId: 23, playerName: 'HHR Deep', offerType: 'alternate', side: 'lower', line: 2.5, p: 0.72 }),
   ]);
   return Object.freeze({
-    readLatest: async (market) => (market === 'batter-hits' ? hits : hhr),
+    readLatest: async (market: ResearchDisplayMarket) =>
+      market === 'batter-hits' ? hits : hhr,
   });
 }
 
