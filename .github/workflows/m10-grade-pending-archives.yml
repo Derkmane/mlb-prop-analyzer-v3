@@ -2,6 +2,11 @@ name: M10 grade pending saved archives
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/m10-grade-trigger'
   schedule:
     # 09:00 UTC (4:00 AM Central during the regular season) is late enough for
     # the normal West Coast slate to finish. Any game that still is not exact
