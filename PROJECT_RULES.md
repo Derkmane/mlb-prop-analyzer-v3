@@ -866,10 +866,10 @@ implementation attempt against the affected file or component.
 
 ### Test or fixture defect
 
-When production behavior appears correct but the test, fixture, expected
-value, mock, or harness is wrong, classify the defect against the test
-infrastructure. Do not change expected values merely to make tests pass
-without evidence that the earlier expectation was wrong.
+When production behavior appears correct but the test, fixture, expected value,
+mock, or harness is wrong, classify the defect against the test infrastructure.
+Do not change expected values merely to make tests pass without evidence that the
+earlier expectation was wrong.
 
 ### External or environmental failure
 
@@ -1353,8 +1353,9 @@ There is no separate Project Knowledge deliverable.
 
 ### Version 2.5 --- 2026-08-01
 
--   Defined a soft line as an exact posted Underdog offer that may favor either
-    Higher or Lower under an approved side-aware base distribution and discovery rule.
+-   Defined a soft line as an exact posted Underdog offer that may favor
+    either Higher or Lower under an approved side-aware base distribution
+    and discovery rule.
 -   Separated preliminary base soft-line probability from final
     context-adjusted probability and locked final `P(Win | grades)` as
     the only category-ranking probability.
@@ -1384,7 +1385,7 @@ There is no separate Project Knowledge deliverable.
     access, secret, runtime, destructive-change approval,
     canonical-change approval, or other explicit authorization boundary
     is reached.
--   Clarified that the trigger prohibits a third blind patch; it does not prohibit a
+-   Clarified that the trigger prohibits a third blind patch, not a
     structurally redesigned implementation after the full reassessment.
 -   Prohibited ending with only a failure report when another diagnostic
     or corrective step can be performed with available tools.
@@ -1438,7 +1439,7 @@ There is no separate Project Knowledge deliverable.
 -   Added single-source market-key ownership across feature manifests
     and the planned-market catalog.
 -   Added fail-closed feature disable/removal rules and historical
-    rendering independent of active feature code.
+    independence from active feature code.
 -   Required provider evidence and sanitized fixtures before
     provider-derived contracts.
 -   Added the early terminal-PA and lineup capability gate.
