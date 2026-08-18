@@ -297,8 +297,8 @@ current-game lineup row for that player.
 Rules:
 
 -   use only verified MLB Stats API schedule/lineup response fields
--   preserve the MLB Stats API game, player, batting-order,
-    capture-time, and source-snapshot lineage used for a confirmed posted slot
+-   preserve the MLB Stats API game, player, batting-order, capture-time,
+    and source-snapshot lineage used for a confirmed posted slot
 -   do not use MLB Stats API performance statistics, probabilities,
     prices, settlement data, or other model inputs under this approval
 -   a unique MLB Stats API posted lineup slot is confirmed lineup evidence,
@@ -1344,7 +1344,7 @@ There is no separate Project Knowledge deliverable.
     the target environment.
 -   Prohibited commands that place required work behind interactive
     installation, confirmation, authentication, package-manager, or
-environment prompts.
+    environment prompts.
 -   Required user-run commands to use verified installed tools, remain
     non-interactive, and be reduced to the smallest safe action.
 -   Prohibited large pasted scripts, heredocs, and fragile chained
@@ -1353,9 +1353,8 @@ environment prompts.
 
 ### Version 2.5 --- 2026-08-01
 
--   Defined a soft line as an exact posted offer that may favor either
-    Higher or Lower under an approved side-aware base distribution and
-    discovery rule.
+-   Defined a soft line as an exact posted Underdog offer that may favor either
+    Higher or Lower under an approved side-aware base distribution and discovery rule.
 -   Separated preliminary base soft-line probability from final
     context-adjusted probability and locked final `P(Win | grades)` as
     the only category-ranking probability.
@@ -1385,8 +1384,8 @@ environment prompts.
     access, secret, runtime, destructive-change approval,
     canonical-change approval, or other explicit authorization boundary
     is reached.
--   Clarified that the trigger prohibits a third blind patch, not a
-    structurally redesigned implementation after full reassessment.
+-   Clarified that the trigger prohibits a third blind patch; it does not prohibit a
+    structurally redesigned implementation after the full reassessment.
 -   Prohibited ending with only a failure report when another diagnostic
     or corrective step can be performed with available tools.
 
@@ -1431,21 +1430,22 @@ environment prompts.
 -   Replaced migration-first planning with a clean modular-monolith
     foundation while preserving verified mathematics and product
     requirements.
--   Locked strict TypeScript, runtime schema validation, dependency-cruiser
-    boundaries, feature public entrypoints, and no empty future-feature folders.
+-   Locked strict TypeScript, runtime schema validation,
+    dependency-cruiser boundaries, feature public entrypoints, and no
+    empty future-feature folders.
 -   Separated markets from product categories and centralized settlement
     and ranking in core.
--   Added single-source market-key ownership across feature manifests and
-    the planned-market catalog.
--   Added fail-closed feature disable/removal rules and historical rendering
-    independent of active feature code.
--   Required provider evidence and sanitized fixtures before provider-derived
-    contracts.
+-   Added single-source market-key ownership across feature manifests
+    and the planned-market catalog.
+-   Added fail-closed feature disable/removal rules and historical
+    rendering independent of active feature code.
+-   Required provider evidence and sanitized fixtures before
+    provider-derived contracts.
 -   Added the early terminal-PA and lineup capability gate.
--   Preserved H+R+RBI and Pitcher Strikeouts as planned markets with their
-    required mathematical families.
--   Added detailed failure classification and repeated-failure structural
-    escalation.
+-   Preserved H+R+RBI and Pitcher Strikeouts as planned markets with
+    their required mathematical families.
+-   Added detailed failure classification and repeated-failure
+    structural escalation.
 -   Prohibited daily caps and time estimates from controlling project
     execution.
 
