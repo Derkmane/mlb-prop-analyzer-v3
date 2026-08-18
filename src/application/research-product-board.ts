@@ -20,10 +20,12 @@ import {
   type ProductLastFiveResult,
   type ProductStarterContext,
 } from './product-display-contract.js';
-import type {
-  ResearchDisplayArchive,
-  ResearchDisplayArchiveRepository,
-  ResearchDisplayRow,
+import {
+  RESEARCH_BATTER_HHR_MARKET,
+  RESEARCH_BATTER_HITS_MARKET,
+  type ResearchDisplayArchive,
+  type ResearchDisplayArchiveRepository,
+  type ResearchDisplayRow,
 } from './research-display-archive.js';
 
 interface ResearchRankCandidate extends ProductDisplayPick {
@@ -104,7 +106,7 @@ function lastFive(row: ResearchDisplayRow): readonly ProductLastFiveResult[] {
       const game = objectOrNull(raw);
       if (game === null) return [];
       const actual = finiteOrNull(
-        row.market === 'batter-hits' ? game['hits'] : game['hrr'],
+        row.market === RESEARCH_BATTER_HITS_MARKET ? game['hits'] : game['hrr'],
       );
       const gameDate = stringOrNull(game['gameDate']);
       const gameOpponent =
@@ -203,7 +205,7 @@ function hhrCalibration(row: ResearchDisplayRow): ProductCalibrationDisclosure {
 }
 
 function calibration(row: ResearchDisplayRow): ProductCalibrationDisclosure {
-  if (row.market === 'batter-hhr') return hhrCalibration(row);
+  if (row.market === RESEARCH_BATTER_HHR_MARKET) return hhrCalibration(row);
   return Object.freeze({
     status: 'pending',
     cohort: `Hits ${row.postedLine} ${row.selectedSide}`,
@@ -229,7 +231,8 @@ function productPick(row: ResearchDisplayRow): ResearchRankCandidate {
     team: row.teamName,
     opponent: opponent(row),
     gameTime: row.eventCommenceTime,
-    market: row.market === 'batter-hits' ? 'Hits' : 'Hits + Runs + RBIs',
+    market:
+      row.market === RESEARCH_BATTER_HITS_MARKET ? 'Hits' : 'Hits + Runs + RBIs',
     postedLine: row.postedLine,
     selectedSide: row.selectedSide,
     pWin: row.pWin,
@@ -290,8 +293,8 @@ export async function readResearchProductBoardV2(
 ): Promise<ResearchProductBoardV2> {
   const archives = (
     await Promise.all([
-      repository.readLatest('batter-hits'),
-      repository.readLatest('batter-hhr'),
+      repository.readLatest(RESEARCH_BATTER_HITS_MARKET),
+      repository.readLatest(RESEARCH_BATTER_HHR_MARKET),
     ])
   ).filter((archive): archive is ResearchDisplayArchive => archive !== null);
 
