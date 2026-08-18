@@ -12,8 +12,41 @@ test("canonical Family B guardrails remain synchronized across authorities", asy
     readRepositoryFile("PROJECT_CHECKLIST.md"),
   ]);
 
-  assert.match(mathSpec, /\*\*Version:\*\* 1\.12/);
+  assert.match(mathSpec, /\*\*Version:\*\* 1\.13/);
   assert.match(projectRules, /\*\*Version:\*\* 2\.12\\/);
+
+  assert.ok(
+    mathSpec.includes(
+      "#### HHR CONDITIONED-HURDLE ZERO COMPONENT RECOVERY\n\n" +
+        "The successor hurdle candidate uses the previously approved conditioned-hurdle\n" +
+        "zero component.\n\n" +
+        "To recover the omitted frozen component reproducibly, fit exactly once on the\n" +
+        "approved 5,964-row fitting cohort:\n\n" +
+        "target:\n" +
+        "    I(T = 0)\n\n" +
+        "logistic predictors, in this exact order:\n" +
+        "    1. intercept\n" +
+        "    2. expectedPlateAppearances\n" +
+        "    3. raw lineupSlot\n" +
+        "    4. contextHitQualityLogit\n\n" +
+        "raw lineupSlot is recovered from the frozen fitting fixture as:\n" +
+        "    lineupSlot = 4 * centeredLineupSlot + 5\n\n" +
+        "The recovered historical coefficient vector is:\n\n" +
+        "    intercept                   = -0.3156807637\n" +
+        "    expectedPlateAppearances    = -0.4421437692\n" +
+        "    lineupSlot                  =  0.0101539499\n" +
+        "    contextHitQualityLogit      = -1.0649822595\n\n" +
+        "A deterministic reconstruction must reproduce each coefficient within 1e-8.\n" +
+        "Otherwise fail closed and do not continue.\n\n" +
+        "After successful reconstruction these coefficients are frozen. No further\n" +
+        "zero-component fitting, predictor changes, model-family changes, coefficient\n" +
+        "sweeps, or tolerance changes are permitted for this successor candidate.\n\n" +
+        "This recovery changes no positive-count predictors, fitting period, reserved\n" +
+        "untouched period, successor gate, calibration rule, ranking rule, or\n" +
+        "production status.",
+    ),
+  );
+  assert.ok(mathSpec.includes("### Version 1.13 — 2026-08-17"));
 
   assert.ok(
     mathSpec.includes(

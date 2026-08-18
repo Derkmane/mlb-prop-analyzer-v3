@@ -1,6 +1,6 @@
 # MLB Prop Analyzer — Canonical Math & Statistics Reference
 
-**Version:** 1.12
+**Version:** 1.13
 **Status:** Canonical probability mathematics
 **Empirical status:** Mathematical framework verified where marked; predictive accuracy not yet validated
 
@@ -1554,6 +1554,44 @@ freeze the successor candidate, does not authorize access
 to reserved untouched evidence, and does not enable HHR
 production or ranking.
 
+#### HHR CONDITIONED-HURDLE ZERO COMPONENT RECOVERY
+
+The successor hurdle candidate uses the previously approved conditioned-hurdle
+zero component.
+
+To recover the omitted frozen component reproducibly, fit exactly once on the
+approved 5,964-row fitting cohort:
+
+target:
+    I(T = 0)
+
+logistic predictors, in this exact order:
+    1. intercept
+    2. expectedPlateAppearances
+    3. raw lineupSlot
+    4. contextHitQualityLogit
+
+raw lineupSlot is recovered from the frozen fitting fixture as:
+    lineupSlot = 4 * centeredLineupSlot + 5
+
+The recovered historical coefficient vector is:
+
+    intercept                   = -0.3156807637
+    expectedPlateAppearances    = -0.4421437692
+    lineupSlot                  =  0.0101539499
+    contextHitQualityLogit      = -1.0649822595
+
+A deterministic reconstruction must reproduce each coefficient within 1e-8.
+Otherwise fail closed and do not continue.
+
+After successful reconstruction these coefficients are frozen. No further
+zero-component fitting, predictor changes, model-family changes, coefficient
+sweeps, or tolerance changes are permitted for this successor candidate.
+
+This recovery changes no positive-count predictors, fitting period, reserved
+untouched period, successor gate, calibration rule, ranking rule, or
+production status.
+
 ---
 
 ## 16. Verified worked example — Batter Hits
@@ -2071,6 +2109,13 @@ no validated distribution → no ranked prop
 ---
 
 ## Changelog
+
+### Version 1.13 — 2026-08-17
+
+- Repaired an omitted reproducibility contract for the already-approved HHR conditioned-hurdle zero component without changing the approved successor model.
+- Declared the exact zero target, logistic predictor order, raw-lineup-slot reconstruction, recovered historical coefficient vector, and deterministic coefficient-reconstruction tolerance of `1e-8`.
+- Froze the recovered zero component after successful reconstruction and prohibited any further zero-component refitting, predictor changes, model-family changes, coefficient sweeps, or tolerance changes for this successor candidate.
+- Preserved the positive-count predictors and fitting period, reserved untouched period, successor distribution-shape gate, calibration rule, ranking rule, and production/ranking-disabled status.
 
 ### Version 1.12 — 2026-08-15
 
