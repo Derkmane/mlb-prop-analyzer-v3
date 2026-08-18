@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - codex/research-ranked-product
+  pull_request:
 
 permissions:
   contents: read
