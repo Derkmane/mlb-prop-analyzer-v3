@@ -3,6 +3,7 @@ export {
   convolveProbabilityMassFunctions,
   hitterSurvivalToCountProbabilityMassFunction,
   mixBernoulliOutcomesOverCountDistribution,
+  mixDiscreteOutcomesOverCountDistribution,
   mixProbabilityMassFunctions,
   poissonBinomialProbabilityMassFunction,
 } from './distributions.js';

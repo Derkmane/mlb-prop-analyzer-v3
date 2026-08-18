@@ -1,6 +1,7 @@
 import type { PlannedMarketDefinition } from '../domain/market.js';
 
 export const PLANNED_MARKET_KEYS = {
+  BATTER_RUNS: 'batter-runs',
   BATTER_TOTAL_BASES: 'batter-total-bases',
   PITCHER_STRIKEOUTS: 'pitcher-strikeouts',
 } as const;
@@ -10,11 +11,18 @@ export type PlannedMarketKey =
 
 const definitions = [
   {
+    baseMarketKey: PLANNED_MARKET_KEYS.BATTER_RUNS,
+    displayName: 'Batter Runs',
+    mathematicalFamily: 'directly-fitted-composite',
+    status: 'planned',
+    blocker: 'The Family B Batter Runs distribution has not yet been fitted, versioned, and admitted to research ranking.',
+  },
+  {
     baseMarketKey: PLANNED_MARKET_KEYS.BATTER_TOTAL_BASES,
     displayName: 'Batter Total Bases',
     mathematicalFamily: 'self-contained-hitter-pa',
     status: 'planned',
-    blocker: 'The shared categorical fit, distribution builder, and current-season validation are incomplete.',
+    blocker: 'The shared terminal-outcome runtime must preserve base-value outcomes through the Total Bases distribution builder and exact Underdog board evidence remains to be captured.',
   },
   {
     baseMarketKey: PLANNED_MARKET_KEYS.PITCHER_STRIKEOUTS,

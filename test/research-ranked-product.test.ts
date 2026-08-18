@@ -3,13 +3,16 @@ import test from 'node:test';
 
 import {
   PRODUCT_RESEARCH_LABEL,
+  RESEARCH_DISPLAY_MARKETS,
   readResearchProductBoardV2,
   type ResearchDisplayArchive,
   type ResearchDisplayArchiveRepository,
   type ResearchDisplayMarket,
   type ResearchDisplayRow,
 } from '../src/application/index.js';
+import { PLANNED_MARKET_KEYS } from '../src/composition/planned-market-catalog.js';
 import { BATTER_HHR_MARKET_KEY } from '../src/features/batter-hhr/manifest.js';
+import { BATTER_HITS_MARKET_KEY } from '../src/features/batter-hits/manifest.js';
 
 const CAPTURED_AT = '2026-08-18T20:00:00.000Z';
 
@@ -25,7 +28,7 @@ function row(input: Readonly<{
   multiplier?: number | null;
   lastFive?: readonly number[];
 }>): ResearchDisplayRow {
-  const isHits = input.market === 'batter-hits';
+  const isHits = input.market === BATTER_HITS_MARKET_KEY;
   return Object.freeze({
     market: input.market,
     captureKey: `${input.market}-capture`,
@@ -86,7 +89,7 @@ function archive(
   market: ResearchDisplayMarket,
   rows: readonly ResearchDisplayRow[],
 ): ResearchDisplayArchive {
-  const isHits = market === 'batter-hits';
+  const isHits = market === BATTER_HITS_MARKET_KEY;
   return Object.freeze({
     market,
     captureKey: `${market}-capture`,
@@ -102,16 +105,16 @@ function archive(
 }
 
 function repository(): ResearchDisplayArchiveRepository {
-  const hits = archive('batter-hits', [
-    row({ market: 'batter-hits', playerId: 1, playerName: 'Shared Star', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.73, lastFive: [1, 0] }),
-    row({ market: 'batter-hits', playerId: 2, playerName: 'Hits Two', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.68 }),
-    row({ market: 'batter-hits', playerId: 3, playerName: 'Hits Three', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.66 }),
-    row({ market: 'batter-hits', playerId: 4, playerName: 'Hits Four', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.64 }),
-    row({ market: 'batter-hits', playerId: 5, playerName: 'Hits Five', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.62 }),
-    row({ market: 'batter-hits', playerId: 6, playerName: 'Hits Six', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.60 }),
-    row({ market: 'batter-hits', playerId: 11, playerName: 'Hits Alt One', offerType: 'alternate', side: 'lower', line: 1.5, p: 0.79 }),
-    row({ market: 'batter-hits', playerId: 12, playerName: 'Hits Alt Two', offerType: 'alternate', side: 'lower', line: 1.5, p: 0.74 }),
-    row({ market: 'batter-hits', playerId: 13, playerName: 'Hits Alt Three', offerType: 'alternate', side: 'lower', line: 1.5, p: 0.69 }),
+  const hits = archive(BATTER_HITS_MARKET_KEY, [
+    row({ market: BATTER_HITS_MARKET_KEY, playerId: 1, playerName: 'Shared Star', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.73, lastFive: [1, 0] }),
+    row({ market: BATTER_HITS_MARKET_KEY, playerId: 2, playerName: 'Hits Two', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.68 }),
+    row({ market: BATTER_HITS_MARKET_KEY, playerId: 3, playerName: 'Hits Three', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.66 }),
+    row({ market: BATTER_HITS_MARKET_KEY, playerId: 4, playerName: 'Hits Four', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.64 }),
+    row({ market: BATTER_HITS_MARKET_KEY, playerId: 5, playerName: 'Hits Five', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.62 }),
+    row({ market: BATTER_HITS_MARKET_KEY, playerId: 6, playerName: 'Hits Six', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.60 }),
+    row({ market: BATTER_HITS_MARKET_KEY, playerId: 11, playerName: 'Hits Alt One', offerType: 'alternate', side: 'lower', line: 1.5, p: 0.79 }),
+    row({ market: BATTER_HITS_MARKET_KEY, playerId: 12, playerName: 'Hits Alt Two', offerType: 'alternate', side: 'lower', line: 1.5, p: 0.74 }),
+    row({ market: BATTER_HITS_MARKET_KEY, playerId: 13, playerName: 'Hits Alt Three', offerType: 'alternate', side: 'lower', line: 1.5, p: 0.69 }),
   ]);
   const hhr = archive(BATTER_HHR_MARKET_KEY, [
     row({ market: BATTER_HHR_MARKET_KEY, playerId: 1, playerName: 'Shared Star', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.81, lastFive: [1, 0] }),
@@ -122,16 +125,27 @@ function repository(): ResearchDisplayArchiveRepository {
   ]);
   return Object.freeze({
     readLatest: async (market: ResearchDisplayMarket) =>
-      market === 'batter-hits' ? hits : hhr,
+      market === BATTER_HITS_MARKET_KEY ? hits : hhr,
   });
 }
+
+test('future-market prep stays excluded from the current research board contract', () => {
+  assert.deepEqual(RESEARCH_DISPLAY_MARKETS, [
+    BATTER_HITS_MARKET_KEY,
+    BATTER_HHR_MARKET_KEY,
+  ]);
+  const activeResearchMarkets = new Set<string>(RESEARCH_DISPLAY_MARKETS);
+  for (const plannedMarket of Object.values(PLANNED_MARKET_KEYS)) {
+    assert.equal(activeResearchMarkets.has(plannedMarket), false);
+  }
+});
 
 test('research board populates exactly three canonical Top Five categories from both markets', async () => {
   const board = await readResearchProductBoardV2(repository());
 
   assert.equal(board.productionCalibrated, false);
   assert.equal(board.disclosure, PRODUCT_RESEARCH_LABEL);
-  assert.deepEqual(board.sourceMarkets, ['batter-hits', BATTER_HHR_MARKET_KEY]);
+  assert.deepEqual(board.sourceMarkets, [BATTER_HITS_MARKET_KEY, BATTER_HHR_MARKET_KEY]);
   assert.deepEqual(
     board.categories.map((category) => category.title),
     [

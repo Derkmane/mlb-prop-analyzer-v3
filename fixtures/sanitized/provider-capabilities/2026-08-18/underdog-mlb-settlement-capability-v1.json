@@ -1,0 +1,46 @@
+{
+  "fixtureVersion": 1,
+  "fixtureType": "underdog-pickem-mlb-multi-market-settlement-capability",
+  "verifiedDate": "2026-08-18",
+  "sourcePublishedAt": "2026-06-14",
+  "source": {
+    "title": "Pick'em Scoring - MLB",
+    "url": "https://help.underdogsports.com/en/articles/10361775-pick-em-scoring-mlb",
+    "publishedDate": "2026-06-14"
+  },
+  "generalRuleBundleReference": "fixtures/sanitized/m11/hhr/settlement/underdog-batter-hhr-settlement-v1.json",
+  "verifiedMarketRules": {
+    "batter-total-bases": {
+      "officialSettlementStatistic": "total-bases",
+      "definition": "Bases earned through hits: single=1, double=2, triple=3, home run=4. Walks and stolen bases do not contribute.",
+      "participationRule": "Uses the verified general MLB batter Pick'em rule bundle: the batter must appear in the official starting lineup for a full-game batter projection to grade.",
+      "tieRule": "A selection tying its posted projection is void under the verified general Pick'em tie rule."
+    },
+    "pitcher-strikeouts": {
+      "officialSettlementStatistic": "pitcher-strikeouts",
+      "definition": "Counts strikeouts officially recorded as the pitcher; batter strikeouts do not contribute.",
+      "participationRule": "For a full-game pitching projection, the player must throw a pitch in the game; starting only as a hitter without pitching voids the pitching projection.",
+      "tieRule": "A selection tying its posted projection is void under the verified general Pick'em tie rule."
+    },
+    "pitcher-outs": {
+      "officialSettlementStatistic": "pitching-outs",
+      "definition": "Counts outs recorded while the pitcher is pitching in the game.",
+      "participationRule": "For a full-game pitching projection, the player must throw a pitch in the game; starting only as a hitter without pitching voids the pitching projection.",
+      "tieRule": "A selection tying its posted projection is void under the verified general Pick'em tie rule."
+    },
+    "pitcher-walks-allowed": {
+      "officialSettlementStatistic": "pitcher-walks-allowed",
+      "definition": "Counts walks (BB) officially recorded against the pitcher. Hit by pitch does not count toward the total.",
+      "participationRule": "For a full-game pitching projection, the player must throw a pitch in the game; starting only as a hitter without pitching voids the pitching projection.",
+      "tieRule": "A selection tying its posted projection is void under the verified general Pick'em tie rule."
+    }
+  },
+  "notVerifiedByThisFixture": [
+    "batter-walks full-game settlement definition and intentional-walk inclusion",
+    "batter-strikeouts full-game settlement definition",
+    "batter-rbis full-game market-specific definition",
+    "batter-runs full-game market-specific definition",
+    "pitcher-hits-allowed full-game market-specific definition",
+    "pitcher-earned-runs full-game market-specific definition"
+  ]
+}

@@ -7,6 +7,7 @@ import {
   createProbabilityMassFunction,
   hitterSurvivalToCountProbabilityMassFunction,
   mixBernoulliOutcomesOverCountDistribution,
+  mixDiscreteOutcomesOverCountDistribution,
   mixProbabilityMassFunctions,
   poissonBinomialProbabilityMassFunction,
   validateProbabilityVector,
@@ -179,6 +180,39 @@ test('count mixing requires one probability for every possible opportunity', () 
     () =>
       mixBernoulliOutcomesOverCountDistribution(countDistribution, [0.25]),
     /one success probability is required/,
+  );
+});
+
+test('exact discrete outcome mixing supports multi-base per-opportunity values', () => {
+  const countDistribution = createProbabilityMassFunction([0.25, 0.5, 0.25]);
+  const first = createProbabilityMassFunction([0.5, 0.2, 0.1, 0.1, 0.1]);
+  const second = createProbabilityMassFunction([0.6, 0.1, 0.1, 0.1, 0.1]);
+  const actual = mixDiscreteOutcomesOverCountDistribution(
+    countDistribution,
+    [first, second],
+  );
+
+  const twoOpportunities = convolveProbabilityMassFunctions(first, second);
+  const expected = Array<number>(twoOpportunities.probabilities.length).fill(0);
+  expected[0] = 0.25;
+  for (const [value, mass] of first.probabilities.entries()) {
+    expected[value] = (expected[value] ?? 0) + 0.5 * mass;
+  }
+  for (const [value, mass] of twoOpportunities.probabilities.entries()) {
+    expected[value] = (expected[value] ?? 0) + 0.25 * mass;
+  }
+
+  assertVectorClose(actual.probabilities, expected);
+  assertClose(actual.probabilities.reduce((sum, mass) => sum + mass, 0), 1);
+});
+
+test('exact discrete outcome mixing requires one PMF for every possible opportunity', () => {
+  const countDistribution = createProbabilityMassFunction([0.1, 0.2, 0.7]);
+  const outcome = createProbabilityMassFunction([0.5, 0.5]);
+
+  assert.throws(
+    () => mixDiscreteOutcomesOverCountDistribution(countDistribution, [outcome]),
+    /one discrete outcome distribution is required/,
   );
 });
 

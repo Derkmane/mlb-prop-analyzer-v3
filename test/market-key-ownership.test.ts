@@ -35,10 +35,10 @@ test('every base-market key has exactly one canonical production-source declarat
   const source = collectTypeScriptFiles(join(process.cwd(), 'src')).map((path) => readFileSync(path, 'utf8')).join('\n');
   const canonicalMarketKeys = [...Object.values(PLANNED_MARKET_KEYS), BATTER_HITS_MARKET_KEY, BATTER_HHR_MARKET_KEY];
   for (const key of canonicalMarketKeys) assert.equal(countExactQuotedLiteral(source, key), 1, `${key} must have exactly one literal declaration under src`);
-  assert.equal(PLANNED_MARKET_CATALOG.length, 2);
+  assert.equal(PLANNED_MARKET_CATALOG.length, 3);
   assert.equal(IMPLEMENTED_MARKET_REGISTRY.length, 2);
-  assert.equal(MARKET_KEY_OWNERSHIP.length, 4);
-  assert.equal(new Set(MARKET_KEY_OWNERSHIP.map((entry) => entry.baseMarketKey)).size, 4);
+  assert.equal(MARKET_KEY_OWNERSHIP.length, 5);
+  assert.equal(new Set(MARKET_KEY_OWNERSHIP.map((entry) => entry.baseMarketKey)).size, 5);
   assert.deepEqual(MARKET_KEY_OWNERSHIP.find((entry) => entry.baseMarketKey === BATTER_HITS_MARKET_KEY), {
     baseMarketKey: BATTER_HITS_MARKET_KEY, ownerType: 'feature-manifest', ownerId: BATTER_HITS_FEATURE_ID,
   });
