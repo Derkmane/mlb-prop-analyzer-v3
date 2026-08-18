@@ -26,8 +26,26 @@ test('all three category panels are visible and ranked picks read top to bottom'
   assert.match(HHR_DISPLAY_APP_CSS, /content: "#" counter\(product-pick-rank\)/u);
   assert.match(HHR_DISPLAY_APP_JS, /const revealEveryCategory = \(\) =>/u);
   assert.match(HHR_DISPLAY_APP_JS, /panel\.hidden = false/u);
-  assert.match(HHR_DISPLAY_APP_JS, /new MutationObserver\(revealEveryCategory\)/u);
+  assert.match(HHR_DISPLAY_APP_JS, /new MutationObserver/u);
 
   // Presentation may not recompute or reorder the server's canonical list.
+  assert.equal(HHR_DISPLAY_APP_JS.includes('.sort('), false);
+});
+
+test('last five games render as a five-column visual against the current line', () => {
+  assert.match(HHR_DISPLAY_APP_CSS, /\.last-five-graph/u);
+  assert.match(HHR_DISPLAY_APP_CSS, /grid-template-columns: repeat\(5, minmax\(0, 1fr\)\)/u);
+  assert.match(HHR_DISPLAY_APP_CSS, /\.last-five-line/u);
+  assert.match(HHR_DISPLAY_APP_CSS, /\.last-five-bar\.cash/u);
+  assert.match(HHR_DISPLAY_APP_CSS, /\.last-five-bar\.miss/u);
+  assert.match(HHR_DISPLAY_APP_JS, /const decorateLastFiveGraph = \(lastFive\) =>/u);
+  assert.match(HHR_DISPLAY_APP_JS, /String\(lineChip\?\.textContent \|\| ''\)\.slice\(5\)/u);
+  assert.match(HHR_DISPLAY_APP_JS, /currentLine \/ plotMaximum/u);
+  assert.match(HHR_DISPLAY_APP_JS, /result\.actual \/ plotMaximum/u);
+  assert.match(HHR_DISPLAY_APP_JS, /Green = cash · Red = miss · Gold = void/u);
+  assert.match(HHR_DISPLAY_APP_JS, /lastFive\.replaceChildren\(graph\)/u);
+
+  // The graph is presentation only; outcomes arrive from the server.
+  assert.doesNotMatch(HHR_DISPLAY_APP_JS, /settleObserved|settleHigher|settleLower/u);
   assert.equal(HHR_DISPLAY_APP_JS.includes('.sort('), false);
 });
