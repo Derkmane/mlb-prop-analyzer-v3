@@ -7,11 +7,13 @@ import {
   type ReadHhrDisplayBoard,
 } from './hhr-display-board-http.js';
 import {
-  HHR_DISPLAY_APP_CSS,
-  HHR_DISPLAY_APP_JS,
   renderHhrDisplayAppPage,
   renderHhrDisplayLoginPage,
 } from '../ui/hhr-display-page.js';
+import {
+  HHR_DISPLAY_APP_CSS,
+  HHR_DISPLAY_APP_JS,
+} from '../ui/product-board-layout.js';
 
 export const HHR_DISPLAY_LOGIN_PATH = '/login' as const;
 export const HHR_DISPLAY_LOGOUT_PATH = '/logout' as const;
