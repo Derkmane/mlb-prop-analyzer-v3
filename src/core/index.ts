@@ -12,7 +12,11 @@ export {
   type ObservedDiscreteSettlementV1,
   type ObservedSettlementOutcome,
 } from './observed-settlement.js';
-export { compareSettlementResultsForRanking } from './ranking.js';
+export {
+  compareRankableProbabilitiesForRanking,
+  compareSettlementResultsForRanking,
+  type RankableProbabilityPair,
+} from './ranking.js';
 export {
   sumPerPaOutcomeProbability,
   validatePerPaOutcomeVector,
