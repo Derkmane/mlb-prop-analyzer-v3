@@ -1,69 +1,34 @@
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 
-export type ResearchDisplayMarket = 'batter-hits' | 'batter-hhr';
-export type ResearchOfferType = 'baseline' | 'alternate';
-export type ResearchSelectedSide = 'higher' | 'lower';
+import {
+  RESEARCH_BATTER_HHR_MARKET,
+  RESEARCH_BATTER_HITS_MARKET,
+  type ResearchAnalysisContext,
+  type ResearchDisplayArchive,
+  type ResearchDisplayArchiveRepository,
+  type ResearchDisplayMarket,
+  type ResearchDisplayRow,
+  type ResearchOfferType,
+  type ResearchSelectedSide,
+} from '../../application/research-display-archive.js';
 
-export interface ResearchAnalysisContext {
-  readonly expectedPlateAppearances: number | null;
-  readonly lineupSlot: number | null;
-  readonly batterSide: string | null;
-  readonly opposingStarterHand: string | null;
-  readonly venue: string | null;
-  readonly teamImpliedRunTotal: number | null;
-}
-
-export interface ResearchDisplayRow {
-  readonly market: ResearchDisplayMarket;
-  readonly captureKey: string;
-  readonly capturedAt: string;
-  readonly modelVersion: string;
-  readonly distributionBuilderVersion: string;
-  readonly providerEventId: string;
-  readonly providerGameId: number;
-  readonly providerPlayerId: number;
-  readonly playerName: string;
-  readonly teamName: string;
-  readonly homeTeamName: string;
-  readonly awayTeamName: string;
-  readonly eventCommenceTime: string;
-  readonly providerMarketKey: string;
-  readonly offerType: ResearchOfferType;
-  readonly selectedSide: ResearchSelectedSide;
-  readonly postedLine: number;
-  readonly americanPrice: number | null;
-  readonly multiplier: number | null;
-  readonly pWin: number;
-  readonly pLoss: number;
-  readonly pVoid: number;
-  readonly pWinGivenGrades: number;
-  readonly lineupStatus: 'confirmed' | 'projected' | null;
-  readonly analysisContext: ResearchAnalysisContext;
-  readonly enrichment: Readonly<Record<string, unknown>> | null;
-}
-
-export interface ResearchDisplayArchive {
-  readonly market: ResearchDisplayMarket;
-  readonly captureKey: string;
-  readonly capturedAt: string;
-  readonly modelVersion: string;
-  readonly distributionBuilderVersion: string;
-  readonly rows: readonly ResearchDisplayRow[];
-}
-
-export interface ResearchDisplayArchiveRepository {
-  readonly readLatest: (
-    market: ResearchDisplayMarket,
-  ) => Promise<ResearchDisplayArchive | null>;
-}
+export type {
+  ResearchAnalysisContext,
+  ResearchDisplayArchive,
+  ResearchDisplayArchiveRepository,
+  ResearchDisplayMarket,
+  ResearchDisplayRow,
+  ResearchOfferType,
+  ResearchSelectedSide,
+} from '../../application/research-display-archive.js';
 
 const AUTHORIZED_RESEARCH_IDENTITIES = Object.freeze({
-  'batter-hits': Object.freeze({
+  [RESEARCH_BATTER_HITS_MARKET]: Object.freeze({
     modelVersion: 'm8-5-batter-hits-successor-freeze-v1',
     distributionBuilderVersion: 'm9-batter-hits-runtime-distribution-v1',
   }),
-  'batter-hhr': Object.freeze({
+  [RESEARCH_BATTER_HHR_MARKET]: Object.freeze({
     modelVersion: 'm11-batter-hhr-direct-composite-v2',
     distributionBuilderVersion: 'm11-batter-hhr-negative-binomial-v1',
   }),
