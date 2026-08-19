@@ -121,6 +121,54 @@ test('every captured baseline and alternate offer preserves its line and settles
   });
 });
 
+test('HHR derives offer type from each player baseline line and deduplicates provider-key overlap', () => {
+  const outcome = (name: 'Over' | 'Under', point: number) => ({
+    name,
+    description: 'Baseline Player',
+    point,
+    price: -110,
+    multiplier: 1.9,
+    sid: null,
+  });
+  const capture = {
+    captureVersion: 1,
+    request: {
+      provider: 'The Odds API',
+      bookmaker: 'underdog',
+      region: 'us_dfs',
+      marketKeys: ['batter_hits_runs_rbis', 'batter_hits_runs_rbis_alternate'],
+    },
+    sourceSnapshotSha256: 'b'.repeat(64),
+    response: {
+      id: 'event-baseline-lines',
+      commence_time: '2026-08-19T23:00:00.000Z',
+      home_team: 'Home Team',
+      away_team: 'Away Team',
+      bookmakers: [{
+        key: 'underdog',
+        markets: [
+          {
+            key: 'batter_hits_runs_rbis_alternate',
+            last_update: '2026-08-19T20:00:00.000Z',
+            outcomes: [outcome('Over', 1.5), outcome('Over', 2.5)],
+          },
+          {
+            key: 'batter_hits_runs_rbis',
+            last_update: '2026-08-19T20:00:00.000Z',
+            outcomes: [outcome('Over', 1.5)],
+          },
+        ],
+      }],
+    },
+  };
+
+  const offers = normalizeUnderdogBatterHhrCapture(capture);
+  assert.equal(offers.length, 2);
+  assert.equal(offers.find((offer) => offer.line === 1.5)?.offerType, 'baseline');
+  assert.equal(offers.find((offer) => offer.line === 2.5)?.offerType, 'alternate');
+  assert.equal(offers.filter((offer) => offer.line === 1.5).length, 1);
+});
+
 test('HHR fails closed on missing canonical inputs, malformed vectors, unsupported lines, side-bearing artifacts, and corrupted bookmaker rows', async () => {
   const { model, input } = await evidence();
   assert.throws(() => buildBatterHhrDirectCompositeDistribution(model, { ...input, expectedPlateAppearances: 0 }), /positive/u);

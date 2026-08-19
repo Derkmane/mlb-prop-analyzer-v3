@@ -90,10 +90,14 @@ function isTargetMarketKey(
   );
 }
 
-function offerTypeForMarket(
-  marketKey: BatterHitsProviderMarketKey,
+function offerTypeForLine(
+  playerDescription: string,
+  line: number,
+  baselineLinesByPlayer: ReadonlyMap<string, number | null>,
 ): BatterHitsOfferType {
-  return marketKey === 'batter_hits' ? 'baseline' : 'alternate';
+  return baselineLinesByPlayer.get(playerDescription) === line
+    ? 'baseline'
+    : 'alternate';
 }
 
 function selectedSideForRawSide(rawSide: string): 'higher' | 'lower' {
@@ -137,7 +141,9 @@ function normalizeTargetMarket(
   bookmakerSid: null,
   sourceMetadata: z.infer<typeof sourceMetadataSchema>,
   identitiesByKey: ReadonlyMap<string, readonly BatterHitsPlayerIdentity[]>,
+  baselineLinesByPlayer: ReadonlyMap<string, number | null>,
   seenTuples: Set<string>,
+  seenOffersAcrossMarkets: Set<string>,
   offers: NormalizedBatterHitsBoardOffer[],
   rejectedOffers: RejectedOddsApiBatterHitsOffer[],
 ): void {
@@ -159,6 +165,14 @@ function normalizeTargetMarket(
       );
     }
     seenTuples.add(key);
+
+    const offerKey = JSON.stringify([
+      outcome.description,
+      outcome.point,
+      outcome.name,
+    ]);
+    if (seenOffersAcrossMarkets.has(offerKey)) continue;
+    seenOffersAcrossMarkets.add(offerKey);
 
     const selectedSide = selectedSideForRawSide(outcome.name);
     const identities =
@@ -201,7 +215,11 @@ function normalizeTargetMarket(
       eventCommenceTime: event.commence_time,
       baseMarketKey: BATTER_HITS_MARKET_KEY,
       providerMarketKey: market.key,
-      offerType: offerTypeForMarket(market.key),
+      offerType: offerTypeForLine(
+        outcome.description,
+        outcome.point,
+        baselineLinesByPlayer,
+      ),
       selectedSide,
       rawSide: outcome.name,
       line: outcome.point,
@@ -297,9 +315,11 @@ export function normalizeOddsApiBatterHitsBoard(
 
   assertNullSourceId(bookmaker.sid, 'Underdog bookmaker sid');
 
-  const targetMarkets = bookmaker.markets.filter((market) =>
-    isTargetMarketKey(market.key),
-  );
+  const targetMarkets = bookmaker.markets
+    .filter((market) => isTargetMarketKey(market.key))
+    .sort((left, right) =>
+      left.key === right.key ? 0 : left.key === 'batter_hits' ? -1 : 1,
+    );
   const targetMarketKeys = new Set<string>();
   for (const market of targetMarkets) {
     if (targetMarketKeys.has(market.key)) {
@@ -314,6 +334,22 @@ export function normalizeOddsApiBatterHitsBoard(
   const offers: NormalizedBatterHitsBoardOffer[] = [];
   const rejectedOffers: RejectedOddsApiBatterHitsOffer[] = [];
   const seenTuples = new Set<string>();
+  const seenOffersAcrossMarkets = new Set<string>();
+  const baselineLineSets = new Map<string, Set<number>>();
+  for (const market of targetMarkets) {
+    if (market.key !== 'batter_hits') continue;
+    for (const outcome of market.outcomes) {
+      const lines = baselineLineSets.get(outcome.description) ?? new Set<number>();
+      lines.add(outcome.point);
+      baselineLineSets.set(outcome.description, lines);
+    }
+  }
+  const baselineLinesByPlayer = new Map<string, number | null>(
+    [...baselineLineSets].map(([player, lines]) => [
+      player,
+      lines.size === 1 ? [...lines][0]! : null,
+    ]),
+  );
 
   for (const market of targetMarkets) {
     normalizeTargetMarket(
@@ -322,7 +358,9 @@ export function normalizeOddsApiBatterHitsBoard(
       bookmaker.sid,
       sourceMetadata.data,
       identitiesByKey,
+      baselineLinesByPlayer,
       seenTuples,
+      seenOffersAcrossMarkets,
       offers,
       rejectedOffers,
     );
