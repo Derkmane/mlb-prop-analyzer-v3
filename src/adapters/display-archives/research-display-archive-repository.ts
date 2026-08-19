@@ -35,6 +35,12 @@ const AUTHORIZED_RESEARCH_IDENTITIES = Object.freeze({
 } satisfies Record<ResearchDisplayMarket, Readonly<Record<string, string>>>);
 
 const CAPTURE_PATTERN = /^\d{8}T\d{9}Z--[a-f0-9]{64}\.json$/u;
+const CAPTURE_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
+
+type LoadedResearchDisplayArchive = Readonly<{
+  archive: ResearchDisplayArchive;
+  captureDateUtc: string;
+}>;
 
 function record(value: unknown, label: string): Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
@@ -48,6 +54,25 @@ function string(value: unknown, label: string): string {
     throw new TypeError(`${label} must be a nonempty string.`);
   }
   return value;
+}
+
+function timestamp(value: unknown, label: string): string {
+  const result = string(value, label);
+  if (!Number.isFinite(Date.parse(result))) {
+    throw new TypeError(`${label} must be an ISO timestamp.`);
+  }
+  return result;
+}
+
+function captureDateUtc(value: unknown, label: string): string {
+  const result = string(value, label);
+  if (
+    !CAPTURE_DATE_PATTERN.test(result) ||
+    new Date(`${result}T00:00:00.000Z`).toISOString().slice(0, 10) !== result
+  ) {
+    throw new TypeError(`${label} must be a YYYY-MM-DD UTC date.`);
+  }
+  return result;
 }
 
 function finite(value: unknown, label: string): number {
@@ -166,7 +191,7 @@ function normalizeRow(
   return Object.freeze({
     market,
     captureKey: string(archive['captureKey'], `${market} captureKey`),
-    capturedAt: string(archive['capturedAt'], `${market} capturedAt`),
+    capturedAt: timestamp(archive['capturedAt'], `${market} capturedAt`),
     modelVersion: string(archive['modelVersion'], `${market} modelVersion`),
     distributionBuilderVersion: string(
       archive['distributionBuilderVersion'],
@@ -228,6 +253,113 @@ function verifyArchiveIdentity(
   }
 }
 
+function captureFilenameDate(name: string): string {
+  return `${name.slice(0, 4)}-${name.slice(4, 6)}-${name.slice(6, 8)}`;
+}
+
+async function readArchiveFile(
+  directory: string,
+  name: string,
+  market: ResearchDisplayMarket,
+): Promise<LoadedResearchDisplayArchive> {
+  const parsed = JSON.parse(
+    await readFile(path.join(directory, name), 'utf8'),
+  ) as unknown;
+  const source = record(parsed, `${market} display archive`);
+  verifyArchiveIdentity(market, source);
+  const archiveCaptureDateUtc = captureDateUtc(
+    source['captureDateUtc'],
+    `${market} captureDateUtc`,
+  );
+  if (archiveCaptureDateUtc !== captureFilenameDate(name)) {
+    throw new Error(`${market} display archive capture date does not match its filename.`);
+  }
+  const rawRows = source['rows'];
+  if (!Array.isArray(rawRows) || rawRows.length === 0) {
+    throw new Error(`${market} display archive rows must be nonempty.`);
+  }
+  const rows = Object.freeze(
+    rawRows.map((row, index) => normalizeRow(market, source, row, index)),
+  );
+  return Object.freeze({
+    captureDateUtc: archiveCaptureDateUtc,
+    archive: Object.freeze({
+      market,
+      captureKey: string(source['captureKey'], `${market} captureKey`),
+      capturedAt: timestamp(source['capturedAt'], `${market} capturedAt`),
+      modelVersion: string(source['modelVersion'], `${market} modelVersion`),
+      distributionBuilderVersion: string(
+        source['distributionBuilderVersion'],
+        `${market} distributionBuilderVersion`,
+      ),
+      rows,
+    }),
+  });
+}
+
+function dailyPropIdentity(row: ResearchDisplayRow): string {
+  return JSON.stringify([
+    row.providerGameId,
+    row.providerPlayerId,
+    row.providerMarketKey,
+    row.offerType,
+    row.postedLine,
+  ]);
+}
+
+function aggregateDailyArchives(
+  market: ResearchDisplayMarket,
+  loaded: readonly LoadedResearchDisplayArchive[],
+): ResearchDisplayArchive {
+  const ordered = [...loaded].sort((left, right) => {
+    const timestampDifference =
+      Date.parse(right.archive.capturedAt) - Date.parse(left.archive.capturedAt);
+    return timestampDifference !== 0
+      ? timestampDifference
+      : right.archive.captureKey.localeCompare(left.archive.captureKey);
+  });
+  const latest = ordered[0];
+  if (latest === undefined) {
+    throw new Error(`${market} daily display aggregation requires at least one archive.`);
+  }
+
+  const retained = new Map<
+    string,
+    Readonly<{ row: ResearchDisplayRow; captureKey: string; capturedAt: string }>
+  >();
+  for (const entry of ordered) {
+    for (const row of entry.archive.rows) {
+      const identity = dailyPropIdentity(row);
+      const current = retained.get(identity);
+      if (current === undefined) {
+        retained.set(identity, Object.freeze({
+          row,
+          captureKey: entry.archive.captureKey,
+          capturedAt: entry.archive.capturedAt,
+        }));
+        continue;
+      }
+      if (
+        current.capturedAt === entry.archive.capturedAt &&
+        current.captureKey !== entry.archive.captureKey
+      ) {
+        throw new Error(
+          `${market} daily prop identity ${identity} has multiple captures at the same timestamp; latest-capture selection is ambiguous.`,
+        );
+      }
+    }
+  }
+
+  return Object.freeze({
+    market,
+    captureKey: latest.archive.captureKey,
+    capturedAt: latest.archive.capturedAt,
+    modelVersion: latest.archive.modelVersion,
+    distributionBuilderVersion: latest.archive.distributionBuilderVersion,
+    rows: Object.freeze([...retained.values()].map((value) => value.row)),
+  });
+}
+
 async function readLatestFromDirectory(
   rootDirectory: string,
   market: ResearchDisplayMarket,
@@ -254,29 +386,22 @@ async function readLatestFromDirectory(
     .reverse();
   if (names.length === 0) return null;
 
-  const parsed = JSON.parse(
-    await readFile(path.join(directory, names[0] as string), 'utf8'),
-  ) as unknown;
-  const archive = record(parsed, `${market} display archive`);
-  verifyArchiveIdentity(market, archive);
-  const rawRows = archive['rows'];
-  if (!Array.isArray(rawRows) || rawRows.length === 0) {
-    throw new Error(`${market} display archive rows must be nonempty.`);
-  }
-  const rows = Object.freeze(
-    rawRows.map((row, index) => normalizeRow(market, archive, row, index)),
+  const newestName = names[0] as string;
+  const newest = await readArchiveFile(directory, newestName, market);
+  const datePrefix = newest.captureDateUtc.replaceAll('-', '');
+  const sameDayNames = names.filter(
+    (name) => name !== newestName && name.startsWith(`${datePrefix}T`),
   );
-  return Object.freeze({
-    market,
-    captureKey: string(archive['captureKey'], `${market} captureKey`),
-    capturedAt: string(archive['capturedAt'], `${market} capturedAt`),
-    modelVersion: string(archive['modelVersion'], `${market} modelVersion`),
-    distributionBuilderVersion: string(
-      archive['distributionBuilderVersion'],
-      `${market} distributionBuilderVersion`,
-    ),
-    rows,
-  });
+  const sameDay = await Promise.all(
+    sameDayNames.map((name) => readArchiveFile(directory, name, market)),
+  );
+  for (const entry of sameDay) {
+    if (entry.captureDateUtc !== newest.captureDateUtc) {
+      throw new Error(`${market} same-day display archive date identity drifted.`);
+    }
+  }
+
+  return aggregateDailyArchives(market, Object.freeze([newest, ...sameDay]));
 }
 
 export function createResearchDisplayArchiveRepository(
