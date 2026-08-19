@@ -35,6 +35,12 @@ const AUTHORIZED_RESEARCH_IDENTITIES = Object.freeze({
 } satisfies Record<ResearchDisplayMarket, Readonly<Record<string, string>>>);
 
 const CAPTURE_PATTERN = /^\d{8}T\d{9}Z--[a-f0-9]{64}\.json$/u;
+const CENTRAL_SLATE_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/Chicago',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
 
 function record(value: unknown, label: string): Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
@@ -228,6 +234,28 @@ function verifyArchiveIdentity(
   }
 }
 
+function centralSlateDateFromCaptureName(name: string): string {
+  const year = Number(name.slice(0, 4));
+  const month = Number(name.slice(4, 6));
+  const day = Number(name.slice(6, 8));
+  const hour = Number(name.slice(9, 11));
+  const minute = Number(name.slice(11, 13));
+  const second = Number(name.slice(13, 15));
+  const millisecond = Number(name.slice(15, 18));
+  const instant = new Date(
+    Date.UTC(year, month - 1, day, hour, minute, second, millisecond),
+  );
+  const parts = CENTRAL_SLATE_DATE_FORMATTER.formatToParts(instant);
+  const part = (type: Intl.DateTimeFormatPartTypes): string => {
+    const value = parts.find((candidate) => candidate.type === type)?.value;
+    if (value === undefined) {
+      throw new Error(`Central slate date is missing ${type}.`);
+    }
+    return value;
+  };
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
 function researchPropIdentity(row: ResearchDisplayRow): string {
   return JSON.stringify([
     row.providerGameId,
@@ -332,9 +360,9 @@ async function readLatestFromDirectory(
     .reverse();
   if (names.length === 0) return null;
 
-  const latestCaptureDatePrefix = (names[0] as string).slice(0, 8);
-  const latestDayNames = names.filter((name) =>
-    name.startsWith(latestCaptureDatePrefix),
+  const latestSlateDate = centralSlateDateFromCaptureName(names[0] as string);
+  const latestDayNames = names.filter(
+    (name) => centralSlateDateFromCaptureName(name) === latestSlateDate,
   );
   const archives = await Promise.all(
     latestDayNames.map((name) => readArchiveFile(directory, name, market)),
