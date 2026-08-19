@@ -27,18 +27,31 @@ const PRODUCT_BOARD_LAYOUT_CSS = `
   font-weight: 900;
   letter-spacing: .05em;
 }
-.prob-grid { max-width: 760px; }
-.analysis-grid { max-width: 820px; }
+.pick-card-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
+  align-items: start;
+  margin-top: 12px;
+}
+.pick-card-details { min-width: 0; }
+.pick-card-details .prob-grid,
+.pick-card-details .analysis-grid {
+  max-width: none;
+}
+.pick-card-details .prob-grid { margin-top: 0; }
+.last-five-section { min-width: 0; }
+.last-five-section .section-label { margin-top: 0; }
 .last-five.graph-ready { display: block; }
 .last-five-graph {
-  width: min(620px, 100%);
-  margin: 0 auto;
+  width: min(330px, 100%);
+  margin: 0;
   border: 1px solid #263c50;
   border-radius: 10px;
   background: #08131d;
-  padding: 14px 14px 10px;
+  padding: 12px 10px 9px;
 }
-.last-five-plot { position: relative; height: 124px; }
+.last-five-plot { position: relative; height: 116px; }
 .last-five-line {
   position: absolute;
   left: 0;
@@ -50,12 +63,12 @@ const PRODUCT_BOARD_LAYOUT_CSS = `
 .last-five-line-label {
   position: absolute;
   right: 2px;
-  top: -19px;
-  padding: 2px 6px;
+  top: -18px;
+  padding: 2px 5px;
   border-radius: 5px;
   background: #211a0d;
   color: #e7ca8b;
-  font-size: .68rem;
+  font-size: .66rem;
   font-weight: 900;
   letter-spacing: .03em;
 }
@@ -64,7 +77,7 @@ const PRODUCT_BOARD_LAYOUT_CSS = `
   inset: 0;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
+  gap: 6px;
   align-items: end;
 }
 .last-five-column {
@@ -73,12 +86,12 @@ const PRODUCT_BOARD_LAYOUT_CSS = `
   align-items: flex-end;
   justify-content: center;
   min-width: 0;
-  padding-top: 20px;
+  padding-top: 19px;
 }
 .last-five-bar {
   position: relative;
-  width: 36px;
-  max-width: 72%;
+  width: 30px;
+  max-width: 76%;
   min-height: 4px;
   border: 1px solid #3c5267;
   border-radius: 7px 7px 2px 2px;
@@ -90,43 +103,47 @@ const PRODUCT_BOARD_LAYOUT_CSS = `
 .last-five-bar-value {
   position: absolute;
   left: 50%;
-  top: -20px;
+  top: -19px;
   transform: translateX(-50%);
   color: #f2f7fb;
-  font-size: .76rem;
+  font-size: .72rem;
   font-weight: 900;
 }
 .last-five-labels {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 8px;
+  gap: 6px;
+  margin-top: 7px;
   text-align: center;
 }
 .last-five-label {
   min-width: 0;
-  font-size: .7rem;
-  line-height: 1.3;
+  font-size: .64rem;
+  line-height: 1.25;
   color: #9fb2c2;
 }
 .last-five-label strong {
   display: block;
   margin-bottom: 1px;
   color: #e2ebf2;
-  font-size: .74rem;
+  font-size: .68rem;
 }
 .last-five-legend {
-  margin-top: 9px;
+  margin-top: 8px;
   color: #8fa4b6;
-  font-size: .68rem;
+  font-size: .61rem;
+  line-height: 1.3;
   text-align: center;
+}
+@media (max-width: 860px) {
+  .pick-card-content { grid-template-columns: 1fr; }
+  .last-five-graph { width: min(480px, 100%); margin: 0 auto; }
 }
 @media (max-width: 700px) {
   .pick-list > .pick-card { width: 100%; }
-  .prob-grid, .analysis-grid { max-width: none; }
   .last-five-columns, .last-five-labels { gap: 4px; }
   .last-five-graph { width: 100%; padding-left: 7px; padding-right: 7px; }
-  .last-five-bar { width: 30px; }
+  .last-five-bar { width: 28px; }
 }
 `;
 
@@ -153,6 +170,25 @@ const PRODUCT_BOARD_LAYOUT_JS = `
   const compactDate = (value) => {
     const parts = String(value).split('-');
     return parts.length === 3 ? Number(parts[1]) + '/' + Number(parts[2]) : String(value);
+  };
+
+  const arrangeCardWithSideGraph = (card, lastFive) => {
+    if (!(card instanceof HTMLElement) || !(lastFive instanceof HTMLElement)) return;
+    if (card.querySelector('.pick-card-content')) return;
+
+    const probabilities = card.querySelector('.prob-grid');
+    const analysis = card.querySelector('.analysis-grid');
+    const lastFiveSection = lastFive.parentElement;
+    if (!(probabilities instanceof HTMLElement)) return;
+    if (!(analysis instanceof HTMLElement)) return;
+    if (!(lastFiveSection instanceof HTMLElement)) return;
+
+    const content = make('div', 'pick-card-content');
+    const details = make('div', 'pick-card-details');
+    details.append(probabilities, analysis);
+    lastFiveSection.classList.add('last-five-section');
+    card.insertBefore(content, lastFiveSection);
+    content.append(details, lastFiveSection);
   };
 
   const decorateLastFiveGraph = (lastFive) => {
@@ -220,6 +256,7 @@ const PRODUCT_BOARD_LAYOUT_JS = `
     lastFive.dataset.graphReady = 'true';
     lastFive.classList.add('graph-ready');
     lastFive.replaceChildren(graph);
+    arrangeCardWithSideGraph(card, lastFive);
   };
 
   const decorateLastFiveGraphs = () => {

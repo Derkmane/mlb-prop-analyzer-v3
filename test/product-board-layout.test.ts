@@ -32,22 +32,32 @@ test('all three category panels are visible and ranked picks read top to bottom'
   assert.equal(HHR_DISPLAY_APP_JS.includes('.sort('), false);
 });
 
-test('desktop cards and probability/context columns stay compact', () => {
+test('desktop cards put details left and a compact Last-5 graph on the right', () => {
   assert.match(HHR_DISPLAY_APP_CSS, /\.shell \{ width: min\(1120px, 100%\); \}/u);
   assert.match(HHR_DISPLAY_APP_CSS, /width: min\(980px, 100%\);/u);
-  assert.match(HHR_DISPLAY_APP_CSS, /\.prob-grid \{ max-width: 760px; \}/u);
-  assert.match(HHR_DISPLAY_APP_CSS, /\.analysis-grid \{ max-width: 820px; \}/u);
+  assert.match(HHR_DISPLAY_APP_CSS, /\.pick-card-content \{/u);
+  assert.match(
+    HHR_DISPLAY_APP_CSS,
+    /grid-template-columns: minmax\(0, 1fr\) 340px;/u,
+  );
+  assert.match(HHR_DISPLAY_APP_CSS, /\.last-five-section \{ min-width: 0; \}/u);
+  assert.match(HHR_DISPLAY_APP_CSS, /width: min\(330px, 100%\);/u);
+  assert.match(
+    HHR_DISPLAY_APP_CSS,
+    /@media \(max-width: 860px\) \{[\s\S]*\.pick-card-content \{ grid-template-columns: 1fr; \}/u,
+  );
+  assert.match(HHR_DISPLAY_APP_JS, /const arrangeCardWithSideGraph = \(card, lastFive\) =>/u);
+  assert.match(HHR_DISPLAY_APP_JS, /details\.append\(probabilities, analysis\)/u);
+  assert.match(HHR_DISPLAY_APP_JS, /content\.append\(details, lastFiveSection\)/u);
+  assert.match(HHR_DISPLAY_APP_JS, /arrangeCardWithSideGraph\(card, lastFive\)/u);
 });
 
-test('last five games render as a compact readable five-column visual against the current line', () => {
+test('last five games remain a five-column visual against the current line', () => {
   assert.match(HHR_DISPLAY_APP_CSS, /\.last-five-graph/u);
-  assert.match(HHR_DISPLAY_APP_CSS, /width: min\(620px, 100%\);/u);
   assert.match(HHR_DISPLAY_APP_CSS, /grid-template-columns: repeat\(5, minmax\(0, 1fr\)\)/u);
   assert.match(HHR_DISPLAY_APP_CSS, /\.last-five-line/u);
   assert.match(HHR_DISPLAY_APP_CSS, /\.last-five-bar\.cash/u);
   assert.match(HHR_DISPLAY_APP_CSS, /\.last-five-bar\.miss/u);
-  assert.match(HHR_DISPLAY_APP_CSS, /font-size: \.76rem;/u);
-  assert.match(HHR_DISPLAY_APP_CSS, /font-size: \.74rem;/u);
   assert.match(HHR_DISPLAY_APP_JS, /const decorateLastFiveGraph = \(lastFive\) =>/u);
   assert.match(HHR_DISPLAY_APP_JS, /String\(lineChip\?\.textContent \|\| ''\)\.slice\(5\)/u);
   assert.match(HHR_DISPLAY_APP_JS, /currentLine \/ plotMaximum/u);
