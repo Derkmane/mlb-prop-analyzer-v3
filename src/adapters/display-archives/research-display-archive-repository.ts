@@ -228,6 +228,84 @@ function verifyArchiveIdentity(
   }
 }
 
+function researchPropIdentity(row: ResearchDisplayRow): string {
+  return JSON.stringify([
+    row.providerGameId,
+    row.providerPlayerId,
+    row.providerMarketKey,
+    row.offerType,
+    row.postedLine,
+  ]);
+}
+
+async function readArchiveFile(
+  directory: string,
+  name: string,
+  market: ResearchDisplayMarket,
+): Promise<ResearchDisplayArchive> {
+  const parsed = JSON.parse(
+    await readFile(path.join(directory, name), 'utf8'),
+  ) as unknown;
+  const archive = record(parsed, `${market} display archive`);
+  verifyArchiveIdentity(market, archive);
+  const rawRows = archive['rows'];
+  if (!Array.isArray(rawRows) || rawRows.length === 0) {
+    throw new Error(`${market} display archive rows must be nonempty.`);
+  }
+  return Object.freeze({
+    market,
+    captureKey: string(archive['captureKey'], `${market} captureKey`),
+    capturedAt: string(archive['capturedAt'], `${market} capturedAt`),
+    modelVersion: string(archive['modelVersion'], `${market} modelVersion`),
+    distributionBuilderVersion: string(
+      archive['distributionBuilderVersion'],
+      `${market} distributionBuilderVersion`,
+    ),
+    rows: Object.freeze(
+      rawRows.map((row, index) => normalizeRow(market, archive, row, index)),
+    ),
+  });
+}
+
+function combineLatestDayArchives(
+  market: ResearchDisplayMarket,
+  archivesNewestFirst: readonly ResearchDisplayArchive[],
+): ResearchDisplayArchive {
+  const newest = archivesNewestFirst[0];
+  if (newest === undefined) {
+    throw new Error(`${market} latest-day archive set must be nonempty.`);
+  }
+
+  const retainedByIdentity = new Map<string, ResearchDisplayRow>();
+  for (const archive of archivesNewestFirst) {
+    for (const row of archive.rows) {
+      const identity = researchPropIdentity(row);
+      const current = retainedByIdentity.get(identity);
+      if (current === undefined) {
+        retainedByIdentity.set(identity, row);
+        continue;
+      }
+      if (
+        row.capturedAt === current.capturedAt &&
+        row.captureKey !== current.captureKey
+      ) {
+        throw new Error(
+          `${market} display prop ${identity} has multiple captures at the same timestamp; latest-capture selection is ambiguous.`,
+        );
+      }
+    }
+  }
+
+  return Object.freeze({
+    market,
+    captureKey: newest.captureKey,
+    capturedAt: newest.capturedAt,
+    modelVersion: newest.modelVersion,
+    distributionBuilderVersion: newest.distributionBuilderVersion,
+    rows: Object.freeze([...retainedByIdentity.values()]),
+  });
+}
+
 async function readLatestFromDirectory(
   rootDirectory: string,
   market: ResearchDisplayMarket,
@@ -254,29 +332,14 @@ async function readLatestFromDirectory(
     .reverse();
   if (names.length === 0) return null;
 
-  const parsed = JSON.parse(
-    await readFile(path.join(directory, names[0] as string), 'utf8'),
-  ) as unknown;
-  const archive = record(parsed, `${market} display archive`);
-  verifyArchiveIdentity(market, archive);
-  const rawRows = archive['rows'];
-  if (!Array.isArray(rawRows) || rawRows.length === 0) {
-    throw new Error(`${market} display archive rows must be nonempty.`);
-  }
-  const rows = Object.freeze(
-    rawRows.map((row, index) => normalizeRow(market, archive, row, index)),
+  const latestCaptureDatePrefix = (names[0] as string).slice(0, 8);
+  const latestDayNames = names.filter((name) =>
+    name.startsWith(latestCaptureDatePrefix),
   );
-  return Object.freeze({
-    market,
-    captureKey: string(archive['captureKey'], `${market} captureKey`),
-    capturedAt: string(archive['capturedAt'], `${market} capturedAt`),
-    modelVersion: string(archive['modelVersion'], `${market} modelVersion`),
-    distributionBuilderVersion: string(
-      archive['distributionBuilderVersion'],
-      `${market} distributionBuilderVersion`,
-    ),
-    rows,
-  });
+  const archives = await Promise.all(
+    latestDayNames.map((name) => readArchiveFile(directory, name, market)),
+  );
+  return combineLatestDayArchives(market, archives);
 }
 
 export function createResearchDisplayArchiveRepository(
