@@ -85,7 +85,7 @@ async function persistCapture(
   );
 }
 
-test('research display repository aggregates the newest UTC capture day and keeps the newest repeated prop', async (t) => {
+test('research display repository serves only the single newest capture', async (t) => {
   const rootDirectory = await mkdtemp(path.join(tmpdir(), 'research-display-daily-'));
   t.after(async () => rm(rootDirectory, { recursive: true, force: true }));
 
@@ -138,7 +138,7 @@ test('research display repository aggregates the newest UTC capture day and keep
   assert.equal(result.capturedAt, '2026-08-19T15:28:38.601Z');
   assert.deepEqual(
     result.rows.map((value) => value.providerPlayerId),
-    [1002, 1003, 1001],
+    [1002, 1003],
   );
   assert.equal(result.rows.some((value) => value.providerPlayerId === 1000), false);
 
@@ -149,9 +149,5 @@ test('research display repository aggregates the newest UTC capture day and keep
   assert.equal(repeated.providerEventId, 'latest-repeat');
   assert.equal(repeated.pWinGivenGrades, 0.72);
 
-  const earlierUnique = result.rows.find((value) => value.providerPlayerId === 1001);
-  assert.ok(earlierUnique);
-  assert.equal(earlierUnique.captureKey, earlierCaptureKey);
-  assert.equal(earlierUnique.capturedAt, '2026-08-19T15:03:05.000Z');
-  assert.equal(earlierUnique.pWinGivenGrades, 0.84);
+  assert.equal(result.rows.some((value) => value.providerPlayerId === 1001), false);
 });
