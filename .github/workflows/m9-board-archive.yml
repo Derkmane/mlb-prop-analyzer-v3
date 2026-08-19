@@ -19,9 +19,9 @@ on:
     - cron: '0,30 * * * *'
   push:
     branches:
-      - agent/m9-board-archiving
+      - main
     paths:
-      - .github/workflows/m9-board-archive.yml
+      - artifacts/user-projected-lineups/*.json
 
 permissions:
   contents: write
@@ -46,6 +46,7 @@ jobs:
       M9_CAPTURE_CONTROLLER_PLAN: artifacts/workflow-logs/m9-capture-controller-plan.json
       M9_HITS_REPLAY_RECEIPT: artifacts/workflow-logs/m9-board-replay-hits.json
       M9_HHR_REPLAY_RECEIPT: artifacts/workflow-logs/m9-board-replay-hhr.json
+      M9_CAPTURE_ALL_PREGAME: ${{ github.event_name == 'push' && '1' || '0' }}
       PHASE2_ENRICHMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.phase2_enrichment || 'on' }}
 
     steps:

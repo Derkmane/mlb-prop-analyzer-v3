@@ -42,6 +42,7 @@ import {
 } from './m9-board-archive-funnel-utils.mjs';
 import { requireSecret } from './provider-probe-utils.mjs';
 import { testOnlyRankingAuthorization } from './print-m9-ranked-batter-hits-fixture.mjs';
+import { userProjectedLineupEvidenceForIdentity } from './user-projected-lineup-utils.mjs';
 
 const ACTIVE_SEASON = 2026;
 const TARGET_MARKETS = Object.freeze([
@@ -973,13 +974,18 @@ export function resolvePostedLineupIdentity({
         })
       : [];
 
+  const projectedGameEvidence =
+    currentEvidence.length === 0 && postedCurrentEvidence.length === 0
+      ? userProjectedLineupEvidenceForIdentity({ game, identity })
+      : Object.freeze([]);
+
   const resolution = resolveProjectedLineupSlot({
     targetGameId: String(gameId),
     playerId: String(playerId),
     teamId: String(teamId),
     currentGameEvidence:
       currentEvidence.length > 0 ? currentEvidence : postedCurrentEvidence,
-    projectedGameEvidence: [],
+    projectedGameEvidence,
   });
   if (!resolution.resolved) {
     return Object.freeze({ identity, resolution, hitter: null });
