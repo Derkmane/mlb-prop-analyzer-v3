@@ -1,6 +1,6 @@
 # MLB Prop Analyzer --- Project Rules
 
-**Version:** 2.13\
+**Version:** 2.14\
 **Status:** Canonical project rules\
 **Applies to:** MLB Prop Analyzer V3\
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
@@ -286,7 +286,7 @@ Used for verified available MLB data including:
 -   current-season information exposed by the approved API
 
 For lineup resolution, an exact BALLDONTLIE current-game batting-order
-row has precedence over MLB Stats API posted-lineup evidence.
+row has precedence over every other lineup source.
 
 ### MLB Stats API (`statsapi.mlb.com`)
 
@@ -305,15 +305,55 @@ Rules:
     not projected lineup evidence
 -   MLB Stats API posted lineup evidence may not overwrite an exact
     BALLDONTLIE current-game batting-order row
--   if neither BALLDONTLIE current-game evidence nor MLB Stats API posted
-    lineup evidence supplies a unique slot for the player, fail closed for
-    that capture attempt, leave the game eligible for a later scheduled
-    capture, and do not inherit a batting order from an earlier game
+-   a unique MLB Stats API posted lineup slot has precedence over
+    user-supplied projected lineup evidence
+
+### User-supplied projected lineup evidence
+
+Approved only as an optional pregame current-day projection source when the
+user deliberately supplies lineup evidence for the active MLB regular-season
+slate, including a structured transcription of a user-provided lineup
+screenshot.
+
+Rules:
+
+-   user-supplied projected lineup evidence is optional; its absence may not
+    disable, block, or otherwise change the normal BALLDONTLIE and MLB Stats
+    API lineup path
+-   it may supply only projected starting-hitter identity, team, and batting
+    order under this approval; it may not supply performance statistics,
+    probabilities, prices, settlement data, or other model inputs
+-   every imported projection must preserve the active slate date, declared
+    source label, import timestamp, immutable source-evidence identity or hash,
+    and the structured player, team, and batting-order rows actually used
+-   every accepted user-supplied row has lineup status `projected`
+-   exact BALLDONTLIE current-game evidence has first precedence; a unique MLB
+    Stats API posted lineup has second precedence; user-supplied projected
+    lineup evidence is used only when neither confirmed source supplies that
+    player's unique current-game slot
+-   confirmed evidence atomically replaces a user-supplied projection and the
+    affected prediction is recomputed from the confirmed player and batting
+    order
+-   ambiguous, malformed, wrong-date, wrong-game, or wrong-team user-supplied
+    projection evidence fails closed for the affected row and may not leak into
+    another game or date
+-   a user-supplied screenshot may be transcribed only from evidence the user
+    deliberately provided; this approval does not authorize autonomous browser
+    scraping or browser capture
+-   projection status alone may not change probability, eligibility, void,
+    confidence, category access, or ranking, consistent with Section 6
+
+If neither BALLDONTLIE current-game evidence, MLB Stats API posted-lineup
+evidence, nor a unique approved user-supplied projected lineup supplies a slot
+for the player, fail closed for that capture attempt, leave the game eligible
+for a later scheduled capture, and do not inherit a batting order from an
+earlier game.
 
 Not allowed without explicit approval:
 
--   scraping
--   browser capture as a production source
+-   scraping or autonomous browser capture
+-   browser-captured production data except the deliberately user-supplied
+    projected-lineup evidence defined above
 -   silently substituted providers
 -   invented endpoints, fields, schemas, parameters, coefficients, or
     availability
@@ -565,8 +605,7 @@ For a planned market without an implementation folder, the
 planned-market catalog owns and exports its keys.
 
 When implementation begins, ownership transfers from the planned-market
-catalog to the feature manifest in one commit, and the old declaration
-is removed in that same commit.
+catalog to the feature manifest in one commit, and the old declaration is removed in that same commit.
 
 No handwritten second copy is allowed.
 
@@ -645,8 +684,7 @@ Zero identifier matches are required in active production code only.
 Matches may remain in immutable saved records, historical fixtures, and
 explicitly isolated historical compatibility code.
 
-Historical records are never rewritten merely because a feature is
-removed.
+Historical records are never rewritten merely because a feature is removed.
 
 ------------------------------------------------------------------------
 
@@ -1214,6 +1252,27 @@ There is no separate Project Knowledge deliverable.
 
 ## Changelog
 
+### Version 2.14 — 2026-08-19
+
+-   Approved deliberately user-supplied current-day projected lineup evidence,
+    including structured transcription of user-provided lineup screenshots, as
+    an optional projected-lineup source only.
+-   Locked lineup-source precedence to exact BALLDONTLIE current-game evidence,
+    then unique MLB Stats API posted-lineup evidence, then unique user-supplied
+    projected-lineup evidence.
+-   Required every user-supplied projection to remain `projected`, preserve
+    date/source/import/row lineage, fail closed on ambiguous or mismatched rows,
+    and be atomically replaced when confirmed evidence becomes available.
+-   Prohibited user-supplied projection evidence from supplying performance
+    statistics, probabilities, prices, settlement data, or other model inputs,
+    and preserved the prohibition on autonomous scraping/browser capture.
+-   Made user-supplied projections explicitly optional so absence never changes
+    or blocks the normal approved-source path; preserved the existing rule that
+    projection status itself cannot penalize probability, eligibility, void,
+    confidence, category access, or ranking.
+-   Made no mathematical, settlement, category, ranking, model-family,
+    calibration, or production-enablement change.
+
 ### Version 2.13 — 2026-08-18
 
 -   Separated explicitly labeled research ranking from production-calibrated
@@ -1344,7 +1403,7 @@ There is no separate Project Knowledge deliverable.
     the target environment.
 -   Prohibited commands that place required work behind interactive
     installation, confirmation, authentication, package-manager, or
-    environment prompts.
+environment prompts.
 -   Required user-run commands to use verified installed tools, remain
     non-interactive, and be reduced to the smallest safe action.
 -   Prohibited large pasted scripts, heredocs, and fragile chained
@@ -1386,7 +1445,7 @@ There is no separate Project Knowledge deliverable.
     canonical-change approval, or other explicit authorization boundary
     is reached.
 -   Clarified that the trigger prohibits a third blind patch, not a
-    structurally redesigned implementation after full reassessment.
+    structurally redesigned implementation after the full reassessment.
 -   Prohibited ending with only a failure report when another diagnostic
     or corrective step can be performed with available tools.
 
@@ -1421,8 +1480,8 @@ There is no separate Project Knowledge deliverable.
 -   Prohibited active suffixed, renamed, backup, generated, or duplicate
     canonical copies and blocked stale authority copies from merge or
     preflight use.
--   Clarified that historical Git commits may retain earlier versions
-    but are not active authority.
+-   Clarified that historical Git commits may retain earlier versions but
+    are not active authority.
 
 ### Version 2.0 --- 2026-07-23
 
@@ -1444,7 +1503,7 @@ There is no separate Project Knowledge deliverable.
     provider-derived contracts.
 -   Added the early terminal-PA and lineup capability gate.
 -   Preserved H+R+RBI and Pitcher Strikeouts as planned markets with
-    their required mathematical families.
+    their required joint model families.
 -   Added detailed failure classification and repeated-failure
     structural escalation.
 -   Prohibited daily caps and time estimates from controlling project
