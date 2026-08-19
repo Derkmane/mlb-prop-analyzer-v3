@@ -605,8 +605,8 @@ For a planned market without an implementation folder, the
 planned-market catalog owns and exports its keys.
 
 When implementation begins, ownership transfers from the planned-market
-catalog to the feature manifest in one commit, and the old declaration
-is removed in that same commit.
+catalog to the feature manifest in one commit, and the old declaration is
+removed in that same commit.
 
 No handwritten second copy is allowed.
 
@@ -971,7 +971,8 @@ Read-only investigation is required when necessary to choose the
 structural direction. It is not a reason to stop working.
 
 The trigger prohibits a third blind patch; it does not prohibit a
-structurally redesigned implementation attempt after the full reassessment.
+structurally redesigned implementation attempt after the full
+reassessment.
 
 Destructive deletion, rollback, replacement, or reconstruction remains
 subject to the approval requirements elsewhere in these rules. Deletion
@@ -1404,7 +1405,7 @@ There is no separate Project Knowledge deliverable.
     the target environment.
 -   Prohibited commands that place required work behind interactive
     installation, confirmation, authentication, package-manager, or
-    environment prompts.
+environment prompts.
 -   Required user-run commands to use verified installed tools, remain
     non-interactive, and be reduced to the smallest safe action.
 -   Prohibited large pasted scripts, heredocs, and fragile chained
