@@ -8,8 +8,8 @@ test('PROJECT_RULES 2.14 locks optional user projected lineup precedence and non
   assert.match(rules, /### User-supplied projected lineup evidence/u);
   assert.match(rules, /user-supplied projected lineup evidence is optional/u);
   assert.match(rules, /BALLDONTLIE current-game evidence has first precedence/u);
-  assert.match(rules, /MLB Stats API posted lineup has second precedence/u);
-  assert.match(rules, /user-supplied projected lineup evidence is used only when neither confirmed source/u);
+  assert.match(rules, /MLB\s+Stats API posted lineup has second precedence/u);
+  assert.match(rules, /user-supplied projected\s+lineup evidence is used only when neither confirmed source/u);
   assert.match(rules, /every accepted user-supplied row has lineup status `projected`/u);
   assert.match(rules, /projection status alone may not change probability/u);
 });
