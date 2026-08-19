@@ -32,6 +32,24 @@ test('all three category panels are visible and ranked picks read top to bottom'
   assert.equal(HHR_DISPLAY_APP_JS.includes('.sort('), false);
 });
 
+test('every prop card prominently shows market, selected side, and line beside the player name', () => {
+  assert.match(HHR_DISPLAY_APP_CSS, /\.pick-title-row \{/u);
+  assert.match(HHR_DISPLAY_APP_CSS, /\.pick-callout \{/u);
+  assert.match(HHR_DISPLAY_APP_CSS, /\.pick-callout\.higher \{/u);
+  assert.match(HHR_DISPLAY_APP_CSS, /\.pick-callout\.lower \{/u);
+  assert.match(HHR_DISPLAY_APP_JS, /const decoratePickIdentity = \(card\) =>/u);
+  assert.ok(HHR_DISPLAY_APP_JS.includes("card.querySelector('.chip.higher, .chip.lower')"));
+  assert.ok(HHR_DISPLAY_APP_JS.includes("marketText + ' · ' + sideText + ' ' + lineText.slice(5)"));
+  assert.ok(HHR_DISPLAY_APP_JS.includes("document.querySelectorAll('.pick-card')"));
+  assert.match(HHR_DISPLAY_APP_JS, /observer\.observe\(archivedEvidenceNode/u);
+  assert.match(HHR_DISPLAY_APP_JS, /titleRow\.append\(playerName, callout\)/u);
+
+  // This is display-only: no ranking, settlement, or probability math is introduced.
+  assert.equal(HHR_DISPLAY_APP_JS.includes('.sort('), false);
+  assert.doesNotMatch(HHR_DISPLAY_APP_JS, /settleObserved|settleHigher|settleLower/u);
+  assert.doesNotMatch(HHR_DISPLAY_APP_JS, /pWinGivenGrades\s*[+\-*/]/u);
+});
+
 test('desktop cards put details left and a compact Last-5 graph on the right', () => {
   assert.match(HHR_DISPLAY_APP_CSS, /\.shell \{ width: min\(1120px, 100%\); \}/u);
   assert.match(HHR_DISPLAY_APP_CSS, /width: min\(980px, 100%\);/u);
