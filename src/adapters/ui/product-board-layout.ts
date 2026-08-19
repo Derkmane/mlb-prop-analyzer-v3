@@ -27,6 +27,39 @@ const PRODUCT_BOARD_LAYOUT_CSS = `
   font-weight: 900;
   letter-spacing: .05em;
 }
+.pick-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px 12px;
+}
+.pick-title-row .player-name { flex: 0 1 auto; }
+.pick-callout {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  border: 2px solid #486c8b;
+  border-radius: 8px;
+  padding: 5px 10px;
+  background: #0c1b28;
+  color: #f5f9fc;
+  font-size: .9rem;
+  font-weight: 900;
+  letter-spacing: .025em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.pick-callout.higher {
+  border-color: #2f7462;
+  background: #0c211a;
+  color: #bfffe8;
+}
+.pick-callout.lower {
+  border-color: #805887;
+  background: #211427;
+  color: #f0c7f7;
+}
 .pick-card-content {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
@@ -141,6 +174,7 @@ const PRODUCT_BOARD_LAYOUT_CSS = `
 }
 @media (max-width: 700px) {
   .pick-list > .pick-card { width: 100%; }
+  .pick-callout { font-size: .82rem; white-space: normal; }
   .last-five-columns, .last-five-labels { gap: 4px; }
   .last-five-graph { width: 100%; padding-left: 7px; padding-right: 7px; }
   .last-five-bar { width: 28px; }
@@ -152,6 +186,7 @@ const PRODUCT_BOARD_LAYOUT_JS = `
   'use strict';
 
   const categoryPanelsNode = document.getElementById('category-panels');
+  const archivedEvidenceNode = document.getElementById('archived-evidence');
   if (!categoryPanelsNode) return;
 
   const revealEveryCategory = () => {
@@ -170,6 +205,44 @@ const PRODUCT_BOARD_LAYOUT_JS = `
   const compactDate = (value) => {
     const parts = String(value).split('-');
     return parts.length === 3 ? Number(parts[1]) + '/' + Number(parts[2]) : String(value);
+  };
+
+  const decoratePickIdentity = (card) => {
+    if (!(card instanceof HTMLElement) || card.querySelector('.pick-title-row')) return;
+    const head = card.querySelector('.pick-head');
+    const playerName = head?.querySelector('.player-name');
+    const marketBadge = head?.querySelector('.market-badge');
+    const identity = playerName?.parentElement;
+    const sideChip = card.querySelector('.chip.higher, .chip.lower');
+    const lineChip = Array.from(card.querySelectorAll('.chip')).find((node) =>
+      String(node.textContent || '').startsWith('Line '),
+    );
+    if (!(playerName instanceof HTMLElement)) return;
+    if (!(marketBadge instanceof HTMLElement)) return;
+    if (!(identity instanceof HTMLElement)) return;
+    if (!(sideChip instanceof HTMLElement)) return;
+    if (!(lineChip instanceof HTMLElement)) return;
+
+    const side = sideChip.classList.contains('higher') ? 'higher' : 'lower';
+    const sideText = side === 'higher' ? 'HIGHER' : 'LOWER';
+    const marketText = String(marketBadge.textContent || '').trim();
+    const lineText = String(lineChip.textContent || '');
+    if (!marketText || !lineText.startsWith('Line ')) return;
+
+    const titleRow = make('div', 'pick-title-row');
+    const callout = make(
+      'span',
+      'pick-callout ' + side,
+      marketText + ' · ' + sideText + ' ' + lineText.slice(5),
+    );
+    identity.insertBefore(titleRow, playerName);
+    titleRow.append(playerName, callout);
+  };
+
+  const decoratePickIdentities = () => {
+    for (const card of document.querySelectorAll('.pick-card')) {
+      decoratePickIdentity(card);
+    }
   };
 
   const arrangeCardWithSideGraph = (card, lastFive) => {
@@ -267,6 +340,7 @@ const PRODUCT_BOARD_LAYOUT_JS = `
 
   const observer = new MutationObserver(() => {
     revealEveryCategory();
+    decoratePickIdentities();
     decorateLastFiveGraphs();
   });
   observer.observe(categoryPanelsNode, {
@@ -275,7 +349,14 @@ const PRODUCT_BOARD_LAYOUT_JS = `
     attributes: true,
     attributeFilter: ['hidden'],
   });
+  if (archivedEvidenceNode) {
+    observer.observe(archivedEvidenceNode, {
+      childList: true,
+      subtree: true,
+    });
+  }
   revealEveryCategory();
+  decoratePickIdentities();
   decorateLastFiveGraphs();
 })();
 `;
