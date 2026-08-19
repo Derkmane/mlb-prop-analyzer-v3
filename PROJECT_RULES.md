@@ -1508,7 +1508,7 @@ There is no separate Project Knowledge deliverable.
     their required mathematical families.
 -   Added detailed failure classification and repeated-failure
     structural escalation.
--   Prohibited daily caps or time estimates from controlling project
+-   Prohibited daily caps and time estimates from controlling project
     execution.
 
 ### Version 1.4 --- 2026-07-22
