@@ -21,6 +21,13 @@ const COVERAGE_CONTRACTS = new Set([
 const iso = (value) => new Date(value).toISOString();
 const gameKey = (event) => `${event.eventId}@${event.commenceTimeUtc}`;
 
+function configuredCaptureAllPregame() {
+  const raw = process.env.M9_CAPTURE_ALL_PREGAME?.trim();
+  if (raw === undefined || raw === '' || raw === '0') return false;
+  if (raw === '1') return true;
+  throw new Error('M9_CAPTURE_ALL_PREGAME must be 0 or 1.');
+}
+
 export function normalizeScheduleEvents(raw) {
   if (!Array.isArray(raw)) {
     throw new Error('The Odds API events response must be an array.');
@@ -56,7 +63,11 @@ export function decideBoardRun({
   events,
   coveredGameIdentities = [],
   runStartedAt,
+  captureAllPregame = false,
 }) {
+  if (typeof captureAllPregame !== 'boolean') {
+    throw new TypeError('captureAllPregame must be a boolean.');
+  }
   const startMs = Date.parse(runStartedAt);
   if (!Number.isFinite(startMs)) throw new Error('runStartedAt must be ISO time.');
   const covered = new Set(coveredGameIdentities);
@@ -68,6 +79,7 @@ export function decideBoardRun({
     let classification = 'OUTSIDE_WINDOW';
     if (minutesToFirstPitch <= 0) classification = 'STARTED';
     else if (covered.has(gameIdentity)) classification = 'COVERED';
+    else if (captureAllPregame) classification = 'USER_PROJECTION';
     else if (
       minutesToFirstPitch >= NORMAL_WINDOW_MINUTES &&
       minutesToFirstPitch <= NORMAL_WINDOW_MAX_MINUTES
@@ -82,7 +94,11 @@ export function decideBoardRun({
       minutesToFirstPitch,
       classification,
     });
-    if (classification === 'NORMAL' || classification === 'RECOVERY') {
+    if (
+      classification === 'NORMAL' ||
+      classification === 'RECOVERY' ||
+      classification === 'USER_PROJECTION'
+    ) {
       claimedGames.push(row);
     }
     return row;
@@ -187,6 +203,7 @@ export async function planBoardRun({
   ),
   key = process.env.THE_ODDS_API_KEY?.trim(),
   output = process.stdout,
+  captureAllPregame = configuredCaptureAllPregame(),
 } = {}) {
   if (!key) throw new Error('Missing THE_ODDS_API_KEY.');
   const runStartedAt = iso(now());
@@ -204,6 +221,7 @@ export async function planBoardRun({
     events,
     coveredGameIdentities: priorCoverage,
     runStartedAt,
+    captureAllPregame,
   });
   await mkdir(path.dirname(planPath), { recursive: true });
 
