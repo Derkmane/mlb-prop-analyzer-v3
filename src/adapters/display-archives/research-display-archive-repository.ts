@@ -297,69 +297,6 @@ async function readArchiveFile(
   });
 }
 
-function dailyPropIdentity(row: ResearchDisplayRow): string {
-  return JSON.stringify([
-    row.providerGameId,
-    row.providerPlayerId,
-    row.providerMarketKey,
-    row.offerType,
-    row.postedLine,
-  ]);
-}
-
-function aggregateDailyArchives(
-  market: ResearchDisplayMarket,
-  loaded: readonly LoadedResearchDisplayArchive[],
-): ResearchDisplayArchive {
-  const ordered = [...loaded].sort((left, right) => {
-    const timestampDifference =
-      Date.parse(right.archive.capturedAt) - Date.parse(left.archive.capturedAt);
-    return timestampDifference !== 0
-      ? timestampDifference
-      : right.archive.captureKey.localeCompare(left.archive.captureKey);
-  });
-  const latest = ordered[0];
-  if (latest === undefined) {
-    throw new Error(`${market} daily display aggregation requires at least one archive.`);
-  }
-
-  const retained = new Map<
-    string,
-    Readonly<{ row: ResearchDisplayRow; captureKey: string; capturedAt: string }>
-  >();
-  for (const entry of ordered) {
-    for (const row of entry.archive.rows) {
-      const identity = dailyPropIdentity(row);
-      const current = retained.get(identity);
-      if (current === undefined) {
-        retained.set(identity, Object.freeze({
-          row,
-          captureKey: entry.archive.captureKey,
-          capturedAt: entry.archive.capturedAt,
-        }));
-        continue;
-      }
-      if (
-        current.capturedAt === entry.archive.capturedAt &&
-        current.captureKey !== entry.archive.captureKey
-      ) {
-        throw new Error(
-          `${market} daily prop identity ${identity} has multiple captures at the same timestamp; latest-capture selection is ambiguous.`,
-        );
-      }
-    }
-  }
-
-  return Object.freeze({
-    market,
-    captureKey: latest.archive.captureKey,
-    capturedAt: latest.archive.capturedAt,
-    modelVersion: latest.archive.modelVersion,
-    distributionBuilderVersion: latest.archive.distributionBuilderVersion,
-    rows: Object.freeze([...retained.values()].map((value) => value.row)),
-  });
-}
-
 async function readLatestFromDirectory(
   rootDirectory: string,
   market: ResearchDisplayMarket,
@@ -387,21 +324,7 @@ async function readLatestFromDirectory(
   if (names.length === 0) return null;
 
   const newestName = names[0] as string;
-  const newest = await readArchiveFile(directory, newestName, market);
-  const datePrefix = newest.captureDateUtc.replaceAll('-', '');
-  const sameDayNames = names.filter(
-    (name) => name !== newestName && name.startsWith(`${datePrefix}T`),
-  );
-  const sameDay = await Promise.all(
-    sameDayNames.map((name) => readArchiveFile(directory, name, market)),
-  );
-  for (const entry of sameDay) {
-    if (entry.captureDateUtc !== newest.captureDateUtc) {
-      throw new Error(`${market} same-day display archive date identity drifted.`);
-    }
-  }
-
-  return aggregateDailyArchives(market, Object.freeze([newest, ...sameDay]));
+  return (await readArchiveFile(directory, newestName, market)).archive;
 }
 
 export function createResearchDisplayArchiveRepository(

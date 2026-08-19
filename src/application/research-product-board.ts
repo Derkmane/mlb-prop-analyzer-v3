@@ -298,7 +298,10 @@ export async function readResearchProductBoardV2(
     ])
   ).filter((archive): archive is ResearchDisplayArchive => archive !== null);
 
-  const rows = archives.flatMap((archive) => archive.rows);
+  const requestTime = Date.now();
+  const rows = archives.flatMap((archive) => archive.rows).filter(
+    (row) => Date.parse(row.eventCommenceTime) > requestTime,
+  );
   const candidateByRow = new Map(
     rows.map((row) => [row, productPick(row)] as const),
   );

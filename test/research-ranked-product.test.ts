@@ -11,7 +11,7 @@ import {
 } from '../src/application/index.js';
 import { BATTER_HHR_MARKET_KEY } from '../src/features/batter-hhr/manifest.js';
 
-const CAPTURED_AT = '2026-08-18T20:00:00.000Z';
+const CAPTURED_AT = '2099-08-18T20:00:00.000Z';
 
 function row(input: Readonly<{
   market: ResearchDisplayMarket;
@@ -24,6 +24,7 @@ function row(input: Readonly<{
   price?: number | null;
   multiplier?: number | null;
   lastFive?: readonly number[];
+  eventCommenceTime?: string;
 }>): ResearchDisplayRow {
   const isHits = input.market === 'batter-hits';
   return Object.freeze({
@@ -43,7 +44,7 @@ function row(input: Readonly<{
     teamName: 'Home Club',
     homeTeamName: 'Home Club',
     awayTeamName: 'Away Club',
-    eventCommenceTime: '2026-08-18T22:35:00.000Z',
+    eventCommenceTime: input.eventCommenceTime ?? '2099-08-18T22:35:00.000Z',
     providerMarketKey: isHits ? 'batter_hits' : 'batter_hits_runs_rbis',
     offerType: input.offerType,
     selectedSide: input.side,
@@ -85,12 +86,13 @@ function row(input: Readonly<{
 function archive(
   market: ResearchDisplayMarket,
   rows: readonly ResearchDisplayRow[],
+  capturedAt = CAPTURED_AT,
 ): ResearchDisplayArchive {
   const isHits = market === 'batter-hits';
   return Object.freeze({
     market,
     captureKey: `${market}-capture`,
-    capturedAt: CAPTURED_AT,
+    capturedAt,
     modelVersion: isHits
       ? 'm8-5-batter-hits-successor-freeze-v1'
       : 'm11-batter-hhr-direct-composite-v2',
@@ -126,7 +128,7 @@ function repository(): ResearchDisplayArchiveRepository {
   });
 }
 
-test('research board populates exactly three canonical Top Five categories from both markets', async () => {
+test('research board populates exactly three canonical Top Five categories from each market newest capture', async () => {
   const board = await readResearchProductBoardV2(repository());
 
   assert.equal(board.productionCalibrated, false);
@@ -192,4 +194,39 @@ test('research cards preserve context, side-aware last five, and explicit calibr
   assert.equal(hits.calibration.calibrationAgreement, 'unavailable');
   assert.equal(hits.park, null);
   assert.equal(hits.teamImpliedRunTotal, null);
+});
+
+test('different per-market newest capture timestamps still contribute both markets', async () => {
+  const hits = archive('batter-hits', [
+    row({ market: 'batter-hits', playerId: 80, playerName: 'Hits Newest', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.72 }),
+  ], '2099-08-18T20:00:00.000Z');
+  const hhr = archive(BATTER_HHR_MARKET_KEY, [
+    row({ market: BATTER_HHR_MARKET_KEY, playerId: 81, playerName: 'HHR Newest', offerType: 'baseline', side: 'higher', line: 1.5, p: 0.71 }),
+  ], '2099-08-18T19:00:00.000Z');
+  const board = await readResearchProductBoardV2(Object.freeze({
+    readLatest: async (market: ResearchDisplayMarket) => market === 'batter-hits' ? hits : hhr,
+  }));
+  const baselinePlayers = board.categories[1]!.picks.map((pick) => pick.player);
+
+  assert.deepEqual(board.sourceMarkets, ['batter-hits', BATTER_HHR_MARKET_KEY]);
+  assert.equal(board.capturedAt, '2099-08-18T20:00:00.000Z');
+  assert.ok(baselinePlayers.includes('Hits Newest'));
+  assert.ok(baselinePlayers.includes('HHR Newest'));
+});
+
+test('research board excludes commenced rows and preserves each archived line and side', async () => {
+  const future = row({ market: 'batter-hits', playerId: 90, playerName: 'Future', offerType: 'alternate', side: 'lower', line: 2.5, p: 0.91 });
+  const passed = row({ market: 'batter-hits', playerId: 91, playerName: 'Passed', offerType: 'alternate', side: 'higher', line: 0.5, p: 0.99, eventCommenceTime: '2000-01-01T00:00:00.000Z' });
+  const newest = archive('batter-hits', [future, passed]);
+  const board = await readResearchProductBoardV2(Object.freeze({
+    readLatest: async (market: ResearchDisplayMarket) => market === 'batter-hits' ? newest : null,
+  }));
+  const displayed = board.categories.flatMap((category) => category.picks);
+
+  assert.equal(displayed.some((pick) => pick.player === 'Passed'), false);
+  assert.ok(displayed.some((pick) => pick.player === 'Future'));
+  for (const pick of displayed.filter((value) => value.player === 'Future')) {
+    assert.equal(pick.postedLine, future.postedLine);
+    assert.equal(pick.selectedSide, future.selectedSide);
+  }
 });
