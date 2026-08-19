@@ -6,7 +6,6 @@ export const USER_PROJECTED_LINEUP_CONTRACT = 'user-projected-lineup-v1';
 export const USER_PROJECTED_LINEUP_SOURCE_TIME_ZONE = 'America/New_York';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
-const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 const SUFFIXES = new Set(['jr', 'sr', 'ii', 'iii', 'iv']);
 
 function object(value, label) {
@@ -71,9 +70,7 @@ export function userProjectionPlayerLabelMatches(sourcePlayerLabel, playerName) 
   if (sourceTokens[0].length !== 1 || playerTokens[0][0] !== sourceTokens[0]) {
     return false;
   }
-  return (
-    sourceTokens.slice(1).join(' ') === playerTokens.slice(1).join(' ')
-  );
+  return sourceTokens.slice(1).join(' ') === playerTokens.slice(1).join(' ');
 }
 
 function localDate(timestamp, timeZone) {
@@ -113,12 +110,12 @@ function validateTeam(raw, label) {
       ),
     });
   });
-  if (players.length !== 9) {
-    throw new Error(`${label}.players must contain exactly nine projected starters.`);
+  if (players.length === 0 || players.length > 9) {
+    throw new Error(`${label}.players must contain between one and nine readable projected starters.`);
   }
   const slots = new Set(players.map((player) => player.lineupSlot));
-  if (slots.size !== 9) {
-    throw new Error(`${label}.players must contain each lineup slot exactly once.`);
+  if (slots.size !== players.length) {
+    throw new Error(`${label}.players contains duplicate lineup slots.`);
   }
   const labels = players.map((player) => normalizeText(player.sourcePlayerLabel));
   if (new Set(labels).size !== labels.length) {
@@ -148,20 +145,14 @@ function validateArtifact(raw, filePath, bytes) {
     );
   }
   const importedAt = isoTimestamp(value.importedAt, 'artifact.importedAt');
-  const evidenceHashes = array(
-    value.sourceEvidenceSha256,
-    'artifact.sourceEvidenceSha256',
-  ).map((entry, index) => {
-    const hash = nonemptyString(entry, `artifact.sourceEvidenceSha256[${index}]`);
-    if (!SHA256_PATTERN.test(hash)) {
-      throw new TypeError(
-        `artifact.sourceEvidenceSha256[${index}] must be a lowercase SHA-256.`,
-      );
-    }
-    return hash;
-  });
-  if (evidenceHashes.length === 0 || new Set(evidenceHashes).size !== evidenceHashes.length) {
-    throw new Error('artifact.sourceEvidenceSha256 must contain unique source hashes.');
+  const evidenceIds = array(
+    value.sourceEvidenceIds,
+    'artifact.sourceEvidenceIds',
+  ).map((entry, index) =>
+    nonemptyString(entry, `artifact.sourceEvidenceIds[${index}]`),
+  );
+  if (evidenceIds.length === 0 || new Set(evidenceIds).size !== evidenceIds.length) {
+    throw new Error('artifact.sourceEvidenceIds must contain unique source identities.');
   }
 
   const games = array(value.games, 'artifact.games').map((rawGame, gameIndex) => {
@@ -181,8 +172,8 @@ function validateArtifact(raw, filePath, bytes) {
       (team, teamIndex) =>
         validateTeam(team, `artifact.games[${gameIndex}].teams[${teamIndex}]`),
     );
-    if (teams.length !== 2) {
-      throw new Error(`artifact.games[${gameIndex}].teams must contain exactly two teams.`);
+    if (teams.length === 0 || teams.length > 2) {
+      throw new Error(`artifact.games[${gameIndex}].teams must contain one or two readable teams.`);
     }
     const expectedTeams = new Set([
       normalizeText(awayTeamName),
@@ -190,11 +181,11 @@ function validateArtifact(raw, filePath, bytes) {
     ]);
     const actualTeams = teams.map((team) => normalizeText(team.teamName));
     if (
-      new Set(actualTeams).size !== 2 ||
+      new Set(actualTeams).size !== teams.length ||
       actualTeams.some((teamName) => !expectedTeams.has(teamName))
     ) {
       throw new Error(
-        `artifact.games[${gameIndex}].teams must match the away and home teams.`,
+        `artifact.games[${gameIndex}].teams must uniquely match the away or home team.`,
       );
     }
     return Object.freeze({
@@ -227,7 +218,7 @@ function validateArtifact(raw, filePath, bytes) {
     slateDate,
     sourceTimeZone,
     importedAt,
-    sourceEvidenceSha256: Object.freeze(evidenceHashes),
+    sourceEvidenceIds: Object.freeze(evidenceIds),
     snapshotSha256: createHash('sha256').update(bytes).digest('hex'),
     games: Object.freeze(games),
   });
@@ -241,6 +232,7 @@ function configuredRoot() {
 }
 
 function gameDateUtc(game) {
+  if (typeof game?.date !== 'string' || game.date.trim().length === 0) return null;
   return isoTimestamp(game.date, 'game.date');
 }
 
@@ -253,8 +245,10 @@ function gameTeamName(game, side) {
 }
 
 export function readUserProjectedLineupForGame(game, { root = configuredRoot() } = {}) {
+  const dateUtc = gameDateUtc(game);
+  if (dateUtc === null) return null;
   const targetDate = localDate(
-    gameDateUtc(game),
+    dateUtc,
     USER_PROJECTED_LINEUP_SOURCE_TIME_ZONE,
   );
   const filePath = path.join(root, `${targetDate}.json`);
@@ -326,11 +320,13 @@ export function userProjectedLineupEvidenceForIdentity({
   if (!Number.isSafeInteger(providerTeamId) || providerTeamId <= 0) {
     throw new TypeError('identity.providerTeamId must be a positive integer.');
   }
+  const dateUtc = gameDateUtc(game);
+  if (dateUtc === null) return Object.freeze([]);
 
   return Object.freeze([
     Object.freeze({
       sourceGameId: `user-projection:${artifact.slateDate}:${targetAway}:${targetHome}`,
-      sourceGameDateUtc: gameDateUtc(game),
+      sourceGameDateUtc: dateUtc,
       playerId: String(providerPlayerId),
       teamId: String(providerTeamId),
       lineupSlot: matches[0].lineupSlot,
