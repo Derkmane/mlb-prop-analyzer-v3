@@ -194,6 +194,45 @@ test('accepts BDL bats/throws metadata on resolved player identities used by pro
   assert.equal(board.rejectedOffers.length, 2);
 });
 
+test('classifies by the player baseline line and collapses overlap between provider keys', () => {
+  const rawBoard = structuredClone(readRawBoard());
+  const bookmaker = (rawBoard['bookmakers'] as Record<string, unknown>[])[0]!;
+  const markets = bookmaker['markets'] as Record<string, unknown>[];
+  const baseline = markets.find((market) => market['key'] === 'batter_hits')!;
+  const alternate = markets.find(
+    (market) => market['key'] === 'batter_hits_alternate',
+  )!;
+  const baselineOutcomes = baseline['outcomes'] as Record<string, unknown>[];
+  const gavinOver = baselineOutcomes.find(
+    (outcome) => outcome['description'] === 'Gavin Sheets' && outcome['name'] === 'Over',
+  )!;
+  const gavinUnder = baselineOutcomes.find(
+    (outcome) => outcome['description'] === 'Gavin Sheets' && outcome['name'] === 'Under',
+  )!;
+  baseline['outcomes'] = baselineOutcomes.filter((outcome) => outcome !== gavinOver);
+  (alternate['outcomes'] as Record<string, unknown>[]).push(
+    structuredClone(gavinOver),
+    structuredClone(gavinUnder),
+    { ...structuredClone(gavinOver), point: 1.5 },
+  );
+
+  const board = normalize(rawBoard);
+  const gavinOffers = board.offers.filter((offer) => offer.playerName === 'Gavin Sheets');
+  assert.equal(gavinOffers.length, 3);
+  assert.equal(
+    gavinOffers.find((offer) => offer.selectedSide === 'higher' && offer.line === 0.5)?.offerType,
+    'baseline',
+  );
+  assert.equal(
+    gavinOffers.find((offer) => offer.selectedSide === 'higher' && offer.line === 1.5)?.offerType,
+    'alternate',
+  );
+  assert.equal(
+    gavinOffers.filter((offer) => offer.selectedSide === 'lower' && offer.line === 0.5).length,
+    1,
+  );
+});
+
 test('fails each event-scoped player with zero or multiple identity matches closed', () => {
   const identities = resolvedIdentities();
   const gavinSheets = identities.find(

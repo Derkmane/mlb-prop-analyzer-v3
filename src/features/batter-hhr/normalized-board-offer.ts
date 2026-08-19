@@ -120,8 +120,33 @@ export function normalizeUnderdogBatterHhrCapture(
   }
 
   const normalized: NormalizedBatterHhrOffer[] = [];
-  for (const [marketIndex, marketValue] of underdog['markets'].entries()) {
-    const market = asRecord(marketValue, `HHR market[${marketIndex}]`);
+  const markets = underdog['markets'].map((marketValue, marketIndex) => ({
+    market: asRecord(marketValue, `HHR market[${marketIndex}]`),
+    marketIndex,
+  }));
+  const baselineLineSets = new Map<string, Set<number>>();
+  for (const { market, marketIndex } of markets) {
+    if (providerMarketKey(market['key']) !== BATTER_HHR_BASELINE_PROVIDER_MARKET_KEY) continue;
+    if (!Array.isArray(market['outcomes'])) {
+      throw new TypeError(`HHR market[${marketIndex}].outcomes must be an array.`);
+    }
+    for (const [outcomeIndex, outcomeValue] of market['outcomes'].entries()) {
+      const outcome = asRecord(outcomeValue, `HHR market[${marketIndex}].outcome[${outcomeIndex}]`);
+      const player = asString(outcome['description'], `HHR outcome[${outcomeIndex}].description`);
+      const line = asFiniteNumber(outcome['point'], `HHR outcome[${outcomeIndex}].point`);
+      const lines = baselineLineSets.get(player) ?? new Set<number>();
+      lines.add(line);
+      baselineLineSets.set(player, lines);
+    }
+  }
+  const baselineLines = new Map(
+    [...baselineLineSets].map(([player, lines]) => [player, lines.size === 1 ? [...lines][0] : undefined]),
+  );
+  const seenOffers = new Set<string>();
+  markets.sort(({ market: left }, { market: right }) =>
+    left['key'] === right['key'] ? 0 : left['key'] === BATTER_HHR_BASELINE_PROVIDER_MARKET_KEY ? -1 : 1,
+  );
+  for (const { market, marketIndex } of markets) {
     const key = providerMarketKey(market['key']);
     const marketLastUpdate = asTimestamp(
       market['last_update'],
@@ -142,6 +167,14 @@ export function normalizeUnderdogBatterHhrCapture(
       if (line < 0) {
         throw new RangeError('HHR posted line must be non-negative.');
       }
+      const playerName = asString(
+        outcome['description'],
+        `HHR outcome[${outcomeIndex}].description`,
+      );
+      const side = selectedSide(outcome['name'], `HHR outcome[${outcomeIndex}].name`);
+      const offerKey = JSON.stringify([playerName, line, side]);
+      if (seenOffers.has(offerKey)) continue;
+      seenOffers.add(offerKey);
       normalized.push(
         Object.freeze({
           source: 'the-odds-api',
@@ -151,20 +184,11 @@ export function normalizeUnderdogBatterHhrCapture(
           commenceTime,
           homeTeam,
           awayTeam,
-          playerName: asString(
-            outcome['description'],
-            `HHR outcome[${outcomeIndex}].description`,
-          ),
+          playerName,
           providerMarketKey: key,
           baseMarketKey: BATTER_HHR_MARKET_KEY,
-          offerType:
-            key === BATTER_HHR_BASELINE_PROVIDER_MARKET_KEY
-              ? 'baseline'
-              : 'alternate',
-          selectedSide: selectedSide(
-            outcome['name'],
-            `HHR outcome[${outcomeIndex}].name`,
-          ),
+          offerType: baselineLines.get(playerName) === line ? 'baseline' : 'alternate',
+          selectedSide: side,
           line,
           price: asNullableNumber(
             outcome['price'],
