@@ -30,36 +30,40 @@ const PRODUCT_BOARD_LAYOUT_CSS = `
 .pick-title-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 9px 12px;
+  align-items: baseline;
+  gap: 6px 14px;
 }
-.pick-title-row .player-name { flex: 0 1 auto; }
-.pick-callout {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  border: 2px solid #486c8b;
-  border-radius: 8px;
-  padding: 5px 10px;
-  background: #0c1b28;
-  color: #f5f9fc;
-  font-size: .9rem;
+.pick-title-row .player-name {
+  flex: 0 0 auto;
+  font-size: 1.06rem;
   font-weight: 900;
-  letter-spacing: .025em;
+}
+.pick-callout {
+  display: inline;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  color: #f5f9fc;
+  font-size: 1.04rem;
+  font-weight: 900;
+  letter-spacing: .035em;
   line-height: 1.1;
   text-transform: uppercase;
   white-space: nowrap;
 }
 .pick-callout.higher {
-  border-color: #2f7462;
-  background: #0c211a;
-  color: #bfffe8;
+  border: 0;
+  background: transparent;
+  color: #8ff5d5;
 }
 .pick-callout.lower {
-  border-color: #805887;
-  background: #211427;
-  color: #f0c7f7;
+  border: 0;
+  background: transparent;
+  color: #f2c6fa;
 }
+.pick-source-hidden { display: none !important; }
 .pick-card-content {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
@@ -174,7 +178,7 @@ const PRODUCT_BOARD_LAYOUT_CSS = `
 }
 @media (max-width: 700px) {
   .pick-list > .pick-card { width: 100%; }
-  .pick-callout { font-size: .82rem; white-space: normal; }
+  .pick-callout { font-size: .94rem; white-space: normal; }
   .last-five-columns, .last-five-labels { gap: 4px; }
   .last-five-graph { width: 100%; padding-left: 7px; padding-right: 7px; }
   .last-five-bar { width: 28px; }
@@ -237,6 +241,9 @@ const PRODUCT_BOARD_LAYOUT_JS = `
     );
     identity.insertBefore(titleRow, playerName);
     titleRow.append(playerName, callout);
+    marketBadge.classList.add('pick-source-hidden');
+    sideChip.classList.add('pick-source-hidden');
+    lineChip.classList.add('pick-source-hidden');
   };
 
   const decoratePickIdentities = () => {
