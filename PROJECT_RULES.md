@@ -605,8 +605,8 @@ For a planned market without an implementation folder, the
 planned-market catalog owns and exports its keys.
 
 When implementation begins, ownership transfers from the planned-market
-catalog to the feature manifest in one commit, and the old declaration is
-removed in that same commit.
+catalog to the feature manifest in one commit, and the old declaration
+is removed in that same commit.
 
 No handwritten second copy is allowed.
 
@@ -1405,7 +1405,7 @@ There is no separate Project Knowledge deliverable.
     the target environment.
 -   Prohibited commands that place required work behind interactive
     installation, confirmation, authentication, package-manager, or
-environment prompts.
+    environment prompts.
 -   Required user-run commands to use verified installed tools, remain
     non-interactive, and be reduced to the smallest safe action.
 -   Prohibited large pasted scripts, heredocs, and fragile chained
@@ -1508,7 +1508,7 @@ environment prompts.
     their required mathematical families.
 -   Added detailed failure classification and repeated-failure
     structural escalation.
--   Prohibited daily caps and time estimates from controlling project
+-   Prohibited daily caps or time estimates from controlling project
     execution.
 
 ### Version 1.4 --- 2026-07-22
