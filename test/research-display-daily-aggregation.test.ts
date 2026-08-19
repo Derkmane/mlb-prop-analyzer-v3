@@ -8,11 +8,11 @@ import { createResearchDisplayArchiveRepository } from '../src/adapters/index.js
 import { readResearchProductBoardV2 } from '../src/application/index.js';
 
 const PREVIOUS_CAPTURE_KEY =
-  '20260818T230000000Z--aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+  '20260819T030000000Z--aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const EARLY_CAPTURE_KEY =
-  '20260819T140000000Z--bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+  '20260819T180000000Z--bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 const LATE_CAPTURE_KEY =
-  '20260819T150000000Z--cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc';
+  '20260820T010000000Z--cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc';
 
 interface TestRowInput {
   readonly providerGameId: number;
@@ -31,7 +31,7 @@ function displayRow(input: TestRowInput): Readonly<Record<string, unknown>> {
     teamName: 'Home Club',
     homeTeamName: 'Home Club',
     awayTeamName: 'Away Club',
-    eventCommenceTime: '2026-08-19T22:35:00.000Z',
+    eventCommenceTime: '2026-08-20T02:35:00.000Z',
     providerMarketKey: 'batter_hits',
     offerType: 'baseline',
     selectedSide: input.selectedSide,
@@ -77,7 +77,7 @@ async function writeDisplayArchive(
   );
 }
 
-test('research display combines the latest capture day and keeps the newest version of each prop', async () => {
+test('research display combines the latest Central slate day across UTC rollover and keeps the newest version of each prop', async () => {
   const rootDirectory = await mkdtemp(
     path.join(tmpdir(), 'research-display-daily-aggregation-'),
   );
@@ -85,8 +85,8 @@ test('research display combines the latest capture day and keeps the newest vers
   try {
     await writeDisplayArchive(rootDirectory, {
       captureKey: PREVIOUS_CAPTURE_KEY,
-      capturedAt: '2026-08-18T23:00:00.000Z',
-      captureDateUtc: '2026-08-18',
+      capturedAt: '2026-08-19T03:00:00.000Z',
+      captureDateUtc: '2026-08-19',
       rows: [
         displayRow({
           providerGameId: 9099,
@@ -99,7 +99,7 @@ test('research display combines the latest capture day and keeps the newest vers
     });
     await writeDisplayArchive(rootDirectory, {
       captureKey: EARLY_CAPTURE_KEY,
-      capturedAt: '2026-08-19T14:00:00.000Z',
+      capturedAt: '2026-08-19T18:00:00.000Z',
       captureDateUtc: '2026-08-19',
       rows: [
         displayRow({
@@ -120,8 +120,8 @@ test('research display combines the latest capture day and keeps the newest vers
     });
     await writeDisplayArchive(rootDirectory, {
       captureKey: LATE_CAPTURE_KEY,
-      capturedAt: '2026-08-19T15:00:00.000Z',
-      captureDateUtc: '2026-08-19',
+      capturedAt: '2026-08-20T01:00:00.000Z',
+      captureDateUtc: '2026-08-20',
       rows: [
         displayRow({
           providerGameId: 9001,
@@ -144,7 +144,7 @@ test('research display combines the latest capture day and keeps the newest vers
     const archive = await repository.readLatest('batter-hits');
     assert.ok(archive);
     assert.equal(archive.captureKey, LATE_CAPTURE_KEY);
-    assert.equal(archive.capturedAt, '2026-08-19T15:00:00.000Z');
+    assert.equal(archive.capturedAt, '2026-08-20T01:00:00.000Z');
     assert.equal(archive.rows.length, 3);
     assert.equal(
       archive.rows.some((row) => row.playerName === 'Previous Day Leader'),
