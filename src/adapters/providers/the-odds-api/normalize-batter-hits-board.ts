@@ -46,6 +46,7 @@ export interface OddsApiBatterHitsBoardInput {
   readonly sourceSnapshotSha256: string;
   readonly sourceCapturedAt: string;
   readonly playerIdentities: readonly unknown[];
+  readonly standardBookBaselineLinesByPlayer?: ReadonlyMap<string, number>;
 }
 
 export interface RejectedOddsApiBatterHitsOffer {
@@ -75,6 +76,18 @@ const sourceMetadataSchema = z
   })
   .strict();
 
+const standardBookEventSchema = z.object({
+  bookmakers: z.array(z.object({
+    markets: z.array(z.object({
+      key: z.string().min(1),
+      outcomes: z.array(z.object({
+        description: z.string().min(1),
+        point: z.number().finite().nonnegative(),
+      }).passthrough()),
+    }).passthrough()),
+  }).passthrough()),
+}).passthrough();
+
 function fail(
   code: OddsApiBatterHitsBoardErrorCode,
   message: string,
@@ -98,6 +111,39 @@ function offerTypeForLine(
   return baselineLinesByPlayer.get(playerDescription) === line
     ? 'baseline'
     : 'alternate';
+}
+
+export function deriveStandardBookBaselineLines(
+  rawEventSnapshot: unknown,
+  marketKey: 'batter_hits' | 'batter_hits_runs_rbis',
+): ReadonlyMap<string, number> {
+  const event = standardBookEventSchema.parse(rawEventSnapshot);
+  const counts = new Map<string, Map<number, number>>();
+  for (const bookmaker of event.bookmakers) {
+    const pointsByPlayer = new Map<string, Set<number>>();
+    for (const market of bookmaker.markets.filter((entry) => entry.key === marketKey)) {
+      for (const outcome of market.outcomes) {
+        const points = pointsByPlayer.get(outcome.description) ?? new Set<number>();
+        points.add(outcome.point);
+        pointsByPlayer.set(outcome.description, points);
+      }
+    }
+    for (const [player, points] of pointsByPlayer) {
+      for (const point of points) {
+        const playerCounts = counts.get(player) ?? new Map<number, number>();
+        playerCounts.set(point, (playerCounts.get(point) ?? 0) + 1);
+        counts.set(player, playerCounts);
+      }
+    }
+  }
+  const baselines = new Map<string, number>();
+  for (const [player, playerCounts] of counts) {
+    const sorted = [...playerCounts].sort((left, right) => right[1] - left[1]);
+    if (sorted[0] !== undefined && sorted[0][1] > (sorted[1]?.[1] ?? 0)) {
+      baselines.set(player, sorted[0][0]);
+    }
+  }
+  return baselines;
 }
 
 function selectedSideForRawSide(rawSide: string): 'higher' | 'lower' {
@@ -220,6 +266,9 @@ function normalizeTargetMarket(
         outcome.point,
         baselineLinesByPlayer,
       ),
+      offerTypeReason: baselineLinesByPlayer.get(outcome.description) != null
+        ? null
+        : 'NO_PLAYER_BASELINE',
       selectedSide,
       rawSide: outcome.name,
       line: outcome.point,
@@ -344,12 +393,25 @@ export function normalizeOddsApiBatterHitsBoard(
       baselineLineSets.set(outcome.description, lines);
     }
   }
-  const baselineLinesByPlayer = new Map<string, number | null>(
+  const underdogBaselineLinesByPlayer = new Map<string, number | null>(
     [...baselineLineSets].map(([player, lines]) => [
       player,
       lines.size === 1 ? [...lines][0]! : null,
     ]),
   );
+  const baselineLinesByPlayer = new Map<string, number | null>();
+  const players = new Set([
+    ...baselineLineSets.keys(),
+    ...(input.standardBookBaselineLinesByPlayer?.keys() ?? []),
+  ]);
+  for (const player of players) {
+    baselineLinesByPlayer.set(
+      player,
+      underdogBaselineLinesByPlayer.has(player)
+        ? underdogBaselineLinesByPlayer.get(player) ?? null
+        : input.standardBookBaselineLinesByPlayer?.get(player) ?? null,
+    );
+  }
 
   for (const market of targetMarkets) {
     normalizeTargetMarket(

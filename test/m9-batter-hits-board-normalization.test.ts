@@ -3,7 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { OddsApiBatterHitsBoardError } from '../src/adapters/index.js';
+import {
+  deriveStandardBookBaselineLines,
+  OddsApiBatterHitsBoardError,
+} from '../src/adapters/index.js';
 import { connectNormalizedBatterHitsBoard } from '../src/composition/index.js';
 import type { BatterHitsPlayerIdentity } from '../src/features/batter-hits/index.js';
 
@@ -120,6 +123,26 @@ function expectBoardError(
     return true;
   });
 }
+
+test('standard-book baseline derivation is isolated to the requested market key', () => {
+  const bookmaker = (key: string, point: number) => ({
+    key: `book-${point}`,
+    markets: [{ key, outcomes: [{ description: 'Market Split', point }] }],
+  });
+  const snapshot = {
+    bookmakers: [
+      bookmaker('batter_hits', 0.5),
+      bookmaker('batter_hits_runs_rbis', 1.5),
+      bookmaker('batter_hits_runs_rbis', 1.5),
+    ],
+  };
+
+  assert.equal(deriveStandardBookBaselineLines(snapshot, 'batter_hits').get('Market Split'), 0.5);
+  assert.equal(
+    deriveStandardBookBaselineLines(snapshot, 'batter_hits_runs_rbis').get('Market Split'),
+    1.5,
+  );
+});
 
 test('normalizes committed Underdog baseline and alternate offers with exact side and line identity', () => {
   const board = normalize();

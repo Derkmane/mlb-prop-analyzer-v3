@@ -43,6 +43,7 @@ export const normalizedBatterHitsBoardOfferSchema = z
     baseMarketKey: z.literal(BATTER_HITS_MARKET_KEY),
     providerMarketKey: z.enum(BATTER_HITS_PROVIDER_MARKET_KEYS),
     offerType: z.enum(BATTER_HITS_OFFER_TYPES),
+    offerTypeReason: z.literal('NO_PLAYER_BASELINE').nullable(),
     selectedSide: z.enum(SELECTED_SIDES),
     rawSide: z.enum(UNDERDOG_RAW_SELECTED_SIDES),
     line: z.number().finite().nonnegative(),

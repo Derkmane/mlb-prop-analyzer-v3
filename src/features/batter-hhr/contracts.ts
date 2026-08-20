@@ -121,6 +121,7 @@ export interface NormalizedBatterHhrOffer {
   readonly playerName: string;
   readonly providerMarketKey: 'batter_hits_runs_rbis' | 'batter_hits_runs_rbis_alternate';
   readonly baseMarketKey: typeof BATTER_HHR_MARKET_KEY; readonly offerType: 'baseline' | 'alternate';
+  readonly offerTypeReason: 'NO_PLAYER_BASELINE' | null;
   readonly selectedSide: SelectedSide; readonly line: number; readonly price: number | null;
   readonly multiplier: number | null; readonly providerSid: string | null;
   readonly marketLastUpdate: string; readonly sourceSnapshotSha256: string;

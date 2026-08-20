@@ -2,7 +2,10 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { fetchMlbStatsPostedLineup } from '../dist/src/adapters/index.js';
+import {
+  deriveStandardBookBaselineLines,
+  fetchMlbStatsPostedLineup,
+} from '../dist/src/adapters/index.js';
 import {
   buildBatterHhrDirectCompositeDistribution,
   normalizeUnderdogBatterHhrCapture,
@@ -349,6 +352,7 @@ const pregameEvents = sourceHits.value.pregameEvents.map(eventFromHits);
 
 const boardSnapshots = new Map();
 const totalSnapshots = new Map();
+const standardHhrSnapshots = new Map();
 for (const event of pregameEvents) {
   boardSnapshots.set(
     event.id,
@@ -362,6 +366,10 @@ for (const event of pregameEvents) {
   totalSnapshots.set(
     event.id,
     await fetchEventOdds(event.id, { markets: 'team_totals', regions: 'us' }),
+  );
+  standardHhrSnapshots.set(
+    event.id,
+    await fetchEventOdds(event.id, { markets: 'batter_hits_runs_rbis', regions: 'us' }),
   );
 }
 
@@ -382,6 +390,7 @@ const preGateDiagnostic = {
     ...event,
     hhrBoardSnapshotSha256: boardSnapshots.get(event.id).sha256,
     teamTotalsSnapshotSha256: totalSnapshots.get(event.id).sha256,
+    standardHhrSnapshotSha256: standardHhrSnapshots.get(event.id).sha256,
   })),
   thresholdsEvaluated: false,
 };
@@ -498,7 +507,11 @@ for (const game of resolvedGames) {
     }));
     continue;
   }
-  const offers = normalizeUnderdogBatterHhrCapture(capture);
+  const standardBookBaselineLines = deriveStandardBookBaselineLines(
+    standardHhrSnapshots.get(game.providerEventId).body,
+    'batter_hits_runs_rbis',
+  );
+  const offers = normalizeUnderdogBatterHhrCapture(capture, standardBookBaselineLines);
   offersByEventId.set(game.providerEventId, offers);
   const offeredNames = [...new Set(offers.map((offer) => offer.playerName))];
   const identityCapture = await capturePlayerIdentityLookups({
@@ -812,6 +825,7 @@ for (const game of resolvedGames) {
         providerTeamId: hitter.teamId,
         providerMarketKey: offer.providerMarketKey,
         offerType: offer.offerType,
+        offerTypeReason: offer.offerTypeReason,
         playerName,
         teamName,
         lineupStatus: hitter.lineupStatus,
@@ -844,6 +858,7 @@ for (const game of resolvedGames) {
           teamImpliedRunTotal: teamTotal,
           hhrBoardSnapshotSha256: boardSnapshot.sha256,
           teamTotalsSnapshotSha256: totals.sourceSha256,
+          standardHhrSnapshotSha256: standardHhrSnapshots.get(game.providerEventId).sha256,
         }),
       }));
     }
@@ -861,6 +876,7 @@ const sourceSet = {
   sourceHitsArchiveFileSha256: sourceHits.sha256,
   boardSnapshotSha256ByEvent: Object.fromEntries([...boardSnapshots.entries()].map(([eventId, value]) => [eventId, value.sha256])),
   teamTotalsSnapshotSha256ByEvent: Object.fromEntries([...totalSnapshots.entries()].map(([eventId, value]) => [eventId, value.sha256])),
+  standardHhrSnapshotSha256ByEvent: Object.fromEntries([...standardHhrSnapshots.entries()].map(([eventId, value]) => [eventId, value.sha256])),
   bdlGameSnapshotSha256ByDate: Object.fromEntries(gameQuerySnapshots.map((entry) => [entry.queryDateUtc, entry.snapshot.rawBodySha256])),
   bdlLineupsSnapshotSha256: lineupsSnapshot.sha256,
   bdlLineupsPageSha256: lineupsSnapshot.pageSha256,
