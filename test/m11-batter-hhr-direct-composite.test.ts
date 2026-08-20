@@ -47,6 +47,51 @@ function total(probabilities: readonly number[]) {
   return probabilities.reduce((sum, value) => sum + value, 0);
 }
 
+function baselineCapture(player: string, line: number, includeStandardKey = false) {
+  const market = (key: string, point: number) => ({
+    key,
+    last_update: '2026-08-19T20:00:00.000Z',
+    outcomes: [{ name: 'Over', description: player, point, price: -110, multiplier: 1.9, sid: null }],
+  });
+  return {
+    captureVersion: 1,
+    request: { provider: 'The Odds API', bookmaker: 'underdog', region: 'us_dfs', marketKeys: ['batter_hits_runs_rbis', 'batter_hits_runs_rbis_alternate'] },
+    sourceSnapshotSha256: 'c'.repeat(64),
+    response: {
+      id: 'event-standard-book-baseline', commence_time: '2026-08-19T23:00:00.000Z',
+      home_team: 'Home Team', away_team: 'Away Team',
+      bookmakers: [{ key: 'underdog', markets: [
+        ...(includeStandardKey ? [market('batter_hits_runs_rbis', 2.5)] : []),
+        market('batter_hits_runs_rbis_alternate', line),
+      ] }],
+    },
+  };
+}
+
+test('HHR uses a matching standard-book line when the player has no Underdog standard-key row', () => {
+  const [offer] = normalizeUnderdogBatterHhrCapture(baselineCapture('External Baseline', 1.5), new Map([['External Baseline', 1.5]]));
+  assert.equal(offer?.offerType, 'baseline');
+  assert.equal(offer?.offerTypeReason, null);
+});
+
+test('HHR calls a nonmatching standard-book line alternate when no Underdog standard-key row exists', () => {
+  const [offer] = normalizeUnderdogBatterHhrCapture(baselineCapture('External Alternate', 2.5), new Map([['External Alternate', 1.5]]));
+  assert.equal(offer?.offerType, 'alternate');
+  assert.equal(offer?.offerTypeReason, null);
+});
+
+test('HHR gives a player Underdog standard-key row precedence over the standard-book line', () => {
+  const offers = normalizeUnderdogBatterHhrCapture(baselineCapture('Underdog Wins', 1.5, true), new Map([['Underdog Wins', 1.5]]));
+  assert.equal(offers.find((offer) => offer.line === 2.5)?.offerType, 'baseline');
+  assert.equal(offers.find((offer) => offer.line === 1.5)?.offerType, 'alternate');
+});
+
+test('HHR records why a player absent from both baseline sources is alternate', () => {
+  const [offer] = normalizeUnderdogBatterHhrCapture(baselineCapture('No Baseline', 1.5));
+  assert.equal(offer?.offerType, 'alternate');
+  assert.equal(offer?.offerTypeReason, 'NO_PLAYER_BASELINE');
+});
+
 test('HHR artifact is one direct Family B offset fit using all seven inputs with production closed', async () => {
   const { model } = await evidence();
   const validated = validateBatterHhrDirectCompositeArtifact(model);

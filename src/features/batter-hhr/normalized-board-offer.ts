@@ -65,6 +65,7 @@ function providerMarketKey(value: unknown) {
 
 export function normalizeUnderdogBatterHhrCapture(
   captureInput: unknown,
+  standardBookBaselineLinesByPlayer: ReadonlyMap<string, number> = new Map(),
 ): readonly NormalizedBatterHhrOffer[] {
   const capture = asRecord(captureInput, 'HHR provider capture');
   if (capture['captureVersion'] !== 1) {
@@ -142,6 +143,9 @@ export function normalizeUnderdogBatterHhrCapture(
   const baselineLines = new Map(
     [...baselineLineSets].map(([player, lines]) => [player, lines.size === 1 ? [...lines][0] : undefined]),
   );
+  for (const [player, line] of standardBookBaselineLinesByPlayer) {
+    if (!baselineLines.has(player)) baselineLines.set(player, line);
+  }
   const seenOffers = new Set<string>();
   markets.sort(({ market: left }, { market: right }) =>
     left['key'] === right['key'] ? 0 : left['key'] === BATTER_HHR_BASELINE_PROVIDER_MARKET_KEY ? -1 : 1,
@@ -188,6 +192,7 @@ export function normalizeUnderdogBatterHhrCapture(
           providerMarketKey: key,
           baseMarketKey: BATTER_HHR_MARKET_KEY,
           offerType: baselineLines.get(playerName) === line ? 'baseline' : 'alternate',
+          offerTypeReason: baselineLines.get(playerName) !== undefined ? null : 'NO_PLAYER_BASELINE',
           selectedSide: side,
           line,
           price: asNullableNumber(

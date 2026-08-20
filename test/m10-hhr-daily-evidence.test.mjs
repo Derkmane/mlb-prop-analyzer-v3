@@ -239,12 +239,12 @@ test('HHR zero-bookmaker events exclude and continue while duplicate Underdog bo
     'const bookmakerAvailability = classifyHhrUnderdogBookmakerAvailability(capture);',
   );
   const normalizeIndex = captureScript.indexOf(
-    'const offers = normalizeUnderdogBatterHhrCapture(capture);',
+    'const offers = normalizeUnderdogBatterHhrCapture(capture, standardBookBaselineLines);',
   );
   assert.ok(classifyIndex >= 0 && normalizeIndex > classifyIndex);
   assert.match(
     captureScript,
-    /if \(bookmakerAvailability\.status === 'exclude'\) \{[\s\S]*reason: bookmakerAvailability\.reason,[\s\S]*continue;[\s\S]*const offers = normalizeUnderdogBatterHhrCapture\(capture\);/u,
+    /if \(bookmakerAvailability\.status === 'exclude'\) \{[\s\S]*reason: bookmakerAvailability\.reason,[\s\S]*continue;[\s\S]*const offers = normalizeUnderdogBatterHhrCapture\(capture, standardBookBaselineLines\);/u,
   );
   assert.match(
     captureScript,
@@ -452,6 +452,22 @@ test('HHR daily evidence scripts pass Node syntax checking', () => {
     const result = spawnSync(process.execPath, ['--check', scriptPath], { encoding: 'utf8' });
     assert.equal(result.status, 0, `${scriptPath}\n${result.stderr}`);
   }
+});
+
+test('HHR archiver requests standard-book HHR lines instead of Batter Hits lines', async () => {
+  const captureScript = await readFile('scripts/archive-m10-batter-hhr-board.mjs', 'utf8');
+  assert.match(
+    captureScript,
+    /standardHhrSnapshots\.set\([\s\S]*markets: 'batter_hits_runs_rbis', regions: 'us'/u,
+  );
+  assert.doesNotMatch(
+    captureScript,
+    /standardHhrSnapshots\.set\([\s\S]*markets: 'batter_hits', regions: 'us'/u,
+  );
+  assert.match(
+    captureScript,
+    /deriveStandardBookBaselineLines\([\s\S]*'batter_hits_runs_rbis'/u,
+  );
 });
 
 test('the committed Step 3 HHR archive bytes remain unchanged by daily evidence code', async () => {

@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 
 import { rankPredictionCandidates } from '../dist/src/application/index.js';
 import {
+  deriveStandardBookBaselineLines,
   fetchMlbStatsPostedLineup,
   loadFrozenBatterHitsProbabilityArtifactsFromFiles,
 } from '../dist/src/adapters/index.js';
@@ -1688,6 +1689,7 @@ export async function runM9ProspectiveBoardArchive({
     }
     for (const event of eventSelection.events) {
       let oddsSnapshot;
+      let standardHitsSnapshot;
       let rawOffers;
       try {
         const oddsUrl = new URL(
@@ -1706,6 +1708,20 @@ export async function runM9ProspectiveBoardArchive({
           requireNonemptyRecords: true,
         });
         providerSnapshots.push(oddsSnapshot);
+        const standardHitsUrl = new URL(
+          `https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${event.id}/odds`,
+        );
+        standardHitsUrl.searchParams.set('apiKey', oddsApiKey);
+        standardHitsUrl.searchParams.set('regions', 'us');
+        standardHitsUrl.searchParams.set('markets', 'batter_hits');
+        standardHitsUrl.searchParams.set('dateFormat', 'iso');
+        standardHitsUrl.searchParams.set('oddsFormat', 'american');
+        standardHitsSnapshot = await fetchOdds({
+          label: `Standard-book Batter Hits ${event.id}`,
+          url: standardHitsUrl,
+          requireNonemptyRecords: true,
+        });
+        providerSnapshots.push(standardHitsSnapshot);
         rawOffers = rawOfferSummary(oddsSnapshot.parsedBody);
       } catch (error) {
         exclusions.push({
@@ -1901,6 +1917,10 @@ export async function runM9ProspectiveBoardArchive({
         sourceSnapshotSha256: oddsSnapshot.rawBody.sha256,
         sourceCapturedAt: oddsSnapshot.capturedAt,
         playerIdentities: lineupResolution.identities,
+        standardBookBaselineLinesByPlayer: deriveStandardBookBaselineLines(
+          standardHitsSnapshot.parsedBody,
+          'batter_hits',
+        ),
         rawGamesSnapshot: gamesSnapshot.parsedBody,
         gameSourceSnapshotSha256: gamesSnapshot.rawBody.sha256,
         gameSourceCapturedAt: gamesSnapshot.capturedAt,
