@@ -7,6 +7,7 @@ export const SNAPSHOT_CONTRACT = 'm9-first-board-snapshot-v2';
 export const REPLAY_CONTRACT = 'm9-board-snapshot-replay-receipt-v2';
 export const CLAIMED_EVENT_IDS_ENV = 'M9_BOARD_CLAIMED_EVENT_IDS';
 const HITS_MARKETS = Object.freeze(['batter_hits', 'batter_hits_alternate']);
+const STANDARD_HITS_MARKETS = Object.freeze(['batter_hits']);
 const HHR_MARKETS = Object.freeze([
   'batter_hits_runs_rbis',
   'batter_hits_runs_rbis_alternate',
@@ -52,13 +53,20 @@ function publicRequest(url) {
   });
 }
 
-function eventOddsUrl(eventId, scheduleUrl, consumer) {
-  const url = new URL(
-    `https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${eventId}/odds`,
-  );
+function copyPrivateScheduleParams(scheduleUrl, url) {
   for (const [name, value] of scheduleUrl.searchParams.entries()) {
     if (!PUBLIC_QUERY_NAMES.has(name)) url.searchParams.set(name, value);
   }
+  return url;
+}
+
+function eventOddsUrl(eventId, scheduleUrl, consumer) {
+  const url = copyPrivateScheduleParams(
+    scheduleUrl,
+    new URL(
+      `https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${eventId}/odds`,
+    ),
+  );
   url.searchParams.set('bookmakers', 'underdog');
   url.searchParams.set(
     'markets',
@@ -69,6 +77,20 @@ function eventOddsUrl(eventId, scheduleUrl, consumer) {
   url.searchParams.set('oddsFormat', 'american');
   url.searchParams.set('includeMultipliers', 'true');
   url.searchParams.set('includeSids', 'true');
+  return url;
+}
+
+function standardHitsOddsUrl(eventId, scheduleUrl) {
+  const url = copyPrivateScheduleParams(
+    scheduleUrl,
+    new URL(
+      `https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${eventId}/odds`,
+    ),
+  );
+  url.searchParams.set('regions', 'us');
+  url.searchParams.set('markets', STANDARD_HITS_MARKETS.join(','));
+  url.searchParams.set('dateFormat', 'iso');
+  url.searchParams.set('oddsFormat', 'american');
   return url;
 }
 
@@ -119,10 +141,17 @@ function claimedPregameEvents(events, claimedGames, runStartMs) {
   );
 }
 
-async function captureOne(fetchImpl, url, requestKey, consumer, now) {
+async function captureOne(
+  fetchImpl,
+  url,
+  requestKey,
+  consumer,
+  now,
+  { requireOk = true } = {},
+) {
   const response = await fetchImpl(url);
   const bytes = Buffer.from(await response.clone().arrayBuffer());
-  if (!response.ok) {
+  if (requireOk && !response.ok) {
     throw new Error(`${requestKey} returned HTTP ${response.status}.`);
   }
   return Object.freeze({
@@ -141,6 +170,40 @@ async function captureOne(fetchImpl, url, requestKey, consumer, now) {
   });
 }
 
+async function captureOptionalStandardHits(
+  fetchImpl,
+  eventId,
+  scheduleUrl,
+  now,
+) {
+  const requestKey = `hits-standard:${eventId}`;
+  const url = standardHitsOddsUrl(eventId, scheduleUrl);
+  try {
+    return Object.freeze({
+      entry: await captureOne(
+        fetchImpl,
+        url,
+        requestKey,
+        'hits',
+        now,
+        { requireOk: false },
+      ),
+      failure: null,
+    });
+  } catch (error) {
+    return Object.freeze({
+      entry: null,
+      failure: Object.freeze({
+        requestKey,
+        consumer: 'hits',
+        request: publicRequest(url),
+        capturedAt: stamp(now),
+        reason: error instanceof Error ? error.message : String(error),
+      }),
+    });
+  }
+}
+
 export async function captureFirstBoardSnapshot({
   fetchImpl,
   archiveRoot,
@@ -156,6 +219,7 @@ export async function captureFirstBoardSnapshot({
 }) {
   const runStartMs = Date.parse(runStartedAt);
   const pregameEvents = claimedPregameEvents(events, claimedGames, runStartMs);
+  const auxiliaryFailures = [];
   const responses = [
     Object.freeze({
       requestKey: 'events',
@@ -183,6 +247,17 @@ export async function captureFirstBoardSnapshot({
         now,
       ),
     );
+    const standardHits = await captureOptionalStandardHits(
+      fetchImpl,
+      event.eventId,
+      scheduleUrl,
+      now,
+    );
+    if (standardHits.entry === null) {
+      auxiliaryFailures.push(standardHits.failure);
+    } else {
+      responses.push(standardHits.entry);
+    }
     responses.push(
       await captureOne(
         fetchImpl,
@@ -201,7 +276,10 @@ export async function captureFirstBoardSnapshot({
   );
   const identity = responses.map(({ bytes: _bytes, ...entry }) => entry);
   const snapshotSetSha256 = sha256Bytes(
-    Buffer.from(JSON.stringify(identity), 'utf8'),
+    Buffer.from(
+      JSON.stringify({ requests: identity, auxiliaryFailures }),
+      'utf8',
+    ),
   );
   const snapshotId = `${boardSnapshotCompletedAt.replace(/[-:.]/gu, '')}--${snapshotSetSha256}`;
   const directory = path.join(
@@ -232,6 +310,7 @@ export async function captureFirstBoardSnapshot({
     pregameEvents,
     replayEligibleEvents,
     claimedGames,
+    auxiliaryFailures: Object.freeze(auxiliaryFailures),
     requests: Object.freeze(
       identity.map((entry) =>
         Object.freeze({
@@ -263,6 +342,19 @@ function sameSet(actual, expected) {
   );
 }
 
+function exactPublicQuery(url, expected) {
+  const entries = [...url.searchParams.entries()].filter(([name]) =>
+    PUBLIC_QUERY_NAMES.has(name),
+  );
+  const expectedEntries = Object.entries(expected);
+  if (entries.length !== expectedEntries.length) return false;
+  return expectedEntries.every(
+    ([name, value]) =>
+      url.searchParams.getAll(name).length === 1 &&
+      url.searchParams.get(name) === value,
+  );
+}
+
 function replayKey(input) {
   const url = new URL(
     typeof input === 'string' || input instanceof URL ? input : input.url,
@@ -279,9 +371,24 @@ function replayKey(input) {
   );
   if (!match) return null;
   const markets = marketSet(url.searchParams.get('markets'));
+  const standardHitsControlled = sameSet(markets, STANDARD_HITS_MARKETS);
   const hitsControlled = HITS_MARKETS.some((key) => markets.has(key));
   const hhrControlled = HHR_MARKETS.some((key) => markets.has(key));
-  if (!hitsControlled && !hhrControlled) return null;
+  if (!standardHitsControlled && !hitsControlled && !hhrControlled) return null;
+
+  if (standardHitsControlled) {
+    if (
+      !exactPublicQuery(url, {
+        regions: 'us',
+        markets: 'batter_hits',
+        dateFormat: 'iso',
+        oddsFormat: 'american',
+      })
+    ) {
+      throw new Error('Standard-book Hits snapshot request contract drifted.');
+    }
+    return `hits-standard:${match[1]}`;
+  }
 
   if (hitsControlled) {
     if (!sameSet(markets, HITS_MARKETS)) {
@@ -320,6 +427,13 @@ function requiredKeys(manifest, consumer) {
   return keys.sort();
 }
 
+function optionalKeys(manifest, consumer) {
+  if (consumer !== 'hits') return [];
+  return manifest.replayEligibleEvents
+    .map((event) => `hits-standard:${event.eventId}`)
+    .sort();
+}
+
 export function publishClaimedEventScope(manifest) {
   if (!Array.isArray(manifest?.claimedGames) || manifest.claimedGames.length === 0) {
     throw new Error('Snapshot manifest must contain at least one claimed game.');
@@ -354,12 +468,14 @@ function installReplay() {
   publishClaimedEventScope(manifest);
 
   const expectedKeys = requiredKeys(manifest, consumer);
+  const optionalRequestKeys = optionalKeys(manifest, consumer);
+  const allowedKeys = new Set([...expectedKeys, ...optionalRequestKeys]);
   const byKey = new Map(
     manifest.requests
-      .filter((entry) => expectedKeys.includes(entry.requestKey))
+      .filter((entry) => allowedKeys.has(entry.requestKey))
       .map((entry) => [entry.requestKey, entry]),
   );
-  if (byKey.size !== expectedKeys.length) {
+  if (expectedKeys.some((key) => !byKey.has(key))) {
     throw new Error(`${consumer} snapshot is missing a required replay request.`);
   }
   const consumed = new Map();
@@ -369,10 +485,7 @@ function installReplay() {
     const rows = [...consumed.values()].sort((a, b) =>
       a.requestKey.localeCompare(b.requestKey),
     );
-    const consumedKeys = rows.map((row) => row.requestKey);
-    const complete =
-      consumedKeys.length === expectedKeys.length &&
-      consumedKeys.every((key, index) => key === expectedKeys[index]);
+    const complete = expectedKeys.every((key) => consumed.has(key));
     const receipt = {
       version: 2,
       contract: REPLAY_CONTRACT,
@@ -381,6 +494,7 @@ function installReplay() {
       snapshotSetSha256: manifest.snapshotSetSha256,
       complete,
       expectedRequestKeys: expectedKeys,
+      optionalRequestKeys,
       consumed: rows,
     };
     mkdirSync(path.dirname(receiptPath), { recursive: true });
