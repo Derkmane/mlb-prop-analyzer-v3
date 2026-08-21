@@ -1026,7 +1026,7 @@ export function resolvePostedLineupIdentity({
     const slot = battingOrder(row);
     if (
       row.game_id !== gameId ||
-      row.is_probable_pitcher === false === false ||
+      row.is_probable_pitcher !== false ||
       slot === null ||
       lineupPlayer(row, `current lineups[${index}]`).id !== playerId ||
       lineupTeam(row, `current lineups[${index}]`).id !== teamId
