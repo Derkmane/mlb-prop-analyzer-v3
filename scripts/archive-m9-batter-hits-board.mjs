@@ -485,6 +485,114 @@ function rawOfferSummary(rawOdds) {
   });
 }
 
+export async function captureM9BatterHitsEventOdds({
+  eventId,
+  oddsApiKey,
+  fetchOdds,
+  providerSnapshots,
+  funnel,
+}) {
+  const id = nonemptyString(eventId, 'eventId');
+  const oddsUrl = new URL(
+    `https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${id}/odds`,
+  );
+  oddsUrl.searchParams.set('apiKey', nonemptyString(oddsApiKey, 'oddsApiKey'));
+  oddsUrl.searchParams.set('bookmakers', 'underdog');
+  oddsUrl.searchParams.set('markets', TARGET_MARKETS.join(','));
+  oddsUrl.searchParams.set('dateFormat', 'iso');
+  oddsUrl.searchParams.set('oddsFormat', 'american');
+  oddsUrl.searchParams.set('includeMultipliers', 'true');
+  oddsUrl.searchParams.set('includeSids', 'true');
+
+  let oddsSnapshot;
+  let rawOffers;
+  try {
+    oddsSnapshot = await fetchOdds({
+      label: `Underdog Batter Hits ${id}`,
+      url: oddsUrl,
+      requireNonemptyRecords: true,
+    });
+    providerSnapshots.push(oddsSnapshot);
+    rawOffers = rawOfferSummary(oddsSnapshot.parsedBody);
+  } catch (error) {
+    return Object.freeze({
+      status: 'failed-closed',
+      exclusion: Object.freeze({
+        providerEventId: id,
+        reason: 'EVENT_ODDS_FAILED_CLOSED',
+        detail: error instanceof Error ? error.message : String(error),
+      }),
+    });
+  }
+
+  funnel.add('rawOffers', {
+    entered: rawOffers.count,
+    survived: rawOffers.count,
+  });
+  if (rawOffers.count === 0) {
+    return Object.freeze({
+      status: 'no-offers',
+      exclusion: Object.freeze({
+        providerEventId: id,
+        reason: 'NO_BATTER_HITS_OFFERS',
+      }),
+    });
+  }
+
+  const standardHitsUrl = new URL(
+    `https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${id}/odds`,
+  );
+  standardHitsUrl.searchParams.set('apiKey', oddsApiKey);
+  standardHitsUrl.searchParams.set('regions', 'us');
+  standardHitsUrl.searchParams.set('markets', 'batter_hits');
+  standardHitsUrl.searchParams.set('dateFormat', 'iso');
+  standardHitsUrl.searchParams.set('oddsFormat', 'american');
+
+  let standardHitsSnapshot = null;
+  let standardBookBaselineLinesByPlayer;
+  let baselineReason = 'STANDARD_BOOK_UNAVAILABLE';
+  let baselineDetail = null;
+  try {
+    standardHitsSnapshot = await fetchOdds({
+      label: `Standard-book Batter Hits ${id}`,
+      url: standardHitsUrl,
+      requireNonemptyRecords: true,
+    });
+    providerSnapshots.push(standardHitsSnapshot);
+    const baselineLines = deriveStandardBookBaselineLines(
+      standardHitsSnapshot.parsedBody,
+      'batter_hits',
+    );
+    if (baselineLines.size > 0) {
+      standardBookBaselineLinesByPlayer = baselineLines;
+      baselineReason = 'STANDARD_BOOK_BASELINE_AVAILABLE';
+    } else {
+      baselineDetail =
+        'Standard-book Batter Hits response produced no unique player baseline lines.';
+    }
+  } catch (error) {
+    baselineDetail = error instanceof Error ? error.message : String(error);
+  }
+
+  return Object.freeze({
+    status: 'ready',
+    exclusion: null,
+    oddsSnapshot,
+    rawOffers,
+    standardHitsSnapshot,
+    standardBookBaselineLinesByPlayer,
+    baselineEvidence: Object.freeze({
+      providerEventId: id,
+      baselineReason,
+      baselineDetail,
+      standardBookBaselinePlayerCount:
+        standardBookBaselineLinesByPlayer?.size ?? 0,
+      standardBookSnapshotSha256:
+        standardHitsSnapshot?.rawBody?.sha256 ?? null,
+    }),
+  });
+}
+
 function offerCountForNames(summary, playerNames) {
   return playerNames.reduce(
     (total, playerName) => total + (summary.countsByPlayer.get(playerName) ?? 0),
@@ -918,7 +1026,7 @@ export function resolvePostedLineupIdentity({
     const slot = battingOrder(row);
     if (
       row.game_id !== gameId ||
-      row.is_probable_pitcher !== false ||
+      row.is_probable_pitcher === false === false ||
       slot === null ||
       lineupPlayer(row, `current lineups[${index}]`).id !== playerId ||
       lineupTeam(row, `current lineups[${index}]`).id !== teamId
@@ -1618,6 +1726,7 @@ export async function runM9ProspectiveBoardArchive({
     const candidateEvaluations = [];
     const exclusions = [];
     const environmentEvidence = [];
+    const standardBookBaselineEvidence = [];
     const displayPlayerByKey = new Map();
     const playerLookupDiagnosticState = { printed: 0 };
 
@@ -1688,61 +1797,23 @@ export async function runM9ProspectiveBoardArchive({
       );
     }
     for (const event of eventSelection.events) {
-      let oddsSnapshot;
-      let standardHitsSnapshot;
-      let rawOffers;
-      try {
-        const oddsUrl = new URL(
-          `https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${event.id}/odds`,
-        );
-        oddsUrl.searchParams.set('apiKey', oddsApiKey);
-        oddsUrl.searchParams.set('bookmakers', 'underdog');
-        oddsUrl.searchParams.set('markets', TARGET_MARKETS.join(','));
-        oddsUrl.searchParams.set('dateFormat', 'iso');
-        oddsUrl.searchParams.set('oddsFormat', 'american');
-        oddsUrl.searchParams.set('includeMultipliers', 'true');
-        oddsUrl.searchParams.set('includeSids', 'true');
-        oddsSnapshot = await fetchOdds({
-          label: `Underdog Batter Hits ${event.id}`,
-          url: oddsUrl,
-          requireNonemptyRecords: true,
-        });
-        providerSnapshots.push(oddsSnapshot);
-        const standardHitsUrl = new URL(
-          `https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${event.id}/odds`,
-        );
-        standardHitsUrl.searchParams.set('apiKey', oddsApiKey);
-        standardHitsUrl.searchParams.set('regions', 'us');
-        standardHitsUrl.searchParams.set('markets', 'batter_hits');
-        standardHitsUrl.searchParams.set('dateFormat', 'iso');
-        standardHitsUrl.searchParams.set('oddsFormat', 'american');
-        standardHitsSnapshot = await fetchOdds({
-          label: `Standard-book Batter Hits ${event.id}`,
-          url: standardHitsUrl,
-          requireNonemptyRecords: true,
-        });
-        providerSnapshots.push(standardHitsSnapshot);
-        rawOffers = rawOfferSummary(oddsSnapshot.parsedBody);
-      } catch (error) {
-        exclusions.push({
-          providerEventId: event.id,
-          reason: 'EVENT_ODDS_FAILED_CLOSED',
-          detail: error instanceof Error ? error.message : String(error),
-        });
-        continue;
-      }
-
-      funnel.add('rawOffers', {
-        entered: rawOffers.count,
-        survived: rawOffers.count,
+      const eventOdds = await captureM9BatterHitsEventOdds({
+        eventId: event.id,
+        oddsApiKey,
+        fetchOdds,
+        providerSnapshots,
+        funnel,
       });
-      if (rawOffers.count === 0) {
-        exclusions.push({
-          providerEventId: event.id,
-          reason: 'NO_BATTER_HITS_OFFERS',
-        });
+      if (eventOdds.status !== 'ready') {
+        exclusions.push(eventOdds.exclusion);
         continue;
       }
+      const {
+        oddsSnapshot,
+        rawOffers,
+        standardBookBaselineLinesByPlayer,
+      } = eventOdds;
+      standardBookBaselineEvidence.push(eventOdds.baselineEvidence);
 
       funnel.add('matchedGameOffers', { entered: rawOffers.count });
       const gameResolution = resolveExactBallDontLieGameMatch({
@@ -1917,10 +1988,7 @@ export async function runM9ProspectiveBoardArchive({
         sourceSnapshotSha256: oddsSnapshot.rawBody.sha256,
         sourceCapturedAt: oddsSnapshot.capturedAt,
         playerIdentities: lineupResolution.identities,
-        standardBookBaselineLinesByPlayer: deriveStandardBookBaselineLines(
-          standardHitsSnapshot.parsedBody,
-          'batter_hits',
-        ),
+        standardBookBaselineLinesByPlayer,
         rawGamesSnapshot: gamesSnapshot.parsedBody,
         gameSourceSnapshotSha256: gamesSnapshot.rawBody.sha256,
         gameSourceCapturedAt: gamesSnapshot.capturedAt,
@@ -2159,6 +2227,9 @@ export async function runM9ProspectiveBoardArchive({
         productionRegistryUnchanged: true,
         historicalGameEnvironment: histories.evidence,
         gameEnvironmentInputs: Object.freeze(environmentEvidence),
+        standardBookBaselineEvidence: Object.freeze(
+          standardBookBaselineEvidence,
+        ),
       }),
     });
     const archive = attachPhase2DisplayEnrichment(baseArchive, displayEnrichment);
