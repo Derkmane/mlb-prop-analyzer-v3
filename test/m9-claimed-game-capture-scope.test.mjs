@@ -59,12 +59,12 @@ test('first snapshot and Hits event selection are restricted to controller-claim
   const gameC = normalizedEvent('game-c', 300);
   const events = [gameA, gameB, gameC];
   const scheduleBytes = Buffer.from(JSON.stringify(events.map(rawEvent)), 'utf8');
-  const requestedEventIds = [];
+  const requestedUrls = [];
   const fakeFetch = async (input) => {
     const url = new URL(input);
     const match = url.pathname.match(/\/events\/([^/]+)\/odds$/u);
     assert.ok(match, `unexpected snapshot fetch ${url}`);
-    requestedEventIds.push(match[1]);
+    requestedUrls.push(url);
     return new Response(JSON.stringify({ id: match[1], bookmakers: [] }), {
       status: 200,
       headers: { 'content-type': 'application/json' },
@@ -74,6 +74,7 @@ test('first snapshot and Hits event selection are restricted to controller-claim
     '2026-08-17T16:00:01.000Z',
     '2026-08-17T16:00:02.000Z',
     '2026-08-17T16:00:03.000Z',
+    '2026-08-17T16:00:04.000Z',
   ];
   const snapshot = await captureFirstBoardSnapshot({
     fetchImpl: fakeFetch,
@@ -91,13 +92,23 @@ test('first snapshot and Hits event selection are restricted to controller-claim
     scheduleCapturedAt: RUN,
     events,
     claimedGames: [claimed(gameA)],
-    now: () => stamps.shift() ?? '2026-08-17T16:00:03.000Z',
+    now: () => stamps.shift() ?? '2026-08-17T16:00:04.000Z',
   });
 
-  assert.deepEqual(requestedEventIds, ['game-a', 'game-a']);
+  assert.deepEqual(
+    requestedUrls.map((url) => url.pathname.match(/\/events\/([^/]+)\/odds$/u)[1]),
+    ['game-a', 'game-a', 'game-a'],
+  );
+  const standardHitsUrl = requestedUrls.find(
+    (url) =>
+      url.searchParams.get('regions') === 'us' &&
+      url.searchParams.get('markets') === 'batter_hits',
+  );
+  assert.ok(standardHitsUrl);
+  assert.equal(standardHitsUrl.searchParams.has('bookmakers'), false);
   assert.deepEqual(
     snapshot.manifest.requests.map((entry) => entry.requestKey),
-    ['events', 'hits:game-a', 'hhr:game-a'],
+    ['events', 'hits:game-a', 'hits-standard:game-a', 'hhr:game-a'],
   );
   assert.deepEqual(
     snapshot.manifest.pregameEvents.map((event) => event.eventId),
