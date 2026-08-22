@@ -8,6 +8,7 @@ export const REPLAY_CONTRACT = 'm9-board-snapshot-replay-receipt-v2';
 export const CLAIMED_EVENT_IDS_ENV = 'M9_BOARD_CLAIMED_EVENT_IDS';
 const HITS_MARKETS = Object.freeze(['batter_hits', 'batter_hits_alternate']);
 const STANDARD_HITS_MARKETS = Object.freeze(['batter_hits']);
+const STANDARD_HHR_MARKETS = Object.freeze(['batter_hits_runs_rbis']);
 const HHR_MARKETS = Object.freeze([
   'batter_hits_runs_rbis',
   'batter_hits_runs_rbis_alternate',
@@ -372,6 +373,15 @@ function replayKey(input) {
   if (!match) return null;
   const markets = marketSet(url.searchParams.get('markets'));
   const standardHitsControlled = sameSet(markets, STANDARD_HITS_MARKETS);
+  const standardHhrAuxiliary =
+    sameSet(markets, STANDARD_HHR_MARKETS) &&
+    exactPublicQuery(url, {
+      regions: 'us',
+      markets: 'batter_hits_runs_rbis',
+      dateFormat: 'iso',
+      oddsFormat: 'american',
+    });
+  if (standardHhrAuxiliary) return null;
   const hitsControlled = HITS_MARKETS.some((key) => markets.has(key));
   const hhrControlled = HHR_MARKETS.some((key) => markets.has(key));
   if (!standardHitsControlled && !hitsControlled && !hhrControlled) return null;
