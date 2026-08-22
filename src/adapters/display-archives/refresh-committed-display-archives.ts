@@ -59,7 +59,13 @@ function capturePathForMarket(value: unknown, market: DisplayMarket): string | n
   return CAPTURE_FILE.test(filename) ? rawPath : null;
 }
 
-function latestCapturePaths(treePayload: unknown): Readonly<Record<DisplayMarket, string>> {
+function captureDateFromPath(remotePath: string): string {
+  return path.posix.basename(remotePath).slice(0, 8);
+}
+
+function newestDayCapturePaths(
+  treePayload: unknown,
+): Readonly<Record<DisplayMarket, readonly string[]>> {
   if (!isRecord(treePayload) || !Array.isArray(treePayload['tree'])) {
     throw new Error('GitHub display-archive tree response is malformed.');
   }
@@ -72,16 +78,20 @@ function latestCapturePaths(treePayload: unknown): Readonly<Record<DisplayMarket
       if (capturePath !== null) pathsByMarket[market].push(capturePath);
     }
   }
-  const latest = {} as Record<DisplayMarket, string>;
+
+  const newestDay = {} as Record<DisplayMarket, readonly string[]>;
   for (const market of MARKETS) {
     const candidates = pathsByMarket[market].sort().reverse();
-    const pathValue = candidates[0];
-    if (pathValue === undefined) {
+    const newestPath = candidates[0];
+    if (newestPath === undefined) {
       throw new Error(`No committed ${market} display archive is available on main.`);
     }
-    latest[market] = pathValue;
+    const newestDate = captureDateFromPath(newestPath);
+    newestDay[market] = Object.freeze(
+      candidates.filter((candidate) => captureDateFromPath(candidate) === newestDate),
+    );
   }
-  return Object.freeze(latest);
+  return Object.freeze(newestDay);
 }
 
 function validateFetchedArchive(bytes: string, market: DisplayMarket, remotePath: string): void {
@@ -140,29 +150,30 @@ export function createCommittedDisplayArchiveRefresher(
     if (!treeResponse.ok) {
       throw new Error(`Unable to refresh current display board from GitHub tree: HTTP ${treeResponse.status}.`);
     }
-    const capturePaths = latestCapturePaths(await treeResponse.json());
+    const capturePaths = newestDayCapturePaths(await treeResponse.json());
 
-    await Promise.all(MARKETS.map(async (market) => {
-      const remotePath = capturePaths[market];
-      const rawUrl = `https://raw.githubusercontent.com/${AUTHORIZED_REPOSITORY}/${AUTHORIZED_BRANCH}/${remotePath}`;
-      const response = await fetchImpl(rawUrl, {
-        headers,
-        cache: 'no-store',
-      });
-      if (!response.ok) {
-        throw new Error(`Unable to refresh current ${market} display archive: HTTP ${response.status}.`);
-      }
-      const bytes = await response.text();
-      validateFetchedArchive(bytes, market, remotePath);
-      const persistedIdentity = persistedIdentityForMarket(market);
-      const destination = path.join(
-        rootDirectory,
-        persistedIdentity,
-        'captures',
-        path.posix.basename(remotePath),
-      );
-      await atomicWrite(destination, bytes);
-    }));
+    await Promise.all(MARKETS.flatMap((market) =>
+      capturePaths[market].map(async (remotePath) => {
+        const rawUrl = `https://raw.githubusercontent.com/${AUTHORIZED_REPOSITORY}/${AUTHORIZED_BRANCH}/${remotePath}`;
+        const response = await fetchImpl(rawUrl, {
+          headers,
+          cache: 'no-store',
+        });
+        if (!response.ok) {
+          throw new Error(`Unable to refresh current ${market} display archive: HTTP ${response.status}.`);
+        }
+        const bytes = await response.text();
+        validateFetchedArchive(bytes, market, remotePath);
+        const persistedIdentity = persistedIdentityForMarket(market);
+        const destination = path.join(
+          rootDirectory,
+          persistedIdentity,
+          'captures',
+          path.posix.basename(remotePath),
+        );
+        await atomicWrite(destination, bytes);
+      }),
+    ));
   }
 
   return async function refreshCommittedDisplayArchives(): Promise<void> {
