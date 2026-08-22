@@ -9,7 +9,7 @@ import { verifyDeploymentDisplayFreshness } from '../scripts/verify-deployment-d
 const NOW = new Date('2026-08-22T15:15:00.000Z');
 
 function filename(capturedAt, fill) {
-  const stamp = capturedAt.replace(/[-:.]/gu, '').replace('Z', 'Z').slice(0, 17);
+  const stamp = capturedAt.replace(/[-:.]/gu, '');
   return `${stamp}--${fill.repeat(64)}.json`;
 }
 
