@@ -39,6 +39,17 @@ test('2026-08-22 user-supplied RotoWire transcription is a valid full-slate proj
     lineupSlot: 7,
   });
 
+  const metsGame = resolved.games.find(
+    (game) => game.awayTeamName === 'New York Mets',
+  );
+  assert.ok(metsGame);
+  const mets = metsGame.teams.find((team) => team.teamName === 'New York Mets');
+  assert.ok(mets);
+  assert.deepEqual(mets.players[8], {
+    sourcePlayerLabel: 'M. Semien',
+    lineupSlot: 9,
+  });
+
   const padresGame = resolved.games.find(
     (game) => game.homeTeamName === 'San Diego Padres',
   );
