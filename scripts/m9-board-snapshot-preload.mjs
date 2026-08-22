@@ -320,7 +320,7 @@ export async function captureFirstBoardSnapshot({
             ...entry.response,
             bodyFile: `raw/${entry.response.sha256}.json`,
           }),
-        }),
+        ),
       ),
     ),
   });
@@ -449,10 +449,10 @@ export function publishClaimedEventScope(manifest) {
     throw new Error('Snapshot manifest must contain at least one claimed game.');
   }
   const eventIds = manifest.claimedGames.map((game, index) => {
-    if (typeof game?.eventId !== 'string' || eventId.length === 0) {
+    if (typeof game?.eventId !== 'string' || game.eventId.length === 0) {
       throw new Error(`Snapshot claimed game ${index} has no event ID.`);
     }
-    return eventId;
+    return game.eventId;
   });
   if (new Set(eventIds).size !== eventIds.length) {
     throw new Error('Snapshot claimed event IDs must be unique.');
