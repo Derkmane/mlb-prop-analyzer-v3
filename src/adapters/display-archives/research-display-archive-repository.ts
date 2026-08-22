@@ -338,7 +338,32 @@ async function readLatestFromDirectory(
   if (names.length === 0) return null;
 
   const newestName = names[0] as string;
-  return (await readArchiveFile(directory, newestName, market)).archive;
+  const newestCaptureDate = captureFilenameDate(newestName);
+  const sameDayNames = names.filter(
+    (name) => captureFilenameDate(name) === newestCaptureDate,
+  );
+  const loaded = await Promise.all(
+    sameDayNames.map((name) => readArchiveFile(directory, name, market)),
+  );
+  const newestArchive = loaded[0]?.archive;
+  if (newestArchive === undefined) return null;
+
+  const claimedGameIds = new Set<number>();
+  const rows: ResearchDisplayRow[] = [];
+  for (const { archive } of loaded) {
+    const captureGameIds = new Set(
+      archive.rows.map((row) => row.providerGameId),
+    );
+    for (const row of archive.rows) {
+      if (!claimedGameIds.has(row.providerGameId)) rows.push(row);
+    }
+    for (const gameId of captureGameIds) claimedGameIds.add(gameId);
+  }
+
+  return Object.freeze({
+    ...newestArchive,
+    rows: Object.freeze(rows),
+  });
 }
 
 export function createResearchDisplayArchiveRepository(
