@@ -2,14 +2,19 @@ import { mkdir, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import {
+  RESEARCH_BATTER_HHR_MARKET,
   RESEARCH_DISPLAY_MARKETS,
   type ResearchDisplayMarket,
 } from '../../application/research-display-archive.js';
+import { HHR_DISPLAY_ARCHIVE_ROOT } from './hhr-display-archive-repository.js';
 
 const AUTHORIZED_REPOSITORY = 'Derkmane/mlb-prop-analyzer-v3' as const;
 const AUTHORIZED_BRANCH = 'main' as const;
 const DISPLAY_ROOT = 'artifacts/display-archives' as const;
 const MARKETS = RESEARCH_DISPLAY_MARKETS;
+const HHR_DISPLAY_ARCHIVE_DIRECTORY = path.basename(
+  path.dirname(HHR_DISPLAY_ARCHIVE_ROOT),
+);
 const CAPTURE_FILE = /^\d{8}T\d{9}Z--[a-f0-9]{64}\.json$/u;
 const DEFAULT_REFRESH_INTERVAL_MS = 60_000;
 
@@ -37,11 +42,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+function persistedIdentityForMarket(market: DisplayMarket): string {
+  return market === RESEARCH_BATTER_HHR_MARKET
+    ? HHR_DISPLAY_ARCHIVE_DIRECTORY
+    : market;
+}
+
 function capturePathForMarket(value: unknown, market: DisplayMarket): string | null {
   if (!isRecord(value)) return null;
   const rawPath = value['path'];
   if (typeof rawPath !== 'string') return null;
-  const prefix = `${DISPLAY_ROOT}/${market}/captures/`;
+  const persistedIdentity = persistedIdentityForMarket(market);
+  const prefix = `${DISPLAY_ROOT}/${persistedIdentity}/captures/`;
   if (!rawPath.startsWith(prefix)) return null;
   const filename = rawPath.slice(prefix.length);
   return CAPTURE_FILE.test(filename) ? rawPath : null;
@@ -79,7 +91,7 @@ function validateFetchedArchive(bytes: string, market: DisplayMarket, remotePath
   } catch {
     throw new Error(`Newest committed ${market} display archive is malformed JSON.`);
   }
-  if (!isRecord(parsed) || parsed['market'] !== market) {
+  if (!isRecord(parsed) || parsed['market'] !== persistedIdentityForMarket(market)) {
     throw new Error(`Newest committed ${market} display archive has the wrong market identity.`);
   }
   const filename = path.posix.basename(remotePath);
@@ -133,13 +145,22 @@ export function createCommittedDisplayArchiveRefresher(
     await Promise.all(MARKETS.map(async (market) => {
       const remotePath = capturePaths[market];
       const rawUrl = `https://raw.githubusercontent.com/${AUTHORIZED_REPOSITORY}/${AUTHORIZED_BRANCH}/${remotePath}`;
-      const response = await fetchImpl(rawUrl, { cache: 'no-store' });
+      const response = await fetchImpl(rawUrl, {
+        headers,
+        cache: 'no-store',
+      });
       if (!response.ok) {
         throw new Error(`Unable to refresh current ${market} display archive: HTTP ${response.status}.`);
       }
       const bytes = await response.text();
       validateFetchedArchive(bytes, market, remotePath);
-      const destination = path.join(rootDirectory, market, 'captures', path.posix.basename(remotePath));
+      const persistedIdentity = persistedIdentityForMarket(market);
+      const destination = path.join(
+        rootDirectory,
+        persistedIdentity,
+        'captures',
+        path.posix.basename(remotePath),
+      );
       await atomicWrite(destination, bytes);
     }));
   }
