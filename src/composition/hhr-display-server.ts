@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  createCommittedDisplayArchiveRefresher,
   createHhrCumulativeDisplayEvidenceRepository,
   createHhrDisplayAppHttpHandler,
   createHhrDisplayArchiveRepository,
@@ -52,22 +53,31 @@ export interface HhrDisplayAppServerOptions {
   readonly repository?: HhrDisplayArchiveRepository;
   readonly cumulativeRepository?: HhrCumulativeDisplayEvidenceRepository;
   readonly researchRepository?: ResearchDisplayArchiveRepository;
+  readonly refreshDisplayArchives?: () => Promise<void>;
   readonly sessionToken?: string;
 }
 
-/** Deployable composition: committed archives -> password-gated read-only product UI/API. */
+/** Deployable composition: current committed archives -> password-gated read-only product UI/API. */
 export function createHhrDisplayAppServer(options: HhrDisplayAppServerOptions): Server {
   const repository = options.repository ?? createHhrDisplayArchiveRepository();
   const cumulativeRepository = options.cumulativeRepository ??
     createHhrCumulativeDisplayEvidenceRepository();
   const researchRepository = options.researchRepository ??
     createResearchDisplayArchiveRepository();
-  const readBoard = () =>
-    readLatestHhrDisplayUiBoard(
+  const usesDefaultDisplayRepositories =
+    options.repository === undefined && options.researchRepository === undefined;
+  const refreshDisplayArchives = options.refreshDisplayArchives ??
+    (usesDefaultDisplayRepositories
+      ? createCommittedDisplayArchiveRefresher()
+      : async () => undefined);
+  const readBoard = async () => {
+    await refreshDisplayArchives();
+    return readLatestHhrDisplayUiBoard(
       repository,
       cumulativeRepository,
       researchRepository,
     );
+  };
   const handler = options.sessionToken === undefined
     ? createHhrDisplayAppHttpHandler({ readBoard, password: options.password })
     : createHhrDisplayAppHttpHandler({
