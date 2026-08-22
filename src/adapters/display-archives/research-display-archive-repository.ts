@@ -12,6 +12,7 @@ import {
   type ResearchOfferType,
   type ResearchSelectedSide,
 } from '../../application/research-display-archive.js';
+import { HHR_DISPLAY_ARCHIVE_ROOT } from './hhr-display-archive-repository.js';
 
 export type {
   ResearchAnalysisContext,
@@ -34,6 +35,9 @@ const AUTHORIZED_RESEARCH_IDENTITIES = Object.freeze({
   }),
 } satisfies Record<ResearchDisplayMarket, Readonly<Record<string, string>>>);
 
+const HHR_DISPLAY_ARCHIVE_DIRECTORY = path.basename(
+  path.dirname(HHR_DISPLAY_ARCHIVE_ROOT),
+);
 const CAPTURE_PATTERN = /^\d{8}T\d{9}Z--[a-f0-9]{64}\.json$/u;
 const CAPTURE_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
 
@@ -227,6 +231,12 @@ function normalizeRow(
   });
 }
 
+function persistedIdentityForMarket(market: ResearchDisplayMarket): string {
+  return market === RESEARCH_BATTER_HHR_MARKET
+    ? HHR_DISPLAY_ARCHIVE_DIRECTORY
+    : market;
+}
+
 function verifyArchiveIdentity(
   market: ResearchDisplayMarket,
   archive: Record<string, unknown>,
@@ -234,7 +244,7 @@ function verifyArchiveIdentity(
   if (
     archive['displayArchiveVersion'] !== 1 ||
     archive['displayArchiveContract'] !== 'phase1-trimmed-board-display-v1' ||
-    archive['market'] !== market
+    archive['market'] !== persistedIdentityForMarket(market)
   ) {
     throw new Error(`${market} display archive contract is unsupported.`);
   }
@@ -301,7 +311,11 @@ async function readLatestFromDirectory(
   rootDirectory: string,
   market: ResearchDisplayMarket,
 ): Promise<ResearchDisplayArchive | null> {
-  const directory = path.join(rootDirectory, market, 'captures');
+  const directory = path.join(
+    rootDirectory,
+    persistedIdentityForMarket(market),
+    'captures',
+  );
   let entries;
   try {
     entries = await readdir(directory, { withFileTypes: true });
