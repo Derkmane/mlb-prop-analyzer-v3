@@ -4,7 +4,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { createResearchDisplayArchiveRepository } from '../src/adapters/index.js';
+import {
+  createResearchDisplayArchiveRepository,
+  HHR_DISPLAY_ARCHIVE_ROOT,
+} from '../src/adapters/index.js';
 import { BATTER_HHR_MARKET_KEY } from '../src/features/batter-hhr/manifest.js';
 
 const HASH_A = 'a'.repeat(64);
@@ -13,6 +16,9 @@ const HASH_C = 'c'.repeat(64);
 
 const MODEL_VERSION = 'm11-batter-hhr-direct-composite-v2';
 const DISTRIBUTION_BUILDER_VERSION = 'm11-batter-hhr-negative-binomial-v1';
+const PERSISTED_HHR_DISPLAY_IDENTITY = path.basename(
+  path.dirname(HHR_DISPLAY_ARCHIVE_ROOT),
+);
 
 function row(input: Readonly<{
   eventId: string;
@@ -60,7 +66,7 @@ function archive(input: Readonly<{
   return Object.freeze({
     displayArchiveVersion: 1,
     displayArchiveContract: 'phase1-trimmed-board-display-v1',
-    market: BATTER_HHR_MARKET_KEY,
+    market: PERSISTED_HHR_DISPLAY_IDENTITY,
     captureKey: input.captureKey,
     capturedAt: input.capturedAt,
     captureDateUtc: input.captureDateUtc,
@@ -76,7 +82,11 @@ async function persistCapture(
   rootDirectory: string,
   capture: ReturnType<typeof archive>,
 ): Promise<void> {
-  const directory = path.join(rootDirectory, BATTER_HHR_MARKET_KEY, 'captures');
+  const directory = path.join(
+    rootDirectory,
+    PERSISTED_HHR_DISPLAY_IDENTITY,
+    'captures',
+  );
   await mkdir(directory, { recursive: true });
   await writeFile(
     path.join(directory, `${capture.captureKey}.json`),
@@ -85,7 +95,7 @@ async function persistCapture(
   );
 }
 
-test('research display repository serves only the single newest capture', async (t) => {
+test('research display repository serves only the single newest real-layout HHR capture', async (t) => {
   const rootDirectory = await mkdtemp(path.join(tmpdir(), 'research-display-daily-'));
   t.after(async () => rm(rootDirectory, { recursive: true, force: true }));
 
@@ -134,6 +144,7 @@ test('research display repository serves only the single newest capture', async 
   );
 
   assert.ok(result);
+  assert.equal(result.market, BATTER_HHR_MARKET_KEY);
   assert.equal(result.captureKey, latestCaptureKey);
   assert.equal(result.capturedAt, '2026-08-19T15:28:38.601Z');
   assert.deepEqual(
@@ -144,6 +155,7 @@ test('research display repository serves only the single newest capture', async 
 
   const repeated = result.rows.find((value) => value.providerPlayerId === 1002);
   assert.ok(repeated);
+  assert.equal(repeated.market, BATTER_HHR_MARKET_KEY);
   assert.equal(repeated.captureKey, latestCaptureKey);
   assert.equal(repeated.capturedAt, '2026-08-19T15:28:38.601Z');
   assert.equal(repeated.providerEventId, 'latest-repeat');
