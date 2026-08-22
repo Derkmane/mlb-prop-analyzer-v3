@@ -113,7 +113,7 @@ export function createCommittedDisplayArchiveRefresher(
       'x-github-api-version': '2022-11-28',
     };
     const token = process.env['GITHUB_TOKEN'];
-    if (token !== undefined && token.length > 0) headers.authorization = `Bearer ${token}`;
+    if (token !== undefined && token.length > 0) headers['authorization'] = `Bearer ${token}`;
 
     const treeUrl = `https://api.github.com/repos/${AUTHORIZED_REPOSITORY}/git/trees/${AUTHORIZED_BRANCH}?recursive=1`;
     const treeResponse = await fetchImpl(treeUrl, {
