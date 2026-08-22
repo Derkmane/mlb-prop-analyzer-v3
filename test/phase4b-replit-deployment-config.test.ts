@@ -9,7 +9,10 @@ test('Replit deployment explicitly targets cloudrun and launches only the passwo
   ]);
 
   assert.match(replitConfig, /\[deployment\]/u);
-  assert.match(replitConfig, /^build = "npm run build"$/mu);
+  assert.match(
+    replitConfig,
+    /^build = "node scripts\/verify-deployment-display-freshness\.mjs && npm run build"$/mu,
+  );
   assert.match(replitConfig, /^run = "node dist\/src\/composition\/hhr-display-server\.js"$/mu);
   assert.match(replitConfig, /^deploymentTarget = "cloudrun"$/mu);
   assert.match(replitConfig, /\[\[ports\]\]\nlocalPort = 3000\nexternalPort = 80/u);
