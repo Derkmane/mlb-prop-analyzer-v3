@@ -6,8 +6,12 @@ import test from 'node:test';
 
 import { createCommittedDisplayArchiveRefresher } from '../src/adapters/index.js';
 
+const HITS_OLDER_NAME = '20260822T150000000Z--1111111111111111111111111111111111111111111111111111111111111111.json';
 const HITS_NAME = '20260822T163841701Z--23da0de677b09f9b17d0889373f5ef64500fb1e816fdb0223db4a57050d73595.json';
+const HHR_OLDER_NAME = '20260822T150000000Z--2222222222222222222222222222222222222222222222222222222222222222.json';
 const HHR_NAME = '20260822T163841701Z--3b90f841132d603f4e7437b041864b1c12ff39fdcaba3a484ae436c705060093.json';
+const PRIOR_DAY_HITS_NAME = '20260821T230000000Z--3333333333333333333333333333333333333333333333333333333333333333.json';
+const PRIOR_DAY_HHR_NAME = '20260821T230000000Z--4444444444444444444444444444444444444444444444444444444444444444.json';
 
 function archiveBytes(market: 'batter-hits' | 'batter-hhr', filename: string): string {
   return JSON.stringify({
@@ -28,19 +32,25 @@ function response(body: unknown, status = 200) {
   });
 }
 
-test('live display refresh pulls the newest committed Hits and HHR captures into the local read cache', async () => {
+test('live display refresh pulls every newest-day Hits and HHR capture into the local read cache', async () => {
   const rootDirectory = await mkdtemp(path.join(os.tmpdir(), 'mlb-display-refresh-'));
   const requests: string[] = [];
   const tree = {
     tree: [
+      { path: `artifacts/display-archives/batter-hits/captures/${PRIOR_DAY_HITS_NAME}` },
+      { path: `artifacts/display-archives/batter-hhr/captures/${PRIOR_DAY_HHR_NAME}` },
+      { path: `artifacts/display-archives/batter-hits/captures/${HITS_OLDER_NAME}` },
       { path: `artifacts/display-archives/batter-hits/captures/${HITS_NAME}` },
+      { path: `artifacts/display-archives/batter-hhr/captures/${HHR_OLDER_NAME}` },
       { path: `artifacts/display-archives/batter-hhr/captures/${HHR_NAME}` },
     ],
   };
   const fetchImpl = async (url: string) => {
     requests.push(url);
     if (url.startsWith('https://api.github.com/')) return response(tree);
+    if (url.endsWith(HITS_OLDER_NAME)) return response(archiveBytes('batter-hits', HITS_OLDER_NAME));
     if (url.endsWith(HITS_NAME)) return response(archiveBytes('batter-hits', HITS_NAME));
+    if (url.endsWith(HHR_OLDER_NAME)) return response(archiveBytes('batter-hhr', HHR_OLDER_NAME));
     if (url.endsWith(HHR_NAME)) return response(archiveBytes('batter-hhr', HHR_NAME));
     return response('not found', 404);
   };
@@ -55,15 +65,21 @@ test('live display refresh pulls the newest committed Hits and HHR captures into
     await refresh();
 
     assert.equal(requests.filter((url) => url.startsWith('https://api.github.com/')).length, 1);
-    assert.equal(requests.length, 3);
-    assert.equal(
-      JSON.parse(await readFile(path.join(rootDirectory, 'batter-hits', 'captures', HITS_NAME), 'utf8')).market,
-      'batter-hits',
-    );
-    assert.equal(
-      JSON.parse(await readFile(path.join(rootDirectory, 'batter-hhr', 'captures', HHR_NAME), 'utf8')).market,
-      'batter-hhr',
-    );
+    assert.equal(requests.length, 5);
+    for (const filename of [HITS_OLDER_NAME, HITS_NAME]) {
+      assert.equal(
+        JSON.parse(await readFile(path.join(rootDirectory, 'batter-hits', 'captures', filename), 'utf8')).market,
+        'batter-hits',
+      );
+    }
+    for (const filename of [HHR_OLDER_NAME, HHR_NAME]) {
+      assert.equal(
+        JSON.parse(await readFile(path.join(rootDirectory, 'batter-hhr', 'captures', filename), 'utf8')).market,
+        'batter-hhr',
+      );
+    }
+    assert.equal(requests.some((url) => url.endsWith(PRIOR_DAY_HITS_NAME)), false);
+    assert.equal(requests.some((url) => url.endsWith(PRIOR_DAY_HHR_NAME)), false);
   } finally {
     await rm(rootDirectory, { recursive: true, force: true });
   }
