@@ -95,7 +95,7 @@ async function persistCapture(
   );
 }
 
-test('research display repository serves only the single newest real-layout HHR capture', async (t) => {
+test('research display repository serves the newest same-day capture per game from the real HHR layout', async (t) => {
   const rootDirectory = await mkdtemp(path.join(tmpdir(), 'research-display-daily-'));
   t.after(async () => rm(rootDirectory, { recursive: true, force: true }));
 
@@ -123,6 +123,7 @@ test('research display repository serves only the single newest real-layout HHR 
       rows: Object.freeze([
         row({ eventId: 'earlier-unique', gameId: 7001, playerId: 1001, probability: 0.84 }),
         row({ eventId: 'earlier-repeat', gameId: 7002, playerId: 1002, probability: 0.51 }),
+        row({ eventId: 'earlier-stale-line', gameId: 7002, playerId: 1004, probability: 0.88 }),
       ]),
     }),
   );
@@ -149,9 +150,10 @@ test('research display repository serves only the single newest real-layout HHR 
   assert.equal(result.capturedAt, '2026-08-19T15:28:38.601Z');
   assert.deepEqual(
     result.rows.map((value) => value.providerPlayerId),
-    [1002, 1003],
+    [1002, 1003, 1001],
   );
   assert.equal(result.rows.some((value) => value.providerPlayerId === 1000), false);
+  assert.equal(result.rows.some((value) => value.providerPlayerId === 1004), false);
 
   const repeated = result.rows.find((value) => value.providerPlayerId === 1002);
   assert.ok(repeated);
@@ -161,5 +163,10 @@ test('research display repository serves only the single newest real-layout HHR 
   assert.equal(repeated.providerEventId, 'latest-repeat');
   assert.equal(repeated.pWinGivenGrades, 0.72);
 
-  assert.equal(result.rows.some((value) => value.providerPlayerId === 1001), false);
+  const preservedEarlierGame = result.rows.find((value) => value.providerPlayerId === 1001);
+  assert.ok(preservedEarlierGame);
+  assert.equal(preservedEarlierGame.captureKey, earlierCaptureKey);
+  assert.equal(preservedEarlierGame.capturedAt, '2026-08-19T15:03:05.000Z');
+  assert.equal(preservedEarlierGame.providerEventId, 'earlier-unique');
+  assert.equal(preservedEarlierGame.pWinGivenGrades, 0.84);
 });
