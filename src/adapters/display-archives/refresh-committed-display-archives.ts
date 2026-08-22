@@ -1,14 +1,19 @@
 import { mkdir, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import {
+  RESEARCH_DISPLAY_MARKETS,
+  type ResearchDisplayMarket,
+} from '../../application/research-display-archive.js';
+
 const AUTHORIZED_REPOSITORY = 'Derkmane/mlb-prop-analyzer-v3' as const;
 const AUTHORIZED_BRANCH = 'main' as const;
 const DISPLAY_ROOT = 'artifacts/display-archives' as const;
-const MARKETS = ['batter-hits', 'batter-hhr'] as const;
+const MARKETS = RESEARCH_DISPLAY_MARKETS;
 const CAPTURE_FILE = /^\d{8}T\d{9}Z--[a-f0-9]{64}\.json$/u;
 const DEFAULT_REFRESH_INTERVAL_MS = 60_000;
 
-type DisplayMarket = typeof MARKETS[number];
+type DisplayMarket = ResearchDisplayMarket;
 
 type FetchResponse = Readonly<{
   ok: boolean;
