@@ -15,7 +15,7 @@ test('deployable app fails closed instead of serving stale archives when live re
     repository: Object.freeze({
       async readLatest() {
         archiveReads += 1;
-        return null;
+        throw new Error('archive read must not run after refresh failure');
       },
     }),
     cumulativeRepository: Object.freeze({
