@@ -71,11 +71,7 @@ export function createHhrDisplayAppServer(options: HhrDisplayAppServerOptions): 
       ? createCommittedDisplayArchiveRefresher()
       : async () => undefined);
   const readBoard = async () => {
-    try {
-      await refreshDisplayArchives();
-    } catch (error) {
-      console.error('Display-archive refresh failed; serving committed archives.', error);
-    }
+    await refreshDisplayArchives();
     return readLatestHhrDisplayUiBoard(
       repository,
       cumulativeRepository,
