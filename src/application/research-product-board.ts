@@ -10,6 +10,8 @@ import {
   type CategoryOfferInput,
 } from '../categories/index.js';
 import { settleObservedDiscreteStatisticV1 } from '../core/index.js';
+import { BATTER_HHR_BASELINE_PROVIDER_MARKET_KEY } from '../features/batter-hhr/index.js';
+import { BATTER_HITS_PROVIDER_MARKET_KEYS } from '../features/batter-hits/index.js';
 import {
   PRODUCT_DISPLAY_BOARD_VERSION,
   PRODUCT_RESEARCH_LABEL,
@@ -63,6 +65,48 @@ function scalarText(value: unknown): string | null {
   if (typeof value === 'string' && value.length > 0) return value;
   if (typeof value === 'number' && Number.isFinite(value)) return String(value);
   return null;
+}
+
+function exactOfferIdentity(row: ResearchDisplayRow): string {
+  return JSON.stringify([
+    row.market,
+    row.captureKey,
+    row.providerEventId,
+    row.providerGameId,
+    row.providerPlayerId,
+  ]);
+}
+
+function baselineProviderMarketKey(row: ResearchDisplayRow): string {
+  return row.market === RESEARCH_BATTER_HITS_MARKET
+    ? BATTER_HITS_PROVIDER_MARKET_KEYS[0]
+    : BATTER_HHR_BASELINE_PROVIDER_MARKET_KEY;
+}
+
+/**
+ * An Underdog baseline is verified only from the exact same-capture provider
+ * baseline market for the same game and player. Standard-book consensus and
+ * archived offerType labels are not proof that an Underdog line is alternate.
+ */
+function verifiedUnderdogBaselineLines(
+  rows: readonly ResearchDisplayRow[],
+): ReadonlyMap<string, number> {
+  const lineSets = new Map<string, Set<number>>();
+  for (const row of rows) {
+    if (row.providerMarketKey !== baselineProviderMarketKey(row)) continue;
+    const identity = exactOfferIdentity(row);
+    const lines = lineSets.get(identity) ?? new Set<number>();
+    lines.add(row.postedLine);
+    lineSets.set(identity, lines);
+  }
+
+  const verified = new Map<string, number>();
+  for (const [identity, lines] of lineSets) {
+    if (lines.size !== 1) continue;
+    const baselineLine = [...lines][0];
+    if (baselineLine !== undefined) verified.set(identity, baselineLine);
+  }
+  return verified;
 }
 
 function opponent(row: ResearchDisplayRow): string {
@@ -260,6 +304,7 @@ function productPick(row: ResearchDisplayRow): ResearchRankCandidate {
 function offerInput(
   row: ResearchDisplayRow,
   candidate: ResearchRankCandidate,
+  verifiedOfferType: 'baseline' | 'alternate',
 ): CategoryOfferInput<ResearchRankCandidate> {
   const postedImpliedProbability =
     row.americanPrice !== null &&
@@ -269,7 +314,7 @@ function offerInput(
       : null;
   return Object.freeze({
     candidate,
-    offerType: row.offerType,
+    offerType: verifiedOfferType,
     americanPrice: row.americanPrice,
     multiplier: row.multiplier,
     postedImpliedProbability,
@@ -278,6 +323,28 @@ function offerInput(
         ? null
         : row.pWinGivenGrades - postedImpliedProbability,
   });
+}
+
+function verifiedCategoryOfferInputs(
+  rows: readonly ResearchDisplayRow[],
+  candidateByRow: ReadonlyMap<ResearchDisplayRow, ResearchRankCandidate>,
+): readonly CategoryOfferInput<ResearchRankCandidate>[] {
+  const baselineLines = verifiedUnderdogBaselineLines(rows);
+  return Object.freeze(
+    rows.flatMap((row) => {
+      const baselineLine = baselineLines.get(exactOfferIdentity(row));
+      if (baselineLine === undefined) return [];
+      const candidate = candidateByRow.get(row);
+      if (candidate === undefined) return [];
+      return [
+        offerInput(
+          row,
+          candidate,
+          row.postedLine === baselineLine ? 'baseline' : 'alternate',
+        ),
+      ];
+    }),
+  );
 }
 
 function newestTimestamp(archives: readonly ResearchDisplayArchive[]): string | null {
@@ -305,9 +372,7 @@ export async function readResearchProductBoardV2(
   const candidateByRow = new Map(
     rows.map((row) => [row, productPick(row)] as const),
   );
-  const offerInputs = rows.map((row) =>
-    offerInput(row, candidateByRow.get(row) as ResearchRankCandidate),
-  );
+  const offerInputs = verifiedCategoryOfferInputs(rows, candidateByRow);
 
   const baseline = selectHighProbabilityBaselinePropsV1(offerInputs);
   const altline = selectHighProbabilityAltlinePropsV1(offerInputs);
