@@ -72,6 +72,11 @@ function stringOrNull(value, label) {
   return nonemptyString(value, label);
 }
 
+function hhrOfferTypeReason(value, label) {
+  if (value === undefined || value === null || value === 'NO_PLAYER_BASELINE') return value;
+  throw new TypeError(`${label} must be null, NO_PLAYER_BASELINE, or absent.`);
+}
+
 function displayEnrichmentForRows(raw, rows) {
   if (raw === undefined) return undefined;
   const enrichment = object(raw, 'displayEnrichment');
@@ -254,6 +259,7 @@ function hhrDisplayRow(raw, gameById, index) {
     providerMarketKey: nonemptyString(row.providerMarketKey, `HHR row ${index} providerMarketKey`),
     marketLabel: 'Batter Hits + Runs + RBIs',
     offerType: nonemptyString(row.offerType, `HHR row ${index} offerType`),
+    offerTypeReason: hhrOfferTypeReason(row.offerTypeReason, `HHR row ${index} offerTypeReason`),
     settlementStatistic: 'hits+runs+rbi',
     selectedSide: nonemptyString(row.selectedSide, `HHR row ${index} selectedSide`),
     postedLine: finiteNumberOrNull(row.postedLine, `HHR row ${index} postedLine`),
