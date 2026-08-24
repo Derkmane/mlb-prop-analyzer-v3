@@ -88,6 +88,7 @@ const row = z.strictObject({
   providerMarketKey: z.enum(['batter_hits_runs_rbis', 'batter_hits_runs_rbis_alternate']),
   marketLabel: z.literal('Batter Hits + Runs + RBIs'),
   offerType: z.enum(['baseline', 'alternate']),
+  offerTypeReason: z.literal('NO_PLAYER_BASELINE').nullable().optional(),
   settlementStatistic: z.literal('hits+runs+rbi'),
   selectedSide: z.enum(['higher', 'lower']),
   postedLine: z.number().finite().nonnegative(),
