@@ -12,7 +12,61 @@ import {
 } from '../src/application/index.js';
 import { createHhrDisplayAppServer } from '../src/composition/index.js';
 
-test('readBoard returns the latest readable board when live refresh fails', async () => {
+test('deployable app still fails closed when refresh fails and no readable archive exists', async () => {
+  let refreshCalls = 0;
+  let archiveReads = 0;
+  const server = createHhrDisplayAppServer({
+    password: 'refresh-fail-closed-password',
+    sessionToken: 'refresh-fail-closed-session-token',
+    repository: Object.freeze({
+      async readLatest() {
+        archiveReads += 1;
+        throw new Error('forced unreadable committed archive');
+      },
+    }),
+    cumulativeRepository: Object.freeze({
+      async readLatest() {
+        archiveReads += 1;
+        return null;
+      },
+    }),
+    researchRepository: Object.freeze({
+      async readLatest() {
+        archiveReads += 1;
+        return null;
+      },
+    }),
+    async refreshDisplayArchives() {
+      refreshCalls += 1;
+      throw new Error('forced private-repository refresh failure');
+    },
+  });
+
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const address = server.address();
+  assert.ok(address !== null && typeof address === 'object');
+  const origin = `http://127.0.0.1:${(address as AddressInfo).port}`;
+
+  try {
+    const response = await fetch(`${origin}/api/hhr-display-board`, {
+      headers: {
+        cookie: `${HHR_DISPLAY_SESSION_COOKIE}=refresh-fail-closed-session-token`,
+      },
+    });
+    assert.equal(response.status, 500);
+    assert.deepEqual(await response.json(), {
+      error: 'hhr-display-board-unavailable',
+    });
+    assert.equal(refreshCalls, 1);
+    assert.equal(archiveReads, 1);
+  } finally {
+    server.close();
+    await once(server, 'close');
+  }
+});
+
+test('deployable app serves the latest readable board when live refresh fails', async () => {
   let refreshCalls = 0;
   let archiveReads = 0;
   const archive: HhrDisplayArchive = Object.freeze({
@@ -24,8 +78,8 @@ test('readBoard returns the latest readable board when live refresh fails', asyn
     enrichmentByGamePlayerKey: Object.freeze({}),
   });
   const server = createHhrDisplayAppServer({
-    password: 'refresh-fail-closed-password',
-    sessionToken: 'refresh-fail-closed-session-token',
+    password: 'refresh-readable-archive-password',
+    sessionToken: 'refresh-readable-archive-session-token',
     repository: Object.freeze({
       async readLatest() {
         archiveReads += 1;
@@ -66,7 +120,7 @@ test('readBoard returns the latest readable board when live refresh fails', asyn
   try {
     const response = await fetch(`${origin}/api/hhr-display-board`, {
       headers: {
-        cookie: `${HHR_DISPLAY_SESSION_COOKIE}=refresh-fail-closed-session-token`,
+        cookie: `${HHR_DISPLAY_SESSION_COOKIE}=refresh-readable-archive-session-token`,
       },
     });
     assert.equal(response.status, 200);
