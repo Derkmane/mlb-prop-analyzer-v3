@@ -144,7 +144,7 @@ function repository(): ResearchDisplayArchiveRepository {
   });
 }
 
-test('research board populates exactly three canonical Top Five categories from each market newest capture', async () => {
+test('research board returns full eligible categories and a separate Top Five research subset', async () => {
   const board = await readResearchProductBoardV2(repository());
 
   assert.equal(board.productionCalibrated, false);
@@ -160,23 +160,59 @@ test('research board populates exactly three canonical Top Five categories from 
   );
   for (const category of board.categories) {
     assert.ok(category.picks.length > 0);
-    assert.ok(category.picks.length <= 5);
+    assert.ok(category.picks.length <= 20);
+    assert.ok(category.picks.every((pick) => pick.pWinGivenGrades > 0.5));
     assert.equal(new Set(category.picks.map((pick) => pick.playerId)).size, category.picks.length);
     assert.ok(category.picks.every((pick) => pick.probabilityLabel === PRODUCT_RESEARCH_LABEL));
+    assert.deepEqual(category.researchTopFive, category.picks.slice(0, 5));
+    assert.ok(category.researchTopFive.length <= 5);
     for (let index = 1; index < category.picks.length; index += 1) {
       assert.ok(category.picks[index - 1]!.pWinGivenGrades >= category.picks[index]!.pWinGivenGrades);
     }
   }
 
   const baseline = board.categories[1]!;
+  assert.equal(baseline.picks.length, 7);
+  assert.equal(baseline.researchTopFive.length, 5);
   assert.equal(baseline.picks[0]!.player, 'Shared Star');
   assert.equal(baseline.picks[0]!.market, 'Hits + Runs + RBIs');
   assert.equal(baseline.picks[0]!.pWinGivenGrades, 0.81);
   assert.equal(baseline.picks.some((pick) => pick.market === 'Hits'), true);
 
   const altline = board.categories[2]!;
+  assert.equal(altline.picks.length, 6);
+  assert.equal(altline.researchTopFive.length, 5);
   assert.equal(altline.picks[0]!.player, 'HHR Alt One');
   assert.equal(altline.picks.some((pick) => pick.market === 'Hits'), true);
+});
+
+test('research board caps a category at 20 and excludes 50 percent or lower without padding', async () => {
+  const qualifying = Array.from({ length: 24 }, (_, index) =>
+    row({
+      market: 'batter-hits',
+      playerId: 200 + index,
+      playerName: `Qualifying ${index + 1}`,
+      offerType: 'baseline',
+      side: 'higher',
+      line: 0.5,
+      p: 0.80 - index * 0.01,
+    }),
+  );
+  const hits = archive('batter-hits', [
+    ...qualifying,
+    row({ market: 'batter-hits', playerId: 300, playerName: 'Exactly Half', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.5 }),
+    row({ market: 'batter-hits', playerId: 301, playerName: 'Below Half', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.49 }),
+  ]);
+  const board = await readResearchProductBoardV2(Object.freeze({
+    readLatest: async (market: ResearchDisplayMarket) => market === 'batter-hits' ? hits : null,
+  }));
+  const baseline = board.categories[1]!;
+
+  assert.equal(baseline.picks.length, 20);
+  assert.ok(baseline.picks.every((pick) => pick.pWinGivenGrades > 0.5));
+  assert.equal(baseline.picks.some((pick) => pick.player === 'Exactly Half'), false);
+  assert.equal(baseline.picks.some((pick) => pick.player === 'Below Half'), false);
+  assert.deepEqual(baseline.researchTopFive, baseline.picks.slice(0, 5));
 });
 
 test('research cards preserve context, side-aware last five, and explicit calibration states', async () => {
