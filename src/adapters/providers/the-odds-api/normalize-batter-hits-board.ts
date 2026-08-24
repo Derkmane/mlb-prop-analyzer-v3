@@ -103,12 +103,10 @@ function isTargetMarketKey(
   );
 }
 
-function offerTypeForLine(
-  playerDescription: string,
-  line: number,
-  baselineLinesByPlayer: ReadonlyMap<string, number | null>,
+function offerTypeForMarketKey(
+  marketKey: BatterHitsProviderMarketKey,
 ): BatterHitsOfferType {
-  return baselineLinesByPlayer.get(playerDescription) === line
+  return marketKey === BATTER_HITS_PROVIDER_MARKET_KEYS[0]
     ? 'baseline'
     : 'alternate';
 }
@@ -189,7 +187,6 @@ function normalizeTargetMarket(
   identitiesByKey: ReadonlyMap<string, readonly BatterHitsPlayerIdentity[]>,
   baselineLinesByPlayer: ReadonlyMap<string, number | null>,
   seenTuples: Set<string>,
-  seenOffersAcrossMarkets: Set<string>,
   offers: NormalizedBatterHitsBoardOffer[],
   rejectedOffers: RejectedOddsApiBatterHitsOffer[],
 ): void {
@@ -211,14 +208,6 @@ function normalizeTargetMarket(
       );
     }
     seenTuples.add(key);
-
-    const offerKey = JSON.stringify([
-      outcome.description,
-      outcome.point,
-      outcome.name,
-    ]);
-    if (seenOffersAcrossMarkets.has(offerKey)) continue;
-    seenOffersAcrossMarkets.add(offerKey);
 
     const selectedSide = selectedSideForRawSide(outcome.name);
     const identities =
@@ -261,11 +250,7 @@ function normalizeTargetMarket(
       eventCommenceTime: event.commence_time,
       baseMarketKey: BATTER_HITS_MARKET_KEY,
       providerMarketKey: market.key,
-      offerType: offerTypeForLine(
-        outcome.description,
-        outcome.point,
-        baselineLinesByPlayer,
-      ),
+      offerType: offerTypeForMarketKey(market.key),
       offerTypeReason: baselineLinesByPlayer.get(outcome.description) != null
         ? null
         : 'NO_PLAYER_BASELINE',
@@ -383,7 +368,6 @@ export function normalizeOddsApiBatterHitsBoard(
   const offers: NormalizedBatterHitsBoardOffer[] = [];
   const rejectedOffers: RejectedOddsApiBatterHitsOffer[] = [];
   const seenTuples = new Set<string>();
-  const seenOffersAcrossMarkets = new Set<string>();
   const baselineLineSets = new Map<string, Set<number>>();
   for (const market of targetMarkets) {
     if (market.key !== 'batter_hits') continue;
@@ -422,7 +406,6 @@ export function normalizeOddsApiBatterHitsBoard(
       identitiesByKey,
       baselineLinesByPlayer,
       seenTuples,
-      seenOffersAcrossMarkets,
       offers,
       rejectedOffers,
     );
