@@ -1423,7 +1423,7 @@ There is no separate Project Knowledge deliverable.
     CI review, commits, pushes, or pull-request work.
 -   Prohibited handing repository work back to the user as repeated
     shell babysitting when the available repository tools can perform it
-directly.
+    directly.
 -   Clarified that Python is neither prohibited nor assumed: use it only
     when it is appropriate and its exact executable has been verified in
     the target environment.
@@ -1451,7 +1451,7 @@ directly.
     strongest final-probability candidates before it may exclude offers
     from full context evaluation.
 -   Clarified that projected-lineup accuracy and replacement metrics are
-diagnostic only and may not penalize probability, eligibility,
+    diagnostic only and may not penalize probability, eligibility,
     void, confidence, category access, or ranking.
 -   Added audit and saved-record requirements for base distribution,
     discovery method, final context distribution, factor versions, and
@@ -1471,7 +1471,7 @@ diagnostic only and may not penalize probability, eligibility,
     canonical-change approval, or other explicit authorization boundary
     is reached.
 -   Clarified that the trigger prohibits a third blind patch, not a
-    structurally redesigned implementation after the full reassessment.
+    structurally redesigned implementation after full reassessment.
 -   Prohibited ending with only a failure report when another diagnostic
     or corrective step can be performed with available tools.
 
