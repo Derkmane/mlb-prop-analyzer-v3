@@ -73,7 +73,7 @@ schemas, mappings, dependencies, or workflows. Any reuse of an
 implementation artifact requires a specific reason, evidence that it is
 still correct, and explicit approval.
 
-No file may be written, edited, committed to, or deleted in another
+No file may be written, edited, committed, or deleted in another
 repository during V3 work.
 
 ------------------------------------------------------------------------
@@ -399,7 +399,7 @@ If required data is unavailable:
 3.  identify the model component it blocks
 4.  present lawful options
 5.  obtain approval before changing the source policy or mathematical
-design
+    design
 
 Known BALLDONTLIE observations must be recorded in
 `docs/providers/balldontlie-quirks.md` and reverified with V3 fixtures.
@@ -963,7 +963,7 @@ After the trigger:
 -   never end the workflow with only a failure report when another
     diagnostic or corrective step can be performed with available tools
 -   when user action is required, provide exactly one concrete next
-action that advances the same issue
+    action that advances the same issue
 
 Allowed structural directions:
 
@@ -1146,7 +1146,7 @@ When a mismatch is discovered:
 
 1.  stop the affected work immediately
 2.  identify which copy is stale using complete-content and hash
-evidence
+    evidence
 3.  do not merely report that the files differ
 4.  immediately provide the user the complete confirmed-current
     replacement file using the exact canonical filename
@@ -1423,7 +1423,7 @@ There is no separate Project Knowledge deliverable.
     CI review, commits, pushes, or pull-request work.
 -   Prohibited handing repository work back to the user as repeated
     shell babysitting when the available repository tools can perform it
-    directly.
+directly.
 -   Clarified that Python is neither prohibited nor assumed: use it only
     when it is appropriate and its exact executable has been verified in
     the target environment.
@@ -1451,7 +1451,7 @@ There is no separate Project Knowledge deliverable.
     strongest final-probability candidates before it may exclude offers
     from full context evaluation.
 -   Clarified that projected-lineup accuracy and replacement metrics are
-    diagnostic only and may not penalize probability, eligibility,
+diagnostic only and may not penalize probability, eligibility,
     void, confidence, category access, or ranking.
 -   Added audit and saved-record requirements for base distribution,
     discovery method, final context distribution, factor versions, and
@@ -1471,7 +1471,7 @@ There is no separate Project Knowledge deliverable.
     canonical-change approval, or other explicit authorization boundary
     is reached.
 -   Clarified that the trigger prohibits a third blind patch, not a
-    structurally redesigned implementation after full reassessment.
+    structurally redesigned implementation after the full reassessment.
 -   Prohibited ending with only a failure report when another diagnostic
     or corrective step can be performed with available tools.
 
