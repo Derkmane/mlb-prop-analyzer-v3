@@ -2,9 +2,10 @@ import {
   HIGH_PROBABILITY_ALTLINE_CATEGORY_ID,
   HIGH_PROBABILITY_BASELINE_CATEGORY_ID,
   OPPORTUNITY_MINER_CATEGORY_ID,
+  selectTopFiveV1,
 } from '../categories/index.js';
 
-export const PRODUCT_DISPLAY_BOARD_VERSION = 'three-category-research-product-v2' as const;
+export const PRODUCT_DISPLAY_BOARD_VERSION = 'three-category-research-product-v3' as const;
 export const PRODUCT_RESEARCH_LABEL = 'UNVALIDATED RESEARCH' as const;
 export const PRODUCT_EMPTY_CATEGORY_REASON =
   'No research-authorized pregame prop is available for this category right now.' as const;
@@ -76,6 +77,7 @@ export interface ProductCategoryDisplaySection {
   readonly categoryId: ProductCategoryId;
   readonly title: string;
   readonly picks: readonly ProductDisplayPick[];
+  readonly researchTopFive: readonly ProductDisplayPick[];
   readonly emptyState: string | null;
 }
 
@@ -83,10 +85,12 @@ export function productCategorySectionV2(
   categoryId: ProductCategoryId,
   picks: readonly ProductDisplayPick[],
 ): ProductCategoryDisplaySection {
+  const frozenPicks = Object.freeze([...picks]);
   return Object.freeze({
     categoryId,
     title: PRODUCT_CATEGORY_TITLES[categoryId],
-    picks: Object.freeze([...picks]),
+    picks: frozenPicks,
+    researchTopFive: selectTopFiveV1(frozenPicks),
     emptyState: picks.length === 0 ? PRODUCT_EMPTY_CATEGORY_REASON : null,
   });
 }
