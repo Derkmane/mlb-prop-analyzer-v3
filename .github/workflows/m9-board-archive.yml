@@ -11,6 +11,14 @@ on:
         options:
           - 'off'
           - 'on'
+      recapture_all_pregame:
+        description: Recapture every still-pregame game even when prior coverage exists
+        required: true
+        default: 'off'
+        type: choice
+        options:
+          - 'off'
+          - 'on'
   schedule:
     # Every 30 minutes. The controller performs one schedule read and captures
     # only when an uncovered game is 40-110 minutes from first pitch, with an
@@ -46,7 +54,7 @@ jobs:
       M9_CAPTURE_CONTROLLER_PLAN: artifacts/workflow-logs/m9-capture-controller-plan.json
       M9_HITS_REPLAY_RECEIPT: artifacts/workflow-logs/m9-board-replay-hits.json
       M9_HHR_REPLAY_RECEIPT: artifacts/workflow-logs/m9-board-replay-hhr.json
-      M9_CAPTURE_ALL_PREGAME: ${{ github.event_name == 'push' && '1' || '0' }}
+      M9_CAPTURE_ALL_PREGAME: ${{ (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.recapture_all_pregame == 'on')) && '1' || '0' }}
       PHASE2_ENRICHMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.phase2_enrichment || 'on' }}
 
     steps:
@@ -79,6 +87,8 @@ jobs:
 
       - name: Plan capture and take first board snapshot
         id: capture-plan
+        env:
+          M10_ARCHIVE_ROOT: ${{ github.event_name == 'workflow_dispatch' && inputs.recapture_all_pregame == 'on' && 'artifacts/workflow-logs/manual-recapture-controller-root' || 'artifacts/board-archives/batter-hits' }}
         run: |
           set -euo pipefail
           mkdir -p artifacts/workflow-logs
