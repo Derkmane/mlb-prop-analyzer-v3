@@ -71,7 +71,11 @@ export function createHhrDisplayAppServer(options: HhrDisplayAppServerOptions): 
       ? createCommittedDisplayArchiveRefresher()
       : async () => undefined);
   const readBoard = async () => {
-    await refreshDisplayArchives();
+    try {
+      await refreshDisplayArchives();
+    } catch {
+      // Refresh is best-effort; continue with the latest readable archives.
+    }
     return readLatestHhrDisplayUiBoard(
       repository,
       cumulativeRepository,
