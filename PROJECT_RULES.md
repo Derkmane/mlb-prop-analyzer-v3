@@ -1016,7 +1016,8 @@ Read-only investigation is required when necessary to choose the
 structural direction. It is not a reason to stop working.
 
 The trigger prohibits a third blind patch; it does not prohibit a
-structurally redesigned implementation attempt after full reassessment.
+structurally redesigned implementation attempt after the full
+reassessment.
 
 Destructive deletion, rollback, replacement, or reconstruction remains
 subject to the approval requirements elsewhere in these rules. Deletion
