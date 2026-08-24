@@ -34,10 +34,6 @@ const TOP_FIVE_RESEARCH_CSS = `
 .top-five-research-shell .research-tool-heading p { color: #c9b887; }
 .top-five-research-list,
 .additional-picks-list { padding: 12px; }
-.additional-picks-list .pick-card-content { grid-template-columns: 1fr !important; }
-.additional-picks-list .analysis-grid,
-.additional-picks-list .last-five-section,
-.additional-picks-list .calibration { display: none !important; }
 .additional-picks-list .pick-card { padding-bottom: 13px; }
 @media (max-width: 700px) {
   .top-five-research-shell,
@@ -65,7 +61,7 @@ const TOP_FIVE_RESEARCH_JS = `
 
     const subtitle = panel.querySelector('.category-heading p');
     if (subtitle instanceof HTMLElement) {
-      subtitle.textContent = 'Eligible picks above 50% · up to 20 · server-ranked by P(Win | grades), then P(Void). Top Five is a separate research-analysis subset.';
+      subtitle.textContent = 'Eligible picks above 50% · up to 20 · every eligible pick receives full research analysis. Top Five is a highlighted subset only.';
     }
 
     const pickList = panel.querySelector('.pick-list');
@@ -84,12 +80,12 @@ const TOP_FIVE_RESEARCH_JS = `
 
     const researchShell = make('section', 'top-five-research-shell');
     const researchHeading = make('div', 'research-tool-heading');
-    researchHeading.append(make('h3', null, 'Top Five Research'));
+    researchHeading.append(make('h3', null, 'Top Five Research Highlight'));
     researchHeading.append(
       make(
         'p',
         null,
-        'Extra analysis on the first five already-ranked eligible picks. This research subset does not change probability, eligibility, order, or category size.',
+        'First five already-ranked eligible picks, highlighted for quick review. Every eligible pick receives the same full research analysis. This highlight does not change probability, eligibility, order, or category size.',
       ),
     );
     const researchList = make('div', 'pick-list top-five-research-list');
@@ -102,12 +98,12 @@ const TOP_FIVE_RESEARCH_JS = `
     if (additionalCards.length > 0) {
       const additionalShell = make('section', 'additional-picks-shell');
       const additionalHeading = make('div', 'research-tool-heading');
-      additionalHeading.append(make('h3', null, 'Remaining Eligible Picks'));
+      additionalHeading.append(make('h3', null, 'Additional Researched Picks'));
       additionalHeading.append(
         make(
           'p',
           null,
-          'Additional qualifying picks in the same unchanged server ranking.',
+          'Every additional qualifying pick receives the same full research analysis and remains in the unchanged server ranking.',
         ),
       );
       const additionalList = make('div', 'pick-list additional-picks-list');
