@@ -176,7 +176,7 @@ export function normalizeUnderdogBatterHhrCapture(
         `HHR outcome[${outcomeIndex}].description`,
       );
       const side = selectedSide(outcome['name'], `HHR outcome[${outcomeIndex}].name`);
-      const offerKey = JSON.stringify([playerName, line, side]);
+      const offerKey = JSON.stringify([key, playerName, line, side]);
       if (seenOffers.has(offerKey)) continue;
       seenOffers.add(offerKey);
       normalized.push(
@@ -191,7 +191,10 @@ export function normalizeUnderdogBatterHhrCapture(
           playerName,
           providerMarketKey: key,
           baseMarketKey: BATTER_HHR_MARKET_KEY,
-          offerType: baselineLines.get(playerName) === line ? 'baseline' : 'alternate',
+          offerType:
+            key === BATTER_HHR_BASELINE_PROVIDER_MARKET_KEY
+              ? 'baseline'
+              : 'alternate',
           offerTypeReason: baselineLines.get(playerName) !== undefined ? null : 'NO_PLAYER_BASELINE',
           selectedSide: side,
           line,

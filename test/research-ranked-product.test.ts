@@ -278,14 +278,14 @@ test('research board excludes commenced rows and preserves each archived line an
 
   assert.equal(displayed.some((pick) => pick.player === 'Passed'), false);
   assert.ok(displayed.some((pick) => pick.player === 'Future'));
-  assert.equal(altline.picks.some((pick) => pick.player === 'Future'), false);
+  assert.equal(altline.picks.some((pick) => pick.player === 'Future'), true);
   for (const pick of displayed.filter((value) => value.player === 'Future')) {
     assert.equal(pick.postedLine, future.postedLine);
     assert.equal(pick.selectedSide, future.selectedSide);
   }
 });
 
-test('High Probability Altline requires one exact same-capture Underdog baseline and a different posted line', async () => {
+test('High Probability Altline uses verified provider offer identity without reclassifying by line value', async () => {
   const hits = archive('batter-hits', [
     row({ market: 'batter-hits', playerId: 100, playerName: 'Verified Alt', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.20 }),
     row({ market: 'batter-hits', playerId: 100, playerName: 'Verified Alt', offerType: 'alternate', side: 'lower', line: 1.5, p: 0.80 }),
@@ -305,8 +305,13 @@ test('High Probability Altline requires one exact same-capture Underdog baseline
   }));
   const altline = board.categories[2]!;
 
-  assert.deepEqual(altline.picks.map((pick) => pick.player), ['Verified Alt']);
-  assert.equal(altline.picks[0]!.postedLine, 1.5);
-  assert.equal(altline.picks[0]!.selectedSide, 'lower');
-  assert.equal(altline.picks[0]!.pWinGivenGrades, 0.80);
+  assert.deepEqual(
+    altline.picks.map((pick) => pick.player),
+    ['Missing Baseline', 'Ambiguous Baseline', 'Other Capture Baseline', 'Same Line', 'Verified Alt'],
+  );
+  const sameLine = altline.picks.find((pick) => pick.player === 'Same Line');
+  assert.ok(sameLine);
+  assert.equal(sameLine.postedLine, 1.5);
+  assert.equal(sameLine.selectedSide, 'lower');
+  assert.equal(sameLine.pWinGivenGrades, 0.96);
 });
