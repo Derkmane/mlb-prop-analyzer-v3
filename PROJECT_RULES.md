@@ -141,8 +141,7 @@ Every prop must preserve:
 -   model and settlement-rule versions
 
 For Higher, upward distribution shifts may help and downward shifts must
-hurt. For Lower, downward shifts may help and upward shifts must not
-help.
+hurt. For Lower, downward shifts may help and upward shifts must hurt.
 
 No multiplier, hidden booster score, risk score, player reputation,
 excitement, player-quality label, or side preference may alter ranking
@@ -651,8 +650,8 @@ For a planned market without an implementation folder, the
 planned-market catalog owns and exports its keys.
 
 When implementation begins, ownership transfers from the planned-market
-catalog to the feature manifest in one commit, and the old declaration is
-removed in that same commit.
+catalog to the feature manifest in one commit, and the old declaration
+is removed in that same commit.
 
 No handwritten second copy is allowed.
 
@@ -1017,8 +1016,7 @@ Read-only investigation is required when necessary to choose the
 structural direction. It is not a reason to stop working.
 
 The trigger prohibits a third blind patch; it does not prohibit a
-structurally redesigned implementation attempt after the full
-reassessment.
+structurally redesigned implementation attempt after full reassessment.
 
 Destructive deletion, rollback, replacement, or reconstruction remains
 subject to the approval requirements elsewhere in these rules. Deletion
@@ -1525,7 +1523,7 @@ There is no separate Project Knowledge deliverable.
     canonical-change approval, or other explicit authorization boundary
     is reached.
 -   Clarified that the trigger prohibits a third blind patch, not a
-    structurally redesigned implementation after the full reassessment.
+    structurally redesigned implementation after full reassessment.
 -   Prohibited ending with only a failure report when another diagnostic
     or corrective step can be performed with available tools.
 
@@ -1578,7 +1576,7 @@ There is no separate Project Knowledge deliverable.
 -   Added single-source market-key ownership across feature manifests
     and the planned-market catalog.
 -   Added fail-closed feature disable/removal rules and historical
-    rendering independent of active feature code.
+    rendering independent of active features.
 -   Required provider evidence and sanitized fixtures before
     provider-derived contracts.
 -   Added the early terminal-PA and lineup capability gate.
