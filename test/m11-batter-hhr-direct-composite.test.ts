@@ -68,27 +68,32 @@ function baselineCapture(player: string, line: number, includeStandardKey = fals
   };
 }
 
-test('HHR uses a matching standard-book line when the player has no Underdog standard-key row', () => {
+test('HHR alternate market identity survives a matching standard-book line', () => {
   const [offer] = normalizeUnderdogBatterHhrCapture(baselineCapture('External Baseline', 1.5), new Map([['External Baseline', 1.5]]));
-  assert.equal(offer?.offerType, 'baseline');
+  assert.equal(offer?.offerType, 'alternate');
+  assert.equal(offer?.providerMarketKey, 'batter_hits_runs_rbis_alternate');
   assert.equal(offer?.offerTypeReason, null);
 });
 
-test('HHR calls a nonmatching standard-book line alternate when no Underdog standard-key row exists', () => {
+test('HHR alternate market identity survives a nonmatching standard-book line', () => {
   const [offer] = normalizeUnderdogBatterHhrCapture(baselineCapture('External Alternate', 2.5), new Map([['External Alternate', 1.5]]));
   assert.equal(offer?.offerType, 'alternate');
+  assert.equal(offer?.providerMarketKey, 'batter_hits_runs_rbis_alternate');
   assert.equal(offer?.offerTypeReason, null);
 });
 
-test('HHR gives a player Underdog standard-key row precedence over the standard-book line', () => {
+test('HHR preserves standard and alternate provider-market identity independently of line value', () => {
   const offers = normalizeUnderdogBatterHhrCapture(baselineCapture('Underdog Wins', 1.5, true), new Map([['Underdog Wins', 1.5]]));
   assert.equal(offers.find((offer) => offer.line === 2.5)?.offerType, 'baseline');
+  assert.equal(offers.find((offer) => offer.line === 2.5)?.providerMarketKey, 'batter_hits_runs_rbis');
   assert.equal(offers.find((offer) => offer.line === 1.5)?.offerType, 'alternate');
+  assert.equal(offers.find((offer) => offer.line === 1.5)?.providerMarketKey, 'batter_hits_runs_rbis_alternate');
 });
 
-test('HHR records why a player absent from both baseline sources is alternate', () => {
+test('HHR records missing baseline evidence without changing alternate market identity', () => {
   const [offer] = normalizeUnderdogBatterHhrCapture(baselineCapture('No Baseline', 1.5));
   assert.equal(offer?.offerType, 'alternate');
+  assert.equal(offer?.providerMarketKey, 'batter_hits_runs_rbis_alternate');
   assert.equal(offer?.offerTypeReason, 'NO_PLAYER_BASELINE');
 });
 
@@ -166,7 +171,7 @@ test('every captured baseline and alternate offer preserves its line and settles
   });
 });
 
-test('HHR derives offer type from each player baseline line and deduplicates provider-key overlap', () => {
+test('HHR preserves provider market offer type and provider-key overlap at the same line', () => {
   const outcome = (name: 'Over' | 'Under', point: number) => ({
     name,
     description: 'Baseline Player',
@@ -208,10 +213,20 @@ test('HHR derives offer type from each player baseline line and deduplicates pro
   };
 
   const offers = normalizeUnderdogBatterHhrCapture(capture);
-  assert.equal(offers.length, 2);
-  assert.equal(offers.find((offer) => offer.line === 1.5)?.offerType, 'baseline');
-  assert.equal(offers.find((offer) => offer.line === 2.5)?.offerType, 'alternate');
-  assert.equal(offers.filter((offer) => offer.line === 1.5).length, 1);
+  assert.equal(offers.length, 3);
+  const sameLine = offers.filter((offer) => offer.line === 1.5);
+  assert.equal(sameLine.length, 2);
+  assert.deepEqual(
+    sameLine.map((offer) => [offer.providerMarketKey, offer.offerType]),
+    [
+      ['batter_hits_runs_rbis', 'baseline'],
+      ['batter_hits_runs_rbis_alternate', 'alternate'],
+    ],
+  );
+  assert.equal(
+    offers.find((offer) => offer.line === 2.5)?.offerType,
+    'alternate',
+  );
 });
 
 test('HHR fails closed on missing canonical inputs, malformed vectors, unsupported lines, side-bearing artifacts, and corrupted bookmaker rows', async () => {
