@@ -73,7 +73,7 @@ schemas, mappings, dependencies, or workflows. Any reuse of an
 implementation artifact requires a specific reason, evidence that it is
 still correct, and explicit approval.
 
-No file may be written, edited, committed, or deleted in another
+No file may be written, edited, committed to, or deleted in another
 repository during V3 work.
 
 ------------------------------------------------------------------------
@@ -399,7 +399,7 @@ If required data is unavailable:
 3.  identify the model component it blocks
 4.  present lawful options
 5.  obtain approval before changing the source policy or mathematical
-    design
+design
 
 Known BALLDONTLIE observations must be recorded in
 `docs/providers/balldontlie-quirks.md` and reverified with V3 fixtures.
@@ -613,7 +613,8 @@ For a planned market without an implementation folder, the
 planned-market catalog owns and exports its keys.
 
 When implementation begins, ownership transfers from the planned-market
-catalog to the feature manifest in one commit, and the old declaration is removed in that same commit.
+catalog to the feature manifest in one commit, and the old declaration
+is removed in that same commit.
 
 No handwritten second copy is allowed.
 
@@ -692,7 +693,8 @@ Zero identifier matches are required in active production code only.
 Matches may remain in immutable saved records, historical fixtures, and
 explicitly isolated historical compatibility code.
 
-Historical records are never rewritten merely because a feature is removed.
+Historical records are never rewritten merely because a feature is
+removed.
 
 ------------------------------------------------------------------------
 
@@ -961,7 +963,7 @@ After the trigger:
 -   never end the workflow with only a failure report when another
     diagnostic or corrective step can be performed with available tools
 -   when user action is required, provide exactly one concrete next
-    action that advances the same issue
+action that advances the same issue
 
 Allowed structural directions:
 
@@ -1144,7 +1146,7 @@ When a mismatch is discovered:
 
 1.  stop the affected work immediately
 2.  identify which copy is stale using complete-content and hash
-    evidence
+evidence
 3.  do not merely report that the files differ
 4.  immediately provide the user the complete confirmed-current
     replacement file using the exact canonical filename
