@@ -10,6 +10,7 @@ export const RESEARCH_DISPLAY_MARKETS = Object.freeze([
 
 export type ResearchDisplayMarket = (typeof RESEARCH_DISPLAY_MARKETS)[number];
 export type ResearchOfferType = 'baseline' | 'alternate';
+export type ResearchOfferTypeReason = 'NO_PLAYER_BASELINE' | null;
 export type ResearchSelectedSide = 'higher' | 'lower';
 
 export interface ResearchAnalysisContext {
@@ -37,6 +38,7 @@ export interface ResearchDisplayRow {
   readonly eventCommenceTime: string;
   readonly providerMarketKey: string;
   readonly offerType: ResearchOfferType;
+  readonly offerTypeReason: ResearchOfferTypeReason | undefined;
   readonly selectedSide: ResearchSelectedSide;
   readonly postedLine: number;
   readonly americanPrice: number | null;
