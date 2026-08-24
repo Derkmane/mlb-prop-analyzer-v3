@@ -314,4 +314,4 @@ test('High Probability Altline uses verified provider offer identity without rec
   assert.equal(sameLine.postedLine, 1.5);
   assert.equal(sameLine.selectedSide, 'lower');
   assert.equal(sameLine.pWinGivenGrades, 0.96);
-}
+});
