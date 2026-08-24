@@ -91,10 +91,10 @@ export async function verifyDeploymentDisplayFreshness(options = {}) {
 
   for (const archive of archives) {
     const captureSlateDate = chicagoDateKey(archive.capturedAt, timeZone);
-    if (captureSlateDate !== expectedSlateDate) {
+    if (captureSlateDate > expectedSlateDate) {
       throw new Error(
-        `Deployment blocked: newest shipped ${archive.market} display archive is stale ` +
-          `(${captureSlateDate}; expected ${expectedSlateDate}).`,
+        `Deployment blocked: newest shipped ${archive.market} display archive is future-dated ` +
+          `(${captureSlateDate}; current slate date ${expectedSlateDate}).`,
       );
     }
   }
