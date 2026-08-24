@@ -5,6 +5,11 @@ export {
   type CategoryRankableCandidate,
 } from './category-ranking.js';
 export {
+  CATEGORY_MIN_WIN_PROBABILITY_EXCLUSIVE,
+  CATEGORY_OUTPUT_LIMIT,
+  selectCategoryOutputV1,
+} from './category-output.js';
+export {
   HIGH_PROBABILITY_ALTLINE_CATEGORY_ID,
   selectHighProbabilityAltlinePropsV1,
   type HighProbabilityAltlineSelectionV1,
