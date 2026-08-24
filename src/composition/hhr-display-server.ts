@@ -21,6 +21,9 @@ import {
 export const DEFAULT_HHR_DISPLAY_SERVER_HOST = '0.0.0.0' as const;
 export const DEFAULT_HHR_DISPLAY_SERVER_PORT = 3000 as const;
 
+const PRIVATE_REPOSITORY_TREE_NOT_FOUND =
+  'Unable to refresh current display board from GitHub tree: HTTP 404.';
+
 export function resolveHhrDisplayServerPort(rawPort: string | undefined): number {
   if (rawPort === undefined) return DEFAULT_HHR_DISPLAY_SERVER_PORT;
   if (!/^\d+$/u.test(rawPort)) throw new Error('HHR display server PORT must be an integer.');
@@ -73,8 +76,12 @@ export function createHhrDisplayAppServer(options: HhrDisplayAppServerOptions): 
   const readBoard = async () => {
     try {
       await refreshDisplayArchives();
-    } catch {
-      // Refresh is best-effort; continue with the latest readable archives.
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== PRIVATE_REPOSITORY_TREE_NOT_FOUND) {
+        throw error;
+      }
+      // A private-repository 404 means mid-session refresh is unavailable.
+      // Continue only with the already-committed deployment archives.
     }
     return readLatestHhrDisplayUiBoard(
       repository,
