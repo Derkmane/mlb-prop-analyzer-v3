@@ -164,7 +164,10 @@ export function createHhrDisplayAppHttpHandler(
     const authenticated = secureEqual(cookieValue(request, HHR_DISPLAY_SESSION_COOKIE) ?? '', sessionToken);
 
     if (path === HHR_DISPLAY_HEALTH_PATH && request.method === 'GET') {
-      writeJson(response, 200, { status: 'ok' });
+      void Promise.resolve()
+        .then(() => options.readBoard())
+        .then(() => writeJson(response, 200, { status: 'ok' }))
+        .catch(() => writeJson(response, 503, { status: 'unavailable' }));
       return;
     }
     if (path === HHR_DISPLAY_CSS_PATH && request.method === 'GET') {
