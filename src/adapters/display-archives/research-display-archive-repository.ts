@@ -10,6 +10,7 @@ import {
   type ResearchDisplayMarket,
   type ResearchDisplayRow,
   type ResearchOfferType,
+  type ResearchOfferTypeReason,
   type ResearchSelectedSide,
 } from '../../application/research-display-archive.js';
 import { HHR_DISPLAY_ARCHIVE_ROOT } from './hhr-display-archive-repository.js';
@@ -21,6 +22,7 @@ export type {
   ResearchDisplayMarket,
   ResearchDisplayRow,
   ResearchOfferType,
+  ResearchOfferTypeReason,
   ResearchSelectedSide,
 } from '../../application/research-display-archive.js';
 
@@ -114,6 +116,14 @@ function offerType(value: unknown): ResearchOfferType {
     throw new TypeError('research offerType must be baseline or alternate.');
   }
   return value;
+}
+
+function offerTypeReason(value: unknown): ResearchOfferTypeReason | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || value === 'NO_PLAYER_BASELINE') return value;
+  throw new TypeError(
+    'research offerTypeReason must be null, NO_PLAYER_BASELINE, or absent.',
+  );
 }
 
 function selectedSide(value: unknown): ResearchSelectedSide {
@@ -217,6 +227,7 @@ function normalizeRow(
       `${market} providerMarketKey`,
     ),
     offerType: offerType(row['offerType']),
+    offerTypeReason: offerTypeReason(row['offerTypeReason']),
     selectedSide: selectedSide(row['selectedSide']),
     postedLine: finite(row['postedLine'], `${market} postedLine`),
     americanPrice: nullableFinite(row['americanPrice'], `${market} americanPrice`),
