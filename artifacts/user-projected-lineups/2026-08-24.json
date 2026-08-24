@@ -1,0 +1,374 @@
+{
+  "version": 1,
+  "contract": "user-projected-lineup-v1",
+  "source": "RotoWire user-supplied lineup screenshot transcription",
+  "slateDate": "2026-08-24",
+  "sourceTimeZone": "America/New_York",
+  "importedAt": "2026-08-24T17:50:00.000Z",
+  "sourceEvidenceIds": [
+    "chatgpt-user-image-2026-08-24-1",
+    "chatgpt-user-image-2026-08-24-2"
+  ],
+  "games": [
+    {
+      "awayTeamName": "Tampa Bay Rays",
+      "homeTeamName": "Detroit Tigers",
+      "teams": [
+        {
+          "teamName": "Tampa Bay Rays",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "Yandy Diaz", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "J. Aranda", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "J. Caminero", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "Ryan Vilade", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "C. Simpson", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "Jonny DeLuca", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "Jorge Mateo", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "Nick Fortes", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "Taylor Walls", "lineupSlot": 9 }
+          ]
+        },
+        {
+          "teamName": "Detroit Tigers",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "K. McGonigle", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "G. Torres", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "Colt Keith", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "D. Dingler", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "Z. McKinstry", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "B. Callahan", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "S. Torkelson", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "Max Clark", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "Hao-Yu Lee", "lineupSlot": 9 }
+          ]
+        }
+      ]
+    },
+    {
+      "awayTeamName": "Boston Red Sox",
+      "homeTeamName": "Miami Marlins",
+      "teams": [
+        {
+          "teamName": "Boston Red Sox",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "Nick Sogard", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "C. Rafaela", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "Wilyer Abreu", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "W. Contreras", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "A. Rutschman", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "Caleb Durbin", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "Jarren Duran", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "A. Monasterio", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "M. Gasper", "lineupSlot": 9 }
+          ]
+        },
+        {
+          "teamName": "Miami Marlins",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "Esteury Ruiz", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "H. Hernandez", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "X. Edwards", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "A. Ramirez", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "Otto Lopez", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "Kyle Stowers", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "J. Sanoja", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "Leo Jimenez", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "B. Navarreto", "lineupSlot": 9 }
+          ]
+        }
+      ]
+    },
+    {
+      "awayTeamName": "Colorado Rockies",
+      "homeTeamName": "Washington Nationals",
+      "teams": [
+        {
+          "teamName": "Colorado Rockies",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "J. McCarthy", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "Cole Carrigg", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "M. Moniak", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "TJ Rumfield", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "Willi Castro", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "Zac Veen", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "Connor Norby", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "B. Sullivan", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "E. Tovar", "lineupSlot": 9 }
+          ]
+        },
+        {
+          "teamName": "Washington Nationals",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "CJ Abrams", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "A. Ortiz", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "Brady House", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "Daylen Lile", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "Dylan Crews", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "Keibert Ruiz", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "A. Chaparro", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "Nasim Nunez", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "Jacob Young", "lineupSlot": 9 }
+          ]
+        }
+      ]
+    },
+    {
+      "awayTeamName": "Texas Rangers",
+      "homeTeamName": "Chicago White Sox",
+      "teams": [
+        {
+          "teamName": "Texas Rangers",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "Joc Pederson", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "Corey Seager", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "W. Langford", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "B. Nimmo", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "E. Duran", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "Evan Carter", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "Jake Burger", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "Nicky Lopez", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "Danny Jansen", "lineupSlot": 9 }
+          ]
+        },
+        {
+          "teamName": "Chicago White Sox",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "S. Antonacci", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "M. Murakami", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "M. Vargas", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "A. Benintendi", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "B. Montgomery", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "C. Montgomery", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "C. Meidroth", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "T. Peters", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "Drew Romo", "lineupSlot": 9 }
+          ]
+        }
+      ]
+    },
+    {
+      "awayTeamName": "Cleveland Guardians",
+      "homeTeamName": "Los Angeles Angels",
+      "teams": [
+        {
+          "teamName": "Cleveland Guardians",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "Steven Kwan", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "C. DeLauter", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "Jose Ramirez", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "Jo Adell", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "N. Lowe", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "Angel Genao", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "T. Bazzana", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "R. Bailey", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "B. Rocchio", "lineupSlot": 9 }
+          ]
+        },
+        {
+          "teamName": "Los Angeles Angels",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "Zach Neto", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "Mike Trout", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "V. Grissom", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "M. Ballesteros", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "Jose Siri", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "G. Campero", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "D. Guzman", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "C. Moore", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "T. d'Arnaud", "lineupSlot": 9 }
+          ]
+        }
+      ]
+    },
+    {
+      "awayTeamName": "Minnesota Twins",
+      "homeTeamName": "Athletics",
+      "teams": [
+        {
+          "teamName": "Minnesota Twins",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "L. Keaschall", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "Byron Buxton", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "Ryan Jeffers", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "Josh Bell", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "Royce Lewis", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "Kody Clemens", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "V. Caratini", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "Brooks Lee", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "K. Culpepper", "lineupSlot": 9 }
+          ]
+        },
+        {
+          "teamName": "Athletics",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "Henry Bolte", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "Jeff McNeil", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "Zack Gelof", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "C. Cortes", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "L. Butler", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "Tommy White", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "Jonah Heim", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "D. Walton", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "Max Muncy", "lineupSlot": 9 }
+          ]
+        }
+      ]
+    },
+    {
+      "awayTeamName": "Philadelphia Phillies",
+      "homeTeamName": "Seattle Mariners",
+      "teams": [
+        {
+          "teamName": "Philadelphia Phillies",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "K. Schwarber", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "Trea Turner", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "Bryce Harper", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "Luis Arraez", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "Alec Bohm", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "Bryson Stott", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "B. Marsh", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "J. Realmuto", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "J. Crawford", "lineupSlot": 9 }
+          ]
+        },
+        {
+          "teamName": "Seattle Mariners",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "R. Arozarena", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "D. Canzone", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "J. Rodriguez", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "Josh Naylor", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "Cal Raleigh", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "Cole Young", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "Taylor Ward", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "W. Wilson", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "Brock Rodden", "lineupSlot": 9 }
+          ]
+        }
+      ]
+    },
+    {
+      "awayTeamName": "Pittsburgh Pirates",
+      "homeTeamName": "San Diego Padres",
+      "teams": [
+        {
+          "teamName": "Pittsburgh Pirates",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "N. Gonzales", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "E. Valdez", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "B. Reynolds", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "Brandon Lowe", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "R. Flores", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "Oneil Cruz", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "Jake Mangum", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "Nick Yorke", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "Jared Triolo", "lineupSlot": 9 }
+          ]
+        },
+        {
+          "teamName": "San Diego Padres",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "F. Tatis", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "J. Cronenworth", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "M. Machado", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "Ty France", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "J. Merrill", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "L. Campusano", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "Gavin Sheets", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "X. Bogaerts", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "Luis Rengifo", "lineupSlot": 9 }
+          ]
+        }
+      ]
+    },
+    {
+      "awayTeamName": "Chicago Cubs",
+      "homeTeamName": "Arizona Diamondbacks",
+      "teams": [
+        {
+          "teamName": "Chicago Cubs",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "P. Crow-Armstrong", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "Seiya Suzuki", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "M. Busch", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "Alex Bregman", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "Ian Happ", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "Nico Hoerner", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "P. Ramirez", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "M. Conforto", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "Carson Kelly", "lineupSlot": 9 }
+          ]
+        },
+        {
+          "teamName": "Arizona Diamondbacks",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "L. Nootbaar", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "C. Carroll", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "G. Moreno", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "G. Perdomo", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "N. Arenado", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "Max Kepler", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "Tim Tawa", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "J. Lawlar", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "I. Vargas", "lineupSlot": 9 }
+          ]
+        }
+      ]
+    },
+    {
+      "awayTeamName": "Cincinnati Reds",
+      "homeTeamName": "San Francisco Giants",
+      "teams": [
+        {
+          "teamName": "Cincinnati Reds",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "E. De La Cruz", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "Sal Stewart", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "Dane Myers", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "T. Stephenson", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "E. Suarez", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "Matt McLain", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "JJ Bleday", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "Jose Trevino", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "H. Rodriguez", "lineupSlot": 9 }
+          ]
+        },
+        {
+          "teamName": "San Francisco Giants",
+          "sourceStatus": "expected",
+          "players": [
+            { "sourcePlayerLabel": "Drew Gilbert", "lineupSlot": 1 },
+            { "sourcePlayerLabel": "R. Devers", "lineupSlot": 2 },
+            { "sourcePlayerLabel": "Willy Adames", "lineupSlot": 3 },
+            { "sourcePlayerLabel": "Jung Hoo Lee", "lineupSlot": 4 },
+            { "sourcePlayerLabel": "O. Basabe", "lineupSlot": 5 },
+            { "sourcePlayerLabel": "Turner Hill", "lineupSlot": 6 },
+            { "sourcePlayerLabel": "V. Bericoto", "lineupSlot": 7 },
+            { "sourcePlayerLabel": "D. Cavanaugh", "lineupSlot": 8 },
+            { "sourcePlayerLabel": "C. Koss", "lineupSlot": 9 }
+          ]
+        }
+      ]
+    }
+  ]
+}
