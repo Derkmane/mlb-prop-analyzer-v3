@@ -1,6 +1,6 @@
 # MLB Prop Analyzer --- Project Rules
 
-**Version:** 2.15\
+**Version:** 2.16\
 **Status:** Canonical project rules\
 **Applies to:** MLB Prop Analyzer V3\
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
@@ -141,7 +141,8 @@ Every prop must preserve:
 -   model and settlement-rule versions
 
 For Higher, upward distribution shifts may help and downward shifts must
-hurt. For Lower, downward shifts may help and upward shifts must hurt.
+hurt. For Lower, downward shifts may help and upward shifts must not
+help.
 
 No multiplier, hidden booster score, risk score, player reputation,
 excitement, player-quality label, or side preference may alter ranking
@@ -222,6 +223,43 @@ Rules:
 
 A market and a category are different objects. Batter Hits is a market
 feature. High Probability Altline Props is a category selector.
+
+### Alternate line definition --- LOCKED
+
+For product-category purposes, an **alternate line** is an exact posted
+Underdog projection line whose numerical `postedLine` is different from the
+verified baseline projection line for the same player, game, base market, and
+official settlement statistic.
+
+Rules:
+
+-   a unique verified baseline projection line must be resolved from approved
+    source evidence before any offer for that player, game, and base market may
+    be classified as an alternate line
+-   if the baseline projection line cannot be uniquely resolved, alternate-line
+    classification fails closed for that player, game, and base market
+-   an offer whose numerical posted line equals the verified baseline line is
+    **not** an alternate line, even if a provider places that offer under a
+    market key containing `alternate`, assigns a different multiplier, price,
+    payout, boost, promotion, or other offer metadata, or duplicates the offer
+    in another provider market bucket
+-   a provider `alternate` market key is provider offer identity only; it may
+    not by itself determine product Altline-category eligibility
+-   a posted line numerically below or above the verified baseline line is a
+    true alternate-line candidate when the exact offer is otherwise valid; its
+    exact posted Higher or Lower side is evaluated independently
+-   example: if the verified baseline is `1.5`, posted `0.5` and `2.5` lines are
+    alternate lines; another posted `1.5` offer with a different multiplier is
+    not an alternate line
+-   High Probability Baseline Props may admit only the verified baseline line
+    for the player and base market
+-   High Probability Altline Props may admit only true alternate lines under
+    this definition, and every admitted pick must still satisfy the normal
+    `P(Win | grades) > 0.50` category eligibility rule
+-   baseline and alternate lines for the same player, game, and settlement
+    statistic use the same official-statistic distribution; each exact posted
+    side and line is settled independently, and category ranking remains
+    `P(Win | grades)` descending then `P(Void)` ascending
 
 ### Projected lineup treatment --- LOCKED
 
@@ -613,8 +651,8 @@ For a planned market without an implementation folder, the
 planned-market catalog owns and exports its keys.
 
 When implementation begins, ownership transfers from the planned-market
-catalog to the feature manifest in one commit, and the old declaration
-is removed in that same commit.
+catalog to the feature manifest in one commit, and the old declaration is
+removed in that same commit.
 
 No handwritten second copy is allowed.
 
@@ -1262,6 +1300,22 @@ There is no separate Project Knowledge deliverable.
 
 ## Changelog
 
+### Version 2.16 — 2026-08-24
+
+-   Defined an alternate line as a posted projection line whose numerical line
+    differs from the uniquely verified baseline projection line for the same
+    player, game, base market, and settlement statistic.
+-   Explicitly prohibited provider `alternate` market keys, multipliers,
+    prices, payouts, boosts, promotions, duplicate market buckets, or other
+    offer metadata from making a same-number baseline line into an alternate
+    line.
+-   Required alternate-line classification to fail closed when a unique
+    verified baseline line cannot be resolved, and restricted the Altline
+    category to true numerically different posted lines only.
+-   Preserved same-distribution baseline/altline settlement, exact posted side
+    and line evaluation, the `P(Win | grades) > 0.50` category gate, and the
+    unchanged canonical ranking order.
+
 ### Version 2.15 — 2026-08-24
 
 -   Corrected the product-category size rule so each category returns every
@@ -1471,7 +1525,7 @@ There is no separate Project Knowledge deliverable.
     canonical-change approval, or other explicit authorization boundary
     is reached.
 -   Clarified that the trigger prohibits a third blind patch, not a
-    structurally redesigned implementation after full reassessment.
+    structurally redesigned implementation after the full reassessment.
 -   Prohibited ending with only a failure report when another diagnostic
     or corrective step can be performed with available tools.
 
@@ -1524,7 +1578,7 @@ There is no separate Project Knowledge deliverable.
 -   Added single-source market-key ownership across feature manifests
     and the planned-market catalog.
 -   Added fail-closed feature disable/removal rules and historical
-    rendering independent of active features.
+    rendering independent of active feature code.
 -   Required provider evidence and sanitized fixtures before
     provider-derived contracts.
 -   Added the early terminal-PA and lineup capability gate.
