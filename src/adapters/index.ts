@@ -16,4 +16,7 @@ export {
   renderHhrDisplayAppPage,
   renderHhrDisplayLoginPage,
 } from './ui/hhr-display-page.js';
-export * from './ui/product-board-layout.js';
+export {
+  LIVE_DISPLAY_APP_CSS as HHR_DISPLAY_APP_CSS,
+  LIVE_DISPLAY_APP_JS as HHR_DISPLAY_APP_JS,
+} from './ui/top-five-research-layout.js';
