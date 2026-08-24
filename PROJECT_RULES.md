@@ -1,6 +1,6 @@
 # MLB Prop Analyzer --- Project Rules
 
-**Version:** 2.14\
+**Version:** 2.15\
 **Status:** Canonical project rules\
 **Applies to:** MLB Prop Analyzer V3\
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
@@ -204,7 +204,15 @@ Rules:
 
 -   one prop per player per category
 -   overlap across categories is allowed
--   Top Five means the first five eligible picks after approved sorting
+-   category eligibility requires `P(Win | grades) > 0.50`
+-   each category returns all eligible picks after approved sorting up to a
+    maximum of 20; when at least 10 eligible picks exist, the category must
+    return at least the first 10; when fewer than 10 exist, return all eligible
+    picks and never pad with a pick at or below 0.50
+-   Top Five is a separate research-analysis subset consisting of the first
+    five picks from an already-built category after approved sorting; Top Five
+    is used only for additional research analysis and does not cap category
+    size, change eligibility, alter probability, or reorder the category
 -   pregame only; started games are excluded
 -   selected side, line, market, and settlement statistic must survive
     ranking, display, saving, and grading
@@ -1253,6 +1261,22 @@ There is no separate Project Knowledge deliverable.
 ------------------------------------------------------------------------
 
 ## Changelog
+
+### Version 2.15 — 2026-08-24
+
+-   Corrected the product-category size rule so each category returns every
+    eligible pick with `P(Win | grades) > 0.50` after canonical sorting, capped
+    at 20, with at least the first 10 shown whenever 10 or more eligible picks
+    exist and no padding at or below 0.50.
+-   Restored Top Five to its intended role as a separate research-analysis
+    subset consisting of the first five picks from an already-built category,
+    rather than a cap on the product category itself.
+-   Preserved one prop per player per category, pregame-only filtering,
+    baseline/altline eligibility, exact side and line, and the unchanged
+    canonical ranking order of `P(Win | grades)` descending then `P(Void)`
+    ascending.
+-   Made no probability-model, settlement, calibration, provider, lineup,
+    bullpen, grading, or production-enablement change.
 
 ### Version 2.14 — 2026-08-19
 

@@ -3,10 +3,10 @@ import {
   HIGH_PROBABILITY_BASELINE_CATEGORY_ID,
   OPPORTUNITY_MINER_CATEGORY_ID,
   indicativeImpliedProbabilityFromAmericanPrice,
+  selectCategoryOutputV1,
   selectHighProbabilityAltlinePropsV1,
   selectHighProbabilityBaselinePropsV1,
   selectOpportunityMinerFavoritesV1,
-  selectTopFiveV1,
   type CategoryOfferInput,
 } from '../categories/index.js';
 import { settleObservedDiscreteStatisticV1 } from '../core/index.js';
@@ -396,14 +396,14 @@ export async function readResearchProductBoardV2(
   });
   const opportunity = selectOpportunityMinerFavoritesV1(minerInputs);
 
-  const opportunityPicks = selectTopFiveV1(opportunity.eligibleCandidates).map(
-    (candidate) => candidate as ProductDisplayPick,
+  const opportunityPicks = selectCategoryOutputV1(
+    opportunity.eligibleCandidates,
+  ).map((candidate) => candidate as ProductDisplayPick);
+  const baselinePicks = selectCategoryOutputV1(
+    baseline.eligibleCandidates.map((input) => input.candidate),
   );
-  const baselinePicks = selectTopFiveV1(baseline.eligibleCandidates).map(
-    (input) => input.candidate,
-  );
-  const altlinePicks = selectTopFiveV1(altline.eligibleCandidates).map(
-    (input) => input.candidate,
+  const altlinePicks = selectCategoryOutputV1(
+    altline.eligibleCandidates.map((input) => input.candidate),
   );
 
   return Object.freeze({

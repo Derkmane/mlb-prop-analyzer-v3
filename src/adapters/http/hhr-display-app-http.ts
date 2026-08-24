@@ -11,9 +11,9 @@ import {
   renderHhrDisplayLoginPage,
 } from '../ui/hhr-display-page.js';
 import {
-  HHR_DISPLAY_APP_CSS,
-  HHR_DISPLAY_APP_JS,
-} from '../ui/product-board-layout.js';
+  LIVE_DISPLAY_APP_CSS as HHR_DISPLAY_APP_CSS,
+  LIVE_DISPLAY_APP_JS as HHR_DISPLAY_APP_JS,
+} from '../ui/top-five-research-layout.js';
 
 export const HHR_DISPLAY_LOGIN_PATH = '/login' as const;
 export const HHR_DISPLAY_LOGOUT_PATH = '/logout' as const;
