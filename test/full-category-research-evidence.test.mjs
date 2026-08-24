@@ -8,7 +8,7 @@ import {
 const SHA_A = 'a'.repeat(64);
 const SHA_B = 'b'.repeat(64);
 
-function gradedRow({ rank, playerId, side, p, outcome }) {
+function gradedRow({ rank, playerId, side, p, outcome, officialHits }) {
   return Object.freeze({
     rank,
     providerEventId: `event-${playerId}`,
@@ -29,7 +29,7 @@ function gradedRow({ rank, playerId, side, p, outcome }) {
     archivedPLoss: 1 - p,
     archivedPVoid: 0,
     archivedPWinGivenGrades: p,
-    officialHits: outcome === 'win' && side === 'higher' ? 1 : 0,
+    officialHits,
     outcome,
     settlementVersion: 'test-settlement-v1',
   });
@@ -39,6 +39,7 @@ function complementaryPair(index) {
   const playerId = 700 + index;
   const higherP = 0.60 + index * 0.01;
   const higherWins = index % 2 === 0;
+  const officialHits = higherWins ? 1 : 0;
   return Object.freeze([
     gradedRow({
       rank: index * 2 + 1,
@@ -46,6 +47,7 @@ function complementaryPair(index) {
       side: 'higher',
       p: higherP,
       outcome: higherWins ? 'win' : 'loss',
+      officialHits,
     }),
     gradedRow({
       rank: index * 2 + 2,
@@ -53,6 +55,7 @@ function complementaryPair(index) {
       side: 'lower',
       p: 1 - higherP,
       outcome: higherWins ? 'loss' : 'win',
+      officialHits,
     }),
   ]);
 }
