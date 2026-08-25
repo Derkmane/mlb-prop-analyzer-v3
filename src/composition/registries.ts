@@ -12,6 +12,7 @@ import {
   BATTER_HHR_DISTRIBUTION_BUILDER_VERSION,
   BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE,
   BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
+  BATTER_HHR_SETTLEMENT_RULE_VERSION,
 } from '../features/batter-hhr/contracts.js';
 import {
   BATTER_HITS_FEATURE_ID,
@@ -21,16 +22,20 @@ import { BATTER_HITS_PROVIDER_MARKET_KEYS } from '../features/batter-hits/normal
 import {
   BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE,
   BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
+  BATTER_HITS_SETTLEMENT_RULE_SOURCE_REFERENCE,
+  BATTER_HITS_SETTLEMENT_RULE_VERSION,
 } from '../features/batter-hits/settlement.js';
 import { PLANNED_MARKET_CATALOG } from './planned-market-catalog.js';
 
-export const SETTLEMENT_REGISTRY_VERSION = 'settlement-registry-v4';
+export const SETTLEMENT_REGISTRY_VERSION = 'settlement-registry-v5';
 const HHR_INPUTS = Object.freeze([
   'context-adjusted-terminal-outcome-vector','expected-plate-appearances','lineup-slot','platoon-split-cell',
   'opposing-starter-pooling','team-implied-run-total','preceding-lineup-slots-on-base-quality',
 ]);
+const HISTORICAL_UNDERDOG_HHR_SETTLEMENT_RULE_SOURCE_REFERENCE =
+  'fixtures/sanitized/m11/hhr/settlement/underdog-batter-hhr-settlement-v1.json';
 
-const BATTER_HITS_SETTLEMENT_RULE = Object.freeze({
+const BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE = Object.freeze({
   version: BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
   boardSource: 'draftkings',
   baseMarketKey: BATTER_HITS_MARKET_KEY,
@@ -52,7 +57,7 @@ const BATTER_HITS_SETTLEMENT_RULE = Object.freeze({
   ruleSourceReference: BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE,
 }) satisfies SettlementRuleRegistration;
 
-const HHR_SETTLEMENT_RULE = Object.freeze({
+const HHR_DRAFTKINGS_SETTLEMENT_RULE = Object.freeze({
   version: BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
   boardSource: 'draftkings',
   baseMarketKey: BATTER_HHR_MARKET_KEY,
@@ -72,6 +77,58 @@ const HHR_SETTLEMENT_RULE = Object.freeze({
   ]),
   sourcePublishedAt: '2025-08-26',
   ruleSourceReference: BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE,
+}) satisfies SettlementRuleRegistration;
+
+const BATTER_HITS_HISTORICAL_UNDERDOG_SETTLEMENT_RULE = Object.freeze({
+  version: BATTER_HITS_SETTLEMENT_RULE_VERSION,
+  boardSource: null,
+  baseMarketKey: BATTER_HITS_MARKET_KEY,
+  officialSettlementStatistic: 'hits',
+  startRequirement: 'MLB batter must appear in the official starting lineup for the pick to grade.',
+  minimumParticipation: 'No separate Batter Hits plate-appearance minimum is stated after the official-start requirement; a player who plays and exits early remains valid.',
+  reliefAppearanceHandling: 'A batter absent from the official starting lineup remains void even if entering later as a pinch hitter or substitute.',
+  intentionalWalkHandling: 'No separate Batter Hits intentional-walk settlement exception is stated; settle the official Hits statistic.',
+  tieHandling: 'A selection that ties its posted projection is void.',
+  postponementHandling: 'A baseball game postponed before starting is void unless played on the originally scheduled local calendar day.',
+  suspensionHandling: 'If suspended after starting, grade when resumed within 36 hours; otherwise void unless the outcome was unequivocally determined before suspension.',
+  voidConditions: Object.freeze([
+    'batter absent from the official starting lineup',
+    'observed hits equals the posted projection',
+    'game postponed before starting and not played on the originally scheduled local calendar day',
+    'game suspended after starting, not resumed within 36 hours, and outcome not unequivocally determined before suspension',
+    'scheduled venue changed after entry',
+    'player projection associated with the incorrect team',
+    'pick used after the game or event started',
+    'operator-determined projection error',
+  ]),
+  sourcePublishedAt: '2026-06-22',
+  ruleSourceReference: BATTER_HITS_SETTLEMENT_RULE_SOURCE_REFERENCE,
+}) satisfies SettlementRuleRegistration;
+
+const HHR_HISTORICAL_UNDERDOG_SETTLEMENT_RULE = Object.freeze({
+  version: BATTER_HHR_SETTLEMENT_RULE_VERSION,
+  boardSource: null,
+  baseMarketKey: BATTER_HHR_MARKET_KEY,
+  officialSettlementStatistic: 'hits+runs+rbis',
+  startRequirement: 'MLB batter must appear in the official starting lineup for the pick to grade.',
+  minimumParticipation: 'No separate HHR plate-appearance minimum is stated after the official-start requirement; a player who plays and exits early remains valid.',
+  reliefAppearanceHandling: 'A batter absent from the official starting lineup remains void even if entering later as a pinch hitter or substitute.',
+  intentionalWalkHandling: 'No separate HHR intentional-walk settlement exception is stated; settle the cumulative hits+runs+rbis statistic.',
+  tieHandling: 'A selection that ties its posted projection is void.',
+  postponementHandling: 'A baseball game postponed before starting is void unless played on the originally scheduled local calendar day.',
+  suspensionHandling: 'If suspended after starting, grade when resumed within 36 hours; otherwise void unless the outcome was unequivocally determined before suspension.',
+  voidConditions: Object.freeze([
+    'batter absent from the official starting lineup',
+    'observed hits+runs+rbis equals the posted projection',
+    'game postponed before starting and not played on the originally scheduled local calendar day',
+    'game suspended after starting, not resumed within 36 hours, and outcome not unequivocally determined before suspension',
+    'scheduled venue changed after entry',
+    'player projection associated with the incorrect team',
+    'pick used after the game or event started',
+    'operator-determined projection error',
+  ]),
+  sourcePublishedAt: '2026-06-22',
+  ruleSourceReference: HISTORICAL_UNDERDOG_HHR_SETTLEMENT_RULE_SOURCE_REFERENCE,
 }) satisfies SettlementRuleRegistration;
 
 const implementedMarketRegistrations = [
@@ -117,7 +174,12 @@ export const FEATURE_REGISTRY: readonly FeatureRegistration[] = Object.freeze(
 );
 export const SETTLEMENT_REGISTRY: SettlementRegistry = Object.freeze({
   version: SETTLEMENT_REGISTRY_VERSION,
-  rules: Object.freeze([BATTER_HITS_SETTLEMENT_RULE, HHR_SETTLEMENT_RULE]),
+  rules: Object.freeze([
+    BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE,
+    HHR_DRAFTKINGS_SETTLEMENT_RULE,
+    BATTER_HITS_HISTORICAL_UNDERDOG_SETTLEMENT_RULE,
+    HHR_HISTORICAL_UNDERDOG_SETTLEMENT_RULE,
+  ]),
 });
 export const PRODUCTION_REGISTRIES: ProductionRegistrySnapshot = Object.freeze({
   implementedMarkets: IMPLEMENTED_MARKET_REGISTRY,
