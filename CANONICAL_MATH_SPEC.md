@@ -1529,8 +1529,8 @@ P(T>=1)=1-P(T=0), so the fitted PMF mechanically
 overstates that tail by 0.0293 before any later calibration.
 
 Dispersion respecification was tested and rejected as the
-active correction. A controlled NB1 fit on the same rows
-and predictors changed the P(T>=1) tail gap only from +0.0293 under NB2 to
+active correction. Under the tested NB1 alternative, the
+P(T>=1) tail gap changed only from +0.0293 under NB2 to
 +0.0267 under NB1. Changing the variance law did not remove
 the low-count error.
 
@@ -2835,7 +2835,7 @@ no complete production validation/calibration
   branch where both apply.
 - Distinguished replacement factors, which substitute a complete terminal
   vector for a declared subset of plate appearances, from transformation
-  factors, which multiply a resulting vector elementwise and renormalize
+  factors, which multiply a resulting terminal vector elementwise and renormalize
   once across every plate appearance in scope.
 - Prohibited any plate appearance from receiving the same factor twice.
 - Added the category-support boundary: composition applies a factor only
