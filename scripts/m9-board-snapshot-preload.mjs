@@ -386,10 +386,11 @@ export function publishClaimedEventScope(manifest) {
     throw new Error('Snapshot manifest must contain at least one claimed game.');
   }
   const eventIds = manifest.claimedGames.map((game, index) => {
-    if (typeof game?.eventId !== 'string' || eventId.length === 0) {
+    const eventId = game?.eventId;
+    if (typeof eventId !== 'string' || eventId.length === 0) {
       throw new Error(`Snapshot claimed game ${index} has no event ID.`);
     }
-    return game.eventId;
+    return eventId;
   });
   if (new Set(eventIds).size !== eventIds.length) {
     throw new Error('Snapshot claimed event IDs must be unique.');
