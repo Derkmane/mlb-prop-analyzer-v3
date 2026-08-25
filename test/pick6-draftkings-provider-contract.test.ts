@@ -83,6 +83,24 @@ test('DraftKings Batter Hits normalization preserves source identity and every c
   );
 });
 
+test('DraftKings non-null bookmaker sid is raw-only metadata and is discarded', () => {
+  const event = structuredClone(fixture.draftkings.response);
+  const bookmaker = event.bookmakers?.[0];
+  assert.ok(bookmaker);
+  bookmaker.sid = 'opaque-live-draftkings-bookmaker-id';
+
+  const board = normalizeOddsApiBatterHitsBoard({
+    boardSource: 'draftkings',
+    rawEventSnapshot: event,
+    sourceSnapshotSha256: fixture.draftkings.responseSha256,
+    sourceCapturedAt: fixture.capturedAt,
+    playerIdentities: playerIdentitiesForEvent(event),
+  });
+
+  assert.ok(board.offers.length > 0);
+  assert.equal(board.offers.every((offer) => offer.providerBookmakerSid === null), true);
+});
+
 test('temporarily unavailable Pick6 is represented as an empty source board rather than substituted', () => {
   const event = fixture.pick6.response;
   const board = normalizeOddsApiBatterHitsBoard({
