@@ -537,7 +537,7 @@ export async function captureM9BatterHitsEventOdds({
       oddsSnapshot = await fetchOdds({
         label: `${source.boardSource} Batter Hits ${id}`,
         url: oddsUrl,
-        requireNonemptyRecords: true,
+        requireNonemptyRecords: false,
       });
       providerSnapshots.push(oddsSnapshot);
       sources.push(
