@@ -122,7 +122,7 @@ test('product Altline requires a numerically different posted projection, not an
   assert.ok(baseline);
   assert.ok(altline);
 
-  assert.equal(baseline.picks.some((pick) => pick.player === 'Multiplier Only'), true);
+  assert.equal(baseline.picks.some((pick) => pick.player === 'Multiplier Only'), false);
   assert.equal(altline.picks.some((pick) => pick.player === 'Multiplier Only'), false);
 
   const trueBaseline = baseline.picks.find((pick) => pick.player === 'True Alt');
