@@ -100,6 +100,33 @@ test('temporarily unavailable Pick6 is represented as an empty source board rath
   assert.deepEqual(board.rejectedOffers, []);
 });
 
+test('Pick6 non-null bookmaker sid is raw-only metadata and does not block exact ladder normalization', () => {
+  const event = structuredClone(fixture.draftkings.response);
+  const bookmaker = event.bookmakers?.[0];
+  assert.ok(bookmaker);
+  bookmaker.key = 'pick6';
+  bookmaker.title = 'Pick6';
+  bookmaker.sid = 'opaque-live-pick6-bookmaker-id';
+
+  const board = normalizeOddsApiBatterHitsBoard({
+    boardSource: 'pick6',
+    rawEventSnapshot: event,
+    sourceSnapshotSha256: fixture.draftkings.responseSha256,
+    sourceCapturedAt: fixture.capturedAt,
+    playerIdentities: playerIdentitiesForEvent(event),
+  });
+
+  assert.equal(board.boardSource, 'pick6');
+  assert.equal(board.providerBookmakerKey, 'pick6');
+  assert.equal(board.providerRegion, 'us_dfs');
+  assert.ok(board.offers.length > 0);
+  assert.equal(board.offers.every((offer) => offer.providerBookmakerSid === null), true);
+  assert.equal(
+    board.offers.some((offer) => offer.providerMarketKey === 'batter_hits_alternate'),
+    true,
+  );
+});
+
 test('legacy Underdog fixtures normalize only as explicitly non-active historical evidence', () => {
   const legacy = rawOddsApiEventOddsSchema.parse({
     id: 'legacy-event',
