@@ -13,7 +13,7 @@ test("canonical Family B guardrails remain synchronized across authorities", asy
   ]);
 
   assert.match(mathSpec, /\*\*Version:\*\* 1\.16/);
-  assert.match(projectRules, /\*\*Version:\*\* 2\.17/);
+  assert.match(projectRules, /\*\*Version:\*\* 2\.18/);
 
   assert.ok(
     mathSpec.includes(
