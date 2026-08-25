@@ -173,10 +173,12 @@ test('first immutable board snapshot prefetches exact Pick6 and DraftKings Hits 
         `hits:draftkings:${EVENT.eventId}`,
         `hhr:pick6:${EVENT.eventId}`,
         `hhr:draftkings:${EVENT.eventId}`,
+        `total-bases:pick6:${EVENT.eventId}`,
+        `total-bases:draftkings:${EVENT.eventId}`,
       ].sort(),
     );
     assert.equal(manifest.auxiliaryFailures.length, 0);
-    assert.equal(calls.length, 4);
+    assert.equal(calls.length, 6);
 
     const expected = new Map([
       ['hits:pick6', { regions: 'us_dfs', bookmakers: 'pick6', markets: 'batter_hits,batter_hits_alternate' }],
