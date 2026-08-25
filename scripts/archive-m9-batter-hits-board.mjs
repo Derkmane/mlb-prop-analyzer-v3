@@ -451,8 +451,21 @@ export function formatBallDontLieGameMatchDiagnostic({
   return `${lines.join('\n')}\n`;
 }
 
-function sourceMarkets(rawOdds, source) {
+function sourceMarkets(rawOdds, source, expectedEventId) {
   const event = object(rawOdds, 'The Odds API event odds');
+  const eventId = nonemptyString(event.id, 'event.id');
+  const expectedId = nonemptyString(expectedEventId, 'expectedEventId');
+  if (eventId !== expectedId) {
+    throw new Error(
+      `The Odds API event odds id ${eventId} does not match requested event ${expectedId}.`,
+    );
+  }
+  const commenceTime = nonemptyString(event.commence_time, 'event.commence_time');
+  if (!Number.isFinite(Date.parse(commenceTime))) {
+    throw new TypeError('event.commence_time must be an ISO timestamp.');
+  }
+  exactName(event.home_team, 'event.home_team');
+  exactName(event.away_team, 'event.away_team');
   const bookmakers = array(event.bookmakers, 'event.bookmakers').filter(
     (raw) => object(raw, 'bookmaker').key === source.bookmaker,
   );
@@ -468,10 +481,10 @@ function sourceMarkets(rawOdds, source) {
   );
 }
 
-function rawOfferSummary(rawOdds, source) {
+function rawOfferSummary(rawOdds, source, expectedEventId) {
   const countsByPlayer = new Map();
   let count = 0;
-  for (const rawMarket of sourceMarkets(rawOdds, source)) {
+  for (const rawMarket of sourceMarkets(rawOdds, source, expectedEventId)) {
     const market = object(rawMarket, 'market');
     for (const rawOutcome of array(market.outcomes, `${market.key}.outcomes`)) {
       const playerName = exactName(
@@ -545,7 +558,7 @@ export async function captureM9BatterHitsEventOdds({
         Object.freeze({
           ...source,
           oddsSnapshot,
-          rawOffers: rawOfferSummary(oddsSnapshot.parsedBody, source),
+          rawOffers: rawOfferSummary(oddsSnapshot.parsedBody, source, id),
         }),
       );
     } catch (error) {

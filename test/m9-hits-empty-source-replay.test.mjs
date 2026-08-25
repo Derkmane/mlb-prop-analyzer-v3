@@ -87,3 +87,38 @@ test('Hits replay accepts a valid empty Pick6 source and still consumes DraftKin
     ],
   );
 });
+
+
+test('Hits replay rejects a malformed empty Pick6 event envelope before treating it as no offers', async () => {
+  const providerSnapshots = [];
+  const funnel = createM9ArchiveFunnel({
+    captureTimestamp: CAPTURED_AT,
+    dryRun: false,
+  });
+  const calls = [];
+
+  const result = await captureM9BatterHitsEventOdds({
+    eventId: EVENT_ID,
+    oddsApiKey: 'test-secret',
+    providerSnapshots,
+    funnel,
+    fetchOdds: async (request) => {
+      const bookmaker = request.url.searchParams.get('bookmakers');
+      calls.push(bookmaker);
+      if (bookmaker !== 'pick6') {
+        throw new Error('DraftKings must not be consumed after malformed Pick6 evidence.');
+      }
+      return Object.freeze({
+        capturedAt: CAPTURED_AT,
+        rawBody: Object.freeze({ sha256: 'c'.repeat(64) }),
+        parsedBody: Object.freeze({ bookmakers: Object.freeze([]) }),
+      });
+    },
+  });
+
+  assert.equal(result.status, 'failed-closed');
+  assert.equal(result.exclusion.reason, 'EVENT_ODDS_FAILED_CLOSED');
+  assert.equal(result.exclusion.boardSource, 'pick6');
+  assert.match(result.exclusion.detail, /event\.id must be a nonempty string/u);
+  assert.deepEqual(calls, ['pick6']);
+});
