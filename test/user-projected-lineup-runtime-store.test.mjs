@@ -42,10 +42,10 @@ function artifact({ slateDate = SLATE_DATE } = {}) {
   };
 }
 
-function withRoot(run) {
+async function withRoot(run) {
   const root = mkdtempSync(path.join(os.tmpdir(), 'mlb-runtime-lineup-'));
   try {
-    return run(root);
+    return await run(root);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -114,7 +114,7 @@ test('malformed runtime payload fails closed and never materializes partial evid
     assert.equal(existsSync(path.join(root, `${SLATE_DATE}.json`)), false);
   }));
 
-test('runtime issue fetch requires the dedicated open issue identity and never exposes the token', async () =>
+test('runtime issue fetch requires the dedicated open issue identity and never exposes the token', () =>
   withRoot(async (root) => {
     const body = JSON.stringify(artifact());
     let request;
@@ -135,7 +135,7 @@ test('runtime issue fetch requires the dedicated open issue identity and never e
     assert.equal(JSON.stringify(restored).includes('secret-token-value'), false);
   }));
 
-test('unavailable or repurposed runtime issue remains optional and writes nothing', async () =>
+test('unavailable or repurposed runtime issue remains optional and writes nothing', () =>
   withRoot(async (root) => {
     const unavailable = await restoreUserProjectedLineupRuntimeIssue({
       token: 'token',
