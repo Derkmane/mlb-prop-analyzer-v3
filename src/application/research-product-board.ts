@@ -10,8 +10,14 @@ import {
   type CategoryOfferInput,
 } from '../categories/index.js';
 import { settleObservedDiscreteStatisticV1 } from '../core/index.js';
-import { BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION } from '../features/batter-hhr/contracts.js';
-import { BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION } from '../features/batter-hits/settlement.js';
+import {
+  BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
+  BATTER_HHR_PICK6_SETTLEMENT_RULE_VERSION,
+} from '../features/batter-hhr/contracts.js';
+import {
+  BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
+  BATTER_HITS_PICK6_SETTLEMENT_RULE_VERSION,
+} from '../features/batter-hits/settlement.js';
 import {
   PRODUCT_DISPLAY_BOARD_VERSION,
   PRODUCT_RESEARCH_LABEL,
@@ -68,19 +74,38 @@ function scalarText(value: unknown): string | null {
   return null;
 }
 
-function sourceSettlementAuthorized(row: ResearchDisplayRow): boolean {
-  if (
-    row.boardSource !== 'draftkings' ||
-    row.providerBookmakerKey !== 'draftkings' ||
-    row.providerRegion !== 'us'
-  ) {
-    return false;
+function expectedSettlementVersion(row: ResearchDisplayRow): string | null {
+  if (row.market === RESEARCH_BATTER_HITS_MARKET) {
+    if (row.boardSource === 'draftkings') return BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION;
+    if (row.boardSource === 'pick6') return BATTER_HITS_PICK6_SETTLEMENT_RULE_VERSION;
+    return null;
   }
-  const expected =
-    row.market === RESEARCH_BATTER_HITS_MARKET
-      ? BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION
-      : BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION;
-  return row.settlementRuleVersion === expected;
+  if (row.boardSource === 'draftkings') return BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION;
+  if (row.boardSource === 'pick6') return BATTER_HHR_PICK6_SETTLEMENT_RULE_VERSION;
+  return null;
+}
+
+function sourceSettlementAuthorized(row: ResearchDisplayRow): boolean {
+  if (row.boardSource === 'draftkings') {
+    return (
+      row.providerBookmakerKey === 'draftkings' &&
+      row.providerRegion === 'us' &&
+      row.settlementRuleVersion === expectedSettlementVersion(row)
+    );
+  }
+  if (row.boardSource === 'pick6') {
+    // Pick6 Pardon is a More/Higher-only early-exit void rule. The current
+    // eligibility model does not represent the pre-second-PA exit event, so
+    // Higher remains fail-closed while Lower may use the verified ordinary
+    // batting-stat minimum-play settlement contract.
+    return (
+      row.selectedSide === 'lower' &&
+      row.providerBookmakerKey === 'pick6' &&
+      row.providerRegion === 'us_dfs' &&
+      row.settlementRuleVersion === expectedSettlementVersion(row)
+    );
+  }
+  return false;
 }
 
 function opponent(row: ResearchDisplayRow): string {
@@ -153,7 +178,7 @@ function calibration(row: ResearchDisplayRow): ProductCalibrationDisclosure {
 }
 
 function productPick(row: ResearchDisplayRow, offerType: ProjectionLineOfferType): ResearchRankCandidate {
-  if (row.boardSource !== 'draftkings' || row.providerBookmakerKey !== 'draftkings' || row.providerRegion !== 'us' || row.settlementRuleVersion === null) {
+  if (!sourceSettlementAuthorized(row)) {
     throw new Error('Research product pick source settlement was not authorized.');
   }
   const starter = starterContext(row);
