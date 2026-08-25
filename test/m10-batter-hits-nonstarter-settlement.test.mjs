@@ -10,6 +10,8 @@ import {
   BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE,
   BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
   BATTER_HITS_MARKET_KEY,
+  BATTER_HITS_PICK6_SETTLEMENT_RULE_SOURCE_REFERENCE,
+  BATTER_HITS_PICK6_SETTLEMENT_RULE_VERSION,
   BATTER_HITS_SETTLEMENT_RULE_SOURCE_REFERENCE,
   BATTER_HITS_SETTLEMENT_RULE_VERSION,
 } from '../dist/src/features/batter-hits/index.js';
@@ -132,15 +134,21 @@ function buildReport(overrides = {}) {
   });
 }
 
-test('Batter Hits keeps the active DraftKings rule separate from the historical Underdog grading rule while production remains disabled', () => {
+test('Batter Hits keeps DraftKings, Pick6, and historical Underdog settlement rules separate while production remains disabled', () => {
   const rules = SETTLEMENT_REGISTRY.rules.filter((rule) => rule.baseMarketKey === BATTER_HITS_MARKET_KEY);
-  assert.equal(rules.length, 2);
+  assert.equal(rules.length, 3);
 
-  const activeRule = rules.find((rule) => rule.boardSource === 'draftkings');
-  assert.ok(activeRule);
-  assert.equal(activeRule.version, BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION);
-  assert.equal(activeRule.officialSettlementStatistic, 'hits');
-  assert.equal(activeRule.ruleSourceReference, BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE);
+  const draftKingsRule = rules.find((rule) => rule.boardSource === 'draftkings');
+  assert.ok(draftKingsRule);
+  assert.equal(draftKingsRule.version, BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION);
+  assert.equal(draftKingsRule.officialSettlementStatistic, 'hits');
+  assert.equal(draftKingsRule.ruleSourceReference, BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE);
+
+  const pick6Rule = rules.find((rule) => rule.boardSource === 'pick6');
+  assert.ok(pick6Rule);
+  assert.equal(pick6Rule.version, BATTER_HITS_PICK6_SETTLEMENT_RULE_VERSION);
+  assert.equal(pick6Rule.officialSettlementStatistic, 'hits');
+  assert.equal(pick6Rule.ruleSourceReference, BATTER_HITS_PICK6_SETTLEMENT_RULE_SOURCE_REFERENCE);
 
   const historicalRule = rules.find((rule) => rule.boardSource === null);
   assert.ok(historicalRule);

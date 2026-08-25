@@ -5,6 +5,7 @@ import { SELECTED_SIDES } from '../../domain/selected-side.js';
 import { BATTER_HITS_MARKET_KEY } from './manifest.js';
 import {
   BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
+  BATTER_HITS_PICK6_SETTLEMENT_RULE_VERSION,
   BATTER_HITS_SETTLEMENT_RULE_VERSION,
 } from './settlement.js';
 
@@ -103,7 +104,7 @@ export const normalizedBatterHitsBoardOfferSchema = z
     const expectedSettlementRule =
       offer.boardSource === 'draftkings'
         ? BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION
-        : null;
+        : BATTER_HITS_PICK6_SETTLEMENT_RULE_VERSION;
     if (offer.settlementRuleVersion !== expectedSettlementRule) {
       context.addIssue({
         code: z.ZodIssueCode.custom,

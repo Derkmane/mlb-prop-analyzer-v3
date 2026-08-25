@@ -1,6 +1,6 @@
 # MLB Prop Analyzer — Canonical Math & Statistics Reference
 
-**Version:** 1.16
+**Version:** 1.17
 **Status:** Canonical probability mathematics
 **Empirical status:** Mathematical framework verified where marked; predictive accuracy not yet validated
 
@@ -1014,12 +1014,24 @@ Each market must use a versioned settlement registry defining:
 - void conditions
 - temporal applicability, recorded as exactly one of:
   (a) operator-designated effective date, permitted ONLY when the rule source
-      states an effective date explicitly; or
+      states an effective date explicitly;
   (b) verified rule-version publication boundary, when the source states a
-      publication or version date but no effective date.
-  The stored field name MUST state which of (a) or (b) it is. A publication
-  boundary MUST NOT be stored in a field named or documented as an effective
-  date. If the source supplies neither, the rule MUST NOT be registered.
+      publication or version date but no effective date; or
+  (c) first-party source verification boundary, permitted only when the
+      authoritative operator rule page supplies neither an effective date nor
+      a publication/version date and the exact applicable rule text is directly
+      verified on that first-party page at a preserved `sourceVerifiedAt`
+      timestamp.
+  The stored field name MUST state which of (a), (b), or (c) it is. A
+  publication boundary MUST NOT be stored in a field named or documented as an
+  effective date. A source-verification boundary MUST NOT be represented as an
+  effective date or publication date. A rule registered under (c) may be used
+  only for predictions evaluated at or after `sourceVerifiedAt`; it may never
+  establish, infer, or backdate the operator rule for an earlier prediction.
+  The first-party rule source and verification timestamp must be preserved with
+  the registration. A substantive rule change requires a new rule version and
+  a new applicable temporal boundary. If none of (a), (b), or (c) can be
+  supported from first-party evidence, the rule MUST NOT be registered.
 - rule-source snapshot or reference
 
 The registry must define the market-specific eligibility event `A` used in:
@@ -1029,6 +1041,11 @@ P(Void) = 1 − P(A) + P(A)P(X=L | A)
 ```
 
 The generic void formula is verified. The market-specific `P(A)` model is not complete until the exact operator rule and required participation event are versioned.
+
+A temporal registration boundary does not waive a source-specific eligibility
+requirement. If a rule contains a side-specific participation, pardon, early-exit,
+or other void policy and the required event is not represented by a verified
+eligibility model, the affected offer remains fail-closed for research ranking.
 
 Never hardcode current operator rules from memory.
 
@@ -2522,6 +2539,27 @@ no complete production validation/calibration
 ---
 
 ## Changelog
+
+### Version 1.17 — 2026-08-25
+
+- Added `sourceVerifiedAt` as a third, explicitly named settlement-rule temporal
+  applicability form for an authoritative first-party operator rule page that
+  supplies neither an operator-designated effective date nor a publication or
+  version date.
+- Defined `sourceVerifiedAt` strictly as an observation boundary: a rule using
+  it may apply only to predictions evaluated at or after the preserved
+  verification timestamp and may never be used to infer or backdate rules for
+  an earlier prediction.
+- Required the first-party rule source and verification timestamp to remain
+  preserved, and required a new rule version and temporal boundary after a
+  substantive rule change.
+- Clarified that temporal registration does not waive market-specific
+  eligibility modeling. Side-specific participation, pardon, early-exit, or
+  other void policies remain fail-closed for research ranking when their
+  required eligibility event is not represented by a verified model.
+- Made no change to generic Higher/Lower settlement mathematics, ranking,
+  model families, calibration, current-season fitting, production enablement,
+  or product-category ordering.
 
 ### Version 1.16 — 2026-08-24
 

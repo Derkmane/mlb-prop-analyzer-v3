@@ -7,6 +7,7 @@ import type {
 import {
   BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
   BATTER_HITS_MARKET_KEY,
+  BATTER_HITS_PICK6_SETTLEMENT_RULE_VERSION,
   BATTER_HITS_PROVIDER_MARKET_KEYS,
   BATTER_HITS_SETTLEMENT_RULE_VERSION,
   batterHitsPlayerIdentitySchema,
@@ -81,7 +82,7 @@ interface BoardSourceContract {
   readonly settlementRuleVersion: string | null;
 }
 const ACTIVE_SOURCE_CONTRACT = Object.freeze({
-  pick6: Object.freeze({ boardSource: 'pick6' as const, bookmaker: 'pick6' as const, region: 'us_dfs' as const, settlementRuleVersion: null }),
+  pick6: Object.freeze({ boardSource: 'pick6' as const, bookmaker: 'pick6' as const, region: 'us_dfs' as const, settlementRuleVersion: BATTER_HITS_PICK6_SETTLEMENT_RULE_VERSION }),
   draftkings: Object.freeze({ boardSource: 'draftkings' as const, bookmaker: 'draftkings' as const, region: 'us' as const, settlementRuleVersion: BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION }),
 });
 const HISTORICAL_UNDERDOG_CONTRACT = Object.freeze({ boardSource: null, bookmaker: 'underdog' as const, region: 'us_dfs' as const, settlementRuleVersion: BATTER_HITS_SETTLEMENT_RULE_VERSION });

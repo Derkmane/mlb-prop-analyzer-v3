@@ -7,7 +7,7 @@ const math = readFileSync(new URL('../CANONICAL_MATH_SPEC.md', import.meta.url),
 
 test('canonical authorities separate research ranking from production calibration', () => {
   assert.match(rules, /\*\*Version:\*\* 2\.18/u);
-  assert.match(math, /\*\*Version:\*\* 1\.16/u);
+  assert.match(math, /\*\*Version:\*\* 1\.17/u);
 
   assert.match(rules, /Research ranking.*production-calibrated probability authorization[\s\S]*separate states/u);
   assert.match(math, /Research ranking and production-calibrated probability authorization are[\s\S]*separate states/u);

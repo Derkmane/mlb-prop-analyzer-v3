@@ -13,10 +13,16 @@ import {
 } from '../src/composition/registries.js';
 import { PLANNED_MARKET_CATALOG, PLANNED_MARKET_KEYS } from '../src/composition/planned-market-catalog.js';
 import type { ImplementedMarketRegistration } from '../src/domain/market.js';
-import { BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION } from '../src/features/batter-hhr/contracts.js';
+import {
+  BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
+  BATTER_HHR_PICK6_SETTLEMENT_RULE_VERSION,
+} from '../src/features/batter-hhr/contracts.js';
 import { BATTER_HHR_FEATURE_ID, BATTER_HHR_MARKET_KEY } from '../src/features/batter-hhr/manifest.js';
 import { BATTER_HITS_FEATURE_ID, BATTER_HITS_MARKET_KEY } from '../src/features/batter-hits/manifest.js';
-import { BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION } from '../src/features/batter-hits/settlement.js';
+import {
+  BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
+  BATTER_HITS_PICK6_SETTLEMENT_RULE_VERSION,
+} from '../src/features/batter-hits/settlement.js';
 
 function collectTypeScriptFiles(directory: string): string[] {
   const files: string[] = [];
@@ -47,7 +53,7 @@ test('every base-market key has exactly one canonical production-source declarat
   });
 });
 
-test('implemented Batter Hits and HHR remain disabled while active settlement versions stay DraftKings-bound', () => {
+test('implemented Batter Hits and HHR remain disabled while active settlement versions stay source-bound', () => {
   assert.deepEqual(FEATURE_REGISTRY.map((entry) => entry.featureId), [BATTER_HITS_FEATURE_ID, BATTER_HHR_FEATURE_ID]);
   assert.ok(FEATURE_REGISTRY.every((entry) => entry.enabled === false && entry.status === 'model-under-development'));
   assert.deepEqual(IMPLEMENTED_MARKET_REGISTRY.map((entry) => entry.baseMarketKey), [BATTER_HITS_MARKET_KEY, BATTER_HHR_MARKET_KEY]);
@@ -57,15 +63,23 @@ test('implemented Batter Hits and HHR remain disabled while active settlement ve
     'context-adjusted-terminal-outcome-vector','expected-plate-appearances','lineup-slot','platoon-split-cell',
     'opposing-starter-pooling','team-implied-run-total','preceding-lineup-slots-on-base-quality',
   ]);
-  assert.equal(SETTLEMENT_REGISTRY.rules.length, 4);
-  const batterHitsRule = SETTLEMENT_REGISTRY.rules.find(
+  assert.equal(SETTLEMENT_REGISTRY.rules.length, 6);
+  const batterHitsDraftKingsRule = SETTLEMENT_REGISTRY.rules.find(
     (rule) => rule.baseMarketKey === BATTER_HITS_MARKET_KEY && rule.boardSource === 'draftkings',
   );
-  const hhrRule = SETTLEMENT_REGISTRY.rules.find(
+  const batterHitsPick6Rule = SETTLEMENT_REGISTRY.rules.find(
+    (rule) => rule.baseMarketKey === BATTER_HITS_MARKET_KEY && rule.boardSource === 'pick6',
+  );
+  const hhrDraftKingsRule = SETTLEMENT_REGISTRY.rules.find(
     (rule) => rule.baseMarketKey === BATTER_HHR_MARKET_KEY && rule.boardSource === 'draftkings',
   );
-  assert.equal(batterHitsRule?.version, BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION);
-  assert.equal(hhrRule?.version, BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION);
+  const hhrPick6Rule = SETTLEMENT_REGISTRY.rules.find(
+    (rule) => rule.baseMarketKey === BATTER_HHR_MARKET_KEY && rule.boardSource === 'pick6',
+  );
+  assert.equal(batterHitsDraftKingsRule?.version, BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION);
+  assert.equal(batterHitsPick6Rule?.version, BATTER_HITS_PICK6_SETTLEMENT_RULE_VERSION);
+  assert.equal(hhrDraftKingsRule?.version, BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION);
+  assert.equal(hhrPick6Rule?.version, BATTER_HHR_PICK6_SETTLEMENT_RULE_VERSION);
   assert.equal(SETTLEMENT_REGISTRY.rules.filter((rule) => rule.boardSource === null).length, 2);
 });
 

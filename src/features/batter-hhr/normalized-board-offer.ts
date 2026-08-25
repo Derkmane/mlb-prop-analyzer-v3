@@ -3,6 +3,7 @@ import type { SelectedSide } from '../../domain/selected-side.js';
 import type { NormalizedBatterHhrOffer } from './contracts.js';
 import {
   BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
+  BATTER_HHR_PICK6_SETTLEMENT_RULE_VERSION,
   BATTER_HHR_SETTLEMENT_RULE_VERSION,
 } from './contracts.js';
 import {
@@ -23,7 +24,12 @@ type HhrBoardSourceContract = Readonly<{
 function sourceContract(bookmaker: unknown, region: unknown): HhrBoardSourceContract {
   if (bookmaker === 'pick6') {
     if (region !== 'us_dfs') throw new Error('Pick6 HHR region must be us_dfs.');
-    return Object.freeze({ boardSource: 'pick6', bookmaker: 'pick6', region: 'us_dfs', settlementRuleVersion: null });
+    return Object.freeze({
+      boardSource: 'pick6',
+      bookmaker: 'pick6',
+      region: 'us_dfs',
+      settlementRuleVersion: BATTER_HHR_PICK6_SETTLEMENT_RULE_VERSION,
+    });
   }
   if (bookmaker === 'draftkings') {
     if (region !== 'us') throw new Error('DraftKings HHR region must be us.');

@@ -12,6 +12,8 @@ import {
   BATTER_HHR_DISTRIBUTION_BUILDER_VERSION,
   BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE,
   BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
+  BATTER_HHR_PICK6_SETTLEMENT_RULE_SOURCE_REFERENCE,
+  BATTER_HHR_PICK6_SETTLEMENT_RULE_VERSION,
   BATTER_HHR_SETTLEMENT_RULE_VERSION,
 } from '../features/batter-hhr/contracts.js';
 import {
@@ -22,12 +24,14 @@ import { BATTER_HITS_PROVIDER_MARKET_KEYS } from '../features/batter-hits/normal
 import {
   BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE,
   BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
+  BATTER_HITS_PICK6_SETTLEMENT_RULE_SOURCE_REFERENCE,
+  BATTER_HITS_PICK6_SETTLEMENT_RULE_VERSION,
   BATTER_HITS_SETTLEMENT_RULE_SOURCE_REFERENCE,
   BATTER_HITS_SETTLEMENT_RULE_VERSION,
 } from '../features/batter-hits/settlement.js';
 import { PLANNED_MARKET_CATALOG } from './planned-market-catalog.js';
 
-export const SETTLEMENT_REGISTRY_VERSION = 'settlement-registry-v5';
+export const SETTLEMENT_REGISTRY_VERSION = 'settlement-registry-v6';
 const HHR_INPUTS = Object.freeze([
   'context-adjusted-terminal-outcome-vector','expected-plate-appearances','lineup-slot','platoon-split-cell',
   'opposing-starter-pooling','team-implied-run-total','preceding-lineup-slots-on-base-quality',
@@ -77,6 +81,50 @@ const HHR_DRAFTKINGS_SETTLEMENT_RULE = Object.freeze({
   ]),
   sourcePublishedAt: '2025-08-26',
   ruleSourceReference: BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE,
+}) satisfies SettlementRuleRegistration;
+
+const BATTER_HITS_PICK6_SETTLEMENT_RULE = Object.freeze({
+  version: BATTER_HITS_PICK6_SETTLEMENT_RULE_VERSION,
+  boardSource: 'pick6',
+  baseMarketKey: BATTER_HITS_MARKET_KEY,
+  officialSettlementStatistic: 'hits',
+  startRequirement: 'Ordinary Pick6 MLB Hits uses the batting-stat minimum-play rule rather than a separate starting-lineup requirement; the app remains pregame starter-scoped under its own lineup eligibility boundary.',
+  minimumParticipation: 'The player must record at least one plate appearance for the batting-stat pick to meet Pick6 minimum play requirements.',
+  reliefAppearanceHandling: 'A player who records at least one plate appearance can satisfy the ordinary batting-stat minimum-play rule; the app does not broaden its pregame starter-scoped candidate pool on this basis.',
+  intentionalWalkHandling: 'No separate Hits intentional-walk exception changes the official Hits statistic; settle the official statistic supplied by DraftKings scoring.',
+  tieHandling: 'If the final Hits result exactly matches the projection line, the pick is void regardless of selected outcome.',
+  postponementHandling: 'Only statistics from games declared Official Games within the Pick Group Scoring Period count; otherwise affected picks are void under the Pick6 MLB rule.',
+  suspensionHandling: 'Suspended or shortened games follow the Pick6 MLB Scoring Period and Official Game definitions; statistics outside the Scoring Period do not count.',
+  voidConditions: Object.freeze([
+    'batter records no plate appearance',
+    'observed hits equals the posted projection',
+    'the game does not become an Official Game within the Pick Group Scoring Period',
+    'for a More full-game hitter pick, Pick6 Pardon applies when the hitter exits early before recording a second plate appearance',
+  ]),
+  sourceVerifiedAt: '2026-08-25T21:03:38Z',
+  ruleSourceReference: BATTER_HITS_PICK6_SETTLEMENT_RULE_SOURCE_REFERENCE,
+}) satisfies SettlementRuleRegistration;
+
+const HHR_PICK6_SETTLEMENT_RULE = Object.freeze({
+  version: BATTER_HHR_PICK6_SETTLEMENT_RULE_VERSION,
+  boardSource: 'pick6',
+  baseMarketKey: BATTER_HHR_MARKET_KEY,
+  officialSettlementStatistic: 'hits+runs+rbis',
+  startRequirement: 'Ordinary Pick6 MLB Hits + Runs + RBIs uses the batting-stat minimum-play rule rather than a separate starting-lineup requirement; the app remains pregame starter-scoped under its own lineup eligibility boundary.',
+  minimumParticipation: 'The player must record at least one plate appearance for the batting-stat pick to meet Pick6 minimum play requirements.',
+  reliefAppearanceHandling: 'A player who records at least one plate appearance can satisfy the ordinary batting-stat minimum-play rule; the app does not broaden its pregame starter-scoped candidate pool on this basis.',
+  intentionalWalkHandling: 'No separate H+R+RBI intentional-walk exception changes the official component statistics; settle official Hits + Runs + RBIs supplied by DraftKings scoring.',
+  tieHandling: 'If the final Hits + Runs + RBIs result exactly matches the projection line, the pick is void regardless of selected outcome.',
+  postponementHandling: 'Only statistics from games declared Official Games within the Pick Group Scoring Period count; otherwise affected picks are void under the Pick6 MLB rule.',
+  suspensionHandling: 'Suspended or shortened games follow the Pick6 MLB Scoring Period and Official Game definitions; statistics outside the Scoring Period do not count.',
+  voidConditions: Object.freeze([
+    'batter records no plate appearance',
+    'observed hits+runs+rbis equals the posted projection',
+    'the game does not become an Official Game within the Pick Group Scoring Period',
+    'for a More full-game hitter pick, Pick6 Pardon applies when the hitter exits early before recording a second plate appearance',
+  ]),
+  sourceVerifiedAt: '2026-08-25T21:03:38Z',
+  ruleSourceReference: BATTER_HHR_PICK6_SETTLEMENT_RULE_SOURCE_REFERENCE,
 }) satisfies SettlementRuleRegistration;
 
 const BATTER_HITS_HISTORICAL_UNDERDOG_SETTLEMENT_RULE = Object.freeze({
@@ -177,6 +225,8 @@ export const SETTLEMENT_REGISTRY: SettlementRegistry = Object.freeze({
   rules: Object.freeze([
     BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE,
     HHR_DRAFTKINGS_SETTLEMENT_RULE,
+    BATTER_HITS_PICK6_SETTLEMENT_RULE,
+    HHR_PICK6_SETTLEMENT_RULE,
     BATTER_HITS_HISTORICAL_UNDERDOG_SETTLEMENT_RULE,
     HHR_HISTORICAL_UNDERDOG_SETTLEMENT_RULE,
   ]),

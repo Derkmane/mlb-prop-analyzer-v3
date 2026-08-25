@@ -20,6 +20,8 @@ import type { SettlementRuleRegistration } from '../src/domain/settlement-rule.j
 import {
   BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE,
   BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
+  BATTER_HHR_PICK6_SETTLEMENT_RULE_SOURCE_REFERENCE,
+  BATTER_HHR_PICK6_SETTLEMENT_RULE_VERSION,
   BATTER_HHR_SETTLEMENT_RULE_VERSION,
 } from '../src/features/batter-hhr/contracts.js';
 import { BATTER_HHR_FEATURE_ID, BATTER_HHR_MARKET_KEY } from '../src/features/batter-hhr/manifest.js';
@@ -30,12 +32,14 @@ import {
 import {
   BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE,
   BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
+  BATTER_HITS_PICK6_SETTLEMENT_RULE_SOURCE_REFERENCE,
+  BATTER_HITS_PICK6_SETTLEMENT_RULE_VERSION,
   BATTER_HITS_SETTLEMENT_RULE_VERSION,
 } from '../src/features/batter-hits/settlement.js';
 
 type SettlementRuleWithoutTemporal = Omit<
   SettlementRuleRegistration,
-  'effectiveDate' | 'sourcePublishedAt'
+  'effectiveDate' | 'sourcePublishedAt' | 'sourceVerifiedAt'
 >;
 type IsAssignable<Source, Target> = Source extends Target ? true : false;
 type Not<Value extends boolean> = Value extends true ? false : true;
@@ -53,12 +57,40 @@ type SettlementTemporalUnionAssertions = {
       SettlementRuleRegistration
     >
   >;
-  bothRejected: AssertTrue<
+  sourceVerifiedAtOnlyAccepted: AssertTrue<
+    IsAssignable<
+      SettlementRuleWithoutTemporal & { readonly sourceVerifiedAt: string },
+      SettlementRuleRegistration
+    >
+  >;
+  effectiveAndPublishedRejected: AssertTrue<
     Not<
       IsAssignable<
         SettlementRuleWithoutTemporal & {
           readonly effectiveDate: string;
           readonly sourcePublishedAt: string;
+        },
+        SettlementRuleRegistration
+      >
+    >
+  >;
+  effectiveAndVerifiedRejected: AssertTrue<
+    Not<
+      IsAssignable<
+        SettlementRuleWithoutTemporal & {
+          readonly effectiveDate: string;
+          readonly sourceVerifiedAt: string;
+        },
+        SettlementRuleRegistration
+      >
+    >
+  >;
+  publishedAndVerifiedRejected: AssertTrue<
+    Not<
+      IsAssignable<
+        SettlementRuleWithoutTemporal & {
+          readonly sourcePublishedAt: string;
+          readonly sourceVerifiedAt: string;
         },
         SettlementRuleRegistration
       >
@@ -71,7 +103,10 @@ type SettlementTemporalUnionAssertions = {
 const SETTLEMENT_TEMPORAL_UNION_ASSERTIONS: SettlementTemporalUnionAssertions = Object.freeze({
   effectiveDateOnlyAccepted: true,
   sourcePublishedAtOnlyAccepted: true,
-  bothRejected: true,
+  sourceVerifiedAtOnlyAccepted: true,
+  effectiveAndPublishedRejected: true,
+  effectiveAndVerifiedRejected: true,
+  publishedAndVerifiedRejected: true,
   neitherRejected: true,
 });
 
@@ -104,16 +139,19 @@ function captureMarketError(action: () => unknown): MarketRegistryUnavailableErr
   assert.fail('expected registry admission to fail closed');
 }
 
-test('settlement temporal applicability type enforces exactly one self-describing date field', () => {
+test('settlement temporal applicability type enforces exactly one self-describing temporal field', () => {
   assert.deepEqual(SETTLEMENT_TEMPORAL_UNION_ASSERTIONS, {
     effectiveDateOnlyAccepted: true,
     sourcePublishedAtOnlyAccepted: true,
-    bothRejected: true,
+    sourceVerifiedAtOnlyAccepted: true,
+    effectiveAndPublishedRejected: true,
+    effectiveAndVerifiedRejected: true,
+    publishedAndVerifiedRejected: true,
     neitherRejected: true,
   });
 });
 
-test('production registries are explicit, frozen, DraftKings-bound, and keep historical Underdog rules isolated', () => {
+test('production registries are explicit, frozen, source-specific, and keep historical Underdog rules isolated', () => {
   assert.equal(IMPLEMENTED_MARKET_REGISTRY.length, 2);
   assert.deepEqual(IMPLEMENTED_MARKET_REGISTRY.map((row) => row.baseMarketKey), [BATTER_HITS_MARKET_KEY, BATTER_HHR_MARKET_KEY]);
   for (const registration of IMPLEMENTED_MARKET_REGISTRY) {
@@ -125,31 +163,46 @@ test('production registries are explicit, frozen, DraftKings-bound, and keep his
     { featureId: BATTER_HITS_FEATURE_ID, enabled: false, status: 'model-under-development' },
     { featureId: BATTER_HHR_FEATURE_ID, enabled: false, status: 'model-under-development' },
   ]);
-  assert.equal(SETTLEMENT_REGISTRY.version, 'settlement-registry-v5');
-  assert.equal(SETTLEMENT_REGISTRY.rules.length, 4);
+  assert.equal(SETTLEMENT_REGISTRY.version, 'settlement-registry-v6');
+  assert.equal(SETTLEMENT_REGISTRY.rules.length, 6);
 
   const activeRules = SETTLEMENT_REGISTRY.rules.filter((row) => row.boardSource !== null);
   const historicalRules = SETTLEMENT_REGISTRY.rules.filter((row) => row.boardSource === null);
-  assert.equal(activeRules.length, 2);
+  assert.equal(activeRules.length, 4);
   assert.equal(historicalRules.length, 2);
-  assert.ok(activeRules.every((row) => row.boardSource === 'draftkings'));
+  assert.equal(activeRules.filter((row) => row.boardSource === 'draftkings').length, 2);
+  assert.equal(activeRules.filter((row) => row.boardSource === 'pick6').length, 2);
   assert.deepEqual(
     historicalRules.map((row) => row.version).sort(),
     [BATTER_HHR_SETTLEMENT_RULE_VERSION, BATTER_HITS_SETTLEMENT_RULE_VERSION].sort(),
   );
 
-  const batterHitsRule = activeRules.find((row) => row.baseMarketKey === BATTER_HITS_MARKET_KEY);
-  const hhrRule = activeRules.find((row) => row.baseMarketKey === BATTER_HHR_MARKET_KEY);
-  assert.ok(batterHitsRule);
-  assert.equal(batterHitsRule.boardSource, 'draftkings');
-  assert.equal(batterHitsRule.version, BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION);
-  assert.equal(batterHitsRule.officialSettlementStatistic, 'hits');
-  assert.equal(batterHitsRule.ruleSourceReference, BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE);
-  assert.ok(hhrRule);
-  assert.equal(hhrRule.boardSource, 'draftkings');
-  assert.equal(hhrRule.version, BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION);
-  assert.equal(hhrRule.officialSettlementStatistic, 'hits+runs+rbis');
-  assert.equal(hhrRule.ruleSourceReference, BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE);
+  const batterHitsDraftKingsRule = activeRules.find((row) => row.boardSource === 'draftkings' && row.baseMarketKey === BATTER_HITS_MARKET_KEY);
+  const hhrDraftKingsRule = activeRules.find((row) => row.boardSource === 'draftkings' && row.baseMarketKey === BATTER_HHR_MARKET_KEY);
+  const batterHitsPick6Rule = activeRules.find((row) => row.boardSource === 'pick6' && row.baseMarketKey === BATTER_HITS_MARKET_KEY);
+  const hhrPick6Rule = activeRules.find((row) => row.boardSource === 'pick6' && row.baseMarketKey === BATTER_HHR_MARKET_KEY);
+
+  assert.ok(batterHitsDraftKingsRule);
+  assert.equal(batterHitsDraftKingsRule.version, BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION);
+  assert.equal(batterHitsDraftKingsRule.officialSettlementStatistic, 'hits');
+  assert.equal(batterHitsDraftKingsRule.ruleSourceReference, BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE);
+  assert.ok(hhrDraftKingsRule);
+  assert.equal(hhrDraftKingsRule.version, BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION);
+  assert.equal(hhrDraftKingsRule.officialSettlementStatistic, 'hits+runs+rbis');
+  assert.equal(hhrDraftKingsRule.ruleSourceReference, BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE);
+
+  assert.ok(batterHitsPick6Rule);
+  assert.equal(batterHitsPick6Rule.version, BATTER_HITS_PICK6_SETTLEMENT_RULE_VERSION);
+  assert.equal(batterHitsPick6Rule.officialSettlementStatistic, 'hits');
+  assert.equal(batterHitsPick6Rule.ruleSourceReference, BATTER_HITS_PICK6_SETTLEMENT_RULE_SOURCE_REFERENCE);
+  assert.ok('sourceVerifiedAt' in batterHitsPick6Rule);
+  assert.equal(batterHitsPick6Rule.sourceVerifiedAt, '2026-08-25T21:03:38Z');
+  assert.ok(hhrPick6Rule);
+  assert.equal(hhrPick6Rule.version, BATTER_HHR_PICK6_SETTLEMENT_RULE_VERSION);
+  assert.equal(hhrPick6Rule.officialSettlementStatistic, 'hits+runs+rbis');
+  assert.equal(hhrPick6Rule.ruleSourceReference, BATTER_HHR_PICK6_SETTLEMENT_RULE_SOURCE_REFERENCE);
+  assert.ok('sourceVerifiedAt' in hhrPick6Rule);
+  assert.equal(hhrPick6Rule.sourceVerifiedAt, '2026-08-25T21:03:38Z');
 
   assert.ok(Object.isFrozen(SETTLEMENT_REGISTRY.rules));
   for (const rule of SETTLEMENT_REGISTRY.rules) assert.ok(Object.isFrozen(rule));

@@ -27,18 +27,29 @@ Repository rule IDs:
 
 Official source: `https://pick6.draftkings.com/pick6-rules-and-scoring-mlb`
 
+The first-party rule page was directly reverified at `2026-08-25T21:03:38Z`. The page exposed no operator-designated effective date and no publication/version date. Under `CANONICAL_MATH_SPEC.md` Version 1.17, this exact timestamp is stored as the `sourceVerifiedAt` observation boundary. It may authorize only predictions evaluated at or after that timestamp and may not be used to infer or backdate an earlier Pick6 rule.
+
 Verified current rule content:
 
 - Hits and Hits + Runs + RBIs are supported batting stats.
-- Exact equality with the posted projection is void.
-- Ordinary MLB batting-stat picks require at least one plate appearance.
-- Pick6 Pardon applies to **More** full-game hitter picks when a hitter exits early before recording a second plate appearance; qualifying picks are voided under that policy.
-- Canceled/postponed/suspended/shortened-game treatment is governed by the Pick6 MLB Scoring Period and Official Game rules on the same page.
+- If the final result exactly equals the posted projection, the pick is void regardless of selected outcome.
+- Ordinary MLB batting-stat picks require at least one plate appearance to meet minimum play requirements.
+- Pick6 Pardon applies to a **More** full-game hitter pick when the hitter exits early before recording a second plate appearance; qualifying picks are void. The policy is side-specific and does not apply to Less picks.
+- Canceled, postponed, suspended, and shortened games are governed by the Pick6 MLB Scoring Period and Official Game rules on the same first-party page.
+- Pick stats and More/Less outcomes are intended to align with final game box scores at Pick6 payout finalization, using DraftKings' official scoring validation process and official third-party stat providers.
 
-### Temporal registration gate
+Repository rule IDs:
 
-The official Pick6 MLB rules page exposed by the verified source contains neither an operator-designated effective date nor a rule-version publication date. `CANONICAL_MATH_SPEC.md` §12.1 prohibits settlement-rule registration when neither temporal boundary is supplied.
+- `draftkings-pick6-batter-hits-2026-08-25-v1`
+- `draftkings-pick6-batter-hhr-2026-08-25-v1`
 
-Therefore Pick6 remains an approved board source and may be captured as unavailable/available evidence, but **Pick6 offers fail closed before research ranking** until an official temporal boundary is verified. No DraftKings Sportsbook rule, Underdog rule, inferred date, crawl date, or capture date may be substituted.
+### Research-ranking eligibility boundary
 
-This is intentional fail-closed behavior, not a provider fallback.
+Temporal registration does **not** solve the Pick6 Pardon eligibility event. The active model does not currently represent the event that a hitter exits early before recording a second plate appearance. Therefore:
+
+- Pick6 **More/Higher** full-game hitter offers remain fail-closed for research ranking under the current eligibility model.
+- Pick6 **Less/Lower** offers may use the verified ordinary batting-stat settlement contract when every other research-ranking requirement is satisfied.
+- No More/Higher void probability is invented, approximated, copied from DraftKings Sportsbook, or treated as zero.
+- The source-specific settlement registration may be preserved in captured evidence even when an affected More/Higher offer remains ineligible for ranking.
+
+This preserves the Pick6 board and ladder evidence while keeping the side-specific Pardon policy fail-closed until a verified eligibility model represents it.
