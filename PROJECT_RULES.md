@@ -1,6 +1,6 @@
 # MLB Prop Analyzer --- Project Rules
 
-**Version:** 2.17\
+**Version:** 2.18\
 **Status:** Canonical project rules\
 **Applies to:** MLB Prop Analyzer V3\
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
@@ -1320,6 +1320,27 @@ environment-specific verification, or public-link checks.
 
 When the user must act, give one exact next action.
 
+### Continuous execution and user-interruption minimization --- LOCKED
+
+When work can continue with available tools and no real approval, access,
+secret, evidence, runtime, destructive-change, or other authorization boundary
+has been reached, do not stop merely to report progress, remaining work, or
+next steps. Continue executing the approved task.
+
+Progress updates are not handoffs. After a progress update, continue the same
+work without requiring the user to reply unless user action is genuinely
+required.
+
+Do not ask the user to repeat, reconfirm, or re-authorize instructions or
+information already given and still applicable to the current task.
+
+Do not stop because the task is complex, lengthy, because one subcheck passes,
+or because additional diagnostics, corrections, tests, CI review, or repository
+work remain available through approved tools.
+
+When user action is genuinely required, stop at that exact boundary and give
+exactly one concrete action that advances the same issue.
+
 Do not impose time estimates, daily caps, or artificial stopping points.
 Continue the approved sequence until the task passes its evidence gate,
 the user stops, or a real boundary is reached.
@@ -1343,6 +1364,20 @@ There is no separate Project Knowledge deliverable.
 ------------------------------------------------------------------------
 
 ## Changelog
+
+### Version 2.18 — 2026-08-25
+
+-   Locked continuous execution when approved work can continue with available
+    tools and no real user-action boundary has been reached.
+-   Prohibited stopping merely to report progress, remaining work, next steps,
+    task complexity, or a passing intermediate subcheck while executable work
+    remains.
+-   Defined progress updates as non-handoff communication and prohibited asking
+    the user to repeat, reconfirm, or re-authorize still-applicable instructions.
+-   Preserved the existing rule that a genuine user-action boundary receives
+    exactly one concrete next action.
+-   Made no mathematical, provider, settlement, ranking, calibration,
+    production-enablement, or product-category change.
 
 ### Version 2.17 — 2026-08-24
 
@@ -1549,7 +1584,7 @@ There is no separate Project Knowledge deliverable.
     the target environment.
 -   Prohibited commands that place required work behind interactive
     installation, confirmation, authentication, package-manager, or
-    environment prompts.
+environment prompts.
 -   Required user-run commands to use verified installed tools, remain
     non-interactive, and be reduced to the smallest safe action.
 -   Prohibited large pasted scripts, heredocs, and fragile chained
