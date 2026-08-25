@@ -697,8 +697,7 @@ For a planned market without an implementation folder, the
 planned-market catalog owns and exports its keys.
 
 When implementation begins, ownership transfers from the planned-market
-catalog to the feature manifest in one commit, and the old declaration
-is removed in that same commit.
+catalog to the feature manifest in one commit, and the old declaration is removed in that same commit.
 
 No handwritten second copy is allowed.
 
@@ -1322,7 +1321,7 @@ When the user must act, give one exact next action.
 
 Do not impose time estimates, daily caps, or artificial stopping points.
 Continue the approved sequence until the task passes its evidence gate,
-the user stops, or an approval, access, secret, evidence, or runtime boundary is reached.
+the user stops, or a real boundary is reached.
 
 Do not promise background work or future completion.
 
@@ -1465,7 +1464,7 @@ There is no separate Project Knowledge deliverable.
     MLB Stats projected evidence to preserve game, player, batting-order,
     capture-time, and source-snapshot lineage.
 -   Prohibited MLB Stats API performance statistics or other model inputs
-    under this source approval.
+    under this approval.
 -   Removed authorization for inheriting a projected batting-order slot
     from an earlier game: when neither current BALLDONTLIE evidence nor
     MLB Stats projected evidence supplies a unique slot, lineup
