@@ -1,3 +1,5 @@
+import { classifyProjectionLineOffersV1 } from './projection-line-classification.js';
+
 export const HHR_DISPLAY_BOARD_VERSION = 'phase4-hhr-display-board-v2' as const;
 export const HHR_DISPLAY_RANKING_RATIONALE =
   'Persisted category order: P(Win | grades) descending, then P(Void) ascending.' as const;
@@ -169,8 +171,12 @@ function exactList(
   postedLine: 2.5 | 0.5,
   selectedSide: 'lower' | 'higher',
 ): readonly HhrDisplayBoardPick[] {
+  const projectionTypeByRow = classifyProjectionLineOffersV1(
+    archive.rows,
+    (row) => `${row.baseMarketKey}:${row.providerGameId}:${row.providerPlayerId}`,
+  );
   const persistedOrder = archive.rows
-    .filter((row) => row.offerType === 'alternate' && row.postedLine === postedLine &&
+    .filter((row) => projectionTypeByRow.get(row) === 'alternate' && row.postedLine === postedLine &&
       row.selectedSide === selectedSide)
     .sort((left, right) => left.rank - right.rank);
   const offerIdentities = new Set<string>();
