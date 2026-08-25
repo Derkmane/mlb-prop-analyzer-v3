@@ -5,6 +5,7 @@ import {
   readResearchProductBoardV2,
   type ResearchDisplayArchive,
   type ResearchDisplayArchiveRepository,
+  type ResearchDisplayMarket,
   type ResearchDisplayRow,
 } from '../src/application/index.js';
 import { BATTER_HHR_MARKET_KEY } from '../src/features/batter-hhr/index.js';
@@ -67,7 +68,8 @@ function repository(rows: readonly ResearchDisplayRow[]): ResearchDisplayArchive
     rows: Object.freeze([...rows]),
   });
   return Object.freeze({
-    readLatest: async (market) => market === BATTER_HHR_MARKET_KEY ? archive : null,
+    readLatest: async (market: ResearchDisplayMarket) =>
+      market === BATTER_HHR_MARKET_KEY ? archive : null,
   });
 }
 
