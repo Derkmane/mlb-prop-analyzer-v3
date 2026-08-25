@@ -98,7 +98,7 @@ test('first snapshot and Hits event selection are restricted to controller-claim
 
   assert.deepEqual(
     requestedUrls.map((url) => url.pathname.match(/\/events\/([^/]+)\/odds$/u)[1]),
-    ['game-a', 'game-a', 'game-a', 'game-a'],
+    ['game-a', 'game-a', 'game-a', 'game-a', 'game-a', 'game-a'],
   );
   assert.deepEqual(
     requestedUrls.map((url) => [
@@ -111,6 +111,8 @@ test('first snapshot and Hits event selection are restricted to controller-claim
       ['draftkings', 'us', 'batter_hits,batter_hits_alternate'],
       ['pick6', 'us_dfs', 'batter_hits_runs_rbis,batter_hits_runs_rbis_alternate'],
       ['draftkings', 'us', 'batter_hits_runs_rbis,batter_hits_runs_rbis_alternate'],
+      ['pick6', 'us_dfs', 'batter_total_bases,batter_total_bases_alternate'],
+      ['draftkings', 'us', 'batter_total_bases,batter_total_bases_alternate'],
     ],
   );
   assert.ok(
@@ -124,6 +126,8 @@ test('first snapshot and Hits event selection are restricted to controller-claim
       'hits:draftkings:game-a',
       'hhr:pick6:game-a',
       'hhr:draftkings:game-a',
+      'total-bases:pick6:game-a',
+      'total-bases:draftkings:game-a',
     ],
   );
   assert.deepEqual(

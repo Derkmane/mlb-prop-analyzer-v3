@@ -34,7 +34,7 @@ test('HHR replay preserves exact Pick6 and DraftKings source-qualified board byt
     manifestPath,
     `${JSON.stringify({
       version: 3,
-      contract: 'm9-first-board-snapshot-v3',
+      contract: 'm9-first-board-snapshot-v4',
       snapshotId: 'snapshot-1',
       snapshotSetSha256: 'snapshot-set-sha',
       claimedGames: [{ eventId }],

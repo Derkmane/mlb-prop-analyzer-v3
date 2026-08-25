@@ -3,13 +3,17 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-export const SNAPSHOT_CONTRACT = 'm9-first-board-snapshot-v3';
+export const SNAPSHOT_CONTRACT = 'm9-first-board-snapshot-v4';
 export const REPLAY_CONTRACT = 'm9-board-snapshot-replay-receipt-v3';
 export const CLAIMED_EVENT_IDS_ENV = 'M9_BOARD_CLAIMED_EVENT_IDS';
 const HITS_MARKETS = Object.freeze(['batter_hits', 'batter_hits_alternate']);
 const HHR_MARKETS = Object.freeze([
   'batter_hits_runs_rbis',
   'batter_hits_runs_rbis_alternate',
+]);
+const TOTAL_BASES_MARKETS = Object.freeze([
+  'batter_total_bases',
+  'batter_total_bases_alternate',
 ]);
 const ACTIVE_BOARD_SOURCES = Object.freeze([
   Object.freeze({ boardSource: 'pick6', bookmaker: 'pick6', region: 'us_dfs' }),
@@ -63,6 +67,13 @@ function copyPrivateScheduleParams(scheduleUrl, url) {
   return url;
 }
 
+function marketsForConsumer(consumer) {
+  if (consumer === 'hits') return HITS_MARKETS;
+  if (consumer === 'hhr') return HHR_MARKETS;
+  if (consumer === 'total-bases') return TOTAL_BASES_MARKETS;
+  throw new Error(`Unsupported board snapshot consumer: ${consumer}.`);
+}
+
 function eventOddsUrl(eventId, scheduleUrl, consumer, source) {
   const url = copyPrivateScheduleParams(
     scheduleUrl,
@@ -72,10 +83,7 @@ function eventOddsUrl(eventId, scheduleUrl, consumer, source) {
   );
   url.searchParams.set('regions', source.region);
   url.searchParams.set('bookmakers', source.bookmaker);
-  url.searchParams.set(
-    'markets',
-    (consumer === 'hits' ? HITS_MARKETS : HHR_MARKETS).join(','),
-  );
+  url.searchParams.set('markets', marketsForConsumer(consumer).join(','));
   url.searchParams.set('dateFormat', 'iso');
   url.searchParams.set('oddsFormat', 'american');
   url.searchParams.set('includeMultipliers', 'true');
@@ -215,6 +223,17 @@ export async function captureFirstBoardSnapshot({
         ),
       );
     }
+    for (const source of ACTIVE_BOARD_SOURCES) {
+      responses.push(
+        await captureOne(
+          fetchImpl,
+          eventOddsUrl(event.eventId, scheduleUrl, 'total-bases', source),
+          `total-bases:${source.boardSource}:${event.eventId}`,
+          'total-bases',
+          now,
+        ),
+      );
+    }
   }
 
   const boardSnapshotCompletedAt = stamp(now);
@@ -338,14 +357,25 @@ function replayKey(input) {
   const markets = marketSet(url.searchParams.get('markets'));
   const hitsControlled = HITS_MARKETS.some((key) => markets.has(key));
   const hhrControlled = HHR_MARKETS.some((key) => markets.has(key));
-  if (!hitsControlled && !hhrControlled) return null;
+  const totalBasesControlled = TOTAL_BASES_MARKETS.some((key) => markets.has(key));
+  if (!hitsControlled && !hhrControlled && !totalBasesControlled) return null;
   const source = sourceForUrl(url);
   if (source === null) {
     throw new Error('Controlled board snapshot request has an unsupported source.');
   }
-  const expectedMarkets = hitsControlled ? HITS_MARKETS : HHR_MARKETS;
+  const consumer = hitsControlled
+    ? 'hits'
+    : hhrControlled
+      ? 'hhr'
+      : 'total-bases';
+  const expectedMarkets = marketsForConsumer(consumer);
+  const marketLabel = consumer === 'hits'
+    ? 'Hits'
+    : consumer === 'hhr'
+      ? 'HHR'
+      : 'Total Bases';
   if (!sameSet(markets, expectedMarkets)) {
-    throw new Error(`${hitsControlled ? 'Hits' : 'HHR'} snapshot market set drifted.`);
+    throw new Error(`${marketLabel} snapshot market set drifted.`);
   }
   if (
     !exactPublicQuery(url, {
@@ -358,9 +388,9 @@ function replayKey(input) {
       includeSids: 'true',
     })
   ) {
-    throw new Error(`${hitsControlled ? 'Hits' : 'HHR'} snapshot request contract drifted.`);
+    throw new Error(`${marketLabel} snapshot request contract drifted.`);
   }
-  return `${hitsControlled ? 'hits' : 'hhr'}:${source.boardSource}:${match[1]}`;
+  return `${consumer}:${source.boardSource}:${match[1]}`;
 }
 
 function requiredKeys(manifest, consumer) {
