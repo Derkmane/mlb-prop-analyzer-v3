@@ -4,8 +4,9 @@ import {
   OPPORTUNITY_MINER_CATEGORY_ID,
   selectTopFiveV1,
 } from '../categories/index.js';
+import type { ActiveBoardSource } from '../domain/board-source.js';
 
-export const PRODUCT_DISPLAY_BOARD_VERSION = 'three-category-research-product-v3' as const;
+export const PRODUCT_DISPLAY_BOARD_VERSION = 'three-category-research-product-v4' as const;
 export const PRODUCT_RESEARCH_LABEL = 'UNVALIDATED RESEARCH' as const;
 export const PRODUCT_EMPTY_CATEGORY_REASON =
   'No research-authorized pregame prop is available for this category right now.' as const;
@@ -25,14 +26,12 @@ export interface ProductStarterContext {
   readonly kRate: number | null;
   readonly recentWorkload: string | null;
 }
-
 export interface ProductLastFiveResult {
   readonly gameDate: string;
   readonly opponent: string;
   readonly actual: number;
   readonly outcome: 'cash' | 'miss' | 'void';
 }
-
 export interface ProductCalibrationDisclosure {
   readonly status: 'failed' | 'passed' | 'pending';
   readonly cohort: string;
@@ -52,6 +51,10 @@ export interface ProductDisplayPick {
   readonly team: string;
   readonly opponent: string;
   readonly gameTime: string;
+  readonly boardSource: ActiveBoardSource;
+  readonly providerBookmakerKey: 'pick6' | 'draftkings';
+  readonly providerRegion: 'us_dfs' | 'us';
+  readonly settlementRuleVersion: string;
   readonly market: 'Hits' | 'Hits + Runs + RBIs';
   readonly postedLine: number;
   readonly selectedSide: 'higher' | 'lower';
@@ -80,7 +83,6 @@ export interface ProductCategoryDisplaySection {
   readonly researchTopFive: readonly ProductDisplayPick[];
   readonly emptyState: string | null;
 }
-
 export function productCategorySectionV2(
   categoryId: ProductCategoryId,
   picks: readonly ProductDisplayPick[],
@@ -94,8 +96,6 @@ export function productCategorySectionV2(
     emptyState: picks.length === 0 ? PRODUCT_EMPTY_CATEGORY_REASON : null,
   });
 }
-
-/** Compatibility helper retained for fail-closed tests and missing-board state. */
 export function emptyProductCategorySectionsV1(): readonly ProductCategoryDisplaySection[] {
   return Object.freeze([
     productCategorySectionV2(OPPORTUNITY_MINER_CATEGORY_ID, []),
