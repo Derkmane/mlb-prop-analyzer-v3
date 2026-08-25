@@ -33,7 +33,7 @@ test('HHR replay preserves exact Pick6 and DraftKings source-qualified board byt
   await writeFile(
     manifestPath,
     `${JSON.stringify({
-      version: 4,
+      version: 3,
       contract: 'm9-first-board-snapshot-v4',
       snapshotId: 'snapshot-1',
       snapshotSetSha256: 'snapshot-set-sha',
