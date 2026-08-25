@@ -1584,7 +1584,7 @@ There is no separate Project Knowledge deliverable.
     the target environment.
 -   Prohibited commands that place required work behind interactive
     installation, confirmation, authentication, package-manager, or
-environment prompts.
+    environment prompts.
 -   Required user-run commands to use verified installed tools, remain
     non-interactive, and be reduced to the smallest safe action.
 -   Prohibited large pasted scripts, heredocs, and fragile chained
