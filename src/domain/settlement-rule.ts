@@ -1,5 +1,8 @@
+import type { ActiveBoardSource } from './board-source.js';
+
 export type SettlementRuleRegistration = {
   readonly version: string;
+  readonly boardSource: ActiveBoardSource;
   readonly baseMarketKey: string;
   readonly officialSettlementStatistic: string;
   readonly startRequirement: string;
