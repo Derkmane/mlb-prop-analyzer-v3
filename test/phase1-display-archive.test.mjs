@@ -171,6 +171,10 @@ test('Batter Hits display archive copies only frontend fields and preserves prob
   assert.equal(display.distributionBuilderVersion, 'hits-distribution-v1');
   assert.deepEqual(display.rows[0], {
     rank: 1,
+    boardSource: null,
+    providerBookmakerKey: 'underdog',
+    providerRegion: 'us_dfs',
+    settlementRuleVersion: null,
     providerEventId: 'event-hits',
     providerGameId: 5059554,
     providerPlayerId: 101,
@@ -249,6 +253,10 @@ test('HHR display archive copies exact archived settlement probabilities and omi
   assert.equal(display.distributionBuilderVersion, 'hhr-distribution-v1');
   assert.deepEqual(display.rows[0], {
     rank: 1,
+    boardSource: null,
+    providerBookmakerKey: 'underdog',
+    providerRegion: 'us_dfs',
+    settlementRuleVersion: null,
     providerEventId: 'event-hhr',
     providerGameId: 5059554,
     providerPlayerId: 202,
