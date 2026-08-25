@@ -27,6 +27,10 @@ import {
   type ResearchDisplayArchiveRepository,
   type ResearchDisplayRow,
 } from './research-display-archive.js';
+import {
+  classifyProjectionLineOffersV1,
+  type ProjectionLineOfferType,
+} from './projection-line-classification.js';
 
 interface ResearchRankCandidate extends ProductDisplayPick {
   readonly playerId: string;
@@ -221,7 +225,10 @@ function calibration(row: ResearchDisplayRow): ProductCalibrationDisclosure {
   });
 }
 
-function productPick(row: ResearchDisplayRow): ResearchRankCandidate {
+function productPick(
+  row: ResearchDisplayRow,
+  offerType: ProjectionLineOfferType,
+): ResearchRankCandidate {
   const starter = starterContext(row);
   const batterSide = row.analysisContext.batterSide;
   return Object.freeze({
@@ -240,7 +247,7 @@ function productPick(row: ResearchDisplayRow): ResearchRankCandidate {
     pVoid: row.pVoid,
     pWinGivenGrades: row.pWinGivenGrades,
     probabilityLabel: PRODUCT_RESEARCH_LABEL,
-    offerType: row.offerType,
+    offerType,
     lineupStatus: row.lineupStatus,
     capturedAt: row.capturedAt,
     expectedPlateAppearances: row.analysisContext.expectedPlateAppearances,
@@ -260,6 +267,7 @@ function productPick(row: ResearchDisplayRow): ResearchRankCandidate {
 function offerInput(
   row: ResearchDisplayRow,
   candidate: ResearchRankCandidate,
+  offerType: ProjectionLineOfferType,
 ): CategoryOfferInput<ResearchRankCandidate> {
   const postedImpliedProbability =
     row.americanPrice !== null &&
@@ -269,7 +277,7 @@ function offerInput(
       : null;
   return Object.freeze({
     candidate,
-    offerType: row.offerType,
+    offerType,
     americanPrice: row.americanPrice,
     multiplier: row.multiplier,
     postedImpliedProbability,
@@ -283,11 +291,15 @@ function offerInput(
 function categoryOfferInputs(
   rows: readonly ResearchDisplayRow[],
   candidateByRow: ReadonlyMap<ResearchDisplayRow, ResearchRankCandidate>,
+  offerTypeByRow: ReadonlyMap<ResearchDisplayRow, ProjectionLineOfferType>,
 ): readonly CategoryOfferInput<ResearchRankCandidate>[] {
   return Object.freeze(
     rows.flatMap((row) => {
       const candidate = candidateByRow.get(row);
-      return candidate === undefined ? [] : [offerInput(row, candidate)];
+      const offerType = offerTypeByRow.get(row);
+      return candidate === undefined || offerType === undefined
+        ? []
+        : [offerInput(row, candidate, offerType)];
     }),
   );
 }
@@ -314,14 +326,26 @@ export async function readResearchProductBoardV2(
   const rows = archives.flatMap((archive) => archive.rows).filter(
     (row) => Date.parse(row.eventCommenceTime) > requestTime,
   );
-  const candidateByRow = new Map(
-    rows.map((row) => [row, productPick(row)] as const),
+  const offerTypeByRow = classifyProjectionLineOffersV1(
+    rows,
+    (row) => `${row.market}:${row.providerGameId}:${row.providerPlayerId}`,
   );
-  const offerInputs = categoryOfferInputs(rows, candidateByRow);
+  const classifiedRows = rows.filter((row) => offerTypeByRow.has(row));
+  const candidateByRow = new Map(
+    classifiedRows.map((row) => [
+      row,
+      productPick(row, offerTypeByRow.get(row) as ProjectionLineOfferType),
+    ] as const),
+  );
+  const offerInputs = categoryOfferInputs(
+    classifiedRows,
+    candidateByRow,
+    offerTypeByRow,
+  );
 
   const baseline = selectHighProbabilityBaselinePropsV1(offerInputs);
   const altline = selectHighProbabilityAltlinePropsV1(offerInputs);
-  const minerInputs = rows.flatMap((row) => {
+  const minerInputs = classifiedRows.flatMap((row) => {
     if (
       row.americanPrice === null ||
       !Number.isInteger(row.americanPrice) ||
