@@ -187,8 +187,12 @@ function productPick(row: ResearchDisplayRow, offerType: ProjectionLineOfferType
   if (row.providerBookmakerKey !== 'pick6' && row.providerBookmakerKey !== 'draftkings') {
     throw new Error('Research product pick requires an active bookmaker key.');
   }
+  if (row.settlementRuleVersion === null) {
+    throw new Error('Research product pick requires a source-specific settlement rule version.');
+  }
   const boardSource = row.boardSource;
   const providerBookmakerKey = row.providerBookmakerKey;
+  const settlementRuleVersion = row.settlementRuleVersion;
   const starter = starterContext(row);
   const batterSide = row.analysisContext.batterSide;
   return Object.freeze({
@@ -201,7 +205,7 @@ function productPick(row: ResearchDisplayRow, offerType: ProjectionLineOfferType
     boardSource,
     providerBookmakerKey,
     providerRegion: row.providerRegion,
-    settlementRuleVersion: row.settlementRuleVersion,
+    settlementRuleVersion,
     market: row.market === RESEARCH_BATTER_HITS_MARKET ? 'Hits' : 'Hits + Runs + RBIs',
     postedLine: row.postedLine,
     selectedSide: row.selectedSide,
