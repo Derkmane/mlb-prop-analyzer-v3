@@ -9,7 +9,9 @@ import {
   type ResearchDisplayMarket,
   type ResearchDisplayRow,
 } from '../src/application/index.js';
+import { BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION } from '../src/features/batter-hhr/contracts.js';
 import { BATTER_HHR_MARKET_KEY } from '../src/features/batter-hhr/manifest.js';
+import { BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION } from '../src/features/batter-hits/settlement.js';
 
 const CAPTURED_AT = '2099-08-18T20:00:00.000Z';
 
@@ -39,6 +41,12 @@ function row(input: Readonly<{
     distributionBuilderVersion: isHits
       ? 'm9-batter-hits-runtime-distribution-v1'
       : 'm11-batter-hhr-negative-binomial-v1',
+    boardSource: 'draftkings',
+    providerBookmakerKey: 'draftkings',
+    providerRegion: 'us',
+    settlementRuleVersion: isHits
+      ? BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION
+      : BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
     providerEventId: `event-${input.playerId}`,
     providerGameId: 9000 + input.playerId,
     providerPlayerId: input.playerId,
@@ -164,6 +172,9 @@ test('research board returns full eligible categories and a separate Top Five re
     assert.ok(category.picks.every((pick) => pick.pWinGivenGrades > 0.5));
     assert.equal(new Set(category.picks.map((pick) => pick.playerId)).size, category.picks.length);
     assert.ok(category.picks.every((pick) => pick.probabilityLabel === PRODUCT_RESEARCH_LABEL));
+    assert.ok(category.picks.every((pick) => pick.boardSource === 'draftkings'));
+    assert.ok(category.picks.every((pick) => pick.providerBookmakerKey === 'draftkings'));
+    assert.ok(category.picks.every((pick) => pick.providerRegion === 'us'));
     assert.deepEqual(category.researchTopFive, category.picks.slice(0, 5));
     assert.ok(category.researchTopFive.length <= 5);
     for (let index = 1; index < category.picks.length; index += 1) {
