@@ -43,6 +43,7 @@ import {
 import { requireSecret } from './provider-probe-utils.mjs';
 import { testOnlyRankingAuthorization } from './print-m9-ranked-batter-hits-fixture.mjs';
 import { userProjectedLineupEvidenceForIdentity } from './user-projected-lineup-utils.mjs';
+import { authorizeActiveSourceOfferForResearch } from './active-source-settlement-authorization.mjs';
 
 const ACTIVE_SEASON = 2026;
 const TARGET_MARKETS = Object.freeze([
@@ -450,8 +451,21 @@ export function formatBallDontLieGameMatchDiagnostic({
   return `${lines.join('\n')}\n`;
 }
 
-function sourceMarkets(rawOdds, source) {
+function sourceMarkets(rawOdds, source, expectedEventId) {
   const event = object(rawOdds, 'The Odds API event odds');
+  const eventId = nonemptyString(event.id, 'event.id');
+  const expectedId = nonemptyString(expectedEventId, 'expectedEventId');
+  if (eventId !== expectedId) {
+    throw new Error(
+      `The Odds API event odds id ${eventId} does not match requested event ${expectedId}.`,
+    );
+  }
+  const commenceTime = nonemptyString(event.commence_time, 'event.commence_time');
+  if (!Number.isFinite(Date.parse(commenceTime))) {
+    throw new TypeError('event.commence_time must be an ISO timestamp.');
+  }
+  exactName(event.home_team, 'event.home_team');
+  exactName(event.away_team, 'event.away_team');
   const bookmakers = array(event.bookmakers, 'event.bookmakers').filter(
     (raw) => object(raw, 'bookmaker').key === source.bookmaker,
   );
@@ -467,10 +481,10 @@ function sourceMarkets(rawOdds, source) {
   );
 }
 
-function rawOfferSummary(rawOdds, source) {
+function rawOfferSummary(rawOdds, source, expectedEventId) {
   const countsByPlayer = new Map();
   let count = 0;
-  for (const rawMarket of sourceMarkets(rawOdds, source)) {
+  for (const rawMarket of sourceMarkets(rawOdds, source, expectedEventId)) {
     const market = object(rawMarket, 'market');
     for (const rawOutcome of array(market.outcomes, `${market.key}.outcomes`)) {
       const playerName = exactName(
@@ -537,14 +551,14 @@ export async function captureM9BatterHitsEventOdds({
       oddsSnapshot = await fetchOdds({
         label: `${source.boardSource} Batter Hits ${id}`,
         url: oddsUrl,
-        requireNonemptyRecords: true,
+        requireNonemptyRecords: false,
       });
       providerSnapshots.push(oddsSnapshot);
       sources.push(
         Object.freeze({
           ...source,
           oddsSnapshot,
-          rawOffers: rawOfferSummary(oddsSnapshot.parsedBody, source),
+          rawOffers: rawOfferSummary(oddsSnapshot.parsedBody, source, id),
         }),
       );
     } catch (error) {
@@ -2018,53 +2032,65 @@ export async function runM9ProspectiveBoardArchive({
             postedLine: entry.offer.line,
           })),
         );
-        if (source.boardSource === 'pick6') {
-          for (const offer of board.offers) {
+      }
+
+      const rankableOffers = [];
+      for (const { source, board } of sourceBoards) {
+        for (const offer of board.offers) {
+          const authorization = authorizeActiveSourceOfferForResearch({
+            settlementRegistry: PRODUCTION_REGISTRIES.settlementRegistry,
+            offer,
+            evaluatedAt: capturedAt,
+          });
+          if (!authorization.authorized) {
             exclusions.push(
               Object.freeze({
                 providerEventId: event.id,
-                boardSource: 'pick6',
+                boardSource: source.boardSource,
                 playerName: offer.playerName,
                 side: offer.selectedSide,
                 postedLine: offer.line,
-                reason: 'pick6-settlement-rule-temporal-evidence-unavailable',
+                reason: authorization.reason,
               }),
             );
+            continue;
           }
+          rankableOffers.push(Object.freeze({ source, board, offer }));
         }
       }
 
-      const draftkingsBoard = sourceBoards.find(
-        (entry) => entry.source.boardSource === 'draftkings',
-      )?.board;
-      if (draftkingsBoard === undefined || draftkingsBoard.offers.length === 0) {
+      if (rankableOffers.length === 0) {
         exclusions.push(
           Object.freeze({
             providerEventId: event.id,
-            boardSource: 'draftkings',
             reason: 'no-rankable-active-source-batter-hits-offers',
           }),
         );
         continue;
       }
 
-      const pregameExcludedCount = draftkingsBoard.excludedOffers.length;
+      const pregameExcludedCount = sourceBoards.reduce(
+        (total, entry) => total + entry.board.excludedOffers.length,
+        0,
+      );
       funnel.add('matchedGameOffers', {
         survived: Math.max(0, rawOffers.count - pregameExcludedCount),
       });
-      draftkingsBoard.excludedOffers.forEach((entry) => {
-        const reason =
-          entry.reason === 'GAME_START_REACHED'
-            ? 'game already in progress'
-            : entry.reason === 'GAME_STATUS_NOT_SCHEDULED'
-              ? 'game status not scheduled'
-              : 'game state unresolved';
-        funnel.drop('matchedGameOffers', reason, 1);
-      });
+      for (const { board } of sourceBoards) {
+        board.excludedOffers.forEach((entry) => {
+          const reason =
+            entry.reason === 'GAME_START_REACHED'
+              ? 'game already in progress'
+              : entry.reason === 'GAME_STATUS_NOT_SCHEDULED'
+                ? 'game status not scheduled'
+                : 'game state unresolved';
+          funnel.drop('matchedGameOffers', reason, 1);
+        });
+      }
 
       const observations = [];
-      funnel.add('verifiedStarterOffers', { entered: draftkingsBoard.offers.length });
-      for (const offer of draftkingsBoard.offers) {
+      funnel.add('verifiedStarterOffers', { entered: rankableOffers.length });
+      for (const { source, board, offer } of rankableOffers) {
         try {
           const resolvedLineup = lineupResolution.resolutions.find(
             (entry) =>
@@ -2073,6 +2099,8 @@ export async function runM9ProspectiveBoardArchive({
           );
           observations.push(
             Object.freeze({
+              source,
+              board,
               offer,
               observation: runtimeObservation({
                 offer,
@@ -2105,7 +2133,7 @@ export async function runM9ProspectiveBoardArchive({
           );
           exclusions.push({
             providerEventId: event.id,
-            boardSource: 'draftkings',
+            boardSource: source.boardSource,
             playerName: offer.playerName,
             side: offer.selectedSide,
             postedLine: offer.line,
@@ -2130,10 +2158,10 @@ export async function runM9ProspectiveBoardArchive({
           'insufficient strictly-earlier current-season history',
           observations.length,
         );
-        observations.forEach(({ offer }) =>
+        observations.forEach(({ source, offer }) =>
           exclusions.push({
             providerEventId: event.id,
-            boardSource: 'draftkings',
+            boardSource: source.boardSource,
             playerName: offer.playerName,
             side: offer.selectedSide,
             postedLine: offer.line,
@@ -2152,10 +2180,10 @@ export async function runM9ProspectiveBoardArchive({
       );
 
       funnel.add('composedCandidates', { entered: observations.length });
-      for (const { offer, observation } of observations) {
+      for (const { source, board, offer, observation } of observations) {
         try {
           const result = await connectFrozenBatterHitsProbabilityOutput({
-            pregameBoard: draftkingsBoard,
+            pregameBoard: board,
             offer,
             observation,
             gameEnvironmentResolutionInput: environment.input,
@@ -2170,7 +2198,7 @@ export async function runM9ProspectiveBoardArchive({
           );
           exclusions.push({
             providerEventId: event.id,
-            boardSource: 'draftkings',
+            boardSource: source.boardSource,
             playerName: offer.playerName,
             side: offer.selectedSide,
             postedLine: offer.line,

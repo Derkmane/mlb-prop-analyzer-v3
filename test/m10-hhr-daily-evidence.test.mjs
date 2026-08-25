@@ -212,29 +212,30 @@ test('HHR archiver uses the shared adaptive limiter and real Headers resolve the
   assert.match(captureScript, /BDL INTERVAL MS/u);
 });
 
-test('HHR active sources normalize independently and Pick6 remains settlement-blocked', async () => {
-  const captureScript = await readFile('scripts/archive-m10-batter-hhr-board.mjs', 'utf8');
+test('HHR active sources use source-specific authorization and keep Pick6 Higher Pardon-blocked', async () => {
+  const [captureScript, authorizationScript] = await Promise.all([
+    readFile('scripts/archive-m10-batter-hhr-board.mjs', 'utf8'),
+    readFile('scripts/active-source-settlement-authorization.mjs', 'utf8'),
+  ]);
   assert.match(
     captureScript,
     /ACTIVE_HHR_BOARD_SOURCES[\s\S]*boardSource: 'pick6'[\s\S]*bookmaker: 'pick6'[\s\S]*region: 'us_dfs'[\s\S]*boardSource: 'draftkings'[\s\S]*bookmaker: 'draftkings'[\s\S]*region: 'us'/u,
   );
+  assert.match(captureScript, /authorizeActiveSourceOfferForResearch/u);
   assert.match(
-    captureScript,
-    /for \(const source of ACTIVE_HHR_BOARD_SOURCES\)[\s\S]*normalizeOddsApiBatterHhrCapture\([\s\S]*hhrCapture\(sourceSnapshot, capturedAt, source\)/u,
+    authorizationScript,
+    /boardSource === 'pick6' && selectedSide === 'higher'[\s\S]*pick6-pardon-eligibility-unmodeled/u,
   );
-  assert.match(
+  assert.match(authorizationScript, /sourceVerifiedAt/u);
+  assert.doesNotMatch(
     captureScript,
-    /if \(source\.boardSource === 'pick6'\)[\s\S]*reason: 'pick6-settlement-rule-temporal-evidence-unavailable'[\s\S]*continue;/u,
+    /reason: 'pick6-settlement-rule-temporal-evidence-unavailable'/u,
   );
-  assert.match(
-    captureScript,
-    /reason: 'no-rankable-active-source-hhr-offers'/u,
-  );
+  assert.match(captureScript, /reason: 'no-rankable-active-source-hhr-offers'/u);
   assert.doesNotMatch(captureScript, /normalizeUnderdogBatterHhrCapture/u);
   assert.doesNotMatch(captureScript, /classifyHhrUnderdogBookmakerAvailability/u);
   assert.doesNotMatch(captureScript, /deriveStandardBookBaselineLines/u);
 });
-
 test('HHR final grading requires exact STATUS_FINAL games and settles archived probabilities without changing them', () => {
   const archive = archiveFixture();
   const bytes = Buffer.from(`${JSON.stringify(archive, null, 2)}\n`, 'utf8');

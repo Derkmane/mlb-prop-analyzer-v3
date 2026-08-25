@@ -343,6 +343,7 @@ function candidateKey(candidate) {
     value.eventId,
     Number(value.gameId),
     Number(value.playerId),
+    details.providerBookmakerKey,
     details.providerMarketKey,
     details.offerType,
     value.selectedSide,
