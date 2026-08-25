@@ -19,10 +19,17 @@ export type SettlementRuleRegistration = {
   | {
       readonly effectiveDate: string;
       readonly sourcePublishedAt?: never;
+      readonly sourceVerifiedAt?: never;
     }
   | {
       readonly sourcePublishedAt: string;
       readonly effectiveDate?: never;
+      readonly sourceVerifiedAt?: never;
+    }
+  | {
+      readonly sourceVerifiedAt: string;
+      readonly effectiveDate?: never;
+      readonly sourcePublishedAt?: never;
     }
 );
 
