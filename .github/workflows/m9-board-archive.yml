@@ -25,14 +25,13 @@ on:
     # under-40-minute recovery band. A single missed scheduled run therefore
     # leaves another normal-band look before recovery is needed.
     - cron: '0,30 * * * *'
-  push:
-    branches:
-      - main
-    paths:
-      - artifacts/user-projected-lineups/*.json
+  issues:
+    types:
+      - edited
 
 permissions:
   contents: write
+  issues: read
 
 concurrency:
   group: m9-prospective-board-archive
@@ -40,6 +39,7 @@ concurrency:
 
 jobs:
   archive:
+    if: ${{ github.event_name != 'issues' || github.event.issue.number == 153 }}
     name: Capture prospective Batter Hits and HHR boards
     runs-on: ubuntu-latest
     timeout-minutes: 330
@@ -54,7 +54,9 @@ jobs:
       M9_CAPTURE_CONTROLLER_PLAN: artifacts/workflow-logs/m9-capture-controller-plan.json
       M9_HITS_REPLAY_RECEIPT: artifacts/workflow-logs/m9-board-replay-hits.json
       M9_HHR_REPLAY_RECEIPT: artifacts/workflow-logs/m9-board-replay-hhr.json
-      M9_CAPTURE_ALL_PREGAME: ${{ (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.recapture_all_pregame == 'on')) && '1' || '0' }}
+      USER_PROJECTED_LINEUP_ROOT: artifacts/workflow-runtime/user-projected-lineups
+      USER_PROJECTED_LINEUP_RUNTIME_ISSUE_NUMBER: '153'
+      M9_CAPTURE_ALL_PREGAME: ${{ ((github.event_name == 'issues' && github.event.issue.number == 153) || (github.event_name == 'workflow_dispatch' && inputs.recapture_all_pregame == 'on')) && '1' || '0' }}
       PHASE2_ENRICHMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.phase2_enrichment || 'on' }}
 
     steps:
@@ -66,6 +68,12 @@ jobs:
         with:
           node-version: 24
           package-manager-cache: false
+
+      - name: Restore current user-projected lineup runtime payload
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          USER_PROJECTED_LINEUP_RUNTIME_REQUIRED: ${{ github.event_name == 'issues' && '1' || '0' }}
+        run: node scripts/user-projected-lineup-runtime-store.mjs
 
       - name: Restore immutable Batter Hits archive ledger
         id: restore-board-archives
