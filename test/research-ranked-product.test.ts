@@ -266,7 +266,7 @@ test('different per-market newest capture timestamps still contribute both marke
   assert.ok(baselinePlayers.includes('HHR Newest'));
 });
 
-test('research board excludes commenced rows and preserves each archived line and side', async () => {
+test('research board excludes commenced rows and preserves each archived line and side after product classification', async () => {
   const future = row({ market: 'batter-hits', playerId: 90, playerName: 'Future', offerType: 'alternate', side: 'lower', line: 2.5, p: 0.91 });
   const passed = row({ market: 'batter-hits', playerId: 91, playerName: 'Passed', offerType: 'alternate', side: 'higher', line: 0.5, p: 0.99, eventCommenceTime: '2000-01-01T00:00:00.000Z' });
   const newest = archive('batter-hits', [future, passed]);
@@ -274,18 +274,20 @@ test('research board excludes commenced rows and preserves each archived line an
     readLatest: async (market: ResearchDisplayMarket) => market === 'batter-hits' ? newest : null,
   }));
   const displayed = board.categories.flatMap((category) => category.picks);
+  const baseline = board.categories[1]!;
   const altline = board.categories[2]!;
 
   assert.equal(displayed.some((pick) => pick.player === 'Passed'), false);
   assert.ok(displayed.some((pick) => pick.player === 'Future'));
-  assert.equal(altline.picks.some((pick) => pick.player === 'Future'), true);
+  assert.equal(baseline.picks.some((pick) => pick.player === 'Future'), true);
+  assert.equal(altline.picks.some((pick) => pick.player === 'Future'), false);
   for (const pick of displayed.filter((value) => value.player === 'Future')) {
     assert.equal(pick.postedLine, future.postedLine);
     assert.equal(pick.selectedSide, future.selectedSide);
   }
 });
 
-test('High Probability Altline uses verified provider offer identity without reclassifying by line value', async () => {
+test('High Probability Altline requires a different line with a unique same-capture baseline', async () => {
   const hits = archive('batter-hits', [
     row({ market: 'batter-hits', playerId: 100, playerName: 'Verified Alt', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.20 }),
     row({ market: 'batter-hits', playerId: 100, playerName: 'Verified Alt', offerType: 'alternate', side: 'lower', line: 1.5, p: 0.80 }),
@@ -303,15 +305,22 @@ test('High Probability Altline uses verified provider offer identity without rec
   const board = await readResearchProductBoardV2(Object.freeze({
     readLatest: async (market: ResearchDisplayMarket) => market === 'batter-hits' ? hits : hhr,
   }));
+  const baseline = board.categories[1]!;
   const altline = board.categories[2]!;
 
-  assert.deepEqual(
-    altline.picks.map((pick) => pick.player),
-    ['Missing Baseline', 'Ambiguous Baseline', 'Other Capture Baseline', 'Same Line', 'Verified Alt'],
-  );
-  const sameLine = altline.picks.find((pick) => pick.player === 'Same Line');
+  assert.deepEqual(altline.picks.map((pick) => pick.player), ['Verified Alt']);
+  assert.equal(altline.picks[0]!.postedLine, 1.5);
+  assert.equal(altline.picks[0]!.selectedSide, 'lower');
+  assert.equal(altline.picks[0]!.pWinGivenGrades, 0.80);
+
+  const sameLine = baseline.picks.find((pick) => pick.player === 'Same Line');
   assert.ok(sameLine);
   assert.equal(sameLine.postedLine, 1.5);
   assert.equal(sameLine.selectedSide, 'lower');
   assert.equal(sameLine.pWinGivenGrades, 0.96);
+
+  assert.equal(altline.picks.some((pick) => pick.player === 'Missing Baseline'), false);
+  assert.equal(altline.picks.some((pick) => pick.player === 'Ambiguous Baseline'), false);
+  assert.equal(altline.picks.some((pick) => pick.player === 'Other Capture Baseline'), false);
+  assert.equal(altline.picks.some((pick) => pick.player === 'Same Line'), false);
 });
