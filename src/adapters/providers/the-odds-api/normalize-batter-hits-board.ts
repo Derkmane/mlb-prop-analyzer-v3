@@ -154,7 +154,7 @@ function normalizedNullSourceId(_value: unknown, _label: string): null {
 }
 function normalizedBookmakerSid(contract: BoardSourceContract, value: unknown, label: string): null {
   if (value === undefined || value === null) return null;
-  if (contract.boardSource === 'pick6') return null;
+  if (contract.boardSource === 'pick6' || contract.boardSource === 'draftkings') return null;
   return fail('UNSUPPORTED_SOURCE_ID_CONTRACT', `${label} must be absent or null until a non-null source ID is verified and approved.`);
 }
 function identityKey(providerEventId: string, offerPlayerName: string): string {
