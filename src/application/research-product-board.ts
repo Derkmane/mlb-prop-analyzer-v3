@@ -328,7 +328,7 @@ export async function readResearchProductBoardV2(
   );
   const offerTypeByRow = classifyProjectionLineOffersV1(
     rows,
-    (row) => `${row.market}:${row.providerGameId}:${row.providerPlayerId}`,
+    (row) => `${row.market}:${row.captureKey}:${row.providerGameId}:${row.providerPlayerId}`,
   );
   const classifiedRows = rows.filter((row) => offerTypeByRow.has(row));
   const candidateByRow = new Map(
