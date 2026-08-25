@@ -1,9 +1,3 @@
-import {
-  BATTER_HHR_ALTERNATE_PROVIDER_MARKET_KEY,
-  BATTER_HHR_BASELINE_PROVIDER_MARKET_KEY,
-} from '../features/batter-hhr/index.js';
-import { BATTER_HITS_PROVIDER_MARKET_KEYS } from '../features/batter-hits/index.js';
-
 export type ProjectionLineOfferType = 'baseline' | 'alternate';
 
 export interface ProjectionLineEvidence {
@@ -11,22 +5,8 @@ export interface ProjectionLineEvidence {
   readonly postedLine: number;
 }
 
-const STANDARD_PROVIDER_MARKET_KEYS = new Set<string>([
-  BATTER_HHR_BASELINE_PROVIDER_MARKET_KEY,
-  BATTER_HITS_PROVIDER_MARKET_KEYS[0],
-]);
-const NONDEFAULT_MULTIPLIER_PROVIDER_MARKET_KEYS = new Set<string>([
-  BATTER_HHR_ALTERNATE_PROVIDER_MARKET_KEY,
-  BATTER_HITS_PROVIDER_MARKET_KEYS[1],
-]);
-
-function assertSupportedProviderMarketKey(value: string): void {
-  if (
-    !STANDARD_PROVIDER_MARKET_KEYS.has(value) &&
-    !NONDEFAULT_MULTIPLIER_PROVIDER_MARKET_KEYS.has(value)
-  ) {
-    throw new Error(`Unsupported Underdog projection provider market key: ${value}.`);
-  }
+function isStandardMultiplierBucket(providerMarketKey: string): boolean {
+  return !providerMarketKey.endsWith('_alternate');
 }
 
 /**
@@ -40,6 +20,10 @@ function assertSupportedProviderMarketKey(value: string): void {
  *   standard-multiplier bucket must identify the baseline;
  * - only numerically different posted lines are product alternate lines;
  * - ambiguous multi-line groups fail closed and are omitted from the result.
+ *
+ * Supported provider-market identity is validated upstream by the provider or
+ * archive contract. This helper intentionally owns no active-feature constants
+ * so historical/read-only consumers remain independent of active feature code.
  */
 export function classifyProjectionLineOffersV1<
   TRow extends ProjectionLineEvidence,
@@ -49,7 +33,6 @@ export function classifyProjectionLineOffersV1<
 ): ReadonlyMap<TRow, ProjectionLineOfferType> {
   const groups = new Map<string, TRow[]>();
   for (const row of rows) {
-    assertSupportedProviderMarketKey(row.providerMarketKey);
     if (!Number.isFinite(row.postedLine) || row.postedLine < 0) {
       throw new Error('Projection postedLine must be finite and non-negative.');
     }
@@ -69,7 +52,7 @@ export function classifyProjectionLineOffersV1<
     } else {
       const standardLines = new Set(
         group
-          .filter((row) => STANDARD_PROVIDER_MARKET_KEYS.has(row.providerMarketKey))
+          .filter((row) => isStandardMultiplierBucket(row.providerMarketKey))
           .map((row) => row.postedLine),
       );
       if (standardLines.size === 1) baselineLine = [...standardLines][0];
