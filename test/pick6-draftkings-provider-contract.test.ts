@@ -10,10 +10,7 @@ import {
 
 const fixture = JSON.parse(
   readFileSync(
-    new URL(
-      '../fixtures/sanitized/the-odds-api/pick6-draftkings-ladder-v1.json',
-      import.meta.url,
-    ),
+    'fixtures/sanitized/the-odds-api/pick6-draftkings-ladder-v1.json',
     'utf8',
   ),
 ) as any;
