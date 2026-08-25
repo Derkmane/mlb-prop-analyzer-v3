@@ -170,6 +170,7 @@ Contract behavior:
 - Missing source availability, sides, markets, and rungs remain absent. No mirroring, synthesis, cross-source borrowing, or standard-book baseline inference.
 - Price, multiplier, payout, and implied probability are evidence/display only and do not rank.
 - A source returning no target offers is a normal fail-closed availability state, not permission to substitute another source.
+- Forced live recapture run `32884230884` on 2026-08-25 verified that an active Pick6 bookmaker record may carry a non-null opaque `bookmaker.sid`. The exact raw response remains preserved in the immutable provider snapshot. That opaque bookmaker metadata is not interpreted as model/source identity and normalizes to `providerBookmakerSid: null`; DraftKings and historical sources continue to reject non-null source IDs unless separately verified.
 
 Pick6 response SHA-256: `63263e9a074a94f98ab0891736f708cb509283a16d7afcf3eaca826e1249b749`
-DraftKings response SHA-256: `c519c5d18bb7cf0c31762d0688e32b6599b34fe47de82408b6991f8991afb03c`
+DraftKings response SHA-256: `c519c5d18bb7cf0c31762d0688e32b6599b34fe47de82408b6991f8991afb03`
