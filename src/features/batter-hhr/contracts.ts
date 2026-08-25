@@ -1,3 +1,4 @@
+import type { BoardSource } from '../../domain/board-source.js';
 import type { PerPaOutcomeVector } from '../../domain/per-pa-outcome.js';
 import type { ProbabilityMassFunction } from '../../domain/probability.js';
 import type { SelectedSide } from '../../domain/selected-side.js';
@@ -7,6 +8,11 @@ import type { BATTER_HHR_MARKET_KEY } from './manifest.js';
 export const BATTER_HHR_MODEL_VERSION = 'm11-batter-hhr-direct-composite-v2' as const;
 export const BATTER_HHR_DISTRIBUTION_BUILDER_VERSION = 'm11-batter-hhr-negative-binomial-v1' as const;
 export const BATTER_HHR_SETTLEMENT_RULE_VERSION = 'underdog-batter-hhr-settlement-v1' as const;
+export const BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION =
+  'draftkings-sportsbook-batter-hhr-2025-08-26-v1' as const;
+export const BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE =
+  'docs/providers/draftkings-mlb-settlement-contract-v1.md' as const;
+export const BATTER_HHR_PICK6_SETTLEMENT_RULE_VERSION = null;
 export const BATTER_HHR_MATHEMATICAL_FAMILY = 'directly-fitted-composite' as const;
 export const BATTER_HHR_TAIL_COLLAPSE_AT = 64 as const;
 export const BATTER_HHR_MAXIMUM_EXACT_POSTED_LINE = 63.5 as const;
@@ -75,6 +81,7 @@ export interface BatterHhrDirectCompositeArtifact {
     readonly excludedRowCount: number;
     readonly diagnosticsSha256: string;
   };
+  /** Historical fitting/provider evidence only; not the active board-source contract. */
   readonly providerBoardEvidence: {
     readonly provider: 'The Odds API';
     readonly bookmaker: 'underdog';
@@ -116,15 +123,27 @@ export interface BatterHhrDirectCompositeDistribution {
 }
 
 export interface NormalizedBatterHhrOffer {
-  readonly source: 'the-odds-api'; readonly bookmaker: 'underdog'; readonly region: 'us_dfs';
-  readonly eventId: string; readonly commenceTime: string; readonly homeTeam: string; readonly awayTeam: string;
+  readonly source: 'the-odds-api';
+  readonly boardSource: BoardSource;
+  readonly bookmaker: 'pick6' | 'draftkings' | 'underdog';
+  readonly region: 'us_dfs' | 'us';
+  readonly settlementRuleVersion: string | null;
+  readonly eventId: string;
+  readonly commenceTime: string;
+  readonly homeTeam: string;
+  readonly awayTeam: string;
   readonly playerName: string;
   readonly providerMarketKey: 'batter_hits_runs_rbis' | 'batter_hits_runs_rbis_alternate';
-  readonly baseMarketKey: typeof BATTER_HHR_MARKET_KEY; readonly offerType: 'baseline' | 'alternate';
+  readonly baseMarketKey: typeof BATTER_HHR_MARKET_KEY;
+  readonly offerType: 'baseline' | 'alternate';
   readonly offerTypeReason: 'NO_PLAYER_BASELINE' | null;
-  readonly selectedSide: SelectedSide; readonly line: number; readonly price: number | null;
-  readonly multiplier: number | null; readonly providerSid: string | null;
-  readonly marketLastUpdate: string; readonly sourceSnapshotSha256: string;
+  readonly selectedSide: SelectedSide;
+  readonly line: number;
+  readonly price: number | null;
+  readonly multiplier: number | null;
+  readonly providerSid: string | null;
+  readonly marketLastUpdate: string;
+  readonly sourceSnapshotSha256: string;
 }
 export interface SettledBatterHhrOffer {
   readonly offer: NormalizedBatterHhrOffer;
