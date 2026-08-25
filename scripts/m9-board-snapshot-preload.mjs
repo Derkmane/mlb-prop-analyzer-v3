@@ -3,15 +3,17 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-export const SNAPSHOT_CONTRACT = 'm9-first-board-snapshot-v2';
-export const REPLAY_CONTRACT = 'm9-board-snapshot-replay-receipt-v2';
+export const SNAPSHOT_CONTRACT = 'm9-first-board-snapshot-v3';
+export const REPLAY_CONTRACT = 'm9-board-snapshot-replay-receipt-v3';
 export const CLAIMED_EVENT_IDS_ENV = 'M9_BOARD_CLAIMED_EVENT_IDS';
 const HITS_MARKETS = Object.freeze(['batter_hits', 'batter_hits_alternate']);
-const STANDARD_HITS_MARKETS = Object.freeze(['batter_hits']);
-const STANDARD_HHR_MARKETS = Object.freeze(['batter_hits_runs_rbis']);
 const HHR_MARKETS = Object.freeze([
   'batter_hits_runs_rbis',
   'batter_hits_runs_rbis_alternate',
+]);
+const ACTIVE_BOARD_SOURCES = Object.freeze([
+  Object.freeze({ boardSource: 'pick6', bookmaker: 'pick6', region: 'us_dfs' }),
+  Object.freeze({ boardSource: 'draftkings', bookmaker: 'draftkings', region: 'us' }),
 ]);
 const PUBLIC_QUERY_NAMES = new Set([
   'bookmakers',
@@ -61,37 +63,23 @@ function copyPrivateScheduleParams(scheduleUrl, url) {
   return url;
 }
 
-function eventOddsUrl(eventId, scheduleUrl, consumer) {
+function eventOddsUrl(eventId, scheduleUrl, consumer, source) {
   const url = copyPrivateScheduleParams(
     scheduleUrl,
     new URL(
       `https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${eventId}/odds`,
     ),
   );
-  url.searchParams.set('bookmakers', 'underdog');
+  url.searchParams.set('regions', source.region);
+  url.searchParams.set('bookmakers', source.bookmaker);
   url.searchParams.set(
     'markets',
     (consumer === 'hits' ? HITS_MARKETS : HHR_MARKETS).join(','),
   );
-  if (consumer === 'hhr') url.searchParams.set('regions', 'us_dfs');
   url.searchParams.set('dateFormat', 'iso');
   url.searchParams.set('oddsFormat', 'american');
   url.searchParams.set('includeMultipliers', 'true');
   url.searchParams.set('includeSids', 'true');
-  return url;
-}
-
-function standardHitsOddsUrl(eventId, scheduleUrl) {
-  const url = copyPrivateScheduleParams(
-    scheduleUrl,
-    new URL(
-      `https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${eventId}/odds`,
-    ),
-  );
-  url.searchParams.set('regions', 'us');
-  url.searchParams.set('markets', STANDARD_HITS_MARKETS.join(','));
-  url.searchParams.set('dateFormat', 'iso');
-  url.searchParams.set('oddsFormat', 'american');
   return url;
 }
 
@@ -171,40 +159,6 @@ async function captureOne(
   });
 }
 
-async function captureOptionalStandardHits(
-  fetchImpl,
-  eventId,
-  scheduleUrl,
-  now,
-) {
-  const requestKey = `hits-standard:${eventId}`;
-  const url = standardHitsOddsUrl(eventId, scheduleUrl);
-  try {
-    return Object.freeze({
-      entry: await captureOne(
-        fetchImpl,
-        url,
-        requestKey,
-        'hits',
-        now,
-        { requireOk: false },
-      ),
-      failure: null,
-    });
-  } catch (error) {
-    return Object.freeze({
-      entry: null,
-      failure: Object.freeze({
-        requestKey,
-        consumer: 'hits',
-        request: publicRequest(url),
-        capturedAt: stamp(now),
-        reason: error instanceof Error ? error.message : String(error),
-      }),
-    });
-  }
-}
-
 export async function captureFirstBoardSnapshot({
   fetchImpl,
   archiveRoot,
@@ -239,35 +193,28 @@ export async function captureFirstBoardSnapshot({
   ];
 
   for (const event of pregameEvents) {
-    responses.push(
-      await captureOne(
-        fetchImpl,
-        eventOddsUrl(event.eventId, scheduleUrl, 'hits'),
-        `hits:${event.eventId}`,
-        'hits',
-        now,
-      ),
-    );
-    const standardHits = await captureOptionalStandardHits(
-      fetchImpl,
-      event.eventId,
-      scheduleUrl,
-      now,
-    );
-    if (standardHits.entry === null) {
-      auxiliaryFailures.push(standardHits.failure);
-    } else {
-      responses.push(standardHits.entry);
+    for (const source of ACTIVE_BOARD_SOURCES) {
+      responses.push(
+        await captureOne(
+          fetchImpl,
+          eventOddsUrl(event.eventId, scheduleUrl, 'hits', source),
+          `hits:${source.boardSource}:${event.eventId}`,
+          'hits',
+          now,
+        ),
+      );
     }
-    responses.push(
-      await captureOne(
-        fetchImpl,
-        eventOddsUrl(event.eventId, scheduleUrl, 'hhr'),
-        `hhr:${event.eventId}`,
-        'hhr',
-        now,
-      ),
-    );
+    for (const source of ACTIVE_BOARD_SOURCES) {
+      responses.push(
+        await captureOne(
+          fetchImpl,
+          eventOddsUrl(event.eventId, scheduleUrl, 'hhr', source),
+          `hhr:${source.boardSource}:${event.eventId}`,
+          'hhr',
+          now,
+        ),
+      );
+    }
   }
 
   const boardSnapshotCompletedAt = stamp(now);
@@ -298,7 +245,7 @@ export async function captureFirstBoardSnapshot({
   }
 
   const manifest = Object.freeze({
-    version: 2,
+    version: 3,
     contract: SNAPSHOT_CONTRACT,
     snapshotId,
     snapshotSetSha256,
@@ -356,6 +303,23 @@ function exactPublicQuery(url, expected) {
   );
 }
 
+function sourceForUrl(url) {
+  const bookmaker = url.searchParams.get('bookmakers');
+  const region = url.searchParams.get('regions');
+  const source = ACTIVE_BOARD_SOURCES.find(
+    (entry) => entry.bookmaker === bookmaker && entry.region === region,
+  );
+  if (source !== undefined) return source;
+  if (
+    ACTIVE_BOARD_SOURCES.some(
+      (entry) => entry.bookmaker === bookmaker || entry.region === region,
+    )
+  ) {
+    throw new Error('Board snapshot source identity drifted.');
+  }
+  return null;
+}
+
 function replayKey(input) {
   const url = new URL(
     typeof input === 'string' || input instanceof URL ? input : input.url,
@@ -372,57 +336,31 @@ function replayKey(input) {
   );
   if (!match) return null;
   const markets = marketSet(url.searchParams.get('markets'));
-  const standardHitsControlled = sameSet(markets, STANDARD_HITS_MARKETS);
-  const standardHhrAuxiliary =
-    sameSet(markets, STANDARD_HHR_MARKETS) &&
-    exactPublicQuery(url, {
-      regions: 'us',
-      markets: 'batter_hits_runs_rbis',
-      dateFormat: 'iso',
-      oddsFormat: 'american',
-    });
-  if (standardHhrAuxiliary) return null;
   const hitsControlled = HITS_MARKETS.some((key) => markets.has(key));
   const hhrControlled = HHR_MARKETS.some((key) => markets.has(key));
-  if (!standardHitsControlled && !hitsControlled && !hhrControlled) return null;
-
-  if (standardHitsControlled) {
-    if (
-      !exactPublicQuery(url, {
-        regions: 'us',
-        markets: 'batter_hits',
-        dateFormat: 'iso',
-        oddsFormat: 'american',
-      })
-    ) {
-      throw new Error('Standard-book Hits snapshot request contract drifted.');
-    }
-    return `hits-standard:${match[1]}`;
+  if (!hitsControlled && !hhrControlled) return null;
+  const source = sourceForUrl(url);
+  if (source === null) {
+    throw new Error('Controlled board snapshot request has an unsupported source.');
   }
-
-  if (hitsControlled) {
-    if (!sameSet(markets, HITS_MARKETS)) {
-      throw new Error('Hits snapshot market set drifted.');
-    }
-    if (url.searchParams.get('bookmakers') !== 'underdog') {
-      throw new Error('Hits snapshot bookmaker drifted.');
-    }
-    if (url.searchParams.has('regions')) {
-      throw new Error('Hits snapshot regions drifted.');
-    }
-    return `hits:${match[1]}`;
+  const expectedMarkets = hitsControlled ? HITS_MARKETS : HHR_MARKETS;
+  if (!sameSet(markets, expectedMarkets)) {
+    throw new Error(`${hitsControlled ? 'Hits' : 'HHR'} snapshot market set drifted.`);
   }
-
-  if (!sameSet(markets, HHR_MARKETS)) {
-    throw new Error('HHR snapshot market set drifted.');
+  if (
+    !exactPublicQuery(url, {
+      regions: source.region,
+      bookmakers: source.bookmaker,
+      markets: expectedMarkets.join(','),
+      dateFormat: 'iso',
+      oddsFormat: 'american',
+      includeMultipliers: 'true',
+      includeSids: 'true',
+    })
+  ) {
+    throw new Error(`${hitsControlled ? 'Hits' : 'HHR'} snapshot request contract drifted.`);
   }
-  if (url.searchParams.get('regions') !== 'us_dfs') {
-    throw new Error('HHR snapshot region drifted.');
-  }
-  if (url.searchParams.get('bookmakers') !== 'underdog') {
-    throw new Error('HHR snapshot bookmaker drifted.');
-  }
-  return `hhr:${match[1]}`;
+  return `${hitsControlled ? 'hits' : 'hhr'}:${source.boardSource}:${match[1]}`;
 }
 
 function requiredKeys(manifest, consumer) {
@@ -432,16 +370,15 @@ function requiredKeys(manifest, consumer) {
   const keys = [];
   if (consumer === 'hits') keys.push('events');
   for (const eventId of [...eligibleIds].sort()) {
-    keys.push(`${consumer}:${eventId}`);
+    for (const source of ACTIVE_BOARD_SOURCES) {
+      keys.push(`${consumer}:${source.boardSource}:${eventId}`);
+    }
   }
   return keys.sort();
 }
 
-function optionalKeys(manifest, consumer) {
-  if (consumer !== 'hits') return [];
-  return manifest.replayEligibleEvents
-    .map((event) => `hits-standard:${event.eventId}`)
-    .sort();
+function optionalKeys() {
+  return [];
 }
 
 export function publishClaimedEventScope(manifest) {
@@ -449,7 +386,7 @@ export function publishClaimedEventScope(manifest) {
     throw new Error('Snapshot manifest must contain at least one claimed game.');
   }
   const eventIds = manifest.claimedGames.map((game, index) => {
-    if (typeof game?.eventId !== 'string' || game.eventId.length === 0) {
+    if (typeof game?.eventId !== 'string' || eventId.length === 0) {
       throw new Error(`Snapshot claimed game ${index} has no event ID.`);
     }
     return game.eventId;
@@ -472,7 +409,7 @@ function installReplay() {
     );
   }
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  if (manifest.contract !== SNAPSHOT_CONTRACT || manifest.version !== 2) {
+  if (manifest.contract !== SNAPSHOT_CONTRACT || manifest.version !== 3) {
     throw new Error('Wrong board snapshot contract.');
   }
   publishClaimedEventScope(manifest);
@@ -497,7 +434,7 @@ function installReplay() {
     );
     const complete = expectedKeys.every((key) => consumed.has(key));
     const receipt = {
-      version: 2,
+      version: 3,
       contract: REPLAY_CONTRACT,
       consumer,
       snapshotId: manifest.snapshotId,
