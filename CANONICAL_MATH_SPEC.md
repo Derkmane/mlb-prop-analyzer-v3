@@ -2835,7 +2835,7 @@ no complete production validation/calibration
   branch where both apply.
 - Distinguished replacement factors, which substitute a complete terminal
   vector for a declared subset of plate appearances, from transformation
-  factors, which multiply a resulting terminal vector elementwise and renormalize
+  factors, which multiply a resulting vector elementwise and renormalize
   once across every plate appearance in scope.
 - Prohibited any plate appearance from receiving the same factor twice.
 - Added the category-support boundary: composition applies a factor only
