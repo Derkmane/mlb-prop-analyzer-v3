@@ -2,13 +2,10 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import {
-  deriveStandardBookBaselineLines,
-  fetchMlbStatsPostedLineup,
-} from '../dist/src/adapters/index.js';
+import { fetchMlbStatsPostedLineup } from '../dist/src/adapters/index.js';
 import {
   buildBatterHhrDirectCompositeDistribution,
-  normalizeUnderdogBatterHhrCapture,
+  normalizeOddsApiBatterHhrCapture,
   settleBatterHhrDistribution,
 } from '../dist/src/features/batter-hhr/index.js';
 import {
@@ -22,7 +19,6 @@ import {
   attachPhase2DisplayEnrichment,
   capturePhase2DisplayEnrichment,
 } from './phase2-display-enrichment-utils.mjs';
-import { classifyHhrUnderdogBookmakerAvailability } from './m10-hhr-board-availability-utils.mjs';
 import { persistImmutableJson } from './m10-grade-saved-archive-utils.mjs';
 import { buildM10HhrProspectiveArchive } from './m10-hhr-evidence-utils.mjs';
 import {
@@ -57,6 +53,10 @@ const HHR_ARCHIVE_ROOT = path.resolve(
 );
 const HITS_CAPTURE_PATTERN = /^(\d{8}T\d{9}Z--[a-f0-9]{64})\.json$/u;
 const MODEL_PATH = path.resolve('model-artifacts/m11-batter-hhr-direct-composite-v2.json');
+const ACTIVE_HHR_BOARD_SOURCES = Object.freeze([
+  Object.freeze({ boardSource: 'pick6', bookmaker: 'pick6', region: 'us_dfs' }),
+  Object.freeze({ boardSource: 'draftkings', bookmaker: 'draftkings', region: 'us' }),
+]);
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 const sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const bdlRateLimiter = createBdlAdaptiveRateLimiter({
@@ -241,18 +241,18 @@ async function fetchEventOdds(eventId, { markets, regions, bookmakers = null, in
     url.searchParams.set('includeMultipliers', 'true');
     url.searchParams.set('includeSids', 'true');
   }
-  return fetchSnapshot(url, `The Odds API ${markets} ${eventId}`);
+  return fetchSnapshot(url, `The Odds API ${bookmakers ?? regions} ${markets} ${eventId}`);
 }
 
-function hhrCapture(snapshot, capturedAt) {
+function hhrCapture(snapshot, capturedAt, source) {
   return Object.freeze({
     captureVersion: 1,
     capturedAt,
     captureMode: 'prospective-m10-daily-evidence',
     request: Object.freeze({
       provider: 'The Odds API',
-      bookmaker: 'underdog',
-      region: 'us_dfs',
+      bookmaker: source.bookmaker,
+      region: source.region,
       marketKeys: Object.freeze(['batter_hits_runs_rbis', 'batter_hits_runs_rbis_alternate']),
       dateFormat: 'iso',
       oddsFormat: 'american',
@@ -352,24 +352,23 @@ const pregameEvents = sourceHits.value.pregameEvents.map(eventFromHits);
 
 const boardSnapshots = new Map();
 const totalSnapshots = new Map();
-const standardHhrSnapshots = new Map();
 for (const event of pregameEvents) {
-  boardSnapshots.set(
-    event.id,
-    await fetchEventOdds(event.id, {
-      markets: 'batter_hits_runs_rbis,batter_hits_runs_rbis_alternate',
-      regions: 'us_dfs',
-      bookmakers: 'underdog',
-      includeMultipliers: true,
-    }),
-  );
+  const snapshotsBySource = new Map();
+  for (const source of ACTIVE_HHR_BOARD_SOURCES) {
+    snapshotsBySource.set(
+      source.boardSource,
+      await fetchEventOdds(event.id, {
+        markets: 'batter_hits_runs_rbis,batter_hits_runs_rbis_alternate',
+        regions: source.region,
+        bookmakers: source.bookmaker,
+        includeMultipliers: true,
+      }),
+    );
+  }
+  boardSnapshots.set(event.id, snapshotsBySource);
   totalSnapshots.set(
     event.id,
     await fetchEventOdds(event.id, { markets: 'team_totals', regions: 'us' }),
-  );
-  standardHhrSnapshots.set(
-    event.id,
-    await fetchEventOdds(event.id, { markets: 'batter_hits_runs_rbis', regions: 'us' }),
   );
 }
 
@@ -380,7 +379,7 @@ const preGateDiagnosticPath = path.join(
   `${capturedAt.replace(/[-:.]/gu, '')}--provider-inputs.json`,
 );
 const preGateDiagnostic = {
-  diagnosticVersion: 1,
+  diagnosticVersion: 2,
   diagnosticType: 'm10-hhr-provider-inputs-before-gates',
   capturedAt,
   sourceHitsCaptureKey: sourceHits.value.captureIdentity?.captureKey ?? path.basename(sourceHits.filePath, '.json'),
@@ -388,9 +387,10 @@ const preGateDiagnostic = {
   pregameEventCount: pregameEvents.length,
   events: pregameEvents.map((event) => ({
     ...event,
-    hhrBoardSnapshotSha256: boardSnapshots.get(event.id).sha256,
+    hhrBoardSnapshotSha256BySource: Object.fromEntries(
+      [...boardSnapshots.get(event.id).entries()].map(([source, snapshot]) => [source, snapshot.sha256]),
+    ),
     teamTotalsSnapshotSha256: totalSnapshots.get(event.id).sha256,
-    standardHhrSnapshotSha256: standardHhrSnapshots.get(event.id).sha256,
   })),
   thresholdsEvaluated: false,
 };
@@ -490,29 +490,47 @@ const playerLookupSnapshotSha256ByGame = new Map();
 const mlbStatsPostedLineupSnapshotSha256ByGame = new Map();
 const lineupResolutionRows = [];
 const identityDiagnosticState = { printed: 0 };
-let zeroUnderdogHhrEventCount = 0;
+let noRankableHhrEventCount = 0;
+let pick6OfferCountBlockedBySettlement = 0;
 for (const game of resolvedGames) {
   const rawGame = rawGameByEventId.get(game.providerEventId);
   if (!rawGame) throw new Error(`Missing raw BDL game for ${game.providerEventId}.`);
-  const boardSnapshot = boardSnapshots.get(game.providerEventId);
-  const capture = hhrCapture(boardSnapshot, capturedAt);
-  const bookmakerAvailability = classifyHhrUnderdogBookmakerAvailability(capture);
-  if (bookmakerAvailability.status === 'exclude') {
-    zeroUnderdogHhrEventCount += 1;
-    offersByEventId.set(game.providerEventId, Object.freeze([]));
+  const snapshotsBySource = boardSnapshots.get(game.providerEventId);
+  const rankableOffers = [];
+  for (const source of ACTIVE_HHR_BOARD_SOURCES) {
+    const sourceSnapshot = snapshotsBySource.get(source.boardSource);
+    const sourceOffers = normalizeOddsApiBatterHhrCapture(
+      hhrCapture(sourceSnapshot, capturedAt, source),
+    );
+    if (source.boardSource === 'pick6') {
+      pick6OfferCountBlockedBySettlement += sourceOffers.length;
+      for (const offer of sourceOffers) {
+        exclusions.push(Object.freeze({
+          gameId: game.gameId,
+          providerEventId: game.providerEventId,
+          playerName: offer.playerName,
+          boardSource: 'pick6',
+          providerMarketKey: offer.providerMarketKey,
+          selectedSide: offer.selectedSide,
+          postedLine: offer.line,
+          reason: 'pick6-settlement-rule-temporal-evidence-unavailable',
+        }));
+      }
+      continue;
+    }
+    rankableOffers.push(...sourceOffers);
+  }
+  const offers = Object.freeze(rankableOffers);
+  offersByEventId.set(game.providerEventId, offers);
+  if (offers.length === 0) {
+    noRankableHhrEventCount += 1;
     exclusions.push(Object.freeze({
       gameId: game.gameId,
       providerEventId: game.providerEventId,
-      reason: bookmakerAvailability.reason,
+      reason: 'no-rankable-active-source-hhr-offers',
     }));
     continue;
   }
-  const standardBookBaselineLines = deriveStandardBookBaselineLines(
-    standardHhrSnapshots.get(game.providerEventId).body,
-    'batter_hits_runs_rbis',
-  );
-  const offers = normalizeUnderdogBatterHhrCapture(capture, standardBookBaselineLines);
-  offersByEventId.set(game.providerEventId, offers);
   const offeredNames = [...new Set(offers.map((offer) => offer.playerName))];
   const identityCapture = await capturePlayerIdentityLookups({
     event: pregameEvents.find((event) => event.id === game.providerEventId),
@@ -645,8 +663,8 @@ for (const game of resolvedGames) {
     }));
   }
 }
-if (resolvedGames.length > 0 && zeroUnderdogHhrEventCount === resolvedGames.length) {
-  throw new Error('HHR capture contained no normalized offers.');
+if (resolvedGames.length > 0 && noRankableHhrEventCount === resolvedGames.length) {
+  throw new Error('HHR capture contained no rankable DraftKings offers; Pick6 is not substituted without an authorized settlement rule.');
 }
 
 const lineupStatusCountsBeforeRowGates = Object.freeze({
@@ -660,11 +678,12 @@ const resolutionDiagnosticPath = path.join(
 await writeFile(
   resolutionDiagnosticPath,
   `${JSON.stringify({
-    diagnosticVersion: 3,
+    diagnosticVersion: 4,
     diagnosticType: 'm10-hhr-resolution-before-row-gates',
     capturedAt,
     resolvedGames,
     exclusions,
+    pick6OfferCountBlockedBySettlement,
     lineupsSnapshotSha256: lineupsSnapshot.sha256,
     lineupsSnapshotPageSha256: lineupsSnapshot.pageSha256,
     playerLookupSnapshotSha256ByGame: Object.fromEntries(playerLookupSnapshotSha256ByGame),
@@ -703,7 +722,6 @@ const bullpenByTeamHand = buildHhrTeamBullpenMap(bullpenFile.value);
 
 const rows = [];
 for (const game of resolvedGames) {
-  const boardSnapshot = boardSnapshots.get(game.providerEventId);
   const offers = offersByEventId.get(game.providerEventId) ?? [];
   const totals = teamTotals(game, totalSnapshots.get(game.providerEventId));
   const offeredNames = [...new Set(offers.map((offer) => offer.playerName))];
@@ -812,13 +830,21 @@ for (const game of resolvedGames) {
     };
     const distribution = buildBatterHhrDirectCompositeDistribution(model, input);
     for (const offer of offers.filter((entry) => entry.playerName === playerName)) {
+      if (offer.boardSource !== 'draftkings' || offer.settlementRuleVersion === null) {
+        throw new Error('HHR probability rows require one authorized source-specific settlement rule.');
+      }
       const settlement = settleBatterHhrDistribution(distribution, offer.selectedSide, offer.line);
       const conditionalWin = pWinGivenGrades(settlement);
       if (conditionalWin === null) {
         exclusions.push(Object.freeze({ gameId: game.gameId, playerName, reason: 'fully-void-hhr-settlement' }));
         continue;
       }
+      const boardSnapshot = boardSnapshots.get(game.providerEventId).get(offer.boardSource);
       rows.push(Object.freeze({
+        boardSource: offer.boardSource,
+        providerBookmakerKey: offer.bookmaker,
+        providerRegion: offer.region,
+        settlementRuleVersion: offer.settlementRuleVersion,
         providerEventId: offer.eventId,
         providerGameId: game.gameId,
         providerPlayerId: hitter.playerId,
@@ -858,7 +884,6 @@ for (const game of resolvedGames) {
           teamImpliedRunTotal: teamTotal,
           hhrBoardSnapshotSha256: boardSnapshot.sha256,
           teamTotalsSnapshotSha256: totals.sourceSha256,
-          standardHhrSnapshotSha256: standardHhrSnapshots.get(game.providerEventId).sha256,
         }),
       }));
     }
@@ -874,9 +899,13 @@ rows.sort((left, right) =>
 
 const sourceSet = {
   sourceHitsArchiveFileSha256: sourceHits.sha256,
-  boardSnapshotSha256ByEvent: Object.fromEntries([...boardSnapshots.entries()].map(([eventId, value]) => [eventId, value.sha256])),
+  boardSnapshotSha256ByEventAndSource: Object.fromEntries(
+    [...boardSnapshots.entries()].map(([eventId, snapshots]) => [
+      eventId,
+      Object.fromEntries([...snapshots.entries()].map(([source, value]) => [source, value.sha256])),
+    ]),
+  ),
   teamTotalsSnapshotSha256ByEvent: Object.fromEntries([...totalSnapshots.entries()].map(([eventId, value]) => [eventId, value.sha256])),
-  standardHhrSnapshotSha256ByEvent: Object.fromEntries([...standardHhrSnapshots.entries()].map(([eventId, value]) => [eventId, value.sha256])),
   bdlGameSnapshotSha256ByDate: Object.fromEntries(gameQuerySnapshots.map((entry) => [entry.queryDateUtc, entry.snapshot.rawBodySha256])),
   bdlLineupsSnapshotSha256: lineupsSnapshot.sha256,
   bdlLineupsPageSha256: lineupsSnapshot.pageSha256,
@@ -919,11 +948,17 @@ const archive = buildM10HhrProspectiveArchive({
   source: Object.freeze({
     theOddsApi: Object.freeze({
       provider: 'The Odds API',
-      boardBookmaker: 'underdog',
-      boardRegion: 'us_dfs',
-      boardMarkets: Object.freeze(['batter_hits_runs_rbis', 'batter_hits_runs_rbis_alternate']),
+      boardSources: Object.freeze(
+        ACTIVE_HHR_BOARD_SOURCES.map((source) => Object.freeze({
+          boardSource: source.boardSource,
+          bookmaker: source.bookmaker,
+          region: source.region,
+          boardMarkets: Object.freeze(['batter_hits_runs_rbis', 'batter_hits_runs_rbis_alternate']),
+        })),
+      ),
       conditioningMarket: 'team_totals',
       conditioningRegion: 'us',
+      pick6SettlementStatus: 'captured-but-unrankable-without-temporal-rule-evidence',
     }),
     balldontlie: Object.freeze({ provider: 'BALLDONTLIE MLB API', activeSeason: 2026 }),
     mlbStats: Object.freeze({
@@ -968,6 +1003,7 @@ console.log(`ARCHIVE SHA-256\t${enrichedArchive.archiveSha256}`);
 console.log(`PREGAME EVENTS\t${pregameEvents.length}`);
 console.log(`RESOLVED GAMES\t${resolvedGames.length}`);
 console.log(`HHR ROWS\t${enrichedArchive.counts.rows}`);
+console.log(`PICK6 OFFERS BLOCKED BY SETTLEMENT GATE\t${pick6OfferCountBlockedBySettlement}`);
 console.log(`CANDIDATES FROM CONFIRMED SLOTS\t${confirmedRows}`);
 console.log(`CANDIDATES FROM PROJECTED SLOTS\t${projectedRows}`);
 console.log(`UNIQUE PLAYERS FROM CONFIRMED SLOTS\t${confirmedPlayers}`);
