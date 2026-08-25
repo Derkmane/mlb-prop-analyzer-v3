@@ -212,44 +212,27 @@ test('HHR archiver uses the shared adaptive limiter and real Headers resolve the
   assert.match(captureScript, /BDL INTERVAL MS/u);
 });
 
-test('HHR zero-bookmaker events exclude and continue while duplicate Underdog bookmakers remain fatal', async () => {
-  const zeroBookmaker = hhrCaptureWithBookmakers([]);
-  assert.deepEqual(
-    classifyHhrUnderdogBookmakerAvailability(zeroBookmaker),
-    { status: 'exclude', reason: 'no-underdog-hhr-offers' },
-  );
-
-  const duplicateUnderdog = hhrCaptureWithBookmakers([
-    { key: 'underdog' },
-    { key: 'underdog' },
-  ]);
-  assert.deepEqual(
-    classifyHhrUnderdogBookmakerAvailability(duplicateUnderdog),
-    { status: 'normalize' },
-  );
-
-  const malformedBookmaker = hhrCaptureWithBookmakers([null]);
-  assert.deepEqual(
-    classifyHhrUnderdogBookmakerAvailability(malformedBookmaker),
-    { status: 'normalize' },
-  );
-
+test('HHR active sources normalize independently and Pick6 remains settlement-blocked', async () => {
   const captureScript = await readFile('scripts/archive-m10-batter-hhr-board.mjs', 'utf8');
-  const classifyIndex = captureScript.indexOf(
-    'const bookmakerAvailability = classifyHhrUnderdogBookmakerAvailability(capture);',
-  );
-  const normalizeIndex = captureScript.indexOf(
-    'const offers = normalizeUnderdogBatterHhrCapture(capture, standardBookBaselineLines);',
-  );
-  assert.ok(classifyIndex >= 0 && normalizeIndex > classifyIndex);
   assert.match(
     captureScript,
-    /if \(bookmakerAvailability\.status === 'exclude'\) \{[\s\S]*reason: bookmakerAvailability\.reason,[\s\S]*continue;[\s\S]*const offers = normalizeUnderdogBatterHhrCapture\(capture, standardBookBaselineLines\);/u,
+    /ACTIVE_HHR_BOARD_SOURCES[\s\S]*boardSource: 'pick6'[\s\S]*bookmaker: 'pick6'[\s\S]*region: 'us_dfs'[\s\S]*boardSource: 'draftkings'[\s\S]*bookmaker: 'draftkings'[\s\S]*region: 'us'/u,
   );
   assert.match(
     captureScript,
-    /throw new Error\('HHR capture contained no normalized offers\.'\);/u,
+    /for \(const source of ACTIVE_HHR_BOARD_SOURCES\)[\s\S]*normalizeOddsApiBatterHhrCapture\([\s\S]*hhrCapture\(sourceSnapshot, capturedAt, source\)/u,
   );
+  assert.match(
+    captureScript,
+    /if \(source\.boardSource === 'pick6'\)[\s\S]*reason: 'pick6-settlement-rule-temporal-evidence-unavailable'[\s\S]*continue;/u,
+  );
+  assert.match(
+    captureScript,
+    /reason: 'no-rankable-active-source-hhr-offers'/u,
+  );
+  assert.doesNotMatch(captureScript, /normalizeUnderdogBatterHhrCapture/u);
+  assert.doesNotMatch(captureScript, /classifyHhrUnderdogBookmakerAvailability/u);
+  assert.doesNotMatch(captureScript, /deriveStandardBookBaselineLines/u);
 });
 
 test('HHR final grading requires exact STATUS_FINAL games and settles archived probabilities without changing them', () => {
@@ -454,20 +437,17 @@ test('HHR daily evidence scripts pass Node syntax checking', () => {
   }
 });
 
-test('HHR archiver requests standard-book HHR lines instead of Batter Hits lines', async () => {
+test('HHR archiver requests exact Pick6 and DraftKings ladders with no cross-book baseline fallback', async () => {
   const captureScript = await readFile('scripts/archive-m10-batter-hhr-board.mjs', 'utf8');
   assert.match(
     captureScript,
-    /standardHhrSnapshots\.set\([\s\S]*markets: 'batter_hits_runs_rbis', regions: 'us'/u,
+    /markets: 'batter_hits_runs_rbis,batter_hits_runs_rbis_alternate'[\s\S]*regions: source\.region[\s\S]*bookmakers: source\.bookmaker/u,
   );
-  assert.doesNotMatch(
-    captureScript,
-    /standardHhrSnapshots\.set\([\s\S]*markets: 'batter_hits', regions: 'us'/u,
-  );
-  assert.match(
-    captureScript,
-    /deriveStandardBookBaselineLines\([\s\S]*'batter_hits_runs_rbis'/u,
-  );
+  assert.match(captureScript, /includeMultipliers: true/u);
+  assert.doesNotMatch(captureScript, /standardHhrSnapshots/u);
+  assert.doesNotMatch(captureScript, /standardBookBaselineLines/u);
+  assert.doesNotMatch(captureScript, /deriveStandardBookBaselineLines/u);
+  assert.doesNotMatch(captureScript, /bookmakers:\s*'underdog'/u);
 });
 
 test('the committed Step 3 HHR archive bytes remain unchanged by daily evidence code', async () => {
