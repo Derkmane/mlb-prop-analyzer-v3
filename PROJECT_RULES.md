@@ -1063,8 +1063,7 @@ Read-only investigation is required when necessary to choose the
 structural direction. It is not a reason to stop working.
 
 The trigger prohibits a third blind patch; it does not prohibit a
-structurally redesigned implementation attempt after the full
-reassessment.
+structurally redesigned implementation attempt after full reassessment.
 
 Destructive deletion, rollback, replacement, or reconstruction remains
 subject to the approval requirements elsewhere in these rules. Deletion
@@ -1285,8 +1284,7 @@ execution. Do not install, invoke, probe for, or depend on `python`,
 `python3`, `pip`, `pip3`, virtual environments, Python scripts, or
 Python packages. Do not add Python tooling or dependencies to the
 repository. A future Python exception requires explicit user approval
-and a canonical Project Rules revision before any installation, command,
-script, or dependency is introduced.
+and a canonical Project Rules revision first.
 
 The project execution language remains strict TypeScript and Node.js.
 Repository inspection, file creation, edits, transformations, commits,
@@ -1324,7 +1322,7 @@ When the user must act, give one exact next action.
 
 Do not impose time estimates, daily caps, or artificial stopping points.
 Continue the approved sequence until the task passes its evidence gate,
-the user stops, or a real boundary is reached.
+the user stops, or an approval, access, secret, evidence, or runtime boundary is reached.
 
 Do not promise background work or future completion.
 
@@ -1527,8 +1525,7 @@ There is no separate Project Knowledge deliverable.
     V3 repository and Replit execution.
 -   Locked strict TypeScript and Node.js as the project execution path;
     any future Python exception requires explicit user approval and a
-    canonical Project Rules revision before any installation, command,
-    script, or dependency is introduced.
+    canonical Project Rules revision first.
 -   Restricted user-run Replit commands to executables already proven in
     the exact workspace, currently `git`, `node`, `npm`, and demonstrated
     basic non-interactive POSIX shell utilities.
@@ -1594,7 +1591,7 @@ There is no separate Project Knowledge deliverable.
     canonical-change approval, or other explicit authorization boundary
     is reached.
 -   Clarified that the trigger prohibits a third blind patch, not a
-    structurally redesigned implementation after the full reassessment.
+    structurally redesigned implementation after full reassessment.
 -   Prohibited ending with only a failure report when another diagnostic
     or corrective step can be performed with available tools.
 
@@ -1647,7 +1644,7 @@ There is no separate Project Knowledge deliverable.
 -   Added single-source market-key ownership across feature manifests
     and the planned-market catalog.
 -   Added fail-closed feature disable/removal rules and historical
-    rendering independent of active feature code.
+    rendering independent of active features.
 -   Required provider evidence and sanitized fixtures before
     provider-derived contracts.
 -   Added the early terminal-PA and lineup capability gate.
