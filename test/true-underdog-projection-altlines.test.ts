@@ -8,7 +8,10 @@ import {
   type ResearchDisplayMarket,
   type ResearchDisplayRow,
 } from '../src/application/index.js';
-import { BATTER_HHR_MARKET_KEY } from '../src/features/batter-hhr/index.js';
+import {
+  BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
+  BATTER_HHR_MARKET_KEY,
+} from '../src/features/batter-hhr/index.js';
 
 const CAPTURED_AT = '2099-08-24T20:00:00.000Z';
 const GAME_TIME = '2099-08-24T23:00:00.000Z';
@@ -27,6 +30,10 @@ function row(input: Readonly<{
     capturedAt: CAPTURED_AT,
     modelVersion: 'm11-batter-hhr-direct-composite-v2',
     distributionBuilderVersion: 'm11-batter-hhr-negative-binomial-v1',
+    boardSource: 'draftkings',
+    providerBookmakerKey: 'draftkings',
+    providerRegion: 'us',
+    settlementRuleVersion: BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
     providerEventId: 'event-true-altline',
     providerGameId: 8800,
     providerPlayerId: input.playerId,
@@ -129,8 +136,10 @@ test('product Altline requires a numerically different posted projection, not an
   const trueAltline = altline.picks.find((pick) => pick.player === 'True Alt');
   assert.equal(trueBaseline?.postedLine, 1.5);
   assert.equal(trueBaseline?.offerType, 'baseline');
+  assert.equal(trueBaseline?.boardSource, 'draftkings');
   assert.equal(trueAltline?.postedLine, 2.5);
   assert.equal(trueAltline?.offerType, 'alternate');
+  assert.equal(trueAltline?.boardSource, 'draftkings');
 
   assert.equal(baseline.picks.some((pick) => pick.player === 'Unresolved Ladder'), false);
   assert.equal(altline.picks.some((pick) => pick.player === 'Unresolved Ladder'), false);
