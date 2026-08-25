@@ -119,80 +119,106 @@ export function assertBoardSnapshotBeforeClaimedGames(
     throw new Error('boardSnapshotCompletedAt must be ISO time.');
   }
   for (const game of claimedGames) {
-    if (completedMs >= Date.parse(game.commenceTimeUtc)) {
+    const startMs = Date.parse(game.commenceTimeUtc);
+    if (!Number.isFinite(startMs)) {
+      throw new Error(`Invalid claimed game commence time for ${game.eventId}.`);
+    }
+    if (completedMs >= startMs) {
       throw new Error(
-        `Board snapshot completed at or after first pitch for ${game.gameIdentity}.`,
+        `First board snapshot for ${game.eventId} completed at or after first pitch.`,
       );
     }
   }
 }
 
-async function readJson(filePath) {
-  return JSON.parse((await readFile(filePath)).toString('utf8'));
+function safeReadJson(filePath) {
+  return readFile(filePath, 'utf8')
+    .then((text) => JSON.parse(text))
+    .catch((error) => {
+      if (error?.code === 'ENOENT') return null;
+      throw error;
+    });
 }
 
-async function exactWrite(filePath, bytes) {
-  await mkdir(path.dirname(filePath), { recursive: true });
-  try {
-    await writeFile(filePath, bytes, { flag: 'wx' });
-  } catch (error) {
-    if (error?.code !== 'EEXIST') throw error;
-    const existing = await readFile(filePath);
-    if (!existing.equals(bytes)) {
-      throw new Error(`Immutable coverage receipt drift: ${filePath}`);
-    }
-  }
+async function readJson(filePath) {
+  return JSON.parse(await readFile(filePath, 'utf8'));
 }
 
 async function appendOutputs(values) {
-  if (!process.env.GITHUB_OUTPUT) return;
-  const text = `${Object.entries(values)
-    .map(([key, value]) => `${key}=${value ?? ''}`)
-    .join('\n')}\n`;
-  await writeFile(process.env.GITHUB_OUTPUT, text, { flag: 'a' });
+  const outputPath = process.env.GITHUB_OUTPUT;
+  if (!outputPath) return;
+  const lines = Object.entries(values)
+    .filter(([, value]) => value !== undefined && value !== null)
+    .map(([key, value]) => `${key}=${String(value)}`)
+    .join('\n');
+  if (lines.length === 0) return;
+  await writeFile(outputPath, `${lines}\n`, { flag: 'a' });
 }
 
-async function coveredGames(root) {
-  const directory = path.join(
-    root,
-    'capture-controller',
-    'coverage-receipts',
-  );
-  let entries;
-  try {
-    entries = await readdir(directory, { withFileTypes: true });
-  } catch (error) {
-    if (error?.code === 'ENOENT') return [];
-    throw error;
+function coverageIdentity(entry) {
+  if (
+    typeof entry?.eventId !== 'string' ||
+    entry.eventId.length === 0 ||
+    typeof entry?.commenceTimeUtc !== 'string' ||
+    !Number.isFinite(Date.parse(entry.commenceTimeUtc))
+  ) {
+    return null;
   }
+  return `${entry.eventId}@${iso(entry.commenceTimeUtc)}`;
+}
+
+function coverageReceiptPaths(root) {
+  return [
+    path.join(root, 'capture-controller', 'coverage-receipts'),
+    path.join(root, 'capture-controller', 'coverage-receipts-v1'),
+  ];
+}
+
+async function readCoverageReceipts(root) {
+  const receipts = [];
+  for (const directory of coverageReceiptPaths(root)) {
+    let entries;
+    try {
+      entries = await readdir(directory, { withFileTypes: true });
+    } catch (error) {
+      if (error?.code === 'ENOENT') continue;
+      throw error;
+    }
+    for (const entry of entries) {
+      if (!entry.isFile() || !entry.name.endsWith('.json')) continue;
+      const filePath = path.join(directory, entry.name);
+      const receipt = await safeReadJson(filePath);
+      if (receipt === null || !COVERAGE_CONTRACTS.has(receipt.contract)) continue;
+      receipts.push(receipt);
+    }
+  }
+  return receipts;
+}
+
+async function coveredGameIdentities(root) {
+  const receipts = await readCoverageReceipts(root);
   const covered = new Set();
-  for (const entry of entries
-    .filter((item) => item.isFile() && item.name.endsWith('.json'))
-    .sort((a, b) => a.name.localeCompare(b.name))) {
-    const receipt = await readJson(path.join(directory, entry.name));
-    if (!COVERAGE_CONTRACTS.has(receipt.contract)) {
-      throw new Error(`Unknown coverage receipt contract: ${entry.name}`);
+  for (const receipt of receipts) {
+    for (const game of Array.isArray(receipt.coveredGames)
+      ? receipt.coveredGames
+      : []) {
+      const identity = coverageIdentity(game);
+      if (identity !== null) covered.add(identity);
     }
-    if (!Array.isArray(receipt.coveredGames)) {
-      throw new Error(`Coverage receipt has no coveredGames array: ${entry.name}`);
-    }
-    for (const game of receipt.coveredGames) covered.add(game.gameIdentity);
   }
-  return [...covered].sort();
+  return covered;
 }
 
-function scheduleUrl(key) {
+function scheduleUrl(apiKey) {
   const url = new URL(
     'https://api.the-odds-api.com/v4/sports/baseball_mlb/events',
   );
-  url.searchParams.set('apiKey', key);
+  url.searchParams.set('apiKey', apiKey);
   url.searchParams.set('dateFormat', 'iso');
   return url;
 }
 
 export async function planBoardRun({
-  now = () => new Date().toISOString(),
-  fetchImpl = globalThis.fetch,
   root = path.resolve(
     process.env.M10_ARCHIVE_ROOT?.trim() ||
       'artifacts/board-archives/batter-hits',
@@ -201,55 +227,54 @@ export async function planBoardRun({
     process.env.M9_CAPTURE_CONTROLLER_PLAN?.trim() ||
       'artifacts/workflow-logs/m9-capture-controller-plan.json',
   ),
-  key = process.env.THE_ODDS_API_KEY?.trim(),
+  fetchImpl = globalThis.fetch,
+  now = () => new Date().toISOString(),
   output = process.stdout,
-  captureAllPregame = configuredCaptureAllPregame(),
 } = {}) {
-  if (!key) throw new Error('Missing THE_ODDS_API_KEY.');
+  const apiKey = process.env.THE_ODDS_API_KEY?.trim();
+  if (!apiKey) throw new Error('Missing THE_ODDS_API_KEY.');
   const runStartedAt = iso(now());
-  const priorCoverage = await coveredGames(root);
-  const snapshotStartedAt = iso(now());
-  const url = scheduleUrl(key);
-  const response = await fetchImpl(url);
-  const bytes = Buffer.from(await response.clone().arrayBuffer());
-  const scheduleCapturedAt = iso(now());
-  if (!response.ok) {
-    throw new Error(`The Odds API MLB events returned HTTP ${response.status}.`);
+  const url = scheduleUrl(apiKey);
+  const scheduleResponse = await fetchImpl(url);
+  const scheduleBytes = Buffer.from(await scheduleResponse.clone().arrayBuffer());
+  if (!scheduleResponse.ok) {
+    throw new Error(`The Odds API schedule returned HTTP ${scheduleResponse.status}.`);
   }
-  const events = normalizeScheduleEvents(JSON.parse(bytes.toString('utf8')));
+  const rawEvents = JSON.parse(scheduleBytes.toString('utf8'));
+  const events = normalizeScheduleEvents(rawEvents);
+  const covered = await coveredGameIdentities(root);
   const decision = decideBoardRun({
     events,
-    coveredGameIdentities: priorCoverage,
+    coveredGameIdentities: [...covered],
     runStartedAt,
-    captureAllPregame,
+    captureAllPregame: configuredCaptureAllPregame(),
   });
-  await mkdir(path.dirname(planPath), { recursive: true });
-
   if (decision.decision === 'NOOP') {
     const plan = Object.freeze({
       version: 1,
       contract: BOARD_RUN_CONTRACT,
       decision: 'NOOP',
       runStartedAt,
-      scheduleSha256: sha256Bytes(bytes),
-      claimedGames: Object.freeze([]),
+      claimedGames: decision.claimedGames,
       evaluations: decision.evaluations,
     });
+    await mkdir(path.dirname(planPath), { recursive: true });
     await writeFile(planPath, `${JSON.stringify(plan, null, 2)}\n`);
     await appendOutputs({ decision: 'NOOP', plan_path: planPath });
-    output.write(`M9 BOARD RUN CONTROLLER\tNOOP\tproviderEvents=${events.length}\n`);
+    output.write('M9 BOARD RUN CONTROLLER\tNOOP\n');
     return plan;
   }
 
+  const snapshotStartedAt = iso(now());
   const snapshot = await captureFirstBoardSnapshot({
     fetchImpl,
     archiveRoot: root,
     runStartedAt,
     snapshotStartedAt,
     scheduleUrl: url,
-    scheduleResponse: response,
-    scheduleBytes: bytes,
-    scheduleCapturedAt,
+    scheduleResponse,
+    scheduleBytes,
+    scheduleCapturedAt: snapshotStartedAt,
     events,
     claimedGames: decision.claimedGames,
     now,
@@ -258,6 +283,7 @@ export async function planBoardRun({
     snapshot.manifest.boardSnapshotCompletedAt,
     decision.claimedGames,
   );
+  await mkdir(path.dirname(planPath), { recursive: true });
   const plan = Object.freeze({
     version: 1,
     contract: BOARD_RUN_CONTRACT,
@@ -289,7 +315,7 @@ export async function planBoardRun({
 function verifyReplay(receipt, consumer, manifest) {
   if (
     receipt.contract !== REPLAY_CONTRACT ||
-    receipt.version !== 2 ||
+    receipt.version !== 3 ||
     receipt.consumer !== consumer ||
     receipt.complete !== true
   ) {
@@ -508,7 +534,7 @@ export async function finalizeCoverage({
   const manifest = await readJson(plan.snapshotManifestPath);
   if (
     manifest.contract !== SNAPSHOT_CONTRACT ||
-    manifest.version !== 2 ||
+    manifest.version !== 3 ||
     manifest.snapshotSetSha256 !== plan.snapshotSetSha256
   ) {
     throw new Error('Plan/snapshot identity mismatch.');
@@ -538,10 +564,7 @@ export async function finalizeCoverage({
     contract: COVERAGE_CONTRACT,
     snapshotId: manifest.snapshotId,
     snapshotSetSha256: manifest.snapshotSetSha256,
-    runStartedAt: plan.runStartedAt,
-    boardSnapshotCompletedAt: manifest.boardSnapshotCompletedAt,
-    runStartToSnapshotElapsedMs: manifest.runStartToSnapshotElapsedMs,
-    finalizedAt: iso(now()),
+    createdAt: iso(now()),
     coveredGames: Object.freeze(
       plan.claimedGames
         .filter((game) => coveredIds.has(game.eventId))
@@ -552,18 +575,19 @@ export async function finalizeCoverage({
             homeTeamName: game.homeTeamName,
             awayTeamName: game.awayTeamName,
             gameIdentity: game.gameIdentity,
-            captureBand: game.classification,
           }),
         ),
     ),
     deferredGames: coverageDecision.deferredGames,
-    archiveEvidence: Object.freeze({
-      hitsCapturePath: hitsCapture.filePath,
-      hhrCapturePath: hhrCapture.filePath,
-    }),
-    replayEvidence: Object.freeze({
-      hitsReceiptSha256: sha256Bytes(hitsBytes),
-      hhrReceiptSha256: sha256Bytes(hhrBytes),
+    sourceArchives: Object.freeze({
+      batterHits: Object.freeze({
+        filePath: hitsCapture.filePath,
+        captureKey: hitsCapture.value.captureIdentity?.captureKey ?? null,
+      }),
+      batterHhr: Object.freeze({
+        filePath: hhrCapture.filePath,
+        captureKey: hhrCapture.value.captureKey ?? null,
+      }),
     }),
   });
   const receiptPath = path.join(
@@ -572,28 +596,38 @@ export async function finalizeCoverage({
     'coverage-receipts',
     `${manifest.snapshotId}.json`,
   );
-  await exactWrite(
-    receiptPath,
-    Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`, 'utf8'),
-  );
-  await appendOutputs({ coverage_receipt: receiptPath });
+  await mkdir(path.dirname(receiptPath), { recursive: true });
+  await writeFile(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`, {
+    flag: 'wx',
+  });
+  await appendOutputs({
+    coverage_receipt: receiptPath,
+    covered_game_count: receipt.coveredGames.length,
+    deferred_game_count: receipt.deferredGames.length,
+  });
   output.write(
-    `M9 COVERAGE FINALIZED\tcovered=${receipt.coveredGames.length}\tdeferred=${receipt.deferredGames.length}\tsnapshotSetSha256=${manifest.snapshotSetSha256}\n`,
+    `M9 COVERAGE FINALIZED\tcovered=${receipt.coveredGames.length}\tdeferred=${receipt.deferredGames.length}\treceipt=${receiptPath}\n`,
   );
-  return Object.freeze({ receipt, receiptPath });
+  return receipt;
 }
 
 export async function main(args = process.argv.slice(2)) {
-  if (args.length === 1 && args[0] === 'plan') return planBoardRun();
-  if (args.length === 1 && args[0] === 'finalize') return finalizeCoverage();
-  throw new Error(
-    'Usage: node scripts/m9-capture-controller.mjs <plan|finalize>',
-  );
+  const command = args[0] ?? 'plan';
+  if (command === 'plan') {
+    await planBoardRun();
+    return;
+  }
+  if (command === 'finalize') {
+    await finalizeCoverage();
+    return;
+  }
+  throw new Error('Usage: node scripts/m9-capture-controller.mjs [plan|finalize]');
 }
 
+const invokedPath = process.argv[1];
 if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href
+  invokedPath !== undefined &&
+  import.meta.url === pathToFileURL(path.resolve(invokedPath)).href
 ) {
   main().catch((error) => {
     process.stderr.write(
