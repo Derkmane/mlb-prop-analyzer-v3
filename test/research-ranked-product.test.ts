@@ -267,9 +267,10 @@ test('different per-market newest capture timestamps still contribute both marke
 });
 
 test('research board excludes commenced rows and preserves each archived line and side after product classification', async () => {
+  const futureBaseline = row({ market: 'batter-hits', playerId: 90, playerName: 'Future', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.20 });
   const future = row({ market: 'batter-hits', playerId: 90, playerName: 'Future', offerType: 'alternate', side: 'lower', line: 2.5, p: 0.91 });
   const passed = row({ market: 'batter-hits', playerId: 91, playerName: 'Passed', offerType: 'alternate', side: 'higher', line: 0.5, p: 0.99, eventCommenceTime: '2000-01-01T00:00:00.000Z' });
-  const newest = archive('batter-hits', [future, passed]);
+  const newest = archive('batter-hits', [futureBaseline, future, passed]);
   const board = await readResearchProductBoardV2(Object.freeze({
     readLatest: async (market: ResearchDisplayMarket) => market === 'batter-hits' ? newest : null,
   }));
@@ -279,8 +280,8 @@ test('research board excludes commenced rows and preserves each archived line an
 
   assert.equal(displayed.some((pick) => pick.player === 'Passed'), false);
   assert.ok(displayed.some((pick) => pick.player === 'Future'));
-  assert.equal(baseline.picks.some((pick) => pick.player === 'Future'), true);
-  assert.equal(altline.picks.some((pick) => pick.player === 'Future'), false);
+  assert.equal(baseline.picks.some((pick) => pick.player === 'Future'), false);
+  assert.equal(altline.picks.some((pick) => pick.player === 'Future'), true);
   for (const pick of displayed.filter((value) => value.player === 'Future')) {
     assert.equal(pick.postedLine, future.postedLine);
     assert.equal(pick.selectedSide, future.selectedSide);
