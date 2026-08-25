@@ -3,6 +3,7 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { fetchMlbStatsPostedLineup } from '../dist/src/adapters/index.js';
+import { PRODUCTION_REGISTRIES } from '../dist/src/composition/index.js';
 import {
   buildBatterHhrDirectCompositeDistribution,
   normalizeOddsApiBatterHhrCapture,
@@ -21,6 +22,7 @@ import {
 } from './phase2-display-enrichment-utils.mjs';
 import { persistImmutableJson } from './m10-grade-saved-archive-utils.mjs';
 import { buildM10HhrProspectiveArchive } from './m10-hhr-evidence-utils.mjs';
+import { authorizeActiveSourceOfferForResearch } from './active-source-settlement-authorization.mjs';
 import {
   HHR_HIT_CATEGORIES,
   HHR_ON_BASE_CATEGORIES,
@@ -502,23 +504,32 @@ for (const game of resolvedGames) {
     const sourceOffers = normalizeOddsApiBatterHhrCapture(
       hhrCapture(sourceSnapshot, capturedAt, source),
     );
-    if (source.boardSource === 'pick6') {
-      pick6OfferCountBlockedBySettlement += sourceOffers.length;
-      for (const offer of sourceOffers) {
-        exclusions.push(Object.freeze({
-          gameId: game.gameId,
-          providerEventId: game.providerEventId,
-          playerName: offer.playerName,
-          boardSource: 'pick6',
-          providerMarketKey: offer.providerMarketKey,
-          selectedSide: offer.selectedSide,
-          postedLine: offer.line,
-          reason: 'pick6-settlement-rule-temporal-evidence-unavailable',
-        }));
+    for (const offer of sourceOffers) {
+      const authorization = authorizeActiveSourceOfferForResearch({
+        settlementRegistry: PRODUCTION_REGISTRIES.settlementRegistry,
+        offer,
+        evaluatedAt: capturedAt,
+      });
+      if (!authorization.authorized) {
+        if (source.boardSource === 'pick6') {
+          pick6OfferCountBlockedBySettlement += 1;
+        }
+        exclusions.push(
+          Object.freeze({
+            gameId: game.gameId,
+            providerEventId: game.providerEventId,
+            playerName: offer.playerName,
+            boardSource: source.boardSource,
+            providerMarketKey: offer.providerMarketKey,
+            selectedSide: offer.selectedSide,
+            postedLine: offer.line,
+            reason: authorization.reason,
+          }),
+        );
+        continue;
       }
-      continue;
+      rankableOffers.push(offer);
     }
-    rankableOffers.push(...sourceOffers);
   }
   const offers = Object.freeze(rankableOffers);
   offersByEventId.set(game.providerEventId, offers);
@@ -664,7 +675,7 @@ for (const game of resolvedGames) {
   }
 }
 if (resolvedGames.length > 0 && noRankableHhrEventCount === resolvedGames.length) {
-  throw new Error('HHR capture contained no rankable DraftKings offers; Pick6 is not substituted without an authorized settlement rule.');
+  throw new Error('HHR capture contained no rankable active-source offers after settlement and eligibility authorization.');
 }
 
 const lineupStatusCountsBeforeRowGates = Object.freeze({
@@ -830,8 +841,15 @@ for (const game of resolvedGames) {
     };
     const distribution = buildBatterHhrDirectCompositeDistribution(model, input);
     for (const offer of offers.filter((entry) => entry.playerName === playerName)) {
-      if (offer.boardSource !== 'draftkings' || offer.settlementRuleVersion === null) {
-        throw new Error('HHR probability rows require one authorized source-specific settlement rule.');
+      const authorization = authorizeActiveSourceOfferForResearch({
+        settlementRegistry: PRODUCTION_REGISTRIES.settlementRegistry,
+        offer,
+        evaluatedAt: capturedAt,
+      });
+      if (!authorization.authorized) {
+        throw new Error(
+          `HHR probability rows require one authorized source-specific settlement rule: ${authorization.reason}.`,
+        );
       }
       const settlement = settleBatterHhrDistribution(distribution, offer.selectedSide, offer.line);
       const conditionalWin = pWinGivenGrades(settlement);
@@ -892,6 +910,7 @@ for (const game of resolvedGames) {
 rows.sort((left, right) =>
   left.providerGameId - right.providerGameId ||
   left.providerPlayerId - right.providerPlayerId ||
+  left.boardSource.localeCompare(right.boardSource) ||
   left.providerMarketKey.localeCompare(right.providerMarketKey) ||
   left.postedLine - right.postedLine ||
   left.selectedSide.localeCompare(right.selectedSide),
