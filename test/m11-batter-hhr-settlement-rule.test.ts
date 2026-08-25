@@ -8,6 +8,8 @@ import { createProbabilityMassFunction } from '../src/core/index.js';
 import type { BatterHhrDirectCompositeDistribution } from '../src/features/batter-hhr/contracts.js';
 import {
   BATTER_HHR_DISTRIBUTION_BUILDER_VERSION,
+  BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE,
+  BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
   BATTER_HHR_MATHEMATICAL_FAMILY,
   BATTER_HHR_MAXIMUM_EXACT_POSTED_LINE,
   BATTER_HHR_MODEL_VERSION,
@@ -17,23 +19,10 @@ import {
 import { settleBatterHhrDistribution } from '../src/features/batter-hhr/distribution.js';
 import { BATTER_HHR_MARKET_KEY } from '../src/features/batter-hhr/manifest.js';
 
-const RULE_FIXTURE_PATH = path.resolve(
-  'fixtures/sanitized/m11/hhr/settlement/underdog-batter-hhr-settlement-v1.json',
+const DRAFTKINGS_RULE_REFERENCE_PATH = path.resolve(
+  BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE,
 );
-const RULE_FIXTURE = JSON.parse(fs.readFileSync(RULE_FIXTURE_PATH, 'utf8')) as {
-  settlementRuleVersion: string;
-  market: string;
-  officialSettlementStatistic: string;
-  sourcePublishedAt: string;
-  sourcePublicationBoundaryBasis: string;
-  governingRuleContext: { rulesInEffectAtEntryGovern: boolean };
-  sources: readonly { title: string; url: string }[];
-  normalizedRules: {
-    startRequirement: string;
-    laterSubstituteHandling: string;
-    tieHandling: string;
-  };
-};
+const DRAFTKINGS_RULE_REFERENCE = fs.readFileSync(DRAFTKINGS_RULE_REFERENCE_PATH, 'utf8');
 
 const TEST_DISTRIBUTION: BatterHhrDirectCompositeDistribution = Object.freeze({
   modelVersion: BATTER_HHR_MODEL_VERSION,
@@ -48,30 +37,30 @@ const TEST_DISTRIBUTION: BatterHhrDirectCompositeDistribution = Object.freeze({
   productionEnabled: false,
 });
 
-test('HHR settlement registration is versioned to the sanitized official-rule reference', () => {
-  const rule = SETTLEMENT_REGISTRY.rules.find((row) => row.baseMarketKey === BATTER_HHR_MARKET_KEY);
-  assert.ok(rule);
-  assert.equal(rule.version, BATTER_HHR_SETTLEMENT_RULE_VERSION);
-  assert.equal(rule.officialSettlementStatistic, 'hits+runs+rbis');
-  assert.equal(rule.ruleSourceReference, path.relative('.', RULE_FIXTURE_PATH));
-  assert.ok('sourcePublishedAt' in rule);
-  assert.equal(rule.sourcePublishedAt, RULE_FIXTURE.sourcePublishedAt);
-  assert.equal('effectiveDate' in rule, false);
-  assert.equal(RULE_FIXTURE.settlementRuleVersion, BATTER_HHR_SETTLEMENT_RULE_VERSION);
-  assert.equal(RULE_FIXTURE.market, 'batter-hhr');
-  assert.equal(RULE_FIXTURE.officialSettlementStatistic, 'hits+runs+rbis');
-  assert.equal(RULE_FIXTURE.governingRuleContext.rulesInEffectAtEntryGovern, true);
-  assert.match(
-    RULE_FIXTURE.sourcePublicationBoundaryBasis,
-    /^Verified rule-version publication boundary per CANONICAL_MATH_SPEC\.md §12\.1\(b\): latest publication date among the official Underdog rule sources used by this rule bundle\. This is not an operator-designated effective date\.$/u,
+test('HHR active settlement registration is DraftKings-bound while historical Underdog remains isolated', () => {
+  const activeRule = SETTLEMENT_REGISTRY.rules.find(
+    (row) => row.baseMarketKey === BATTER_HHR_MARKET_KEY && row.boardSource === 'draftkings',
   );
-  assert.ok(RULE_FIXTURE.sources.length >= 5);
-  for (const source of RULE_FIXTURE.sources) {
-    assert.match(source.url, /^https:\/\/(help\.underdogsports\.com|legal\.underdogsports\.com)\//u);
-  }
-  assert.match(RULE_FIXTURE.normalizedRules.startRequirement, /official starting lineup/u);
-  assert.match(RULE_FIXTURE.normalizedRules.laterSubstituteHandling, /void/u);
-  assert.match(RULE_FIXTURE.normalizedRules.tieHandling, /void/u);
+  assert.ok(activeRule);
+  assert.equal(activeRule.version, BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION);
+  assert.equal(activeRule.officialSettlementStatistic, 'hits+runs+rbis');
+  assert.equal(activeRule.ruleSourceReference, BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE);
+  assert.ok('sourcePublishedAt' in activeRule);
+  assert.equal(activeRule.sourcePublishedAt, '2025-08-26');
+  assert.equal('effectiveDate' in activeRule, false);
+  assert.match(DRAFTKINGS_RULE_REFERENCE, /As of August 26, 2025/u);
+  assert.match(
+    DRAFTKINGS_RULE_REFERENCE,
+    /https:\/\/sportsbook\.draftkings\.com\/help\/sport-rules\/baseball/u,
+  );
+
+  const historicalRule = SETTLEMENT_REGISTRY.rules.find(
+    (row) => row.baseMarketKey === BATTER_HHR_MARKET_KEY && row.boardSource === null,
+  );
+  assert.ok(historicalRule);
+  assert.equal(historicalRule.version, BATTER_HHR_SETTLEMENT_RULE_VERSION);
+  assert.equal(historicalRule.officialSettlementStatistic, 'hits+runs+rbis');
+  assert.match(historicalRule.ruleSourceReference, /underdog-batter-hhr-settlement-v1\.json$/u);
 });
 
 test('HHR nonstarter eligibility is a full void and cannot become a Higher or Lower win', () => {
