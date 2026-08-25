@@ -38,6 +38,7 @@ const authorizedFeature: FeatureRegistration = Object.freeze({
 
 const authorizedSettlementRule: SettlementRuleRegistration = Object.freeze({
   version: SETTLEMENT_RULE_VERSION,
+  boardSource: 'draftkings',
   baseMarketKey: BATTER_HITS_MARKET_KEY,
   officialSettlementStatistic: 'hits',
   startRequirement: 'synthetic focused-test start requirement',
@@ -138,11 +139,7 @@ function rankedIds(candidates: readonly TestCandidate[]): readonly string[] {
 test('order depends only on final P(Win | grades), then P(Void)', () => {
   const lowerFinal = candidate('lower-final', 0.61, 0.01, neutralDiagnostics);
   const higherFinal = candidate('higher-final', 0.64, 0.2, neutralDiagnostics);
-
-  assert.deepEqual(rankedIds([lowerFinal, higherFinal]), [
-    'player-higher-final',
-    'player-lower-final',
-  ]);
+  assert.deepEqual(rankedIds([lowerFinal, higherFinal]), ['player-higher-final', 'player-lower-final']);
 });
 
 test('a candidate with higher p_base but lower p_final ranks below', () => {
@@ -156,11 +153,7 @@ test('a candidate with higher p_base but lower p_final ranks below', () => {
     pBase: 0.4,
     contextProbabilityDelta: 0.26,
   });
-
-  assert.deepEqual(rankedIds([highBase, highFinal]), [
-    'player-high-final',
-    'player-high-base',
-  ]);
+  assert.deepEqual(rankedIds([highBase, highFinal]), ['player-high-final', 'player-high-base']);
 });
 
 test('a higher multiplier or better price cannot improve rank', () => {
@@ -174,11 +167,7 @@ test('a higher multiplier or better price cannot improve rank', () => {
     price: 0.1,
     multiplier: 0.1,
   });
-
-  assert.deepEqual(rankedIds([expensiveLowerFinal, plainHigherFinal]), [
-    'player-probability',
-    'player-economics',
-  ]);
+  assert.deepEqual(rankedIds([expensiveLowerFinal, plainHigherFinal]), ['player-probability', 'player-economics']);
 });
 
 test('identical p_final ties break only on P(Void)', () => {
@@ -192,31 +181,18 @@ test('identical p_final ties break only on P(Void)', () => {
     pBase: 0.01,
     multiplier: 0.1,
   });
-
-  assert.deepEqual(rankedIds([moreVoid, lessVoid]), [
-    'player-less-void',
-    'player-more-void',
-  ]);
+  assert.deepEqual(rankedIds([moreVoid, lessVoid]), ['player-less-void', 'player-more-void']);
 });
 
 test('a candidate with no validated distribution cannot enter ranking', () => {
   const result = rankPredictionCandidates({
     candidates: [candidate('unvalidated', 0.7, 0.01, neutralDiagnostics)],
-    registries: registries(
-      Object.freeze({
-        ...authorizedMarket,
-        distributionBuilderValidated: false,
-      }),
-    ),
+    registries: registries(Object.freeze({ ...authorizedMarket, distributionBuilderValidated: false })),
   });
-
   assert.deepEqual(result.rankedCandidates, []);
   assert.equal(result.excludedCandidates.length, 1);
   assert.equal(result.excludedCandidates[0]?.reason, 'MARKET_NOT_AUTHORIZED');
-  assert.equal(
-    result.excludedCandidates[0]?.authorizationCode,
-    'DISTRIBUTION_BUILDER_NOT_VALIDATED',
-  );
+  assert.equal(result.excludedCandidates[0]?.authorizationCode, 'DISTRIBUTION_BUILDER_NOT_VALIDATED');
 });
 
 test('a disabled or not-yet-production-enabled market cannot rank', () => {
@@ -226,21 +202,12 @@ test('a disabled or not-yet-production-enabled market cannot rank', () => {
   });
   const validationMarketResult = rankPredictionCandidates({
     candidates: [candidate('validation', 0.7, 0.01, neutralDiagnostics)],
-    registries: registries(
-      Object.freeze({ ...authorizedMarket, status: 'validation' }),
-    ),
+    registries: registries(Object.freeze({ ...authorizedMarket, status: 'validation' })),
   });
-
   assert.deepEqual(currentProductionResult.rankedCandidates, []);
-  assert.equal(
-    currentProductionResult.excludedCandidates[0]?.authorizationCode,
-    'MARKET_NOT_PRODUCTION_ENABLED',
-  );
+  assert.equal(currentProductionResult.excludedCandidates[0]?.authorizationCode, 'MARKET_NOT_PRODUCTION_ENABLED');
   assert.deepEqual(validationMarketResult.rankedCandidates, []);
-  assert.equal(
-    validationMarketResult.excludedCandidates[0]?.authorizationCode,
-    'MARKET_NOT_PRODUCTION_ENABLED',
-  );
+  assert.equal(validationMarketResult.excludedCandidates[0]?.authorizationCode, 'MARKET_NOT_PRODUCTION_ENABLED');
 });
 
 test('a null pWinGivenGrades is excluded before sorting', () => {
@@ -250,15 +217,8 @@ test('a null pWinGivenGrades is excluded before sorting', () => {
     candidates: [fullyVoid, rankable],
     registries: registries(),
   });
-
-  assert.deepEqual(
-    result.rankedCandidates.map((entry) => entry.playerId),
-    ['player-rankable'],
-  );
-  assert.equal(
-    result.excludedCandidates[0]?.reason,
-    'WIN_PROBABILITY_GIVEN_GRADES_UNAVAILABLE',
-  );
+  assert.deepEqual(result.rankedCandidates.map((entry) => entry.playerId), ['player-rankable']);
+  assert.equal(result.excludedCandidates[0]?.reason, 'WIN_PROBABILITY_GIVEN_GRADES_UNAVAILABLE');
 });
 
 test('identical inputs produce deterministic stable order for exact ties', () => {
@@ -272,20 +232,9 @@ test('identical inputs produce deterministic stable order for exact ties', () =>
     discoveryLabel: 'ignored',
   });
   const input = Object.freeze([second, first]);
-
-  const firstRun = rankPredictionCandidates({
-    candidates: input,
-    registries: registries(),
-  });
-  const secondRun = rankPredictionCandidates({
-    candidates: input,
-    registries: registries(),
-  });
-
-  assert.deepEqual(
-    firstRun.rankedCandidates.map((entry) => entry.playerId),
-    ['player-second', 'player-first'],
-  );
+  const firstRun = rankPredictionCandidates({ candidates: input, registries: registries() });
+  const secondRun = rankPredictionCandidates({ candidates: input, registries: registries() });
+  assert.deepEqual(firstRun.rankedCandidates.map((entry) => entry.playerId), ['player-second', 'player-first']);
   assert.deepEqual(firstRun, secondRun);
   assert.ok(Object.isFrozen(firstRun.rankedCandidates));
   assert.ok(Object.isFrozen(firstRun.excludedCandidates));
