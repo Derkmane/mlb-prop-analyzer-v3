@@ -1,8 +1,8 @@
 import {
   BATTER_HHR_ALTERNATE_PROVIDER_MARKET_KEY,
   BATTER_HHR_BASELINE_PROVIDER_MARKET_KEY,
-} from '../features/batter-hhr/manifest.js';
-import { BATTER_HITS_PROVIDER_MARKET_KEYS } from '../features/batter-hits/normalized-board-offer.js';
+} from '../features/batter-hhr/index.js';
+import { BATTER_HITS_PROVIDER_MARKET_KEYS } from '../features/batter-hits/index.js';
 
 export type ProjectionLineOfferType = 'baseline' | 'alternate';
 
