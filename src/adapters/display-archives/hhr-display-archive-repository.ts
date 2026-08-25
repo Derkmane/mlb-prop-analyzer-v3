@@ -75,6 +75,10 @@ const analysisContext = z.strictObject({
 });
 const row = z.strictObject({
   rank: z.number().int().positive(),
+  boardSource: z.enum(['pick6', 'draftkings']).nullable().optional(),
+  providerBookmakerKey: z.enum(['pick6', 'draftkings', 'underdog']).optional(),
+  providerRegion: z.enum(['us', 'us_dfs']).optional(),
+  settlementRuleVersion: z.string().min(1).nullable().optional(),
   providerEventId: z.string().min(1),
   providerGameId: nonnegativeInteger,
   providerPlayerId: nonnegativeInteger,
@@ -140,6 +144,35 @@ function capturedAtIdentity(capturedAt: string): string {
   return capturedAt.replaceAll('-', '').replaceAll(':', '').replace('.', '');
 }
 
+function assertSourceIdentity(candidate: z.infer<typeof row>, filename: string): void {
+  const sourceFields = [
+    candidate.boardSource,
+    candidate.providerBookmakerKey,
+    candidate.providerRegion,
+    candidate.settlementRuleVersion,
+  ];
+  const supplied = sourceFields.filter((value) => value !== undefined).length;
+  if (supplied === 0) return; // Historical pre-source-switch display evidence.
+  if (supplied !== sourceFields.length) {
+    throw new Error(`Incomplete HHR display source identity: ${filename}`);
+  }
+  if (candidate.boardSource === null) {
+    if (candidate.providerBookmakerKey !== 'underdog' || candidate.providerRegion !== 'us_dfs') {
+      throw new Error(`Invalid historical HHR display source identity: ${filename}`);
+    }
+    return;
+  }
+  if (candidate.boardSource === 'draftkings') {
+    if (candidate.providerBookmakerKey !== 'draftkings' || candidate.providerRegion !== 'us') {
+      throw new Error(`Invalid DraftKings HHR display source identity: ${filename}`);
+    }
+    return;
+  }
+  if (candidate.providerBookmakerKey !== 'pick6' || candidate.providerRegion !== 'us_dfs') {
+    throw new Error(`Invalid Pick6 HHR display source identity: ${filename}`);
+  }
+}
+
 function parseArchive(bytes: string, filename: string): HhrDisplayArchive | null {
   let input: unknown;
   try {
@@ -160,6 +193,7 @@ function parseArchive(bytes: string, filename: string): HhrDisplayArchive | null
   }
   const ranks = new Set<number>();
   for (const candidate of value.rows) {
+    assertSourceIdentity(candidate, filename);
     if (ranks.has(candidate.rank)) throw new Error(`Ambiguous HHR persisted rank: ${candidate.rank}`);
     ranks.add(candidate.rank);
   }
