@@ -24,9 +24,9 @@ jobs:
           package-manager-cache: false
       - name: Capture and sanitize verified live ladder evidence
         run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const crypto = require('node:crypto');
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import crypto from 'node:crypto';
           const key = process.env.THE_ODDS_API_KEY;
           if (!key) throw new Error('THE_ODDS_API_KEY is unavailable.');
           const targetMarkets = [
