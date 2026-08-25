@@ -1,6 +1,6 @@
 # MLB Prop Analyzer — Canonical Math & Statistics Reference
 
-**Version:** 1.15
+**Version:** 1.16
 **Status:** Canonical probability mathematics
 **Empirical status:** Mathematical framework verified where marked; predictive accuracy not yet validated
 
@@ -933,6 +933,21 @@ Required invariants:
    Without that evidence, every supported offer must receive the full
    model or pass only through a broad high-recall discovery screen.
 
+#### Active explicit-ladder board rule — Version 1.16
+
+The active Pick6 and DraftKings ladder-board path does not use a
+`lineSoftness`, `softnessMargin`, fair-line-distance, or other discovery
+quantity for category admission or ranking. Every captured supported rung is
+evaluated directly at its exact posted side and line from the applicable final
+statistic distribution. No rung may be excluded because it is near or far from
+a modeled fair line.
+
+The two-stage discovery mathematics above remains valid only for a separately
+approved prediction path that explicitly uses such a discovery stage. It is
+inactive for the current explicit-ladder board. Price, multiplier, payout, and
+implied probability are display/evidence fields only and never replace or
+modify `P(Win | grades)` ranking.
+
 ---
 
 ### 11.2 Context-factor composition order
@@ -1037,6 +1052,21 @@ Every supported baseline and alternate market must map to one base market defini
 
 Baseline and alternate offers for the same statistic use the same official-statistic distribution. The posted line and selected side change settlement; they do not create a different baseball model.
 
+For the active The Odds API ladder board, every normalized offer also carries
+a required source identity of `pick6` or `draftkings`. Provider `offerType` is
+normalized from the exact market key only: the base market key is `baseline`
+and its `_alternate` key is `alternate`. Product Baseline/Altline-category
+identity remains a same-source numerical-rung decision: a product alternate
+must be numerically different from the uniquely verified baseline rung from
+the same source, player, game, base market, and settlement statistic.
+
+Missing source rungs and missing sides are explicit absences and may not be
+mirrored, synthesized, null-coalesced, or borrowed from the other source.
+American price, Pick6 multiplier, payout, and normalized implied probability
+may be preserved for display/evidence only; none is a ranking quantity.
+DraftKings Sportsbook and Pick6 require their own verified settlement and
+eligibility contracts before their offers may enter real research ranking.
+
 The initial V3 planned market catalog is:
 
 | Base market | Mathematical family | Initial status |
@@ -1090,6 +1120,8 @@ A Higher pick may rank first because the modeled distribution is pushed upward r
 Do not use:
 
 - multipliers
+- price or implied probability
+- payout or multiplier-derived value
 - hidden scores
 - booster totals outside the probability model
 - secondary probability grades
@@ -1224,7 +1256,7 @@ Freeze and version that model before reading the untouched test period.
 
 The untouched test is evaluated once as a final report. Its results may determine whether the frozen model passes the production-validation gate, but they may not select another candidate, modify the candidate set, alter the selection rule, or trigger hyperparameter retuning within the same model version.
 
-Current-season box scores can validate the baseball distribution but cannot reconstruct the exact earlier Underdog board. Archive raw Underdog boards prospectively throughout the current season.
+Current-season box scores can validate the baseball distribution but cannot reconstruct the exact earlier approved board. Archive raw Pick6 and DraftKings board snapshots prospectively throughout the current season.
 
 Still requiring explicit definition:
 
@@ -1497,8 +1529,8 @@ P(T>=1)=1-P(T=0), so the fitted PMF mechanically
 overstates that tail by 0.0293 before any later calibration.
 
 Dispersion respecification was tested and rejected as the
-active correction. Under the tested NB1 alternative, the
-P(T>=1) tail gap changed only from +0.0293 under NB2 to
+active correction. A controlled NB1 fit on the same rows
+and predictors changed the P(T>=1) tail gap only from +0.0293 under NB2 to
 +0.0267 under NB1. Changing the variance law did not remove
 the low-count error.
 
@@ -2024,7 +2056,7 @@ Required verification items:
     marginal convolution of separate Hits, Runs, and RBI
     distributions.
 31. Walk markets verify whether intentional walks are included and require a game-state component when they are.
-32. Every market-specific eligibility event `A` is linked to a versioned settlement rule.
+32. Every market-specific eligibility event `A` is linked to a versioned settlement rule for the exact offer source.
 33. Baseline and alternate offers for the same base market use the same statistic distribution and differ only by posted offer attributes and settlement.
 34. Planned markets and any market lacking a fitted, frozen or otherwise
     explicitly versioned current-season research distribution, a versioned
@@ -2034,8 +2066,9 @@ Required verification items:
     explicitly labeled Section 18 research-ranking path; it may not appear as
     production-calibrated output or be described as production-valid.
 35. Production engine modules cannot import audit, deprecated, prior-season, or unapproved fallback models.
-36. Base soft-line probability is produced by exact settlement of the
-    versioned base distribution for the exact posted side and line.
+36. Every supported active ladder rung is evaluated at its exact posted side and
+    line from the applicable final statistic distribution; active ladder-board
+    ranking computes no `lineSoftness` or softness margin.
 37. Final context probability is produced by recomputing and exactly
     settling the versioned final distribution; no direct probability
     increment or decrement is allowed.
@@ -2043,11 +2076,12 @@ Required verification items:
     distributional shift helps one side while hurting the opposite side
     under exact settlement.
 39. Final category ordering uses final `P(Win | grades)`, then `P(Void)`;
-    base probability, softness margin, context delta, multiplier, and
-    discovery labels cannot alter the order.
-40. Any hard discovery cutoff demonstrates the approved current-season
-    recall standard against full-model final probabilities before it may
-    exclude offers from complete context evaluation.
+    price, implied probability, multiplier, payout, context delta, and provider
+    offer labels cannot alter the order.
+40. Any future hard discovery cutoff must demonstrate the approved
+    current-season recall standard against full-model final probabilities
+    before it may exclude offers from complete context evaluation. The active
+    explicit-ladder board has no such cutoff.
 41. Projected-lineup diagnostics cannot change model probabilities,
     eligibility, void, confidence, category access, or ranking solely
     because lineup status is projected.
@@ -2248,7 +2282,8 @@ satisfied:
 - the distribution is deterministic and exact analytic under its declared
   runtime model; random runtime simulation is prohibited
 - a versioned market-specific settlement rule and eligibility event `A` are
-  available with verified temporal applicability under Section 12.1
+  available for the exact offer source with verified temporal applicability
+  under Section 12.1
 - the exact posted selected side and line are settled through the generic
   Higher/Lower settlement mathematics in Section 11
 - `P(Win)`, `P(Loss)`, `P(Void)`, and `P(Win | grades)` are preserved with
@@ -2298,8 +2333,9 @@ probability may be described as calibrated or production-valid:
 
 ### Shared and hitter components
 
-- side-aware soft-line discovery rule, threshold or predicate, version,
-  and current-season recall validation
+- any future hard discovery prefilter, if introduced, including its versioned
+  rule and current-season recall validation; no active ladder-board
+  `lineSoftness` requirement exists
 - base-versus-final distribution contract and context probability-delta
   reporting
 - within-current-season recency weighting by outcome
@@ -2428,11 +2464,13 @@ E_pool = n p_bar
 V_pool = n p_bar(1-p_bar)
 Z_pool = (observedWins-E_pool) / sqrt(V_pool)
 
-Two-stage soft-line path:
-p_base(d,L)  = exact selected-side settlement of D_base
-p_final(d,L) = exact selected-side settlement of D_final
-softnessMargin = p_base(d,L) - tau_soft
-contextProbabilityDelta = p_final(d,L) - p_base(d,L)
+Active explicit-ladder path:
+p_final(d,L) = exact selected-side settlement of D_final at every captured rung
+no lineSoftness or softnessMargin in active board admission or ranking
+source = pick6 | draftkings
+provider offerType = base key => baseline; _alternate key => alternate
+product altline = posted rung differs from unique same-source baseline rung
+price, multiplier, payout, implied probability = display/evidence only
 rank by p_final(d,L), then P(Void)
 
 Side direction:
@@ -2473,7 +2511,7 @@ Neither family may be constructed by convolving independent
 Hits, Runs, and RBI marginals.
 
 Research fail closed:
-no fitted/versioned eligible research distribution + settlement
+no fitted/versioned eligible research distribution + source-specific settlement
 → no research-ranked prop
 
 Production claim fail closed:
@@ -2484,6 +2522,27 @@ no complete production validation/calibration
 ---
 
 ## Changelog
+
+### Version 1.16 — 2026-08-24
+
+- Replaced the active board's soft-line-discovery/`lineSoftness` concept with
+  direct exact settlement of every captured supported Pick6 or DraftKings
+  ladder rung from the applicable final statistic distribution.
+- Recorded the two-source The Odds API ladder contract: required source identity
+  `pick6` or `draftkings`, provider `offerType` derived from the exact base versus
+  `_alternate` market key, and product Altline identity determined by a
+  numerically different rung from the unique same-source baseline.
+- Required missing rungs and missing sides to remain absent rather than being
+  synthesized or borrowed across sources.
+- Kept American price, multiplier, payout, and normalized implied probability as
+  display/evidence only and explicitly preserved ranking by final
+  `P(Win | grades)` descending then `P(Void)` ascending.
+- Required source-specific settlement and eligibility contracts before Pick6 or
+  DraftKings Sportsbook offers may enter real research ranking.
+- Preserved all model families, settlement formulas, side-direction invariants,
+  current-season-only fitting rules, calibration gates, HHR failure evidence,
+  and production-enable states. Total Bases remains planned and cannot rank
+  merely because its ladder is captured.
 
 ### Version 1.15 — 2026-08-18
 
