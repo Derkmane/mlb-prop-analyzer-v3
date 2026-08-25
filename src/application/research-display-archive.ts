@@ -1,3 +1,4 @@
+import type { BoardSource } from '../domain/board-source.js';
 import { BATTER_HHR_MARKET_KEY } from '../features/batter-hhr/manifest.js';
 import { BATTER_HITS_MARKET_KEY } from '../features/batter-hits/manifest.js';
 
@@ -11,6 +12,8 @@ export const RESEARCH_DISPLAY_MARKETS = Object.freeze([
 export type ResearchDisplayMarket = (typeof RESEARCH_DISPLAY_MARKETS)[number];
 export type ResearchOfferType = 'baseline' | 'alternate';
 export type ResearchSelectedSide = 'higher' | 'lower';
+export type ResearchDisplayBookmakerKey = 'pick6' | 'draftkings' | 'underdog';
+export type ResearchDisplayProviderRegion = 'us_dfs' | 'us';
 
 export interface ResearchAnalysisContext {
   readonly expectedPlateAppearances: number | null;
@@ -27,6 +30,10 @@ export interface ResearchDisplayRow {
   readonly capturedAt: string;
   readonly modelVersion: string;
   readonly distributionBuilderVersion: string;
+  readonly boardSource: BoardSource;
+  readonly providerBookmakerKey: ResearchDisplayBookmakerKey;
+  readonly providerRegion: ResearchDisplayProviderRegion;
+  readonly settlementRuleVersion: string | null;
   readonly providerEventId: string;
   readonly providerGameId: number;
   readonly providerPlayerId: number;

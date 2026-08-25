@@ -1,5 +1,9 @@
+import type { BoardSource } from './board-source.js';
+
 export type SettlementRuleRegistration = {
   readonly version: string;
+  /** Active sources are pick6/draftkings; null is reserved for explicit historical-only rule registrations. */
+  readonly boardSource: BoardSource;
   readonly baseMarketKey: string;
   readonly officialSettlementStatistic: string;
   readonly startRequirement: string;

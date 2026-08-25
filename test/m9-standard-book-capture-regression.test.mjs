@@ -16,34 +16,42 @@ const EVENT = Object.freeze({
   awayTeamName: 'Away Team',
 });
 
-function underdogSnapshot() {
+function sourceSnapshot(source) {
+  const isPick6 = source === 'pick6';
   return Object.freeze({
     capturedAt: CAPTURED_AT,
-    rawBody: Object.freeze({ sha256: 'a'.repeat(64) }),
+    rawBody: Object.freeze({
+      sha256: (isPick6 ? 'a' : 'b').repeat(64),
+    }),
     parsedBody: Object.freeze({
       id: EVENT.eventId,
-      bookmakers: Object.freeze([
-        Object.freeze({
-          key: 'underdog',
-          markets: Object.freeze([
+      commence_time: EVENT.commenceTimeUtc,
+      home_team: EVENT.homeTeamName,
+      away_team: EVENT.awayTeamName,
+      bookmakers: isPick6
+        ? Object.freeze([])
+        : Object.freeze([
             Object.freeze({
-              key: 'batter_hits',
-              outcomes: Object.freeze([
+              key: 'draftkings',
+              markets: Object.freeze([
                 Object.freeze({
-                  description: 'Regression Player',
-                  name: 'Higher',
-                  point: 0.5,
-                }),
-                Object.freeze({
-                  description: 'Regression Player',
-                  name: 'Lower',
-                  point: 0.5,
+                  key: 'batter_hits',
+                  outcomes: Object.freeze([
+                    Object.freeze({
+                      description: 'Regression Player',
+                      name: 'Over',
+                      point: 0.5,
+                    }),
+                    Object.freeze({
+                      description: 'Regression Player',
+                      name: 'Under',
+                      point: 0.5,
+                    }),
+                  ]),
                 }),
               ]),
             }),
           ]),
-        }),
-      ]),
     }),
   });
 }
@@ -69,7 +77,7 @@ function scheduleFixture() {
   return { scheduleUrl, scheduleBytes, scheduleResponse };
 }
 
-test('missing standard-book replay keeps Underdog raw offers and does not exclude the event', async () => {
+test('active Hits capture preserves Pick6 absence and DraftKings offers without fallback', async () => {
   const providerSnapshots = [];
   const funnel = createM9ArchiveFunnel({
     captureTimestamp: CAPTURED_AT,
@@ -83,27 +91,46 @@ test('missing standard-book replay keeps Underdog raw offers and does not exclud
     funnel,
     fetchOdds: async (request) => {
       calls.push(request.url);
-      if (request.url.searchParams.get('bookmakers') === 'underdog') {
-        return underdogSnapshot();
-      }
-      throw new Error(
-        `First snapshot has no hits replay entry for hits-standard:${EVENT.eventId}.`,
-      );
+      const bookmaker = request.url.searchParams.get('bookmakers');
+      if (bookmaker === 'pick6') return sourceSnapshot('pick6');
+      if (bookmaker === 'draftkings') return sourceSnapshot('draftkings');
+      throw new Error(`unexpected bookmaker ${String(bookmaker)}`);
     },
   });
 
   assert.equal(result.status, 'ready');
   assert.equal(result.exclusion, null);
   assert.equal(result.rawOffers.count, 2);
-  assert.equal(result.baselineEvidence.baselineReason, 'STANDARD_BOOK_UNAVAILABLE');
-  assert.equal(result.standardBookBaselineLinesByPlayer, undefined);
-  assert.equal(providerSnapshots.length, 1);
+  assert.equal(result.sources.length, 2);
+  assert.deepEqual(
+    result.sources.map((entry) => [entry.boardSource, entry.rawOffers.count]),
+    [
+      ['pick6', 0],
+      ['draftkings', 2],
+    ],
+  );
+  assert.equal(providerSnapshots.length, 2);
   assert.equal(calls.length, 2);
 
-  const standardUrl = calls[1];
-  assert.equal(standardUrl.searchParams.get('regions'), 'us');
-  assert.equal(standardUrl.searchParams.get('markets'), 'batter_hits');
-  assert.equal(standardUrl.searchParams.has('bookmakers'), false);
+  const pick6Url = calls.find(
+    (url) => url.searchParams.get('bookmakers') === 'pick6',
+  );
+  const draftkingsUrl = calls.find(
+    (url) => url.searchParams.get('bookmakers') === 'draftkings',
+  );
+  assert.ok(pick6Url);
+  assert.ok(draftkingsUrl);
+  assert.equal(pick6Url.searchParams.get('regions'), 'us_dfs');
+  assert.equal(draftkingsUrl.searchParams.get('regions'), 'us');
+  for (const url of calls) {
+    assert.equal(
+      url.searchParams.get('markets'),
+      'batter_hits,batter_hits_alternate',
+    );
+    assert.equal(url.searchParams.get('includeMultipliers'), 'true');
+    assert.equal(url.searchParams.get('includeSids'), 'true');
+    assert.notEqual(url.searchParams.get('bookmakers'), 'underdog');
+  }
 
   const rawOffers = funnel
     .snapshot()
@@ -113,9 +140,9 @@ test('missing standard-book replay keeps Underdog raw offers and does not exclud
   assert.equal(rawOffers.dropped, 0);
 });
 
-test('first immutable board snapshot prefetches the exact standard-book Batter Hits request', async () => {
+test('first immutable board snapshot prefetches exact Pick6 and DraftKings Hits and HHR requests', async () => {
   const archiveRoot = await mkdtemp(
-    path.join(tmpdir(), 'm9-standard-book-snapshot-'),
+    path.join(tmpdir(), 'm9-active-source-snapshot-'),
   );
   try {
     const { scheduleUrl, scheduleBytes, scheduleResponse } = scheduleFixture();
@@ -138,75 +165,69 @@ test('first immutable board snapshot prefetches the exact standard-book Batter H
       now: () => CAPTURED_AT,
     });
 
-    const standardEntry = manifest.requests.find(
-      (entry) => entry.requestKey === `hits-standard:${EVENT.eventId}`,
+    assert.deepEqual(
+      manifest.requests.map((entry) => entry.requestKey).sort(),
+      [
+        'events',
+        `hits:pick6:${EVENT.eventId}`,
+        `hits:draftkings:${EVENT.eventId}`,
+        `hhr:pick6:${EVENT.eventId}`,
+        `hhr:draftkings:${EVENT.eventId}`,
+      ].sort(),
     );
-    assert.ok(standardEntry);
-    assert.deepEqual(standardEntry.request.query, {
-      regions: 'us',
-      markets: 'batter_hits',
-      dateFormat: 'iso',
-      oddsFormat: 'american',
-    });
     assert.equal(manifest.auxiliaryFailures.length, 0);
-    assert.equal(calls.length, 3);
+    assert.equal(calls.length, 4);
+
+    const expected = new Map([
+      ['hits:pick6', { regions: 'us_dfs', bookmakers: 'pick6', markets: 'batter_hits,batter_hits_alternate' }],
+      ['hits:draftkings', { regions: 'us', bookmakers: 'draftkings', markets: 'batter_hits,batter_hits_alternate' }],
+      ['hhr:pick6', { regions: 'us_dfs', bookmakers: 'pick6', markets: 'batter_hits_runs_rbis,batter_hits_runs_rbis_alternate' }],
+      ['hhr:draftkings', { regions: 'us', bookmakers: 'draftkings', markets: 'batter_hits_runs_rbis,batter_hits_runs_rbis_alternate' }],
+    ]);
+    for (const [key, contract] of expected) {
+      const [consumer, source] = key.split(':');
+      const entry = manifest.requests.find(
+        (row) => row.requestKey === `${consumer}:${source}:${EVENT.eventId}`,
+      );
+      assert.ok(entry);
+      assert.equal(entry.request.query.regions, contract.regions);
+      assert.equal(entry.request.query.bookmakers, contract.bookmakers);
+      assert.equal(entry.request.query.markets, contract.markets);
+      assert.equal(entry.request.query.includeMultipliers, 'true');
+      assert.equal(entry.request.query.includeSids, 'true');
+    }
   } finally {
     await rm(archiveRoot, { recursive: true, force: true });
   }
 });
 
-test('transport failure of the standard-book prefetch is frozen as auxiliary absence without aborting the snapshot', async () => {
+test('active source transport failure aborts the first snapshot instead of substituting another source', async () => {
   const archiveRoot = await mkdtemp(
-    path.join(tmpdir(), 'm9-standard-book-absence-'),
+    path.join(tmpdir(), 'm9-active-source-failure-'),
   );
   try {
     const { scheduleUrl, scheduleBytes, scheduleResponse } = scheduleFixture();
-    const { manifest } = await captureFirstBoardSnapshot({
-      fetchImpl: async (input) => {
-        const url = input instanceof URL ? input : new URL(String(input));
-        if (url.searchParams.get('regions') === 'us') {
-          throw new Error('simulated standard-book transport failure');
-        }
-        return response();
-      },
-      archiveRoot,
-      runStartedAt: '2026-08-21T18:29:50.000Z',
-      snapshotStartedAt: '2026-08-21T18:29:55.000Z',
-      scheduleUrl,
-      scheduleResponse,
-      scheduleBytes,
-      scheduleCapturedAt: '2026-08-21T18:29:56.000Z',
-      events: [EVENT],
-      claimedGames: [EVENT],
-      now: () => CAPTURED_AT,
-    });
-
-    assert.equal(
-      manifest.requests.some(
-        (entry) => entry.requestKey === `hits:${EVENT.eventId}`,
-      ),
-      true,
-    );
-    assert.equal(
-      manifest.requests.some(
-        (entry) => entry.requestKey === `hhr:${EVENT.eventId}`,
-      ),
-      true,
-    );
-    assert.equal(
-      manifest.requests.some(
-        (entry) => entry.requestKey === `hits-standard:${EVENT.eventId}`,
-      ),
-      false,
-    );
-    assert.equal(manifest.auxiliaryFailures.length, 1);
-    assert.equal(
-      manifest.auxiliaryFailures[0].requestKey,
-      `hits-standard:${EVENT.eventId}`,
-    );
-    assert.match(
-      manifest.auxiliaryFailures[0].reason,
-      /simulated standard-book transport failure/u,
+    await assert.rejects(
+      captureFirstBoardSnapshot({
+        fetchImpl: async (input) => {
+          const url = input instanceof URL ? input : new URL(String(input));
+          if (url.searchParams.get('bookmakers') === 'pick6') {
+            throw new Error('simulated Pick6 transport failure');
+          }
+          return response();
+        },
+        archiveRoot,
+        runStartedAt: '2026-08-21T18:29:50.000Z',
+        snapshotStartedAt: '2026-08-21T18:29:55.000Z',
+        scheduleUrl,
+        scheduleResponse,
+        scheduleBytes,
+        scheduleCapturedAt: '2026-08-21T18:29:56.000Z',
+        events: [EVENT],
+        claimedGames: [EVENT],
+        now: () => CAPTURED_AT,
+      }),
+      /simulated Pick6 transport failure/u,
     );
   } finally {
     await rm(archiveRoot, { recursive: true, force: true });

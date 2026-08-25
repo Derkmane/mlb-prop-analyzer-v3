@@ -7,6 +7,8 @@ import {
   SETTLEMENT_REGISTRY,
 } from '../dist/src/composition/registries.js';
 import {
+  BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE,
+  BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
   BATTER_HITS_MARKET_KEY,
   BATTER_HITS_SETTLEMENT_RULE_SOURCE_REFERENCE,
   BATTER_HITS_SETTLEMENT_RULE_VERSION,
@@ -130,17 +132,27 @@ function buildReport(overrides = {}) {
   });
 }
 
-test('Batter Hits has one market-specific registered Underdog settlement rule while production remains disabled', () => {
+test('Batter Hits keeps the active DraftKings rule separate from the historical Underdog grading rule while production remains disabled', () => {
   const rules = SETTLEMENT_REGISTRY.rules.filter((rule) => rule.baseMarketKey === BATTER_HITS_MARKET_KEY);
-  assert.equal(rules.length, 1);
-  assert.equal(rules[0].version, BATTER_HITS_SETTLEMENT_RULE_VERSION);
-  assert.equal(rules[0].officialSettlementStatistic, 'hits');
-  assert.equal(rules[0].ruleSourceReference, BATTER_HITS_SETTLEMENT_RULE_SOURCE_REFERENCE);
-  assert.ok(rules[0].voidConditions.includes('batter absent from the official starting lineup'));
-  assert.match(rules[0].tieHandling, /ties.*void|ties its posted projection is void/iu);
+  assert.equal(rules.length, 2);
+
+  const activeRule = rules.find((rule) => rule.boardSource === 'draftkings');
+  assert.ok(activeRule);
+  assert.equal(activeRule.version, BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION);
+  assert.equal(activeRule.officialSettlementStatistic, 'hits');
+  assert.equal(activeRule.ruleSourceReference, BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE);
+
+  const historicalRule = rules.find((rule) => rule.boardSource === null);
+  assert.ok(historicalRule);
+  assert.equal(historicalRule.version, BATTER_HITS_SETTLEMENT_RULE_VERSION);
+  assert.equal(historicalRule.officialSettlementStatistic, 'hits');
+  assert.equal(historicalRule.ruleSourceReference, BATTER_HITS_SETTLEMENT_RULE_SOURCE_REFERENCE);
+  assert.ok(historicalRule.voidConditions.includes('batter absent from the official starting lineup'));
+  assert.match(historicalRule.tieHandling, /ties.*void|ties its posted projection is void/iu);
 
   const market = IMPLEMENTED_MARKET_REGISTRY.find((entry) => entry.baseMarketKey === BATTER_HITS_MARKET_KEY);
   assert.ok(market);
+  assert.equal(market.settlementRuleVersion, BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION);
   assert.equal(market.distributionBuilderValidated, false);
   assert.equal(market.status, 'model-under-development');
   assert.notEqual(market.blocker, null);

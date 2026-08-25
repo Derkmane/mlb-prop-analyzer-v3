@@ -10,6 +10,8 @@ import {
   type CategoryOfferInput,
 } from '../categories/index.js';
 import { settleObservedDiscreteStatisticV1 } from '../core/index.js';
+import { BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION } from '../features/batter-hhr/contracts.js';
+import { BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION } from '../features/batter-hits/settlement.js';
 import {
   PRODUCT_DISPLAY_BOARD_VERSION,
   PRODUCT_RESEARCH_LABEL,
@@ -47,26 +49,38 @@ export interface ResearchProductBoardV2 {
 }
 
 const HHR_CALIBRATION_SNAPSHOT =
-  'CANONICAL_MATH_SPEC v1.15 documented 422-row prospective snapshot';
+  'CANONICAL_MATH_SPEC v1.16 documented 422-row prospective snapshot';
 
 function objectOrNull(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
 }
-
 function finiteOrNull(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
-
 function stringOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;
 }
-
 function scalarText(value: unknown): string | null {
   if (typeof value === 'string' && value.length > 0) return value;
   if (typeof value === 'number' && Number.isFinite(value)) return String(value);
   return null;
+}
+
+function sourceSettlementAuthorized(row: ResearchDisplayRow): boolean {
+  if (
+    row.boardSource !== 'draftkings' ||
+    row.providerBookmakerKey !== 'draftkings' ||
+    row.providerRegion !== 'us'
+  ) {
+    return false;
+  }
+  const expected =
+    row.market === RESEARCH_BATTER_HITS_MARKET
+      ? BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION
+      : BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION;
+  return row.settlementRuleVersion === expected;
 }
 
 function opponent(row: ResearchDisplayRow): string {
@@ -89,12 +103,9 @@ function starterContext(row: ResearchDisplayRow): ProductStarterContext {
     strikeouts === null ? null : `${strikeouts} K`,
     whip === null ? null : `WHIP ${whip.toFixed(2)}`,
   ].filter((value): value is string => value !== null);
-
   return Object.freeze({
     name: stringOrNull(starter?.['name']),
-    hand:
-      stringOrNull(starter?.['throwingHand']) ??
-      row.analysisContext.opposingStarterHand,
+    hand: stringOrNull(starter?.['throwingHand']) ?? row.analysisContext.opposingStarterHand,
     era: finiteOrNull(starter?.['era']),
     kRate: null,
     recentWorkload: workloadParts.length === 0 ? null : workloadParts.join(' · '),
@@ -109,126 +120,42 @@ function lastFive(row: ResearchDisplayRow): readonly ProductLastFiveResult[] {
     games.flatMap((raw) => {
       const game = objectOrNull(raw);
       if (game === null) return [];
-      const actual = finiteOrNull(
-        row.market === RESEARCH_BATTER_HITS_MARKET ? game['hits'] : game['hrr'],
-      );
+      const actual = finiteOrNull(row.market === RESEARCH_BATTER_HITS_MARKET ? game['hits'] : game['hrr']);
       const gameDate = stringOrNull(game['gameDate']);
-      const gameOpponent =
-        stringOrNull(game['opponentAbbreviation']) ??
-        stringOrNull(game['opponentTeamName']);
-      if (
-        actual === null ||
-        !Number.isInteger(actual) ||
-        actual < 0 ||
-        gameDate === null ||
-        gameOpponent === null
-      ) {
-        return [];
-      }
-      const settlement = settleObservedDiscreteStatisticV1({
-        observedStatistic: actual,
-        line: row.postedLine,
-        selectedSide: row.selectedSide,
-      });
-      return [
-        Object.freeze({
-          gameDate,
-          opponent: gameOpponent,
-          actual,
-          outcome:
-            settlement.outcome === 'win'
-              ? ('cash' as const)
-              : settlement.outcome === 'loss'
-                ? ('miss' as const)
-                : ('void' as const),
-        }),
-      ];
+      const gameOpponent = stringOrNull(game['opponentAbbreviation']) ?? stringOrNull(game['opponentTeamName']);
+      if (actual === null || !Number.isInteger(actual) || actual < 0 || gameDate === null || gameOpponent === null) return [];
+      const settlement = settleObservedDiscreteStatisticV1({ observedStatistic: actual, line: row.postedLine, selectedSide: row.selectedSide });
+      return [Object.freeze({
+        gameDate,
+        opponent: gameOpponent,
+        actual,
+        outcome: settlement.outcome === 'win' ? ('cash' as const) : settlement.outcome === 'loss' ? ('miss' as const) : ('void' as const),
+      })];
     }),
   );
 }
 
 function hhrCalibration(row: ResearchDisplayRow): ProductCalibrationDisclosure {
   if (row.postedLine === 0.5 && row.selectedSide === 'higher') {
-    return Object.freeze({
-      status: 'failed',
-      cohort: '0.5 Higher',
-      predicted: 0.6554,
-      observed: 0.5412,
-      decidedPicks: 85,
-      sampleSufficiency: 'sufficient',
-      calibrationAgreement: 'fail',
-      calculationMethod: 'primary-per-pick-heterogeneous',
-      evidenceSnapshot: HHR_CALIBRATION_SNAPSHOT,
-      message:
-        'Sample SUFFICIENT · Agreement FAIL. Documented model 65.5%, actual 54.1% (46/85).',
-    });
+    return Object.freeze({ status: 'failed', cohort: '0.5 Higher', predicted: 0.6554, observed: 0.5412, decidedPicks: 85, sampleSufficiency: 'sufficient', calibrationAgreement: 'fail', calculationMethod: 'primary-per-pick-heterogeneous', evidenceSnapshot: HHR_CALIBRATION_SNAPSHOT, message: 'Sample SUFFICIENT · Agreement FAIL. Documented model 65.5%, actual 54.1% (46/85).' });
   }
   if (row.postedLine === 1.5) {
-    return Object.freeze({
-      status: 'passed',
-      cohort: '1.5 selected-side cohort',
-      predicted: 0.555,
-      observed: 0.559,
-      decidedPicks: 322,
-      sampleSufficiency: 'sufficient',
-      calibrationAgreement: 'pass',
-      calculationMethod: 'primary-per-pick-heterogeneous',
-      evidenceSnapshot: HHR_CALIBRATION_SNAPSHOT,
-      message:
-        'Sample SUFFICIENT · Agreement PASS. Documented model 55.5%, actual 55.9% (180/322).',
-    });
+    return Object.freeze({ status: 'passed', cohort: '1.5 selected-side cohort', predicted: 0.555, observed: 0.559, decidedPicks: 322, sampleSufficiency: 'sufficient', calibrationAgreement: 'pass', calculationMethod: 'primary-per-pick-heterogeneous', evidenceSnapshot: HHR_CALIBRATION_SNAPSHOT, message: 'Sample SUFFICIENT · Agreement PASS. Documented model 55.5%, actual 55.9% (180/322).' });
   }
   if (row.postedLine >= 2.5 && row.selectedSide === 'lower') {
-    return Object.freeze({
-      status: 'failed',
-      cohort: '2.5+ Lower',
-      predicted: 0.6723,
-      observed: 0.2727,
-      decidedPicks: 11,
-      sampleSufficiency: 'insufficient',
-      calibrationAgreement: 'fail',
-      calculationMethod: 'primary-per-pick-heterogeneous',
-      evidenceSnapshot: HHR_CALIBRATION_SNAPSHOT,
-      message:
-        'Sample INSUFFICIENT · Agreement FAIL. Documented model 67.2%, actual 27.3% (3/11).',
-    });
+    return Object.freeze({ status: 'failed', cohort: '2.5+ Lower', predicted: 0.6723, observed: 0.2727, decidedPicks: 11, sampleSufficiency: 'insufficient', calibrationAgreement: 'fail', calculationMethod: 'primary-per-pick-heterogeneous', evidenceSnapshot: HHR_CALIBRATION_SNAPSHOT, message: 'Sample INSUFFICIENT · Agreement FAIL. Documented model 67.2%, actual 27.3% (3/11).' });
   }
-  return Object.freeze({
-    status: 'pending',
-    cohort: `${row.postedLine} ${row.selectedSide}`,
-    predicted: null,
-    observed: null,
-    decidedPicks: null,
-    sampleSufficiency: 'unavailable',
-    calibrationAgreement: 'unavailable',
-    calculationMethod: 'unavailable',
-    evidenceSnapshot: HHR_CALIBRATION_SNAPSHOT,
-    message:
-      'Sample UNAVAILABLE · Agreement UNAVAILABLE. No matching documented calibration snapshot is available for this exact HHR line and side.',
-  });
+  return Object.freeze({ status: 'pending', cohort: `${row.postedLine} ${row.selectedSide}`, predicted: null, observed: null, decidedPicks: null, sampleSufficiency: 'unavailable', calibrationAgreement: 'unavailable', calculationMethod: 'unavailable', evidenceSnapshot: HHR_CALIBRATION_SNAPSHOT, message: 'Sample UNAVAILABLE · Agreement UNAVAILABLE. No matching documented calibration snapshot is available for this exact HHR line and side.' });
 }
-
 function calibration(row: ResearchDisplayRow): ProductCalibrationDisclosure {
   if (row.market === RESEARCH_BATTER_HHR_MARKET) return hhrCalibration(row);
-  return Object.freeze({
-    status: 'pending',
-    cohort: `Hits ${row.postedLine} ${row.selectedSide}`,
-    predicted: null,
-    observed: null,
-    decidedPicks: null,
-    sampleSufficiency: 'unavailable',
-    calibrationAgreement: 'unavailable',
-    calculationMethod: 'unavailable',
-    evidenceSnapshot: 'Batter Hits prospective calibration pending',
-    message:
-      'Sample UNAVAILABLE · Agreement UNAVAILABLE. Batter Hits prospective calibration evidence is still pending.',
-  });
+  return Object.freeze({ status: 'pending', cohort: `Hits ${row.postedLine} ${row.selectedSide}`, predicted: null, observed: null, decidedPicks: null, sampleSufficiency: 'unavailable', calibrationAgreement: 'unavailable', calculationMethod: 'unavailable', evidenceSnapshot: 'Batter Hits prospective calibration pending', message: 'Sample UNAVAILABLE · Agreement UNAVAILABLE. Batter Hits prospective calibration evidence is still pending.' });
 }
 
-function productPick(
-  row: ResearchDisplayRow,
-  offerType: ProjectionLineOfferType,
-): ResearchRankCandidate {
+function productPick(row: ResearchDisplayRow, offerType: ProjectionLineOfferType): ResearchRankCandidate {
+  if (row.boardSource !== 'draftkings' || row.providerBookmakerKey !== 'draftkings' || row.providerRegion !== 'us' || row.settlementRuleVersion === null) {
+    throw new Error('Research product pick source settlement was not authorized.');
+  }
   const starter = starterContext(row);
   const batterSide = row.analysisContext.batterSide;
   return Object.freeze({
@@ -238,8 +165,11 @@ function productPick(
     team: row.teamName,
     opponent: opponent(row),
     gameTime: row.eventCommenceTime,
-    market:
-      row.market === RESEARCH_BATTER_HITS_MARKET ? 'Hits' : 'Hits + Runs + RBIs',
+    boardSource: row.boardSource,
+    providerBookmakerKey: row.providerBookmakerKey,
+    providerRegion: row.providerRegion,
+    settlementRuleVersion: row.settlementRuleVersion,
+    market: row.market === RESEARCH_BATTER_HITS_MARKET ? 'Hits' : 'Hits + Runs + RBIs',
     postedLine: row.postedLine,
     selectedSide: row.selectedSide,
     pWin: row.pWin,
@@ -253,10 +183,7 @@ function productPick(
     expectedPlateAppearances: row.analysisContext.expectedPlateAppearances,
     lineupSlot: row.analysisContext.lineupSlot,
     opposingStarter: starter,
-    platoon:
-      batterSide === null || starter.hand === null
-        ? null
-        : `${batterSide} batter vs ${starter.hand} starter`,
+    platoon: batterSide === null || starter.hand === null ? null : `${batterSide} batter vs ${starter.hand} starter`,
     teamImpliedRunTotal: row.analysisContext.teamImpliedRunTotal,
     park: row.analysisContext.venue,
     lastFive: lastFive(row),
@@ -264,117 +191,55 @@ function productPick(
   });
 }
 
-function offerInput(
-  row: ResearchDisplayRow,
-  candidate: ResearchRankCandidate,
-  offerType: ProjectionLineOfferType,
-): CategoryOfferInput<ResearchRankCandidate> {
-  const postedImpliedProbability =
-    row.americanPrice !== null &&
-    Number.isInteger(row.americanPrice) &&
-    row.americanPrice !== 0
-      ? indicativeImpliedProbabilityFromAmericanPrice(row.americanPrice)
-      : null;
-  return Object.freeze({
-    candidate,
-    offerType,
-    americanPrice: row.americanPrice,
-    multiplier: row.multiplier,
-    postedImpliedProbability,
-    priceEdge:
-      postedImpliedProbability === null
-        ? null
-        : row.pWinGivenGrades - postedImpliedProbability,
-  });
+function offerInput(row: ResearchDisplayRow, candidate: ResearchRankCandidate, offerType: ProjectionLineOfferType): CategoryOfferInput<ResearchRankCandidate> {
+  const postedImpliedProbability = row.americanPrice !== null && Number.isInteger(row.americanPrice) && row.americanPrice !== 0
+    ? indicativeImpliedProbabilityFromAmericanPrice(row.americanPrice)
+    : null;
+  return Object.freeze({ candidate, offerType, americanPrice: row.americanPrice, multiplier: row.multiplier, postedImpliedProbability, priceEdge: postedImpliedProbability === null ? null : row.pWinGivenGrades - postedImpliedProbability });
 }
-
 function categoryOfferInputs(
   rows: readonly ResearchDisplayRow[],
   candidateByRow: ReadonlyMap<ResearchDisplayRow, ResearchRankCandidate>,
   offerTypeByRow: ReadonlyMap<ResearchDisplayRow, ProjectionLineOfferType>,
 ): readonly CategoryOfferInput<ResearchRankCandidate>[] {
-  return Object.freeze(
-    rows.flatMap((row) => {
-      const candidate = candidateByRow.get(row);
-      const offerType = offerTypeByRow.get(row);
-      return candidate === undefined || offerType === undefined
-        ? []
-        : [offerInput(row, candidate, offerType)];
-    }),
-  );
+  return Object.freeze(rows.flatMap((row) => {
+    const candidate = candidateByRow.get(row);
+    const offerType = offerTypeByRow.get(row);
+    return candidate === undefined || offerType === undefined ? [] : [offerInput(row, candidate, offerType)];
+  }));
 }
-
 function newestTimestamp(archives: readonly ResearchDisplayArchive[]): string | null {
   let newest: string | null = null;
-  for (const archive of archives) {
-    if (newest === null || archive.capturedAt > newest) newest = archive.capturedAt;
-  }
+  for (const archive of archives) if (newest === null || archive.capturedAt > newest) newest = archive.capturedAt;
   return newest;
 }
 
-export async function readResearchProductBoardV2(
-  repository: ResearchDisplayArchiveRepository,
-): Promise<ResearchProductBoardV2> {
-  const archives = (
-    await Promise.all([
-      repository.readLatest(RESEARCH_BATTER_HITS_MARKET),
-      repository.readLatest(RESEARCH_BATTER_HHR_MARKET),
-    ])
-  ).filter((archive): archive is ResearchDisplayArchive => archive !== null);
-
+export async function readResearchProductBoardV2(repository: ResearchDisplayArchiveRepository): Promise<ResearchProductBoardV2> {
+  const archives = (await Promise.all([
+    repository.readLatest(RESEARCH_BATTER_HITS_MARKET),
+    repository.readLatest(RESEARCH_BATTER_HHR_MARKET),
+  ])).filter((archive): archive is ResearchDisplayArchive => archive !== null);
   const requestTime = Date.now();
   const rows = archives.flatMap((archive) => archive.rows).filter(
-    (row) => Date.parse(row.eventCommenceTime) > requestTime,
+    (row) => Date.parse(row.eventCommenceTime) > requestTime && sourceSettlementAuthorized(row),
   );
   const offerTypeByRow = classifyProjectionLineOffersV1(
     rows,
-    (row) => `${row.market}:${row.captureKey}:${row.providerGameId}:${row.providerPlayerId}`,
+    (row) => `${row.boardSource}:${row.market}:${row.captureKey}:${row.providerGameId}:${row.providerPlayerId}`,
   );
   const classifiedRows = rows.filter((row) => offerTypeByRow.has(row));
-  const candidateByRow = new Map(
-    classifiedRows.map((row) => [
-      row,
-      productPick(row, offerTypeByRow.get(row) as ProjectionLineOfferType),
-    ] as const),
-  );
-  const offerInputs = categoryOfferInputs(
-    classifiedRows,
-    candidateByRow,
-    offerTypeByRow,
-  );
-
+  const candidateByRow = new Map(classifiedRows.map((row) => [row, productPick(row, offerTypeByRow.get(row) as ProjectionLineOfferType)] as const));
+  const offerInputs = categoryOfferInputs(classifiedRows, candidateByRow, offerTypeByRow);
   const baseline = selectHighProbabilityBaselinePropsV1(offerInputs);
   const altline = selectHighProbabilityAltlinePropsV1(offerInputs);
   const minerInputs = classifiedRows.flatMap((row) => {
-    if (
-      row.americanPrice === null ||
-      !Number.isInteger(row.americanPrice) ||
-      row.americanPrice === 0 ||
-      row.multiplier === null ||
-      row.multiplier <= 0
-    ) {
-      return [];
-    }
-    return [
-      Object.freeze({
-        candidate: candidateByRow.get(row) as ResearchRankCandidate,
-        americanPrice: row.americanPrice,
-        multiplier: row.multiplier,
-      }),
-    ];
+    if (row.americanPrice === null || !Number.isInteger(row.americanPrice) || row.americanPrice === 0 || row.multiplier === null || row.multiplier <= 0) return [];
+    return [Object.freeze({ candidate: candidateByRow.get(row) as ResearchRankCandidate, americanPrice: row.americanPrice, multiplier: row.multiplier })];
   });
   const opportunity = selectOpportunityMinerFavoritesV1(minerInputs);
-
-  const opportunityPicks = selectCategoryOutputV1(
-    opportunity.eligibleCandidates,
-  ).map((candidate) => candidate as ProductDisplayPick);
-  const baselinePicks = selectCategoryOutputV1(
-    baseline.eligibleCandidates.map((input) => input.candidate),
-  );
-  const altlinePicks = selectCategoryOutputV1(
-    altline.eligibleCandidates.map((input) => input.candidate),
-  );
-
+  const opportunityPicks = selectCategoryOutputV1(opportunity.eligibleCandidates).map((candidate) => candidate as ProductDisplayPick);
+  const baselinePicks = selectCategoryOutputV1(baseline.eligibleCandidates.map((input) => input.candidate));
+  const altlinePicks = selectCategoryOutputV1(altline.eligibleCandidates.map((input) => input.candidate));
   return Object.freeze({
     productDisplayBoardVersion: PRODUCT_DISPLAY_BOARD_VERSION,
     disclosure: PRODUCT_RESEARCH_LABEL,
@@ -383,10 +248,7 @@ export async function readResearchProductBoardV2(
     sourceMarkets: Object.freeze(archives.map((archive) => archive.market)),
     categories: Object.freeze([
       productCategorySectionV2(OPPORTUNITY_MINER_CATEGORY_ID, opportunityPicks),
-      productCategorySectionV2(
-        HIGH_PROBABILITY_BASELINE_CATEGORY_ID,
-        baselinePicks,
-      ),
+      productCategorySectionV2(HIGH_PROBABILITY_BASELINE_CATEGORY_ID, baselinePicks),
       productCategorySectionV2(HIGH_PROBABILITY_ALTLINE_CATEGORY_ID, altlinePicks),
     ]),
   });

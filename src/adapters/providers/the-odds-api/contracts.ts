@@ -1,45 +1,44 @@
 import { z } from 'zod';
 
-const nonemptyStringSchema = z.string().min(1);
 const timestampSchema = z.string().datetime({ offset: true });
 
 export const rawOddsApiOutcomeSchema = z
   .object({
-    name: nonemptyStringSchema,
-    description: nonemptyStringSchema,
-    price: z.number().int(),
+    name: z.string().min(1),
+    description: z.string().min(1),
+    price: z.number().int().nullable().optional(),
     point: z.number().finite().nonnegative(),
-    sid: z.unknown(),
-    multiplier: z.number().finite().positive(),
+    sid: z.unknown().optional(),
+    multiplier: z.number().finite().positive().nullable().optional(),
   })
   .passthrough();
 
 export const rawOddsApiMarketSchema = z
   .object({
-    key: nonemptyStringSchema,
+    key: z.string().min(1),
     last_update: timestampSchema,
-    sid: z.unknown(),
+    sid: z.unknown().optional(),
     outcomes: z.array(rawOddsApiOutcomeSchema),
   })
   .passthrough();
 
 export const rawOddsApiBookmakerSchema = z
   .object({
-    key: nonemptyStringSchema,
-    title: nonemptyStringSchema,
-    sid: z.unknown(),
+    key: z.string().min(1),
+    title: z.string().min(1),
+    sid: z.unknown().optional(),
     markets: z.array(rawOddsApiMarketSchema),
   })
   .passthrough();
 
 export const rawOddsApiEventOddsSchema = z
   .object({
-    id: nonemptyStringSchema,
-    sport_key: nonemptyStringSchema,
-    sport_title: nonemptyStringSchema,
+    id: z.string().min(1),
+    sport_key: z.string().min(1),
+    sport_title: z.string().min(1),
     commence_time: timestampSchema,
-    home_team: nonemptyStringSchema,
-    away_team: nonemptyStringSchema,
+    home_team: z.string().min(1),
+    away_team: z.string().min(1),
     bookmakers: z.array(rawOddsApiBookmakerSchema),
   })
   .passthrough();

@@ -5,25 +5,23 @@ export interface ProjectionLineEvidence {
   readonly postedLine: number;
 }
 
-function isStandardMultiplierBucket(providerMarketKey: string): boolean {
+function isProviderBaselineMarket(providerMarketKey: string): boolean {
   return !providerMarketKey.endsWith('_alternate');
 }
 
 /**
  * Resolves product baseline/altline identity from numerical posted projections.
  *
- * The Odds API's Underdog `_alternate` market is a non-default-multiplier
- * provider bucket, not product proof of an alternate projection. Therefore:
- * - one unique numerical line for a player/stat is the current baseline line,
- *   regardless of provider bucket;
- * - when multiple numerical lines exist, exactly one line from the provider's
- *   standard-multiplier bucket must identify the baseline;
- * - only numerically different posted lines are product alternate lines;
- * - ambiguous multi-line groups fail closed and are omitted from the result.
+ * A product baseline exists only when the same source exposes exactly one
+ * numerical line for the player's exact base provider market. Rows from an
+ * `_alternate` market never create a baseline by themselves. Once the unique
+ * same-source base line is known, every captured rung at that exact number is a
+ * product baseline and every numerically different rung is a product altline.
+ * Ambiguous or alternate-only groups fail closed and are omitted.
  *
- * Supported provider-market identity is validated upstream by the provider or
- * archive contract. This helper intentionally owns no active-feature constants
- * so historical/read-only consumers remain independent of active feature code.
+ * Source identity belongs in identityForRow. This helper intentionally owns no
+ * active-source constants so historical/read-only consumers remain independent
+ * of active provider code.
  */
 export function classifyProjectionLineOffersV1<
   TRow extends ProjectionLineEvidence,
@@ -44,21 +42,15 @@ export function classifyProjectionLineOffersV1<
 
   const classified = new Map<TRow, ProjectionLineOfferType>();
   for (const group of groups.values()) {
-    const allLines = new Set(group.map((row) => row.postedLine));
-    let baselineLine: number | undefined;
-
-    if (allLines.size === 1) {
-      baselineLine = [...allLines][0];
-    } else {
-      const standardLines = new Set(
-        group
-          .filter((row) => isStandardMultiplierBucket(row.providerMarketKey))
-          .map((row) => row.postedLine),
-      );
-      if (standardLines.size === 1) baselineLine = [...standardLines][0];
-    }
-
+    const baselineLines = new Set(
+      group
+        .filter((row) => isProviderBaselineMarket(row.providerMarketKey))
+        .map((row) => row.postedLine),
+    );
+    if (baselineLines.size !== 1) continue;
+    const baselineLine = [...baselineLines][0];
     if (baselineLine === undefined) continue;
+
     for (const row of group) {
       classified.set(
         row,

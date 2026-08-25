@@ -17,14 +17,19 @@ import { PLANNED_MARKET_KEYS } from '../src/composition/planned-market-catalog.j
 import type { FeatureRegistration } from '../src/domain/feature-status.js';
 import type { ImplementedMarketRegistration } from '../src/domain/market.js';
 import type { SettlementRuleRegistration } from '../src/domain/settlement-rule.js';
-import { BATTER_HHR_SETTLEMENT_RULE_VERSION } from '../src/features/batter-hhr/contracts.js';
+import {
+  BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE,
+  BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
+  BATTER_HHR_SETTLEMENT_RULE_VERSION,
+} from '../src/features/batter-hhr/contracts.js';
 import { BATTER_HHR_FEATURE_ID, BATTER_HHR_MARKET_KEY } from '../src/features/batter-hhr/manifest.js';
 import {
   BATTER_HITS_FEATURE_ID,
   BATTER_HITS_MARKET_KEY,
 } from '../src/features/batter-hits/manifest.js';
 import {
-  BATTER_HITS_SETTLEMENT_RULE_SOURCE_REFERENCE,
+  BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE,
+  BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
   BATTER_HITS_SETTLEMENT_RULE_VERSION,
 } from '../src/features/batter-hits/settlement.js';
 
@@ -79,7 +84,7 @@ const validMarket: ImplementedMarketRegistration = Object.freeze({
 });
 const validFeature: FeatureRegistration = Object.freeze({ featureId: 'synthetic-feature', enabled: true, status: 'production-enabled' });
 const validSettlementRule: SettlementRuleRegistration = Object.freeze({
-  version: 'synthetic-rule-v1', baseMarketKey: 'synthetic-market', officialSettlementStatistic: 'synthetic-statistic',
+  version: 'synthetic-rule-v1', boardSource: 'draftkings', baseMarketKey: 'synthetic-market', officialSettlementStatistic: 'synthetic-statistic',
   startRequirement: 'synthetic verified start rule', minimumParticipation: 'synthetic verified participation rule',
   reliefAppearanceHandling: 'not applicable to synthetic hitter market', intentionalWalkHandling: 'not applicable to synthetic market',
   tieHandling: 'integer ties void', postponementHandling: 'synthetic verified postponement rule',
@@ -108,7 +113,7 @@ test('settlement temporal applicability type enforces exactly one self-describin
   });
 });
 
-test('production registries are explicit, frozen, and keep Batter Hits and HHR disabled', () => {
+test('production registries are explicit, frozen, DraftKings-bound, and keep historical Underdog rules isolated', () => {
   assert.equal(IMPLEMENTED_MARKET_REGISTRY.length, 2);
   assert.deepEqual(IMPLEMENTED_MARKET_REGISTRY.map((row) => row.baseMarketKey), [BATTER_HITS_MARKET_KEY, BATTER_HHR_MARKET_KEY]);
   for (const registration of IMPLEMENTED_MARKET_REGISTRY) {
@@ -120,20 +125,34 @@ test('production registries are explicit, frozen, and keep Batter Hits and HHR d
     { featureId: BATTER_HITS_FEATURE_ID, enabled: false, status: 'model-under-development' },
     { featureId: BATTER_HHR_FEATURE_ID, enabled: false, status: 'model-under-development' },
   ]);
-  assert.equal(SETTLEMENT_REGISTRY.version, 'settlement-registry-v3');
-  assert.equal(SETTLEMENT_REGISTRY.rules.length, 2);
-  const batterHitsRule = SETTLEMENT_REGISTRY.rules.find((row) => row.baseMarketKey === BATTER_HITS_MARKET_KEY);
-  const hhrRule = SETTLEMENT_REGISTRY.rules.find((row) => row.baseMarketKey === BATTER_HHR_MARKET_KEY);
+  assert.equal(SETTLEMENT_REGISTRY.version, 'settlement-registry-v5');
+  assert.equal(SETTLEMENT_REGISTRY.rules.length, 4);
+
+  const activeRules = SETTLEMENT_REGISTRY.rules.filter((row) => row.boardSource !== null);
+  const historicalRules = SETTLEMENT_REGISTRY.rules.filter((row) => row.boardSource === null);
+  assert.equal(activeRules.length, 2);
+  assert.equal(historicalRules.length, 2);
+  assert.ok(activeRules.every((row) => row.boardSource === 'draftkings'));
+  assert.deepEqual(
+    historicalRules.map((row) => row.version).sort(),
+    [BATTER_HHR_SETTLEMENT_RULE_VERSION, BATTER_HITS_SETTLEMENT_RULE_VERSION].sort(),
+  );
+
+  const batterHitsRule = activeRules.find((row) => row.baseMarketKey === BATTER_HITS_MARKET_KEY);
+  const hhrRule = activeRules.find((row) => row.baseMarketKey === BATTER_HHR_MARKET_KEY);
   assert.ok(batterHitsRule);
-  assert.equal(batterHitsRule.version, BATTER_HITS_SETTLEMENT_RULE_VERSION);
+  assert.equal(batterHitsRule.boardSource, 'draftkings');
+  assert.equal(batterHitsRule.version, BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION);
   assert.equal(batterHitsRule.officialSettlementStatistic, 'hits');
-  assert.equal(batterHitsRule.ruleSourceReference, BATTER_HITS_SETTLEMENT_RULE_SOURCE_REFERENCE);
+  assert.equal(batterHitsRule.ruleSourceReference, BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE);
   assert.ok(hhrRule);
-  assert.equal(hhrRule.version, BATTER_HHR_SETTLEMENT_RULE_VERSION);
+  assert.equal(hhrRule.boardSource, 'draftkings');
+  assert.equal(hhrRule.version, BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION);
   assert.equal(hhrRule.officialSettlementStatistic, 'hits+runs+rbis');
+  assert.equal(hhrRule.ruleSourceReference, BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE);
+
   assert.ok(Object.isFrozen(SETTLEMENT_REGISTRY.rules));
-  assert.ok(Object.isFrozen(SETTLEMENT_REGISTRY.rules[0]));
-  assert.ok(Object.isFrozen(SETTLEMENT_REGISTRY.rules[1]));
+  for (const rule of SETTLEMENT_REGISTRY.rules) assert.ok(Object.isFrozen(rule));
   assert.ok(Object.isFrozen(IMPLEMENTED_MARKET_REGISTRY));
   assert.ok(Object.isFrozen(FEATURE_REGISTRY));
   assert.ok(Object.isFrozen(SETTLEMENT_REGISTRY));

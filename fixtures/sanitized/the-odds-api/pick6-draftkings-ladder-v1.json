@@ -1,0 +1,2328 @@
+{
+  "fixtureVersion": 1,
+  "capturedAt": "2026-08-25T02:31:50.825Z",
+  "provider": "The Odds API",
+  "targetMarkets": [
+    "batter_hits",
+    "batter_hits_alternate",
+    "batter_hits_runs_rbis",
+    "batter_hits_runs_rbis_alternate",
+    "batter_total_bases",
+    "batter_total_bases_alternate"
+  ],
+  "responsePaths": {
+    "event": "response",
+    "bookmakers": "response.bookmakers[]",
+    "markets": "response.bookmakers[].markets[]",
+    "outcomes": "response.bookmakers[].markets[].outcomes[]"
+  },
+  "pick6": {
+    "request": {
+      "provider": "The Odds API",
+      "sport": "baseball_mlb",
+      "region": "us_dfs",
+      "bookmaker": "pick6",
+      "marketKeys": [
+        "batter_hits",
+        "batter_hits_alternate",
+        "batter_hits_runs_rbis",
+        "batter_hits_runs_rbis_alternate",
+        "batter_total_bases",
+        "batter_total_bases_alternate"
+      ],
+      "dateFormat": "iso",
+      "oddsFormat": "american",
+      "includeMultipliers": true
+    },
+    "targetOffersAvailable": false,
+    "eventIdentity": {
+      "id": "259b6ad0c039c2a2dd00d378d88eb549",
+      "commence_time": "2026-08-25T22:41:00Z",
+      "home_team": "Detroit Tigers",
+      "away_team": "Tampa Bay Rays"
+    },
+    "responseSha256": "63263e9a074a94f98ab0891736f708cb509283a16d7afcf3eaca826e1249b749",
+    "response": {
+      "id": "259b6ad0c039c2a2dd00d378d88eb549",
+      "sport_key": "baseball_mlb",
+      "sport_title": "MLB",
+      "commence_time": "2026-08-25T22:41:00Z",
+      "home_team": "Detroit Tigers",
+      "away_team": "Tampa Bay Rays",
+      "bookmakers": []
+    }
+  },
+  "draftkings": {
+    "request": {
+      "provider": "The Odds API",
+      "sport": "baseball_mlb",
+      "region": "us",
+      "bookmaker": "draftkings",
+      "marketKeys": [
+        "batter_hits",
+        "batter_hits_alternate",
+        "batter_hits_runs_rbis",
+        "batter_hits_runs_rbis_alternate",
+        "batter_total_bases",
+        "batter_total_bases_alternate"
+      ],
+      "dateFormat": "iso",
+      "oddsFormat": "american",
+      "includeMultipliers": true
+    },
+    "targetOffersAvailable": true,
+    "eventIdentity": {
+      "id": "587e76b251f060a951bfa47ee07cf6ac",
+      "commence_time": "2026-08-25T23:08:00Z",
+      "home_team": "Toronto Blue Jays",
+      "away_team": "Kansas City Royals"
+    },
+    "responseSha256": "c519c5d18bb7cf0c31762d0688e32b6599b34fe47de82408b6991f8991afb03c",
+    "response": {
+      "id": "587e76b251f060a951bfa47ee07cf6ac",
+      "sport_key": "baseball_mlb",
+      "sport_title": "MLB",
+      "commence_time": "2026-08-25T23:08:00Z",
+      "home_team": "Toronto Blue Jays",
+      "away_team": "Kansas City Royals",
+      "bookmakers": [
+        {
+          "key": "draftkings",
+          "title": "DraftKings",
+          "markets": [
+            {
+              "key": "batter_hits",
+              "last_update": "2026-08-25T02:31:50Z",
+              "outcomes": [
+                {
+                  "name": "Over",
+                  "description": "Vladimir Guerrero Jr.",
+                  "price": 197,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Vladimir Guerrero Jr.",
+                  "price": -268,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Brett Bateman",
+                  "price": 202,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Brett Bateman",
+                  "price": -275,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nathan Lukes",
+                  "price": -265,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Nathan Lukes",
+                  "price": 195,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Bobby Witt Jr.",
+                  "price": -250,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Bobby Witt Jr.",
+                  "price": 184,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Alejandro Kirk",
+                  "price": -244,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Alejandro Kirk",
+                  "price": 180,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jac Caglianone",
+                  "price": -243,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Jac Caglianone",
+                  "price": 180,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "George Springer",
+                  "price": -239,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "George Springer",
+                  "price": 177,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Ernie Clement",
+                  "price": -223,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Ernie Clement",
+                  "price": 165,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Salvador Perez",
+                  "price": -213,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Salvador Perez",
+                  "price": 158,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vinnie Pasquantino",
+                  "price": -197,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Vinnie Pasquantino",
+                  "price": 147,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Michael Massey",
+                  "price": -196,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Michael Massey",
+                  "price": 146,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Carter Jensen",
+                  "price": -195,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Carter Jensen",
+                  "price": 146,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Andres Gimenez",
+                  "price": -193,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Andres Gimenez",
+                  "price": 144,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jesus Sanchez",
+                  "price": -184,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Jesus Sanchez",
+                  "price": 138,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kazuma Okamoto",
+                  "price": -176,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Kazuma Okamoto",
+                  "price": 132,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Isaac Collins",
+                  "price": -158,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Isaac Collins",
+                  "price": 119,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nick Loftin",
+                  "price": -153,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Nick Loftin",
+                  "price": 115,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kyle Isbel",
+                  "price": -152,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Kyle Isbel",
+                  "price": 115,
+                  "point": 0.5,
+                  "multiplier": null
+                }
+              ]
+            },
+            {
+              "key": "batter_hits_alternate",
+              "last_update": "2026-08-25T02:31:50Z",
+              "outcomes": [
+                {
+                  "name": "Over",
+                  "description": "Brett Bateman",
+                  "price": -281,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Brett Bateman",
+                  "price": 202,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Brett Bateman",
+                  "price": 930,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Brett Bateman",
+                  "price": 4200,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Bobby Witt Jr.",
+                  "price": -251,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Bobby Witt Jr.",
+                  "price": 222,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Bobby Witt Jr.",
+                  "price": 990,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Bobby Witt Jr.",
+                  "price": 4500,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jac Caglianone",
+                  "price": -244,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jac Caglianone",
+                  "price": 219,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jac Caglianone",
+                  "price": 1020,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jac Caglianone",
+                  "price": 4700,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vladimir Guerrero Jr.",
+                  "price": -291,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vladimir Guerrero Jr.",
+                  "price": 197,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vladimir Guerrero Jr.",
+                  "price": 920,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vladimir Guerrero Jr.",
+                  "price": 4700,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nathan Lukes",
+                  "price": -267,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nathan Lukes",
+                  "price": 214,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nathan Lukes",
+                  "price": 1040,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "George Springer",
+                  "price": -240,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "George Springer",
+                  "price": 237,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "George Springer",
+                  "price": 1200,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Salvador Perez",
+                  "price": -213,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Salvador Perez",
+                  "price": 251,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Salvador Perez",
+                  "price": 1200,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Alejandro Kirk",
+                  "price": -241,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Alejandro Kirk",
+                  "price": 242,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Alejandro Kirk",
+                  "price": 1240,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Ernie Clement",
+                  "price": -227,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Ernie Clement",
+                  "price": 260,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Ernie Clement",
+                  "price": 1340,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Carter Jensen",
+                  "price": -196,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Carter Jensen",
+                  "price": 293,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Carter Jensen",
+                  "price": 1400,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Michael Massey",
+                  "price": -195,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Michael Massey",
+                  "price": 282,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Michael Massey",
+                  "price": 1400,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vinnie Pasquantino",
+                  "price": -199,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vinnie Pasquantino",
+                  "price": 295,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vinnie Pasquantino",
+                  "price": 1400,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Andres Gimenez",
+                  "price": -193,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Andres Gimenez",
+                  "price": 304,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Andres Gimenez",
+                  "price": 1680,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jesus Sanchez",
+                  "price": -184,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jesus Sanchez",
+                  "price": 315,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jesus Sanchez",
+                  "price": 1700,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kyle Isbel",
+                  "price": -152,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kyle Isbel",
+                  "price": 365,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kyle Isbel",
+                  "price": 1920,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kazuma Okamoto",
+                  "price": -177,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kazuma Okamoto",
+                  "price": 350,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kazuma Okamoto",
+                  "price": 1960,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Isaac Collins",
+                  "price": -155,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Isaac Collins",
+                  "price": 376,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Isaac Collins",
+                  "price": 2000,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nick Loftin",
+                  "price": -154,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nick Loftin",
+                  "price": 377,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nick Loftin",
+                  "price": 2000,
+                  "point": 2.5,
+                  "multiplier": null
+                }
+              ]
+            },
+            {
+              "key": "batter_hits_runs_rbis_alternate",
+              "last_update": "2026-08-25T02:31:50Z",
+              "outcomes": [
+                {
+                  "name": "Over",
+                  "description": "Jac Caglianone",
+                  "price": -301,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jac Caglianone",
+                  "price": -128,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jac Caglianone",
+                  "price": 143,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jac Caglianone",
+                  "price": 261,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jac Caglianone",
+                  "price": 465,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Bobby Witt Jr.",
+                  "price": -321,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Bobby Witt Jr.",
+                  "price": -133,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Bobby Witt Jr.",
+                  "price": 150,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Bobby Witt Jr.",
+                  "price": 282,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Bobby Witt Jr.",
+                  "price": 511,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vladimir Guerrero Jr.",
+                  "price": -358,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vladimir Guerrero Jr.",
+                  "price": -138,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vladimir Guerrero Jr.",
+                  "price": 153,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vladimir Guerrero Jr.",
+                  "price": 291,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vladimir Guerrero Jr.",
+                  "price": 535,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "George Springer",
+                  "price": -321,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "George Springer",
+                  "price": -132,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "George Springer",
+                  "price": 157,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "George Springer",
+                  "price": 296,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "George Springer",
+                  "price": 547,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Salvador Perez",
+                  "price": -259,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Salvador Perez",
+                  "price": -116,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Salvador Perez",
+                  "price": 167,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Salvador Perez",
+                  "price": 310,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Salvador Perez",
+                  "price": 562,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Carter Jensen",
+                  "price": -288,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Carter Jensen",
+                  "price": -119,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Carter Jensen",
+                  "price": 163,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Carter Jensen",
+                  "price": 320,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Carter Jensen",
+                  "price": 587,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Alejandro Kirk",
+                  "price": -306,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Alejandro Kirk",
+                  "price": -121,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Alejandro Kirk",
+                  "price": 174,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Alejandro Kirk",
+                  "price": 339,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Alejandro Kirk",
+                  "price": 650,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kazuma Okamoto",
+                  "price": -220,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kazuma Okamoto",
+                  "price": 100,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kazuma Okamoto",
+                  "price": 196,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kazuma Okamoto",
+                  "price": 365,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kazuma Okamoto",
+                  "price": 690,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Michael Massey",
+                  "price": -233,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Michael Massey",
+                  "price": 101,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Michael Massey",
+                  "price": 205,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Michael Massey",
+                  "price": 388,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Michael Massey",
+                  "price": 700,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nathan Lukes",
+                  "price": -349,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nathan Lukes",
+                  "price": -130,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nathan Lukes",
+                  "price": 179,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nathan Lukes",
+                  "price": 362,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nathan Lukes",
+                  "price": 720,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vinnie Pasquantino",
+                  "price": -256,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vinnie Pasquantino",
+                  "price": -104,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vinnie Pasquantino",
+                  "price": 197,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vinnie Pasquantino",
+                  "price": 384,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vinnie Pasquantino",
+                  "price": 730,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Brett Bateman",
+                  "price": -359,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Brett Bateman",
+                  "price": -132,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Brett Bateman",
+                  "price": 182,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Brett Bateman",
+                  "price": 377,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Brett Bateman",
+                  "price": 770,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jesus Sanchez",
+                  "price": -240,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jesus Sanchez",
+                  "price": 104,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jesus Sanchez",
+                  "price": 222,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jesus Sanchez",
+                  "price": 442,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jesus Sanchez",
+                  "price": 850,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Ernie Clement",
+                  "price": -267,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Ernie Clement",
+                  "price": -104,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Ernie Clement",
+                  "price": 220,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Ernie Clement",
+                  "price": 453,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Ernie Clement",
+                  "price": 890,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Andres Gimenez",
+                  "price": -238,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Andres Gimenez",
+                  "price": 103,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Andres Gimenez",
+                  "price": 232,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Andres Gimenez",
+                  "price": 474,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Andres Gimenez",
+                  "price": 940,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Isaac Collins",
+                  "price": -208,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Isaac Collins",
+                  "price": 121,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Isaac Collins",
+                  "price": 253,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Isaac Collins",
+                  "price": 496,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Isaac Collins",
+                  "price": 970,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kyle Isbel",
+                  "price": -186,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kyle Isbel",
+                  "price": 127,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kyle Isbel",
+                  "price": 270,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kyle Isbel",
+                  "price": 537,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kyle Isbel",
+                  "price": 1020,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nick Loftin",
+                  "price": -200,
+                  "point": 0.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nick Loftin",
+                  "price": 124,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nick Loftin",
+                  "price": 263,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nick Loftin",
+                  "price": 518,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nick Loftin",
+                  "price": 1020,
+                  "point": 4.5,
+                  "multiplier": null
+                }
+              ]
+            },
+            {
+              "key": "batter_total_bases",
+              "last_update": "2026-08-25T02:31:50Z",
+              "outcomes": [
+                {
+                  "name": "Over",
+                  "description": "Jac Caglianone",
+                  "price": 100,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Jac Caglianone",
+                  "price": -132,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Bobby Witt Jr.",
+                  "price": 106,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Bobby Witt Jr.",
+                  "price": -140,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vladimir Guerrero Jr.",
+                  "price": 111,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Vladimir Guerrero Jr.",
+                  "price": -147,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Carter Jensen",
+                  "price": 116,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Carter Jensen",
+                  "price": -154,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "George Springer",
+                  "price": 119,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "George Springer",
+                  "price": -158,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Salvador Perez",
+                  "price": 121,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Salvador Perez",
+                  "price": -161,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nathan Lukes",
+                  "price": 124,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Nathan Lukes",
+                  "price": -165,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Brett Bateman",
+                  "price": 125,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Brett Bateman",
+                  "price": -166,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vinnie Pasquantino",
+                  "price": 130,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Vinnie Pasquantino",
+                  "price": -173,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Alejandro Kirk",
+                  "price": 131,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Alejandro Kirk",
+                  "price": -175,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Michael Massey",
+                  "price": 133,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Michael Massey",
+                  "price": -178,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Ernie Clement",
+                  "price": 149,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Under",
+                  "description": "Ernie Clement",
+                  "price": -200,
+                  "point": 1.5,
+                  "multiplier": null
+                }
+              ]
+            },
+            {
+              "key": "batter_total_bases_alternate",
+              "last_update": "2026-08-25T02:31:50Z",
+              "outcomes": [
+                {
+                  "name": "Over",
+                  "description": "Jac Caglianone",
+                  "price": -102,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jac Caglianone",
+                  "price": 187,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jac Caglianone",
+                  "price": 255,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jac Caglianone",
+                  "price": 526,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jac Caglianone",
+                  "price": 950,
+                  "point": 5.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Bobby Witt Jr.",
+                  "price": 103,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Bobby Witt Jr.",
+                  "price": 204,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Bobby Witt Jr.",
+                  "price": 297,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Bobby Witt Jr.",
+                  "price": 596,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Bobby Witt Jr.",
+                  "price": 1080,
+                  "point": 5.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Carter Jensen",
+                  "price": 116,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Carter Jensen",
+                  "price": 224,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Carter Jensen",
+                  "price": 300,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Carter Jensen",
+                  "price": 680,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Carter Jensen",
+                  "price": 1160,
+                  "point": 5.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Salvador Perez",
+                  "price": 121,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Salvador Perez",
+                  "price": 236,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Salvador Perez",
+                  "price": 325,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Salvador Perez",
+                  "price": 690,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Salvador Perez",
+                  "price": 1260,
+                  "point": 5.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vladimir Guerrero Jr.",
+                  "price": 111,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vladimir Guerrero Jr.",
+                  "price": 245,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vladimir Guerrero Jr.",
+                  "price": 381,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vladimir Guerrero Jr.",
+                  "price": 730,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "George Springer",
+                  "price": 122,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "George Springer",
+                  "price": 256,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "George Springer",
+                  "price": 382,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "George Springer",
+                  "price": 780,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kazuma Okamoto",
+                  "price": 144,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kazuma Okamoto",
+                  "price": 274,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kazuma Okamoto",
+                  "price": 366,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kazuma Okamoto",
+                  "price": 880,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vinnie Pasquantino",
+                  "price": 130,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vinnie Pasquantino",
+                  "price": 274,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vinnie Pasquantino",
+                  "price": 400,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Vinnie Pasquantino",
+                  "price": 880,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Michael Massey",
+                  "price": 133,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Michael Massey",
+                  "price": 279,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Michael Massey",
+                  "price": 423,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Michael Massey",
+                  "price": 890,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Alejandro Kirk",
+                  "price": 131,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Alejandro Kirk",
+                  "price": 299,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Alejandro Kirk",
+                  "price": 475,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Alejandro Kirk",
+                  "price": 990,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nathan Lukes",
+                  "price": 127,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nathan Lukes",
+                  "price": 306,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nathan Lukes",
+                  "price": 538,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nathan Lukes",
+                  "price": 1080,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Brett Bateman",
+                  "price": 125,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Brett Bateman",
+                  "price": 306,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Brett Bateman",
+                  "price": 600,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Brett Bateman",
+                  "price": 1220,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jesus Sanchez",
+                  "price": 150,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jesus Sanchez",
+                  "price": 348,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jesus Sanchez",
+                  "price": 557,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Jesus Sanchez",
+                  "price": 1220,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Isaac Collins",
+                  "price": 166,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Isaac Collins",
+                  "price": 372,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Isaac Collins",
+                  "price": 566,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Isaac Collins",
+                  "price": 1260,
+                  "point": 4.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nick Loftin",
+                  "price": 181,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nick Loftin",
+                  "price": 397,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Nick Loftin",
+                  "price": 610,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Andres Gimenez",
+                  "price": 162,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Andres Gimenez",
+                  "price": 387,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Andres Gimenez",
+                  "price": 660,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Ernie Clement",
+                  "price": 152,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Ernie Clement",
+                  "price": 374,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Ernie Clement",
+                  "price": 660,
+                  "point": 3.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kyle Isbel",
+                  "price": 187,
+                  "point": 1.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kyle Isbel",
+                  "price": 424,
+                  "point": 2.5,
+                  "multiplier": null
+                },
+                {
+                  "name": "Over",
+                  "description": "Kyle Isbel",
+                  "price": 690,
+                  "point": 3.5,
+                  "multiplier": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "diagnostics": [
+    {
+      "source": "pick6",
+      "region": "us_dfs",
+      "bookmaker": "pick6",
+      "eventId": "259b6ad0c039c2a2dd00d378d88eb549",
+      "commenceTime": "2026-08-25T22:41:00Z",
+      "targetOffersAvailable": false,
+      "bookmakerCount": 0,
+      "markets": []
+    },
+    {
+      "source": "draftkings",
+      "region": "us",
+      "bookmaker": "draftkings",
+      "eventId": "587e76b251f060a951bfa47ee07cf6ac",
+      "commenceTime": "2026-08-25T23:08:00Z",
+      "targetOffersAvailable": true,
+      "bookmakerCount": 1,
+      "markets": [
+        {
+          "key": "batter_hits",
+          "outcomeCount": 36,
+          "uniquePlayers": 18,
+          "sides": [
+            "Over",
+            "Under"
+          ],
+          "uniquePoints": [
+            0.5,
+            1.5
+          ],
+          "exactDuplicateRows": 0,
+          "pricePresence": [
+            "number"
+          ],
+          "multiplierPresence": [
+            "object"
+          ],
+          "sidPresence": [
+            "absent"
+          ]
+        },
+        {
+          "key": "batter_hits_alternate",
+          "outcomeCount": 58,
+          "uniquePlayers": 18,
+          "sides": [
+            "Over"
+          ],
+          "uniquePoints": [
+            0.5,
+            1.5,
+            2.5,
+            3.5
+          ],
+          "exactDuplicateRows": 0,
+          "pricePresence": [
+            "number"
+          ],
+          "multiplierPresence": [
+            "object"
+          ],
+          "sidPresence": [
+            "absent"
+          ]
+        },
+        {
+          "key": "batter_hits_runs_rbis_alternate",
+          "outcomeCount": 90,
+          "uniquePlayers": 18,
+          "sides": [
+            "Over"
+          ],
+          "uniquePoints": [
+            0.5,
+            1.5,
+            2.5,
+            3.5,
+            4.5
+          ],
+          "exactDuplicateRows": 0,
+          "pricePresence": [
+            "number"
+          ],
+          "multiplierPresence": [
+            "object"
+          ],
+          "sidPresence": [
+            "absent"
+          ]
+        },
+        {
+          "key": "batter_total_bases",
+          "outcomeCount": 24,
+          "uniquePlayers": 12,
+          "sides": [
+            "Over",
+            "Under"
+          ],
+          "uniquePoints": [
+            1.5
+          ],
+          "exactDuplicateRows": 0,
+          "pricePresence": [
+            "number"
+          ],
+          "multiplierPresence": [
+            "object"
+          ],
+          "sidPresence": [
+            "absent"
+          ]
+        },
+        {
+          "key": "batter_total_bases_alternate",
+          "outcomeCount": 72,
+          "uniquePlayers": 18,
+          "sides": [
+            "Over"
+          ],
+          "uniquePoints": [
+            1.5,
+            2.5,
+            3.5,
+            4.5,
+            5.5
+          ],
+          "exactDuplicateRows": 0,
+          "pricePresence": [
+            "number"
+          ],
+          "multiplierPresence": [
+            "object"
+          ],
+          "sidPresence": [
+            "absent"
+          ]
+        }
+      ]
+    }
+  ],
+  "requestLog": [
+    {
+      "source": "pick6",
+      "eventId": "259b6ad0c039c2a2dd00d378d88eb549",
+      "status": "ok",
+      "targetOutcomeCount": 0
+    },
+    {
+      "source": "pick6",
+      "eventId": "4819f8690b221a33563af84c498578c2",
+      "status": "ok",
+      "targetOutcomeCount": 0
+    },
+    {
+      "source": "pick6",
+      "eventId": "187cbd24b1e45a99e9ecaf256baeb7c1",
+      "status": "ok",
+      "targetOutcomeCount": 0
+    },
+    {
+      "source": "pick6",
+      "eventId": "587e76b251f060a951bfa47ee07cf6ac",
+      "status": "ok",
+      "targetOutcomeCount": 0
+    },
+    {
+      "source": "pick6",
+      "eventId": "5adabe1a546de0ad6f64e2789b2b8f8d",
+      "status": "ok",
+      "targetOutcomeCount": 0
+    },
+    {
+      "source": "pick6",
+      "eventId": "d7bed76714eb2b887f979d5156f6863c",
+      "status": "ok",
+      "targetOutcomeCount": 0
+    },
+    {
+      "source": "pick6",
+      "eventId": "6e7150d8c439882971bcb51d92f290ca",
+      "status": "ok",
+      "targetOutcomeCount": 0
+    },
+    {
+      "source": "pick6",
+      "eventId": "57e5de55a9616dbe31da6693615d0af8",
+      "status": "ok",
+      "targetOutcomeCount": 0
+    },
+    {
+      "source": "pick6",
+      "eventId": "f4592955744665289f90514e92145dcf",
+      "status": "ok",
+      "targetOutcomeCount": 0
+    },
+    {
+      "source": "pick6",
+      "eventId": "3c57e2dd92e3e26dff7fb8c2898891bd",
+      "status": "ok",
+      "targetOutcomeCount": 0
+    },
+    {
+      "source": "pick6",
+      "eventId": "50491a98ba9ab1b1502809e59c3cd776",
+      "status": "ok",
+      "targetOutcomeCount": 0
+    },
+    {
+      "source": "pick6",
+      "eventId": "ccb7afafeeb739ec9623deb9cba63f64",
+      "status": "ok",
+      "targetOutcomeCount": 0
+    },
+    {
+      "source": "draftkings",
+      "eventId": "259b6ad0c039c2a2dd00d378d88eb549",
+      "status": "ok",
+      "targetOutcomeCount": 0
+    },
+    {
+      "source": "draftkings",
+      "eventId": "4819f8690b221a33563af84c498578c2",
+      "status": "ok",
+      "targetOutcomeCount": 0
+    },
+    {
+      "source": "draftkings",
+      "eventId": "187cbd24b1e45a99e9ecaf256baeb7c1",
+      "status": "ok",
+      "targetOutcomeCount": 0
+    },
+    {
+      "source": "draftkings",
+      "eventId": "587e76b251f060a951bfa47ee07cf6ac",
+      "status": "ok",
+      "targetOutcomeCount": 280
+    }
+  ]
+}

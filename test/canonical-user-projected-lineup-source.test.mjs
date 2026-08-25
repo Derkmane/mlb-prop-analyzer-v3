@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-test('PROJECT_RULES 2.16 preserves optional user projected lineup precedence and non-gating behavior', () => {
+test('PROJECT_RULES 2.18 preserves optional user projected lineup precedence and non-gating behavior', () => {
   const rules = readFileSync('PROJECT_RULES.md', 'utf8');
-  assert.match(rules, /\*\*Version:\*\* 2\.16/u);
+  assert.match(rules, /\*\*Version:\*\* 2\.18/u);
   assert.match(rules, /### User-supplied projected lineup evidence/u);
   assert.match(rules, /user-supplied projected lineup evidence is optional/u);
   assert.match(rules, /BALLDONTLIE current-game evidence has first precedence/u);

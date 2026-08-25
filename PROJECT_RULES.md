@@ -1,6 +1,6 @@
 # MLB Prop Analyzer --- Project Rules
 
-**Version:** 2.16\
+**Version:** 2.18\
 **Status:** Canonical project rules\
 **Applies to:** MLB Prop Analyzer V3\
 **Repository:** `Derkmane/mlb-prop-analyzer-v3`
@@ -108,7 +108,8 @@ approval.
 
 ## 5. Golden Rule and product objective --- LOCKED
 
-The app analyzes Underdog MLB pregame player props.
+The app analyzes MLB pregame player props from the active approved The Odds
+API board-source contracts.
 
 The sole product objective is to identify, within each approved
 category, the eligible posted Higher or Lower picks with the highest
@@ -154,9 +155,9 @@ ranking, saved predictions, or grading.
 
 ### Side-aware soft-line discovery --- LOCKED
 
-A **soft line** is an exact posted Underdog offer whose selected side and
-line produce favorable side-specific probability under an approved,
-versioned base baseball distribution and discovery rule.
+A **soft line** is an exact posted offer from an approved board source whose
+selected side and line produce favorable side-specific probability under an
+approved, versioned base baseball distribution and discovery rule.
 
 Rules:
 
@@ -226,32 +227,37 @@ feature. High Probability Altline Props is a category selector.
 ### Alternate line definition --- LOCKED
 
 For product-category purposes, an **alternate line** is an exact posted
-Underdog projection line whose numerical `postedLine` is different from the
-verified baseline projection line for the same player, game, base market, and
+projection line whose numerical `postedLine` is different from the verified
+baseline projection line for the same source, player, game, base market, and
 official settlement statistic.
 
 Rules:
 
 -   a unique verified baseline projection line must be resolved from approved
-    source evidence before any offer for that player, game, and base market may
-    be classified as an alternate line
+    same-source evidence before any offer for that source, player, game, and
+    base market may be classified as a product alternate line
 -   if the baseline projection line cannot be uniquely resolved, alternate-line
-    classification fails closed for that player, game, and base market
+    classification fails closed for that source, player, game, and base market
 -   an offer whose numerical posted line equals the verified baseline line is
-    **not** an alternate line, even if a provider places that offer under a
-    market key containing `alternate`, assigns a different multiplier, price,
-    payout, boost, promotion, or other offer metadata, or duplicates the offer
-    in another provider market bucket
--   a provider `alternate` market key is provider offer identity only; it may
-    not by itself determine product Altline-category eligibility
--   a posted line numerically below or above the verified baseline line is a
-    true alternate-line candidate when the exact offer is otherwise valid; its
-    exact posted Higher or Lower side is evaluated independently
--   example: if the verified baseline is `1.5`, posted `0.5` and `2.5` lines are
-    alternate lines; another posted `1.5` offer with a different multiplier is
-    not an alternate line
+    **not** a product alternate line merely because it has different price,
+    multiplier, payout, boost, promotion, or other offer metadata
+-   normalized provider `offerType` and product Altline-category identity are
+    distinct concepts: for the verified active Pick6 and DraftKings contracts,
+    the exact base market key normalizes to provider `offerType = baseline` and
+    the corresponding `_alternate` market key normalizes to provider
+    `offerType = alternate`; product Altline eligibility still requires a
+    numerically different rung from the uniquely verified same-source baseline
+-   no standard-book consensus, other-book line, cross-book inference, or
+    `standardBookBaselineLines` fallback may establish a player's baseline for
+    another source
+-   a posted line numerically below or above the verified same-source baseline
+    line is a true alternate-line candidate when the exact offer is otherwise
+    valid; its exact posted Higher or Lower side is evaluated independently
+-   example: if one source's verified baseline is `1.5`, posted `0.5` and `2.5`
+    rungs from that source are alternate lines; another posted `1.5` offer is
+    not a product alternate line
 -   High Probability Baseline Props may admit only the verified baseline line
-    for the player and base market
+    for the player, source, and base market
 -   High Probability Altline Props may admit only true alternate lines under
     this definition, and every admitted pick must still satisfy the normal
     `P(Win | grades) > 0.50` category eligibility rule
@@ -259,6 +265,9 @@ Rules:
     statistic use the same official-statistic distribution; each exact posted
     side and line is settled independently, and category ranking remains
     `P(Win | grades)` descending then `P(Void)` ascending
+-   a missing rung or missing side is an explicit absence; it may not be
+    synthesized, mirrored, null-coalesced, or inferred from the opposite side
+    or another source
 
 ### Projected lineup treatment --- LOCKED
 
@@ -308,13 +317,51 @@ Only these sources may supply production baseball or board data:
 
 ### The Odds API
 
-Used for:
+The active MLB player-prop board is built from exactly these verified
+bookmaker contracts:
 
--   Underdog board data
--   verified baseline markets
--   verified alternate markets
--   provider offer identity
--   posted side and line
+-   DraftKings Pick6: region `us_dfs`, bookmaker key `pick6`
+-   DraftKings Sportsbook: region `us`, bookmaker key `draftkings`
+
+For the ladder capture path, request the verified market set:
+
+-   `batter_hits`
+-   `batter_hits_alternate`
+-   `batter_hits_runs_rbis`
+-   `batter_hits_runs_rbis_alternate`
+-   `batter_total_bases`
+-   `batter_total_bases_alternate`
+
+Rules:
+
+-   request `includeMultipliers=true`
+-   preserve every exact source, event, player, provider market key, numerical
+    rung, posted side, American price, multiplier when present, market timestamp,
+    and immutable source-snapshot identity
+-   every normalized offer carries required source identity `pick6` or
+    `draftkings`; the user must be able to tell which app/book to open
+-   Pick6 duplicate rows are deduplicated only on exact
+    `(player, market, point, name)` identity by keeping the first identical row;
+    the observed duplication factor is diagnostic per market and is never
+    hardcoded
+-   Pick6 alternate ladders may be Over-only; a missing Under/Lower side is
+    preserved as absent and is not treated as a capture failure
+-   Pick6 Total Bases alternate availability is known to be intermittent; a
+    missing market or rung remains absent and may not be fabricated
+-   DraftKings and Pick6 use different pricing conventions; implied probability
+    may be normalized for display evidence only and price, multiplier, payout,
+    or implied probability may not alter category ranking
+-   normalized provider `offerType` is derived only from the exact provider
+    market key: the base key is `baseline` and its `_alternate` counterpart is
+    `alternate`; no standard-book consensus or baseline-line fallback is used
+    in provider offer-type normalization
+-   product Baseline/Altline-category identity remains governed by Section 6's
+    same-source numerical-line rule
+-   each source requires its own verified, versioned settlement and eligibility
+    contract before an offer from that source may enter research ranking or
+    production-calibrated output; Underdog settlement rules may not be reused
+    for DraftKings Sportsbook or Pick6
+-   Underdog is not an active production board source under this version
 
 ### BALLDONTLIE MLB API
 
@@ -462,7 +509,7 @@ untouched testing. When evidence is insufficient, label the component
 insufficient or not yet production-validated. Do not fill the gap with
 older seasons.
 
-Archive raw Underdog boards prospectively because earlier board
+Archive raw approved board snapshots prospectively because earlier board
 environments cannot be reconstructed from box scores alone.
 
 ------------------------------------------------------------------------
@@ -782,7 +829,7 @@ A real pregame prop may appear in the three product categories as
 -   runtime probability evaluation is deterministic and exact under the
     declared model
 -   a versioned market-specific settlement rule and eligibility event are
-    available
+    available for the exact offer source
 -   the exact posted Higher or Lower side and line are settled through the
     generic side-aware settlement path
 -   category ordering remains `P(Win | grades)` descending, then `P(Void)`
@@ -1016,8 +1063,7 @@ Read-only investigation is required when necessary to choose the
 structural direction. It is not a reason to stop working.
 
 The trigger prohibits a third blind patch; it does not prohibit a
-structurally redesigned implementation attempt after the full
-reassessment.
+structurally redesigned implementation attempt after full reassessment.
 
 Destructive deletion, rollback, replacement, or reconstruction remains
 subject to the approval requirements elsewhere in these rules. Deletion
@@ -1238,8 +1284,7 @@ execution. Do not install, invoke, probe for, or depend on `python`,
 `python3`, `pip`, `pip3`, virtual environments, Python scripts, or
 Python packages. Do not add Python tooling or dependencies to the
 repository. A future Python exception requires explicit user approval
-and a canonical Project Rules revision before any installation, command,
-script, or dependency is introduced.
+and a canonical Project Rules revision first.
 
 The project execution language remains strict TypeScript and Node.js.
 Repository inspection, file creation, edits, transformations, commits,
@@ -1275,6 +1320,27 @@ environment-specific verification, or public-link checks.
 
 When the user must act, give one exact next action.
 
+### Continuous execution and user-interruption minimization --- LOCKED
+
+When work can continue with available tools and no real approval, access,
+secret, evidence, runtime, destructive-change, or other authorization boundary
+has been reached, do not stop merely to report progress, remaining work, or
+next steps. Continue executing the approved task.
+
+Progress updates are not handoffs. After a progress update, continue the same
+work without requiring the user to reply unless user action is genuinely
+required.
+
+Do not ask the user to repeat, reconfirm, or re-authorize instructions or
+information already given and still applicable to the current task.
+
+Do not stop because the task is complex, lengthy, because one subcheck passes,
+or because additional diagnostics, corrections, tests, CI review, or repository
+work remain available through approved tools.
+
+When user action is genuinely required, stop at that exact boundary and give
+exactly one concrete action that advances the same issue.
+
 Do not impose time estimates, daily caps, or artificial stopping points.
 Continue the approved sequence until the task passes its evidence gate,
 the user stops, or a real boundary is reached.
@@ -1298,6 +1364,42 @@ There is no separate Project Knowledge deliverable.
 ------------------------------------------------------------------------
 
 ## Changelog
+
+### Version 2.18 — 2026-08-25
+
+-   Locked continuous execution when approved work can continue with available
+    tools and no real user-action boundary has been reached.
+-   Prohibited stopping merely to report progress, remaining work, next steps,
+    task complexity, or a passing intermediate subcheck while executable work
+    remains.
+-   Defined progress updates as non-handoff communication and prohibited asking
+    the user to repeat, reconfirm, or re-authorize still-applicable instructions.
+-   Preserved the existing rule that a genuine user-action boundary receives
+    exactly one concrete next action.
+-   Made no mathematical, provider, settlement, ranking, calibration,
+    production-enablement, or product-category change.
+
+### Version 2.17 — 2026-08-24
+
+-   Replaced Underdog as the active board source with the verified The Odds API
+    DraftKings Pick6 (`us_dfs` / `pick6`) and DraftKings Sportsbook (`us` /
+    `draftkings`) contracts while preserving The Odds API as the production
+    board-data provider.
+-   Locked the six-market Hits/HHR/Total Bases capture set, required source
+    identity on every offer, preserved missing rungs and sides as explicit
+    absences, and recorded Pick6 duplicate, Over-only, and intermittent Total
+    Bases-alt behavior from live provider evidence.
+-   Separated provider `offerType` from product Altline identity: provider type
+    comes from the exact base versus `_alternate` market key, while product
+    Altline eligibility still requires a numerically different rung from a
+    uniquely verified same-source baseline.
+-   Prohibited `standardBookBaselineLines`, cross-book baseline inference, or
+    synthesis of a missing side/rung and kept price, multiplier, payout, and
+    implied probability display-only for ranking purposes.
+-   Required source-specific settlement and eligibility contracts for Pick6 and
+    DraftKings Sportsbook and prohibited reuse of Underdog settlement rules.
+-   Preserved the Golden Rule, category probability gate, exact side-and-line
+    settlement, and ranking by `P(Win | grades)` then `P(Void)`.
 
 ### Version 2.16 — 2026-08-24
 

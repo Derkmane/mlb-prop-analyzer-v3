@@ -11,8 +11,8 @@ const PRELOAD = path.resolve('scripts/m9-board-snapshot-preload.mjs');
 const sha256 = (bytes) =>
   createHash('sha256').update(bytes).digest('hex');
 
-test('HHR replay keeps the Underdog board frozen while standard-book HHR stays auxiliary/live', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'm9-hhr-standard-replay-'));
+test('HHR replay preserves exact Pick6 and DraftKings source-qualified board bytes', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'm9-hhr-active-replay-'));
   t.after(() => rm(root, { recursive: true, force: true }));
 
   const eventId = 'event-1';
@@ -20,57 +20,67 @@ test('HHR replay keeps the Underdog board frozen while standard-book HHR stays a
   const rawDirectory = path.join(snapshotDirectory, 'raw');
   await mkdir(rawDirectory, { recursive: true });
 
-  const hhrBytes = Buffer.from('{"source":"frozen-underdog-hhr"}', 'utf8');
-  const hhrSha256 = sha256(hhrBytes);
-  await writeFile(path.join(rawDirectory, `${hhrSha256}.json`), hhrBytes);
+  const pick6Bytes = Buffer.from('{"source":"frozen-pick6-hhr"}', 'utf8');
+  const draftkingsBytes = Buffer.from('{"source":"frozen-draftkings-hhr"}', 'utf8');
+  const pick6Sha256 = sha256(pick6Bytes);
+  const draftkingsSha256 = sha256(draftkingsBytes);
+  await Promise.all([
+    writeFile(path.join(rawDirectory, `${pick6Sha256}.json`), pick6Bytes),
+    writeFile(path.join(rawDirectory, `${draftkingsSha256}.json`), draftkingsBytes),
+  ]);
 
   const manifestPath = path.join(snapshotDirectory, 'manifest.json');
   await writeFile(
     manifestPath,
     `${JSON.stringify({
-      version: 2,
-      contract: 'm9-first-board-snapshot-v2',
+      version: 3,
+      contract: 'm9-first-board-snapshot-v3',
       snapshotId: 'snapshot-1',
       snapshotSetSha256: 'snapshot-set-sha',
       claimedGames: [{ eventId }],
       replayEligibleEvents: [{ eventId }],
       requests: [
         {
-          requestKey: `hhr:${eventId}`,
+          requestKey: `hhr:pick6:${eventId}`,
           consumer: 'hhr',
           capturedAt: '2026-08-22T14:32:06.201Z',
           response: {
             status: 200,
             statusText: 'OK',
             contentType: 'application/json',
-            sha256: hhrSha256,
-            byteLength: hhrBytes.length,
-            bodyFile: `raw/${hhrSha256}.json`,
+            sha256: pick6Sha256,
+            byteLength: pick6Bytes.length,
+            bodyFile: `raw/${pick6Sha256}.json`,
+          },
+        },
+        {
+          requestKey: `hhr:draftkings:${eventId}`,
+          consumer: 'hhr',
+          capturedAt: '2026-08-22T14:32:06.202Z',
+          response: {
+            status: 200,
+            statusText: 'OK',
+            contentType: 'application/json',
+            sha256: draftkingsSha256,
+            byteLength: draftkingsBytes.length,
+            bodyFile: `raw/${draftkingsSha256}.json`,
           },
         },
       ],
     })}\n`,
   );
 
-  const stubPath = path.join(root, 'stub-live-fetch.mjs');
-  await writeFile(
-    stubPath,
-    `globalThis.fetch = async (input) => {\n  const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url);\n  return new Response(JSON.stringify({ source: 'live-aux', markets: url.searchParams.get('markets'), regions: url.searchParams.get('regions') }), { status: 200, headers: { 'content-type': 'application/json' } });\n};\n`,
-  );
-
   const receiptPath = path.join(root, 'hhr-receipt.json');
   const code = `
-    const frozen = await fetch('https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${eventId}/odds?apiKey=dummy&regions=us_dfs&bookmakers=underdog&markets=batter_hits_runs_rbis,batter_hits_runs_rbis_alternate&dateFormat=iso&oddsFormat=american&includeMultipliers=true&includeSids=true');
-    console.log('FROZEN', await frozen.text());
-    const auxiliary = await fetch('https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${eventId}/odds?apiKey=dummy&regions=us&markets=batter_hits_runs_rbis&dateFormat=iso&oddsFormat=american');
-    console.log('AUX', await auxiliary.text());
+    const pick6 = await fetch('https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${eventId}/odds?apiKey=dummy&regions=us_dfs&bookmakers=pick6&markets=batter_hits_runs_rbis,batter_hits_runs_rbis_alternate&dateFormat=iso&oddsFormat=american&includeMultipliers=true&includeSids=true');
+    console.log('PICK6', await pick6.text());
+    const draftkings = await fetch('https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${eventId}/odds?apiKey=dummy&regions=us&bookmakers=draftkings&markets=batter_hits_runs_rbis,batter_hits_runs_rbis_alternate&dateFormat=iso&oddsFormat=american&includeMultipliers=true&includeSids=true');
+    console.log('DRAFTKINGS', await draftkings.text());
   `;
 
   const result = spawnSync(
     process.execPath,
     [
-      '--import',
-      stubPath,
       '--import',
       PRELOAD,
       '--input-type=module',
@@ -89,19 +99,26 @@ test('HHR replay keeps the Underdog board frozen while standard-book HHR stays a
   );
 
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /FROZEN \{"source":"frozen-underdog-hhr"\}/u);
+  assert.match(result.stdout, /PICK6 \{"source":"frozen-pick6-hhr"\}/u);
   assert.match(
     result.stdout,
-    /AUX \{"source":"live-aux","markets":"batter_hits_runs_rbis","regions":"us"\}/u,
+    /DRAFTKINGS \{"source":"frozen-draftkings-hhr"\}/u,
   );
 
   const receipt = JSON.parse(await readFile(receiptPath, 'utf8'));
+  assert.equal(receipt.version, 3);
   assert.equal(receipt.complete, true);
-  assert.deepEqual(receipt.expectedRequestKeys, [`hhr:${eventId}`]);
+  assert.deepEqual(
+    receipt.expectedRequestKeys,
+    [`hhr:draftkings:${eventId}`, `hhr:pick6:${eventId}`],
+  );
   assert.deepEqual(receipt.optionalRequestKeys, []);
   assert.deepEqual(
     receipt.consumed.map((row) => row.requestKey),
-    [`hhr:${eventId}`],
+    [`hhr:draftkings:${eventId}`, `hhr:pick6:${eventId}`],
   );
-  assert.equal(receipt.consumed[0].responseSha256, hhrSha256);
+  assert.deepEqual(
+    receipt.consumed.map((row) => row.responseSha256),
+    [draftkingsSha256, pick6Sha256],
+  );
 });

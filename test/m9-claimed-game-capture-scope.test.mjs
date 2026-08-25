@@ -75,6 +75,7 @@ test('first snapshot and Hits event selection are restricted to controller-claim
     '2026-08-17T16:00:02.000Z',
     '2026-08-17T16:00:03.000Z',
     '2026-08-17T16:00:04.000Z',
+    '2026-08-17T16:00:05.000Z',
   ];
   const snapshot = await captureFirstBoardSnapshot({
     fetchImpl: fakeFetch,
@@ -92,23 +93,38 @@ test('first snapshot and Hits event selection are restricted to controller-claim
     scheduleCapturedAt: RUN,
     events,
     claimedGames: [claimed(gameA)],
-    now: () => stamps.shift() ?? '2026-08-17T16:00:04.000Z',
+    now: () => stamps.shift() ?? '2026-08-17T16:00:05.000Z',
   });
 
   assert.deepEqual(
     requestedUrls.map((url) => url.pathname.match(/\/events\/([^/]+)\/odds$/u)[1]),
-    ['game-a', 'game-a', 'game-a'],
+    ['game-a', 'game-a', 'game-a', 'game-a'],
   );
-  const standardHitsUrl = requestedUrls.find(
-    (url) =>
-      url.searchParams.get('regions') === 'us' &&
-      url.searchParams.get('markets') === 'batter_hits',
+  assert.deepEqual(
+    requestedUrls.map((url) => [
+      url.searchParams.get('bookmakers'),
+      url.searchParams.get('regions'),
+      url.searchParams.get('markets'),
+    ]),
+    [
+      ['pick6', 'us_dfs', 'batter_hits,batter_hits_alternate'],
+      ['draftkings', 'us', 'batter_hits,batter_hits_alternate'],
+      ['pick6', 'us_dfs', 'batter_hits_runs_rbis,batter_hits_runs_rbis_alternate'],
+      ['draftkings', 'us', 'batter_hits_runs_rbis,batter_hits_runs_rbis_alternate'],
+    ],
   );
-  assert.ok(standardHitsUrl);
-  assert.equal(standardHitsUrl.searchParams.has('bookmakers'), false);
+  assert.ok(
+    requestedUrls.every((url) => url.searchParams.get('bookmakers') !== 'underdog'),
+  );
   assert.deepEqual(
     snapshot.manifest.requests.map((entry) => entry.requestKey),
-    ['events', 'hits:game-a', 'hits-standard:game-a', 'hhr:game-a'],
+    [
+      'events',
+      'hits:pick6:game-a',
+      'hits:draftkings:game-a',
+      'hhr:pick6:game-a',
+      'hhr:draftkings:game-a',
+    ],
   );
   assert.deepEqual(
     snapshot.manifest.pregameEvents.map((event) => event.eventId),

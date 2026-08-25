@@ -26,7 +26,7 @@ function checkSyntax(filePath) {
   assert.equal(result.status, 0, result.stderr);
 }
 
-test('unified first-snapshot preload preserves every deleted HHR preload guard and workflow ordering', async () => {
+test('unified first-snapshot preload preserves workflow guards with exact active source contracts', async () => {
   const [workflow, source, packageText] = await Promise.all([
     readFile(WORKFLOW, 'utf8'),
     readFile(PRELOAD, 'utf8'),
@@ -131,16 +131,13 @@ test('unified first-snapshot preload preserves every deleted HHR preload guard a
     /writeFile\(filePath, bytes, \{ flag: 'wx' \}\)/u,
   );
   assert.match(source, /existing\.equals\(bytes\)/u);
-  assert.match(
-    source,
-    /url\.searchParams\.get\('regions'\) !== 'us_dfs'/u,
-  );
-  assert.match(
-    source,
-    /url\.searchParams\.get\('bookmakers'\) !== 'underdog'/u,
-  );
+  assert.match(source, /boardSource: 'pick6'[\s\S]*bookmaker: 'pick6'[\s\S]*region: 'us_dfs'/u);
+  assert.match(source, /boardSource: 'draftkings'[\s\S]*bookmaker: 'draftkings'[\s\S]*region: 'us'/u);
+  assert.match(source, /batter_hits,batter_hits_alternate|HITS_MARKETS/u);
   assert.match(source, /batter_hits_runs_rbis/u);
   assert.match(source, /batter_hits_runs_rbis_alternate/u);
+  assert.doesNotMatch(source, /bookmakers', 'underdog'/u);
+  assert.doesNotMatch(source, /hits-standard/u);
   assert.doesNotMatch(source, /apiKey/u);
 
   const pkg = JSON.parse(packageText);
@@ -154,7 +151,7 @@ test('unified first-snapshot preload preserves every deleted HHR preload guard a
   );
 });
 
-test('first snapshot replays SHA-256 byte-identical payloads to both archivers and refuses one-sided coverage finalization', async (t) => {
+test('first snapshot replays source-qualified SHA-256 byte-identical payloads to both archivers and refuses one-sided coverage finalization', async (t) => {
   const root = await mkdtemp(
     path.join(os.tmpdir(), 'm9-first-snapshot-'),
   );
@@ -179,12 +176,10 @@ test('first snapshot replays SHA-256 byte-identical payloads to both archivers a
     ]),
   );
 
-  const hitsBytes = Buffer.from(
-    '{"kind":"hits","bytes":"exact"}',
-  );
-  const hhrBytes = Buffer.from(
-    '{"kind":"hhr","bytes":"exact"}',
-  );
+  const hitsPick6Bytes = Buffer.from('{"kind":"hits-pick6","bytes":"exact"}');
+  const hitsDraftKingsBytes = Buffer.from('{"kind":"hits-draftkings","bytes":"exact"}');
+  const hhrPick6Bytes = Buffer.from('{"kind":"hhr-pick6","bytes":"exact"}');
+  const hhrDraftKingsBytes = Buffer.from('{"kind":"hhr-draftkings","bytes":"exact"}');
 
   const scheduleUrl = new URL(
     'https://api.the-odds-api.com/v4/sports/baseball_mlb/events?secret=dummy&dateFormat=iso',
@@ -193,9 +188,15 @@ test('first snapshot replays SHA-256 byte-identical payloads to both archivers a
   const fakeFetch = async (input) => {
     const url = new URL(input);
     const markets = url.searchParams.get('markets') ?? '';
-    const bytes = markets.includes('batter_hits_runs_rbis')
-      ? hhrBytes
-      : hitsBytes;
+    const bookmaker = url.searchParams.get('bookmakers');
+    const hhr = markets.includes('batter_hits_runs_rbis');
+    const bytes = hhr
+      ? bookmaker === 'pick6'
+        ? hhrPick6Bytes
+        : hhrDraftKingsBytes
+      : bookmaker === 'pick6'
+        ? hitsPick6Bytes
+        : hitsDraftKingsBytes;
 
     return new Response(bytes, {
       status: 200,
@@ -209,6 +210,8 @@ test('first snapshot replays SHA-256 byte-identical payloads to both archivers a
     '2026-08-13T16:00:01.000Z',
     '2026-08-13T16:00:02.000Z',
     '2026-08-13T16:00:03.000Z',
+    '2026-08-13T16:00:04.000Z',
+    '2026-08-13T16:00:05.000Z',
   ];
 
   const snapshot = await captureFirstBoardSnapshot({
@@ -234,12 +237,13 @@ test('first snapshot replays SHA-256 byte-identical payloads to both archivers a
       },
     ],
     now: () =>
-      stamps.shift() ?? '2026-08-13T16:00:03.000Z',
+      stamps.shift() ?? '2026-08-13T16:00:05.000Z',
   });
 
+  assert.equal(snapshot.manifest.version, 3);
   assert.equal(
     snapshot.manifest.runStartToSnapshotElapsedMs,
-    3000,
+    5000,
   );
 
   const request = (consumer, receiptPath, code) => {
@@ -280,17 +284,12 @@ test('first snapshot replays SHA-256 byte-identical payloads to both archivers a
   const hitsOutput = request(
     'hits',
     hitsReceipt,
-    `const e=await fetch('https://api.the-odds-api.com/v4/sports/baseball_mlb/events?secret=dummy&dateFormat=iso');console.log(Buffer.from(await e.arrayBuffer()).toString('hex'));const b=await fetch('https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${eventId}/odds?secret=dummy&bookmakers=underdog&markets=batter_hits,batter_hits_alternate&dateFormat=iso&oddsFormat=american&includeMultipliers=true&includeSids=true');console.log(Buffer.from(await b.arrayBuffer()).toString('hex'));`,
+    `const e=await fetch('https://api.the-odds-api.com/v4/sports/baseball_mlb/events?secret=dummy&dateFormat=iso');console.log(Buffer.from(await e.arrayBuffer()).toString('hex'));const p=await fetch('https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${eventId}/odds?secret=dummy&regions=us_dfs&bookmakers=pick6&markets=batter_hits,batter_hits_alternate&dateFormat=iso&oddsFormat=american&includeMultipliers=true&includeSids=true');console.log(Buffer.from(await p.arrayBuffer()).toString('hex'));const d=await fetch('https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${eventId}/odds?secret=dummy&regions=us&bookmakers=draftkings&markets=batter_hits,batter_hits_alternate&dateFormat=iso&oddsFormat=american&includeMultipliers=true&includeSids=true');console.log(Buffer.from(await d.arrayBuffer()).toString('hex'));`,
   );
 
-  assert.equal(
-    Buffer.from(hitsOutput[0], 'hex').compare(scheduleBytes),
-    0,
-  );
-  assert.equal(
-    Buffer.from(hitsOutput[1], 'hex').compare(hitsBytes),
-    0,
-  );
+  assert.equal(Buffer.from(hitsOutput[0], 'hex').compare(scheduleBytes), 0);
+  assert.equal(Buffer.from(hitsOutput[1], 'hex').compare(hitsPick6Bytes), 0);
+  assert.equal(Buffer.from(hitsOutput[2], 'hex').compare(hitsDraftKingsBytes), 0);
 
   const planPath = path.join(root, 'plan.json');
 
@@ -343,13 +342,11 @@ test('first snapshot replays SHA-256 byte-identical payloads to both archivers a
   const hhrOutput = request(
     'hhr',
     hhrReceipt,
-    `const b=await fetch('https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${eventId}/odds?secret=dummy&regions=us_dfs&bookmakers=underdog&markets=batter_hits_runs_rbis,batter_hits_runs_rbis_alternate&dateFormat=iso&oddsFormat=american&includeMultipliers=true&includeSids=true');console.log(Buffer.from(await b.arrayBuffer()).toString('hex'));`,
+    `const p=await fetch('https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${eventId}/odds?secret=dummy&regions=us_dfs&bookmakers=pick6&markets=batter_hits_runs_rbis,batter_hits_runs_rbis_alternate&dateFormat=iso&oddsFormat=american&includeMultipliers=true&includeSids=true');console.log(Buffer.from(await p.arrayBuffer()).toString('hex'));const d=await fetch('https://api.the-odds-api.com/v4/sports/baseball_mlb/events/${eventId}/odds?secret=dummy&regions=us&bookmakers=draftkings&markets=batter_hits_runs_rbis,batter_hits_runs_rbis_alternate&dateFormat=iso&oddsFormat=american&includeMultipliers=true&includeSids=true');console.log(Buffer.from(await d.arrayBuffer()).toString('hex'));`,
   );
 
-  assert.equal(
-    Buffer.from(hhrOutput[0], 'hex').compare(hhrBytes),
-    0,
-  );
+  assert.equal(Buffer.from(hhrOutput[0], 'hex').compare(hhrPick6Bytes), 0);
+  assert.equal(Buffer.from(hhrOutput[1], 'hex').compare(hhrDraftKingsBytes), 0);
 
   const hits = JSON.parse(
     await readFile(hitsReceipt, 'utf8'),
@@ -360,6 +357,8 @@ test('first snapshot replays SHA-256 byte-identical payloads to both archivers a
 
   assert.equal(hits.complete, true);
   assert.equal(hhr.complete, true);
+  assert.equal(hits.version, 3);
+  assert.equal(hhr.version, 3);
 
   assert.equal(
     hits.snapshotSetSha256,
@@ -380,14 +379,13 @@ test('first snapshot replays SHA-256 byte-identical payloads to both archivers a
       .sort(),
     [
       sha256(scheduleBytes),
-      sha256(hitsBytes),
+      sha256(hitsPick6Bytes),
+      sha256(hitsDraftKingsBytes),
     ].sort(),
   );
 
   assert.deepEqual(
-    hhr.consumed.map(
-      (row) => row.responseSha256,
-    ),
-    [sha256(hhrBytes)],
+    hhr.consumed.map((row) => row.responseSha256).sort(),
+    [sha256(hhrPick6Bytes), sha256(hhrDraftKingsBytes)].sort(),
   );
 });

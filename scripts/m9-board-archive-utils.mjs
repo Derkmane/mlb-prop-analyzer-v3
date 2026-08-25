@@ -41,6 +41,22 @@ function finiteNumber(value, label) {
   return value;
 }
 
+function finiteNumberOrNull(value, label) {
+  return value === null ? null : finiteNumber(value, label);
+}
+
+function stringOrNull(value, label) {
+  return value === null ? null : nonemptyString(value, label);
+}
+
+function activeBoardSourceOrNull(value, label) {
+  if (value === null) return null;
+  if (value !== 'pick6' && value !== 'draftkings') {
+    throw new TypeError(`${label} must be pick6, draftkings, or null.`);
+  }
+  return value;
+}
+
 function isoTimestamp(value, label) {
   const timestamp = nonemptyString(value, label);
   if (!Number.isFinite(Date.parse(timestamp))) {
@@ -225,9 +241,15 @@ function normalizedOfferRecord(offer) {
   const value = object(offer, 'normalized offer');
   return Object.freeze({
     provider: nonemptyString(value.provider, 'offer provider'),
+    boardSource: activeBoardSourceOrNull(value.boardSource, 'offer boardSource'),
     providerBookmakerKey: nonemptyString(
       value.providerBookmakerKey,
       'offer providerBookmakerKey',
+    ),
+    providerRegion: nonemptyString(value.providerRegion, 'offer providerRegion'),
+    settlementRuleVersion: stringOrNull(
+      value.settlementRuleVersion,
+      'offer settlementRuleVersion',
     ),
     providerEventId: nonemptyString(
       value.providerEventId,
@@ -253,11 +275,12 @@ function normalizedOfferRecord(offer) {
       'offer providerMarketKey',
     ),
     offerType: nonemptyString(value.offerType, 'offer offerType'),
+    offerTypeReason: stringOrNull(value.offerTypeReason, 'offer offerTypeReason'),
     selectedSide: nonemptyString(value.selectedSide, 'offer selectedSide'),
     rawSide: nonemptyString(value.rawSide, 'offer rawSide'),
     postedLine: finiteNumber(value.line, 'offer postedLine'),
-    americanPrice: finiteNumber(value.americanPrice, 'offer americanPrice'),
-    multiplier: finiteNumber(value.multiplier, 'offer multiplier'),
+    americanPrice: finiteNumberOrNull(value.americanPrice, 'offer americanPrice'),
+    multiplier: finiteNumberOrNull(value.multiplier, 'offer multiplier'),
     marketTimestamp: isoTimestamp(
       value.marketLastUpdate,
       'offer marketTimestamp',
@@ -280,6 +303,7 @@ function normalizedOfferRecord(offer) {
 function sourceOfferKey(offer) {
   const value = object(offer, 'source normalized offer');
   return stableJson([
+    value.boardSource ?? null,
     value.providerEventId,
     value.providerGameId,
     value.providerPlayerId,
@@ -293,6 +317,7 @@ function sourceOfferKey(offer) {
 function archiveOfferKey(offer) {
   const value = object(offer, 'archive normalized offer');
   return stableJson([
+    value.boardSource ?? null,
     value.providerEventId,
     value.providerGameId,
     value.providerPlayerId,

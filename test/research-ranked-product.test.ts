@@ -9,7 +9,9 @@ import {
   type ResearchDisplayMarket,
   type ResearchDisplayRow,
 } from '../src/application/index.js';
+import { BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION } from '../src/features/batter-hhr/contracts.js';
 import { BATTER_HHR_MARKET_KEY } from '../src/features/batter-hhr/manifest.js';
+import { BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION } from '../src/features/batter-hits/settlement.js';
 
 const CAPTURED_AT = '2099-08-18T20:00:00.000Z';
 
@@ -39,6 +41,12 @@ function row(input: Readonly<{
     distributionBuilderVersion: isHits
       ? 'm9-batter-hits-runtime-distribution-v1'
       : 'm11-batter-hhr-negative-binomial-v1',
+    boardSource: 'draftkings',
+    providerBookmakerKey: 'draftkings',
+    providerRegion: 'us',
+    settlementRuleVersion: isHits
+      ? BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION
+      : BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
     providerEventId: `event-${input.playerId}`,
     providerGameId: 9000 + input.playerId,
     providerPlayerId: input.playerId,
@@ -164,6 +172,9 @@ test('research board returns full eligible categories and a separate Top Five re
     assert.ok(category.picks.every((pick) => pick.pWinGivenGrades > 0.5));
     assert.equal(new Set(category.picks.map((pick) => pick.playerId)).size, category.picks.length);
     assert.ok(category.picks.every((pick) => pick.probabilityLabel === PRODUCT_RESEARCH_LABEL));
+    assert.ok(category.picks.every((pick) => pick.boardSource === 'draftkings'));
+    assert.ok(category.picks.every((pick) => pick.providerBookmakerKey === 'draftkings'));
+    assert.ok(category.picks.every((pick) => pick.providerRegion === 'us'));
     assert.deepEqual(category.researchTopFive, category.picks.slice(0, 5));
     assert.ok(category.researchTopFive.length <= 5);
     for (let index = 1; index < category.picks.length; index += 1) {
@@ -267,9 +278,10 @@ test('different per-market newest capture timestamps still contribute both marke
 });
 
 test('research board excludes commenced rows and preserves each archived line and side after product classification', async () => {
+  const futureBaseline = row({ market: 'batter-hits', playerId: 90, playerName: 'Future', offerType: 'baseline', side: 'higher', line: 0.5, p: 0.20 });
   const future = row({ market: 'batter-hits', playerId: 90, playerName: 'Future', offerType: 'alternate', side: 'lower', line: 2.5, p: 0.91 });
   const passed = row({ market: 'batter-hits', playerId: 91, playerName: 'Passed', offerType: 'alternate', side: 'higher', line: 0.5, p: 0.99, eventCommenceTime: '2000-01-01T00:00:00.000Z' });
-  const newest = archive('batter-hits', [future, passed]);
+  const newest = archive('batter-hits', [futureBaseline, future, passed]);
   const board = await readResearchProductBoardV2(Object.freeze({
     readLatest: async (market: ResearchDisplayMarket) => market === 'batter-hits' ? newest : null,
   }));
@@ -279,8 +291,8 @@ test('research board excludes commenced rows and preserves each archived line an
 
   assert.equal(displayed.some((pick) => pick.player === 'Passed'), false);
   assert.ok(displayed.some((pick) => pick.player === 'Future'));
-  assert.equal(baseline.picks.some((pick) => pick.player === 'Future'), true);
-  assert.equal(altline.picks.some((pick) => pick.player === 'Future'), false);
+  assert.equal(baseline.picks.some((pick) => pick.player === 'Future'), false);
+  assert.equal(altline.picks.some((pick) => pick.player === 'Future'), true);
   for (const pick of displayed.filter((value) => value.player === 'Future')) {
     assert.equal(pick.postedLine, future.postedLine);
     assert.equal(pick.selectedSide, future.selectedSide);
