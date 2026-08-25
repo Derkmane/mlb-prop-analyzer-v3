@@ -16,60 +16,72 @@ function object(value, label) {
   }
   return value;
 }
-
 function array(value, label) {
   if (!Array.isArray(value)) throw new TypeError(`${label} must be an array.`);
   return value;
 }
-
 function nonemptyString(value, label) {
   if (typeof value !== 'string' || value.length === 0) {
     throw new TypeError(`${label} must be a nonempty string.`);
   }
   return value;
 }
-
 function sha256(value, label) {
   if (typeof value !== 'string' || !SHA256_PATTERN.test(value)) {
     throw new TypeError(`${label} must be a lowercase SHA-256.`);
   }
   return value;
 }
-
 function isoTimestamp(value, label) {
   nonemptyString(value, label);
-  if (!Number.isFinite(Date.parse(value))) {
-    throw new TypeError(`${label} must be an ISO timestamp.`);
-  }
+  if (!Number.isFinite(Date.parse(value))) throw new TypeError(`${label} must be an ISO timestamp.`);
   return value;
 }
-
 function probability(value, label) {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) {
     throw new TypeError(`${label} must be a finite probability in [0, 1].`);
   }
   return value;
 }
-
 function finiteNumberOrNull(value, label) {
   if (value === null) return null;
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    throw new TypeError(`${label} must be a finite number or null.`);
-  }
+  if (typeof value !== 'number' || !Number.isFinite(value)) throw new TypeError(`${label} must be a finite number or null.`);
   return value;
 }
-
 function integerOrNull(value, label) {
   if (value === null) return null;
-  if (!Number.isSafeInteger(value)) {
-    throw new TypeError(`${label} must be a safe integer or null.`);
-  }
+  if (!Number.isSafeInteger(value)) throw new TypeError(`${label} must be a safe integer or null.`);
   return value;
 }
-
 function stringOrNull(value, label) {
   if (value === null) return null;
   return nonemptyString(value, label);
+}
+function boardSourceOrNull(value, label) {
+  if (value === undefined || value === null) return null;
+  if (value !== 'pick6' && value !== 'draftkings') throw new TypeError(`${label} must be pick6, draftkings, or null.`);
+  return value;
+}
+function sourceIdentity(raw, label) {
+  const source = boardSourceOrNull(raw.boardSource, `${label}.boardSource`);
+  const bookmaker = raw.providerBookmakerKey ?? raw.bookmaker ?? (source === null ? 'underdog' : source);
+  const region = raw.providerRegion ?? raw.region ?? (source === 'draftkings' ? 'us' : 'us_dfs');
+  if (bookmaker !== 'pick6' && bookmaker !== 'draftkings' && bookmaker !== 'underdog') {
+    throw new TypeError(`${label}.providerBookmakerKey is unsupported.`);
+  }
+  if (region !== 'us' && region !== 'us_dfs') throw new TypeError(`${label}.providerRegion is unsupported.`);
+  if (source === null && (bookmaker !== 'underdog' || region !== 'us_dfs')) {
+    throw new Error(`${label} historical source identity is inconsistent.`);
+  }
+  if (source !== null && bookmaker !== source) throw new Error(`${label} source/bookmaker identity is inconsistent.`);
+  if (source === 'draftkings' && region !== 'us') throw new Error(`${label} DraftKings region must be us.`);
+  if (source === 'pick6' && region !== 'us_dfs') throw new Error(`${label} Pick6 region must be us_dfs.`);
+  return Object.freeze({
+    boardSource: source,
+    providerBookmakerKey: bookmaker,
+    providerRegion: region,
+    settlementRuleVersion: stringOrNull(raw.settlementRuleVersion ?? null, `${label}.settlementRuleVersion`),
+  });
 }
 
 function displayEnrichmentForRows(raw, rows) {
@@ -89,23 +101,17 @@ function displayEnrichmentForRows(raw, rows) {
     diagnostics: object(enrichment.diagnostics, 'displayEnrichment.diagnostics'),
   });
 }
-
 function sha256Bytes(bytes) {
   return createHash('sha256').update(bytes).digest('hex');
 }
-
 function captureKeyForMarket(market, archive) {
-  const value =
-    market === 'batter-hits'
-      ? object(archive.captureIdentity, 'Batter Hits captureIdentity').captureKey
-      : archive.captureKey;
+  const value = market === 'batter-hits'
+    ? object(archive.captureIdentity, 'Batter Hits captureIdentity').captureKey
+    : archive.captureKey;
   const captureKey = nonemptyString(value, `${market} captureKey`);
-  if (!CAPTURE_KEY_PATTERN.test(captureKey)) {
-    throw new Error(`${market} captureKey is not canonical.`);
-  }
+  if (!CAPTURE_KEY_PATTERN.test(captureKey)) throw new Error(`${market} captureKey is not canonical.`);
   return captureKey;
 }
-
 function assertProductionDisabled(market, archive) {
   if (market === 'batter-hits') {
     if (archive.productionEnabled !== false || archive.productionRankingEnabled !== false) {
@@ -118,7 +124,6 @@ function assertProductionDisabled(market, archive) {
     throw new Error('HHR full archive is not production and ranking disabled.');
   }
 }
-
 function oneVersion(rows, readVersion, label) {
   const values = [...new Set(rows.map(readVersion).filter((value) => value !== null && value !== undefined))];
   if (values.length !== 1 || typeof values[0] !== 'string' || values[0].length === 0) {
@@ -126,7 +131,6 @@ function oneVersion(rows, readVersion, label) {
   }
   return values[0];
 }
-
 function expectedValueFromPmf(raw, label) {
   if (raw === undefined || raw === null) return null;
   const pmf = object(raw, label);
@@ -137,59 +141,30 @@ function expectedValueFromPmf(raw, label) {
   });
   return expected;
 }
-
 function optionalObject(value, label) {
   if (value === undefined || value === null) return null;
   return object(value, label);
 }
-
 function batterHitsFeatureDetails(row, index) {
-  const candidate = optionalObject(
-    row.candidate,
-    `Batter Hits rankedRows[${index}].candidate`,
-  );
+  const candidate = optionalObject(row.candidate, `Batter Hits rankedRows[${index}].candidate`);
   if (candidate === null) return null;
-  const featureData = optionalObject(
-    candidate.featureData,
-    `Batter Hits row ${index} featureData`,
-  );
+  const featureData = optionalObject(candidate.featureData, `Batter Hits row ${index} featureData`);
   if (featureData === null) return null;
-  const values = optionalObject(
-    featureData.values,
-    `Batter Hits row ${index} featureData.values`,
-  );
+  const values = optionalObject(featureData.values, `Batter Hits row ${index} featureData.values`);
   if (values === null) return null;
   const detailsEntries = Object.values(values);
   if (detailsEntries.length === 0) return null;
-  if (detailsEntries.length !== 1) {
-    throw new Error(`Batter Hits row ${index} must have exactly one feature details envelope.`);
-  }
+  if (detailsEntries.length !== 1) throw new Error(`Batter Hits row ${index} must have exactly one feature details envelope.`);
   return object(detailsEntries[0], `Batter Hits row ${index} feature details`);
 }
-
 function batterHitsAnalysisContext(row, index) {
   const details = batterHitsFeatureDetails(row, index);
-  const distribution = optionalObject(
-    row.distribution,
-    `Batter Hits row ${index} distribution`,
-  );
+  const distribution = optionalObject(row.distribution, `Batter Hits row ${index} distribution`);
   return Object.freeze({
-    expectedPlateAppearances: expectedValueFromPmf(
-      distribution?.opportunityDistribution,
-      `Batter Hits row ${index} opportunityDistribution`,
-    ),
-    lineupSlot: finiteNumberOrNull(
-      details?.lineupSlot ?? null,
-      `Batter Hits row ${index} lineupSlot`,
-    ),
-    batterSide: stringOrNull(
-      details?.batterSide ?? null,
-      `Batter Hits row ${index} batterSide`,
-    ),
-    opposingStarterHand: stringOrNull(
-      details?.opposingStarterHand ?? null,
-      `Batter Hits row ${index} opposingStarterHand`,
-    ),
+    expectedPlateAppearances: expectedValueFromPmf(distribution?.opportunityDistribution, `Batter Hits row ${index} opportunityDistribution`),
+    lineupSlot: finiteNumberOrNull(details?.lineupSlot ?? null, `Batter Hits row ${index} lineupSlot`),
+    batterSide: stringOrNull(details?.batterSide ?? null, `Batter Hits row ${index} batterSide`),
+    opposingStarterHand: stringOrNull(details?.opposingStarterHand ?? null, `Batter Hits row ${index} opposingStarterHand`),
     venue: null,
     teamImpliedRunTotal: null,
   });
@@ -200,11 +175,13 @@ function batterHitsDisplayRow(raw, index) {
   const offer = object(row.normalizedOffer, `Batter Hits rankedRows[${index}].normalizedOffer`);
   const probabilities = object(row.probabilities, `Batter Hits rankedRows[${index}].probabilities`);
   const lineage = object(row.lineage, `Batter Hits rankedRows[${index}].lineage`);
+  const source = sourceIdentity(offer, `Batter Hits row ${index}`);
   if (!Number.isSafeInteger(row.rank) || row.rank <= 0) {
     throw new TypeError(`Batter Hits rankedRows[${index}].rank must be a positive safe integer.`);
   }
   return Object.freeze({
     rank: row.rank,
+    ...source,
     providerEventId: nonemptyString(offer.providerEventId, `Batter Hits row ${index} providerEventId`),
     providerGameId: integerOrNull(offer.providerGameId, `Batter Hits row ${index} providerGameId`),
     providerPlayerId: integerOrNull(offer.providerPlayerId, `Batter Hits row ${index} providerPlayerId`),
@@ -235,12 +212,12 @@ function batterHitsDisplayRow(raw, index) {
 function hhrDisplayRow(raw, gameById, index) {
   const row = object(raw, `HHR rows[${index}]`);
   const game = gameById.get(row.providerGameId);
-  if (game === undefined) {
-    throw new Error(`HHR rows[${index}] references an unknown providerGameId.`);
-  }
+  if (game === undefined) throw new Error(`HHR rows[${index}] references an unknown providerGameId.`);
   const lineage = object(row.inputLineage, `HHR rows[${index}].inputLineage`);
+  const source = sourceIdentity(row, `HHR row ${index}`);
   return Object.freeze({
     rank: null,
+    ...source,
     providerEventId: nonemptyString(row.providerEventId, `HHR row ${index} providerEventId`),
     providerGameId: integerOrNull(row.providerGameId, `HHR row ${index} providerGameId`),
     providerPlayerId: integerOrNull(row.providerPlayerId, `HHR row ${index} providerPlayerId`),
@@ -265,37 +242,24 @@ function hhrDisplayRow(raw, gameById, index) {
     pWinGivenGrades: probability(row.archivedPWinGivenGrades, `HHR row ${index} pWinGivenGrades`),
     lineupStatus: stringOrNull(row.lineupStatus ?? lineage.lineupStatus ?? null, `HHR row ${index} lineupStatus`),
     analysisContext: Object.freeze({
-      expectedPlateAppearances: finiteNumberOrNull(
-        lineage.expectedPlateAppearances ?? null,
-        `HHR row ${index} expectedPlateAppearances`,
-      ),
+      expectedPlateAppearances: finiteNumberOrNull(lineage.expectedPlateAppearances ?? null, `HHR row ${index} expectedPlateAppearances`),
       lineupSlot: finiteNumberOrNull(lineage.lineupSlot ?? null, `HHR row ${index} lineupSlot`),
       batterSide: stringOrNull(lineage.batterSide ?? null, `HHR row ${index} batterSide`),
-      opposingStarterHand: stringOrNull(
-        lineage.probableStarterHand ?? null,
-        `HHR row ${index} opposingStarterHand`,
-      ),
+      opposingStarterHand: stringOrNull(lineage.probableStarterHand ?? null, `HHR row ${index} opposingStarterHand`),
       venue: stringOrNull(game.venue ?? null, `HHR row ${index} venue`),
-      teamImpliedRunTotal: finiteNumberOrNull(
-        lineage.teamImpliedRunTotal ?? null,
-        `HHR row ${index} teamImpliedRunTotal`,
-      ),
+      teamImpliedRunTotal: finiteNumberOrNull(lineage.teamImpliedRunTotal ?? null, `HHR row ${index} teamImpliedRunTotal`),
     }),
   });
 }
 
 export function buildPhase1DisplayArchive({ market, fullArchive, fullArchiveFileSha256 }) {
-  if (!SUPPORTED_MARKETS.has(market)) {
-    throw new Error(`Unsupported display archive market: ${market}`);
-  }
+  if (!SUPPORTED_MARKETS.has(market)) throw new Error(`Unsupported display archive market: ${market}`);
   const archive = object(fullArchive, `${market} full archive`);
   assertProductionDisabled(market, archive);
   const captureKey = captureKeyForMarket(market, archive);
   const capturedAt = isoTimestamp(archive.capturedAt, `${market} capturedAt`);
   const captureDateUtc = nonemptyString(archive.captureDateUtc, `${market} captureDateUtc`);
-  if (captureDateUtc !== capturedAt.slice(0, 10)) {
-    throw new Error(`${market} captureDateUtc does not match capturedAt.`);
-  }
+  if (captureDateUtc !== capturedAt.slice(0, 10)) throw new Error(`${market} captureDateUtc does not match capturedAt.`);
   const archiveSha256 = sha256(archive.archiveSha256, `${market} archiveSha256`);
   const fileSha256 = sha256(fullArchiveFileSha256, `${market} fullArchiveFileSha256`);
 
@@ -306,43 +270,27 @@ export function buildPhase1DisplayArchive({ market, fullArchive, fullArchiveFile
     const sourceRows = array(archive.rankedRows, 'Batter Hits rankedRows');
     rows = Object.freeze(sourceRows.map(batterHitsDisplayRow));
     modelVersion = oneVersion(sourceRows, (row) => row?.lineage?.modelVersion, 'Batter Hits modelVersion');
-    distributionBuilderVersion = oneVersion(
-      sourceRows,
-      (row) => row?.lineage?.distributionBuilderVersion,
-      'Batter Hits distributionBuilderVersion',
-    );
+    distributionBuilderVersion = oneVersion(sourceRows, (row) => row?.lineage?.distributionBuilderVersion, 'Batter Hits distributionBuilderVersion');
   } else {
     const games = array(archive.games, 'HHR games').map((game, index) => {
       const value = object(game, `HHR games[${index}]`);
-      if (!Number.isSafeInteger(value.gameId)) {
-        throw new TypeError(`HHR games[${index}].gameId must be a safe integer.`);
-      }
+      if (!Number.isSafeInteger(value.gameId)) throw new TypeError(`HHR games[${index}].gameId must be a safe integer.`);
       return value;
     });
     const gameById = new Map(games.map((game) => [game.gameId, game]));
-    if (gameById.size !== games.length) {
-      throw new Error('HHR games contain duplicate gameId values.');
-    }
+    if (gameById.size !== games.length) throw new Error('HHR games contain duplicate gameId values.');
     const sourceRows = array(archive.rows, 'HHR rows');
     rows = Object.freeze(sourceRows.map((row, index) => hhrDisplayRow(row, gameById, index)));
     modelVersion = oneVersion(sourceRows, (row) => row?.distributionIdentity?.modelVersion, 'HHR modelVersion');
-    distributionBuilderVersion = oneVersion(
-      sourceRows,
-      (row) => row?.distributionIdentity?.distributionBuilderVersion,
-      'HHR distributionBuilderVersion',
-    );
+    distributionBuilderVersion = oneVersion(sourceRows, (row) => row?.distributionIdentity?.distributionBuilderVersion, 'HHR distributionBuilderVersion');
   }
   if (rows.length === 0) throw new Error(`${market} display archive cannot be empty.`);
   rows = Object.freeze(
     [...rows]
-      .sort((left, right) =>
-        right.pWinGivenGrades - left.pWinGivenGrades || left.pVoid - right.pVoid,
-      )
+      .sort((left, right) => right.pWinGivenGrades - left.pWinGivenGrades || left.pVoid - right.pVoid)
       .map((row, index) => Object.freeze({ ...row, rank: index + 1 })),
   );
-
   const displayEnrichment = displayEnrichmentForRows(archive.displayEnrichment, rows);
-
   return Object.freeze({
     displayArchiveVersion: PHASE1_DISPLAY_ARCHIVE_VERSION,
     displayArchiveContract: PHASE1_DISPLAY_ARCHIVE_CONTRACT,
@@ -385,20 +333,12 @@ export async function persistImmutablePhase1DisplayArchive({ filePath, displayAr
     });
   }
   const persisted = await readFile(target);
-  if (!persisted.equals(bytes)) {
-    throw new Error(`Persisted display archive bytes failed exact verification: ${target}`);
-  }
-  return Object.freeze({
-    filePath: target,
-    byteLength: bytes.length,
-    fileSha256: sha256Bytes(bytes),
-  });
+  if (!persisted.equals(bytes)) throw new Error(`Persisted display archive bytes failed exact verification: ${target}`);
+  return Object.freeze({ filePath: target, byteLength: bytes.length, fileSha256: sha256Bytes(bytes) });
 }
 
 export async function main(argv = process.argv.slice(2)) {
-  if (argv.length !== 3) {
-    throw new Error('Usage: node scripts/build-phase1-display-archive.mjs <batter-hits|batter-hhr> <full-archive-path> <display-output-path>');
-  }
+  if (argv.length !== 3) throw new Error('Usage: node scripts/build-phase1-display-archive.mjs <batter-hits|batter-hhr> <full-archive-path> <display-output-path>');
   const [market, fullArchivePath, displayOutputPath] = argv;
   const fullBytes = await readFile(fullArchivePath);
   let fullArchive;
@@ -407,15 +347,8 @@ export async function main(argv = process.argv.slice(2)) {
   } catch (error) {
     throw new Error(`Full archive is not valid JSON: ${error instanceof Error ? error.message : String(error)}`);
   }
-  const displayArchive = buildPhase1DisplayArchive({
-    market,
-    fullArchive,
-    fullArchiveFileSha256: sha256Bytes(fullBytes),
-  });
-  const persisted = await persistImmutablePhase1DisplayArchive({
-    filePath: displayOutputPath,
-    displayArchive,
-  });
+  const displayArchive = buildPhase1DisplayArchive({ market, fullArchive, fullArchiveFileSha256: sha256Bytes(fullBytes) });
+  const persisted = await persistImmutablePhase1DisplayArchive({ filePath: displayOutputPath, displayArchive });
   console.log(`DISPLAY MARKET\t${market}`);
   console.log(`DISPLAY CAPTURE KEY\t${displayArchive.captureKey}`);
   console.log(`FULL ARCHIVE SHA-256\t${displayArchive.fullArchiveSha256}`);
@@ -429,10 +362,7 @@ export async function main(argv = process.argv.slice(2)) {
 }
 
 const invokedPath = process.argv[1];
-if (
-  invokedPath !== undefined &&
-  import.meta.url === pathToFileURL(path.resolve(invokedPath)).href
-) {
+if (invokedPath !== undefined && import.meta.url === pathToFileURL(path.resolve(invokedPath)).href) {
   main().catch((error) => {
     process.stderr.write(`${error instanceof Error ? error.stack ?? error.message : String(error)}\n`);
     process.exitCode = 1;
