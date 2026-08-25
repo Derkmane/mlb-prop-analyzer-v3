@@ -290,7 +290,7 @@ test('fails each event-scoped player with zero or multiple identity matches clos
   );
 });
 
-test('rejects unsupported side and non-null source IDs instead of inventing contracts', () => {
+test('rejects unsupported side and discards non-null source IDs without inventing contracts', () => {
   const unsupportedSide = structuredClone(readRawBoard());
   targetOutcome(unsupportedSide)['name'] = 'Push';
   expectBoardError(
@@ -298,10 +298,8 @@ test('rejects unsupported side and non-null source IDs instead of inventing cont
     'UNSUPPORTED_SELECTED_SIDE',
   );
 
-  const unsupportedSourceId = structuredClone(readRawBoard());
-  targetOutcome(unsupportedSourceId)['sid'] = 'unverified-provider-id';
-  expectBoardError(
-    () => normalize(unsupportedSourceId),
-    'UNSUPPORTED_SOURCE_ID_CONTRACT',
-  );
+  const sourceIdBoard = structuredClone(readRawBoard());
+  targetOutcome(sourceIdBoard)['sid'] = 'unverified-provider-id';
+  const board = normalize(sourceIdBoard);
+  assert.equal(board.offers[0]?.providerOutcomeSid, null);
 });

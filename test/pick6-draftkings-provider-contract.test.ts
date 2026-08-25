@@ -100,13 +100,19 @@ test('temporarily unavailable Pick6 is represented as an empty source board rath
   assert.deepEqual(board.rejectedOffers, []);
 });
 
-test('Pick6 non-null bookmaker sid is raw-only metadata and does not block exact ladder normalization', () => {
+test('Pick6 non-null source sids are raw-only metadata and do not block exact ladder normalization', () => {
   const event = structuredClone(fixture.draftkings.response);
   const bookmaker = event.bookmakers?.[0];
   assert.ok(bookmaker);
   bookmaker.key = 'pick6';
   bookmaker.title = 'Pick6';
   bookmaker.sid = 'opaque-live-pick6-bookmaker-id';
+  for (const market of bookmaker.markets ?? []) {
+    market.sid = `opaque-live-pick6-market-id-${market.key}`;
+    for (const [index, outcome] of (market.outcomes ?? []).entries()) {
+      outcome.sid = `opaque-live-pick6-outcome-id-${market.key}-${index}`;
+    }
+  }
 
   const board = normalizeOddsApiBatterHitsBoard({
     boardSource: 'pick6',
@@ -121,6 +127,8 @@ test('Pick6 non-null bookmaker sid is raw-only metadata and does not block exact
   assert.equal(board.providerRegion, 'us_dfs');
   assert.ok(board.offers.length > 0);
   assert.equal(board.offers.every((offer) => offer.providerBookmakerSid === null), true);
+  assert.equal(board.offers.every((offer) => offer.providerMarketSid === null), true);
+  assert.equal(board.offers.every((offer) => offer.providerOutcomeSid === null), true);
   assert.equal(
     board.offers.some((offer) => offer.providerMarketKey === 'batter_hits_alternate'),
     true,
