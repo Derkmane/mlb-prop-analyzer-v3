@@ -6,7 +6,7 @@ const rules = readFileSync(new URL('../PROJECT_RULES.md', import.meta.url), 'utf
 const math = readFileSync(new URL('../CANONICAL_MATH_SPEC.md', import.meta.url), 'utf8');
 
 test('canonical authorities separate research ranking from production calibration', () => {
-  assert.match(rules, /\*\*Version:\*\* 2\.17/u);
+  assert.match(rules, /\*\*Version:\*\* 2\.18/u);
   assert.match(math, /\*\*Version:\*\* 1\.16/u);
 
   assert.match(rules, /Research ranking.*production-calibrated probability authorization[\s\S]*separate states/u);
