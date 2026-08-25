@@ -224,6 +224,17 @@ function validateArtifact(raw, filePath, bytes) {
   });
 }
 
+export function validateUserProjectedLineupArtifactBytes(bytes, filePath) {
+  const buffer = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes);
+  let parsed;
+  try {
+    parsed = JSON.parse(buffer.toString('utf8'));
+  } catch {
+    throw new Error(`User projected lineup artifact is not valid JSON: ${filePath}`);
+  }
+  return validateArtifact(parsed, filePath, buffer);
+}
+
 function configuredRoot() {
   return path.resolve(
     process.env.USER_PROJECTED_LINEUP_ROOT?.trim() ||
@@ -259,13 +270,7 @@ export function readUserProjectedLineupForGame(game, { root = configuredRoot() }
     if (error?.code === 'ENOENT') return null;
     throw error;
   }
-  let parsed;
-  try {
-    parsed = JSON.parse(bytes.toString('utf8'));
-  } catch {
-    throw new Error(`User projected lineup artifact is not valid JSON: ${filePath}`);
-  }
-  const artifact = validateArtifact(parsed, filePath, bytes);
+  const artifact = validateUserProjectedLineupArtifactBytes(bytes, filePath);
   if (artifact.slateDate !== targetDate) return null;
   return artifact;
 }
