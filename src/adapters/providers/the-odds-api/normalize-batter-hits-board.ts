@@ -153,6 +153,11 @@ function normalizedNullSourceId(value: unknown, label: string): null {
   if (value !== undefined && value !== null) fail('UNSUPPORTED_SOURCE_ID_CONTRACT', `${label} must be absent or null until a non-null source ID is verified and approved.`);
   return null;
 }
+function normalizedBookmakerSid(contract: BoardSourceContract, value: unknown, label: string): null {
+  if (value === undefined || value === null) return null;
+  if (contract.boardSource === 'pick6') return null;
+  return fail('UNSUPPORTED_SOURCE_ID_CONTRACT', `${label} must be absent or null until a non-null source ID is verified and approved.`);
+}
 function identityKey(providerEventId: string, offerPlayerName: string): string {
   return `${providerEventId}\u0000${offerPlayerName}`;
 }
@@ -248,7 +253,7 @@ export function normalizeOddsApiBatterHitsBoard(input: OddsApiBatterHitsBoardInp
   if (bookmaker === undefined) {
     return Object.freeze({ provider: 'the-odds-api', boardSource: contract.boardSource, providerBookmakerKey: contract.bookmaker, providerRegion: contract.region, settlementRuleVersion: contract.settlementRuleVersion, providerEventId: event.id, sourceSnapshotSha256: sourceMetadata.data.sourceSnapshotSha256, sourceCapturedAt: sourceMetadata.data.sourceCapturedAt, offers: Object.freeze([]), rejectedOffers: Object.freeze([]) });
   }
-  const bookmakerSid = normalizedNullSourceId(bookmaker.sid, `${contract.bookmaker} bookmaker sid`);
+  const bookmakerSid = normalizedBookmakerSid(contract, bookmaker.sid, `${contract.bookmaker} bookmaker sid`);
   const targetMarkets = bookmaker.markets.filter((market) => isTargetMarketKey(market.key)).sort((left, right) => left.key === right.key ? 0 : left.key === 'batter_hits' ? -1 : 1);
   const targetMarketKeys = new Set<string>();
   for (const market of targetMarkets) {
