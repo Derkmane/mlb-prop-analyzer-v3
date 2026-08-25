@@ -3,6 +3,10 @@ import { z } from 'zod';
 import { ACTIVE_BOARD_SOURCES } from '../../domain/board-source.js';
 import { SELECTED_SIDES } from '../../domain/selected-side.js';
 import { BATTER_HITS_MARKET_KEY } from './manifest.js';
+import {
+  BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION,
+  BATTER_HITS_SETTLEMENT_RULE_VERSION,
+} from './settlement.js';
 
 export const BATTER_HITS_PROVIDER_MARKET_KEYS = [
   'batter_hits',
@@ -39,6 +43,7 @@ export const normalizedBatterHitsBoardOfferSchema = z
     boardSource: z.enum(ACTIVE_BOARD_SOURCES).nullable(),
     providerBookmakerKey: z.enum(ODDS_API_HISTORICAL_BOOKMAKER_KEYS),
     providerRegion: z.enum(ODDS_API_ACTIVE_REGIONS),
+    settlementRuleVersion: z.string().min(1).nullable(),
     providerEventId: z.string().min(1),
     providerGameId: z.number().int().positive(),
     providerPlayerId: z.number().int().positive(),
@@ -67,10 +72,14 @@ export const normalizedBatterHitsBoardOfferSchema = z
   .strict()
   .superRefine((offer, context) => {
     if (offer.boardSource === null) {
-      if (offer.providerBookmakerKey !== 'underdog' || offer.providerRegion !== 'us_dfs') {
+      if (
+        offer.providerBookmakerKey !== 'underdog' ||
+        offer.providerRegion !== 'us_dfs' ||
+        offer.settlementRuleVersion !== BATTER_HITS_SETTLEMENT_RULE_VERSION
+      ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'Historical null boardSource is reserved for legacy Underdog evidence.',
+          message: 'Historical null boardSource is reserved for versioned legacy Underdog evidence.',
           path: ['boardSource'],
         });
       }
@@ -89,6 +98,17 @@ export const normalizedBatterHitsBoardOfferSchema = z
         code: z.ZodIssueCode.custom,
         message: `${offer.boardSource} must use provider region ${expectedRegion}.`,
         path: ['providerRegion'],
+      });
+    }
+    const expectedSettlementRule =
+      offer.boardSource === 'draftkings'
+        ? BATTER_HITS_DRAFTKINGS_SETTLEMENT_RULE_VERSION
+        : null;
+    if (offer.settlementRuleVersion !== expectedSettlementRule) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `${offer.boardSource} settlement rule must match its verified temporal registration state.`,
+        path: ['settlementRuleVersion'],
       });
     }
   });
