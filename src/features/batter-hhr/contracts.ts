@@ -12,7 +12,10 @@ export const BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_VERSION =
   'draftkings-sportsbook-batter-hhr-2025-08-26-v1' as const;
 export const BATTER_HHR_DRAFTKINGS_SETTLEMENT_RULE_SOURCE_REFERENCE =
   'docs/providers/draftkings-mlb-settlement-contract-v1.md' as const;
-export const BATTER_HHR_PICK6_SETTLEMENT_RULE_VERSION = null;
+export const BATTER_HHR_PICK6_SETTLEMENT_RULE_VERSION =
+  'draftkings-pick6-batter-hhr-2026-08-25-v1' as const;
+export const BATTER_HHR_PICK6_SETTLEMENT_RULE_SOURCE_REFERENCE =
+  'docs/providers/draftkings-mlb-settlement-contract-v1.md' as const;
 export const BATTER_HHR_MATHEMATICAL_FAMILY = 'directly-fitted-composite' as const;
 export const BATTER_HHR_TAIL_COLLAPSE_AT = 64 as const;
 export const BATTER_HHR_MAXIMUM_EXACT_POSTED_LINE = 63.5 as const;
