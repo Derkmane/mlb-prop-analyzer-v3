@@ -181,6 +181,14 @@ function productPick(row: ResearchDisplayRow, offerType: ProjectionLineOfferType
   if (!sourceSettlementAuthorized(row)) {
     throw new Error('Research product pick source settlement was not authorized.');
   }
+  if (row.boardSource !== 'pick6' && row.boardSource !== 'draftkings') {
+    throw new Error('Research product pick requires an active board source.');
+  }
+  if (row.providerBookmakerKey !== 'pick6' && row.providerBookmakerKey !== 'draftkings') {
+    throw new Error('Research product pick requires an active bookmaker key.');
+  }
+  const boardSource = row.boardSource;
+  const providerBookmakerKey = row.providerBookmakerKey;
   const starter = starterContext(row);
   const batterSide = row.analysisContext.batterSide;
   return Object.freeze({
@@ -190,8 +198,8 @@ function productPick(row: ResearchDisplayRow, offerType: ProjectionLineOfferType
     team: row.teamName,
     opponent: opponent(row),
     gameTime: row.eventCommenceTime,
-    boardSource: row.boardSource,
-    providerBookmakerKey: row.providerBookmakerKey,
+    boardSource,
+    providerBookmakerKey,
     providerRegion: row.providerRegion,
     settlementRuleVersion: row.settlementRuleVersion,
     market: row.market === RESEARCH_BATTER_HITS_MARKET ? 'Hits' : 'Hits + Runs + RBIs',
