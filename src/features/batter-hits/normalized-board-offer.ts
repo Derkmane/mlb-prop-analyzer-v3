@@ -12,6 +12,10 @@ export const BATTER_HITS_PROVIDER_MARKET_KEYS = [
 export const BATTER_HITS_OFFER_TYPES = ['baseline', 'alternate'] as const;
 export const ODDS_API_RAW_SELECTED_SIDES = ['Over', 'Under'] as const;
 export const ODDS_API_ACTIVE_REGIONS = ['us_dfs', 'us'] as const;
+export const ODDS_API_HISTORICAL_BOOKMAKER_KEYS = [
+  ...ACTIVE_BOARD_SOURCES,
+  'underdog',
+] as const;
 
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/);
 const timestampSchema = z.string().datetime({ offset: true });
@@ -32,8 +36,8 @@ export const batterHitsPlayerIdentitySchema = z
 export const normalizedBatterHitsBoardOfferSchema = z
   .object({
     provider: z.literal('the-odds-api'),
-    boardSource: z.enum(ACTIVE_BOARD_SOURCES),
-    providerBookmakerKey: z.enum(ACTIVE_BOARD_SOURCES),
+    boardSource: z.enum(ACTIVE_BOARD_SOURCES).nullable(),
+    providerBookmakerKey: z.enum(ODDS_API_HISTORICAL_BOOKMAKER_KEYS),
     providerRegion: z.enum(ODDS_API_ACTIVE_REGIONS),
     providerEventId: z.string().min(1),
     providerGameId: z.number().int().positive(),
@@ -62,6 +66,16 @@ export const normalizedBatterHitsBoardOfferSchema = z
   })
   .strict()
   .superRefine((offer, context) => {
+    if (offer.boardSource === null) {
+      if (offer.providerBookmakerKey !== 'underdog' || offer.providerRegion !== 'us_dfs') {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Historical null boardSource is reserved for legacy Underdog evidence.',
+          path: ['boardSource'],
+        });
+      }
+      return;
+    }
     if (offer.boardSource !== offer.providerBookmakerKey) {
       context.addIssue({
         code: z.ZodIssueCode.custom,

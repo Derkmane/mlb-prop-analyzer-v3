@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
-import type { ActiveBoardSource } from '../../../domain/board-source.js';
+import type {
+  ActiveBoardSource,
+  BoardSource,
+} from '../../../domain/board-source.js';
 import {
   BATTER_HITS_MARKET_KEY,
   BATTER_HITS_PROVIDER_MARKET_KEYS,
@@ -44,7 +47,12 @@ export class OddsApiBatterHitsBoardError extends Error {
 }
 
 export interface OddsApiBatterHitsBoardInput {
-  readonly boardSource: ActiveBoardSource;
+  /**
+   * Active source identity is mandatory for new production capture callers.
+   * Omission is retained only so frozen historical Underdog fixtures can be
+   * replayed as non-active evidence; those rows normalize with boardSource=null.
+   */
+  readonly boardSource?: ActiveBoardSource | undefined;
   readonly rawEventSnapshot: unknown;
   readonly sourceSnapshotSha256: string;
   readonly sourceCapturedAt: string;
@@ -52,7 +60,7 @@ export interface OddsApiBatterHitsBoardInput {
 }
 
 export interface RejectedOddsApiBatterHitsOffer {
-  readonly boardSource: ActiveBoardSource;
+  readonly boardSource: BoardSource;
   readonly providerEventId: string;
   readonly providerMarketKey: BatterHitsProviderMarketKey;
   readonly playerDescription: string;
@@ -64,8 +72,8 @@ export interface RejectedOddsApiBatterHitsOffer {
 
 export interface NormalizedOddsApiBatterHitsBoard {
   readonly provider: 'the-odds-api';
-  readonly boardSource: ActiveBoardSource;
-  readonly providerBookmakerKey: ActiveBoardSource;
+  readonly boardSource: BoardSource;
+  readonly providerBookmakerKey: 'pick6' | 'draftkings' | 'underdog';
   readonly providerRegion: 'us_dfs' | 'us';
   readonly providerEventId: string;
   readonly sourceSnapshotSha256: string;
@@ -74,9 +82,29 @@ export interface NormalizedOddsApiBatterHitsBoard {
   readonly rejectedOffers: readonly RejectedOddsApiBatterHitsOffer[];
 }
 
-const SOURCE_CONTRACT = Object.freeze({
-  pick6: Object.freeze({ bookmaker: 'pick6' as const, region: 'us_dfs' as const }),
-  draftkings: Object.freeze({ bookmaker: 'draftkings' as const, region: 'us' as const }),
+interface BoardSourceContract {
+  readonly boardSource: BoardSource;
+  readonly bookmaker: 'pick6' | 'draftkings' | 'underdog';
+  readonly region: 'us_dfs' | 'us';
+}
+
+const ACTIVE_SOURCE_CONTRACT = Object.freeze({
+  pick6: Object.freeze({
+    boardSource: 'pick6' as const,
+    bookmaker: 'pick6' as const,
+    region: 'us_dfs' as const,
+  }),
+  draftkings: Object.freeze({
+    boardSource: 'draftkings' as const,
+    bookmaker: 'draftkings' as const,
+    region: 'us' as const,
+  }),
+});
+
+const HISTORICAL_UNDERDOG_CONTRACT = Object.freeze({
+  boardSource: null,
+  bookmaker: 'underdog' as const,
+  region: 'us_dfs' as const,
 });
 
 const sourceMetadataSchema = z
@@ -86,6 +114,18 @@ const sourceMetadataSchema = z
   })
   .strict();
 
+const historicalStandardBookEventSchema = z.object({
+  bookmakers: z.array(z.object({
+    markets: z.array(z.object({
+      key: z.string().min(1),
+      outcomes: z.array(z.object({
+        description: z.string().min(1),
+        point: z.number().finite().nonnegative(),
+      }).passthrough()),
+    }).passthrough()),
+  }).passthrough()),
+}).passthrough();
+
 function fail(
   code: OddsApiBatterHitsBoardErrorCode,
   message: string,
@@ -93,10 +133,16 @@ function fail(
   throw new OddsApiBatterHitsBoardError(code, message);
 }
 
-function sourceContract(boardSource: ActiveBoardSource) {
-  const contract = SOURCE_CONTRACT[boardSource];
+function sourceContract(
+  boardSource: ActiveBoardSource | undefined,
+): BoardSourceContract {
+  if (boardSource === undefined) return HISTORICAL_UNDERDOG_CONTRACT;
+  const contract = ACTIVE_SOURCE_CONTRACT[boardSource];
   if (contract === undefined) {
-    return fail('INVALID_BOARD_SOURCE', `Unsupported Batter Hits board source: ${String(boardSource)}`);
+    return fail(
+      'INVALID_BOARD_SOURCE',
+      `Unsupported Batter Hits board source: ${String(boardSource)}`,
+    );
   }
   return contract;
 }
@@ -115,6 +161,43 @@ function offerTypeForMarketKey(
   return marketKey === BATTER_HITS_PROVIDER_MARKET_KEYS[0]
     ? 'baseline'
     : 'alternate';
+}
+
+/**
+ * Historical compatibility helper for frozen pre-switch tests only.
+ * Active Pick6/DraftKings capture and product classification must not call it.
+ */
+export function deriveStandardBookBaselineLines(
+  rawEventSnapshot: unknown,
+  marketKey: 'batter_hits' | 'batter_hits_runs_rbis',
+): ReadonlyMap<string, number> {
+  const event = historicalStandardBookEventSchema.parse(rawEventSnapshot);
+  const counts = new Map<string, Map<number, number>>();
+  for (const bookmaker of event.bookmakers) {
+    const pointsByPlayer = new Map<string, Set<number>>();
+    for (const market of bookmaker.markets.filter((entry) => entry.key === marketKey)) {
+      for (const outcome of market.outcomes) {
+        const points = pointsByPlayer.get(outcome.description) ?? new Set<number>();
+        points.add(outcome.point);
+        pointsByPlayer.set(outcome.description, points);
+      }
+    }
+    for (const [player, points] of pointsByPlayer) {
+      for (const point of points) {
+        const playerCounts = counts.get(player) ?? new Map<number, number>();
+        playerCounts.set(point, (playerCounts.get(point) ?? 0) + 1);
+        counts.set(player, playerCounts);
+      }
+    }
+  }
+  const baselines = new Map<string, number>();
+  for (const [player, playerCounts] of counts) {
+    const sorted = [...playerCounts].sort((left, right) => right[1] - left[1]);
+    if (sorted[0] !== undefined && sorted[0][1] > (sorted[1]?.[1] ?? 0)) {
+      baselines.set(player, sorted[0][0]);
+    }
+  }
+  return baselines;
 }
 
 function selectedSideForRawSide(rawSide: string): 'higher' | 'lower' {
@@ -154,7 +237,7 @@ function tupleKey(
 }
 
 function normalizeTargetMarket(
-  boardSource: ActiveBoardSource,
+  contract: BoardSourceContract,
   market: RawOddsApiMarket,
   event: z.infer<typeof rawOddsApiEventOddsSchema>,
   bookmakerSid: null,
@@ -177,7 +260,7 @@ function normalizeTargetMarket(
 
     const key = tupleKey(market.key, outcome);
     if (seenTuples.has(key)) {
-      if (boardSource === 'pick6') continue;
+      if (contract.boardSource === 'pick6') continue;
       fail(
         'DUPLICATE_SNAPSHOT_OFFER_TUPLE',
         `Duplicate snapshot-scoped offer tuple: ${key}`,
@@ -192,7 +275,7 @@ function normalizeTargetMarket(
     if (identities.length !== 1) {
       rejectedOffers.push(
         Object.freeze({
-          boardSource,
+          boardSource: contract.boardSource,
           providerEventId: event.id,
           providerMarketKey: market.key,
           playerDescription: outcome.description,
@@ -213,10 +296,9 @@ function normalizeTargetMarket(
       );
     }
 
-    const contract = sourceContract(boardSource);
     const normalized = normalizedBatterHitsBoardOfferSchema.parse({
       provider: 'the-odds-api',
-      boardSource,
+      boardSource: contract.boardSource,
       providerBookmakerKey: contract.bookmaker,
       providerRegion: contract.region,
       providerEventId: event.id,
@@ -294,10 +376,10 @@ export function normalizeOddsApiBatterHitsBoard(
     );
   }
 
-  const activeBookmakers = event.bookmakers.filter(
+  const sourceBookmakers = event.bookmakers.filter(
     (bookmaker) => bookmaker.key === contract.bookmaker,
   );
-  if (activeBookmakers.length > 1) {
+  if (sourceBookmakers.length > 1) {
     return fail(
       'AMBIGUOUS_ACTIVE_BOOKMAKER',
       `Event ${event.id} contains multiple ${contract.bookmaker} bookmaker records.`,
@@ -312,11 +394,11 @@ export function normalizeOddsApiBatterHitsBoard(
     identitiesByKey.set(key, identities);
   }
 
-  const bookmaker = activeBookmakers[0];
+  const bookmaker = sourceBookmakers[0];
   if (bookmaker === undefined) {
     return Object.freeze({
       provider: 'the-odds-api',
-      boardSource: input.boardSource,
+      boardSource: contract.boardSource,
       providerBookmakerKey: contract.bookmaker,
       providerRegion: contract.region,
       providerEventId: event.id,
@@ -369,7 +451,7 @@ export function normalizeOddsApiBatterHitsBoard(
 
   for (const market of targetMarkets) {
     normalizeTargetMarket(
-      input.boardSource,
+      contract,
       market,
       event,
       bookmakerSid,
@@ -384,7 +466,7 @@ export function normalizeOddsApiBatterHitsBoard(
 
   return Object.freeze({
     provider: 'the-odds-api',
-    boardSource: input.boardSource,
+    boardSource: contract.boardSource,
     providerBookmakerKey: contract.bookmaker,
     providerRegion: contract.region,
     providerEventId: event.id,

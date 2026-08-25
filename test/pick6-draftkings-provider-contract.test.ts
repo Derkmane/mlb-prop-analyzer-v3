@@ -16,9 +16,9 @@ const fixture = JSON.parse(
     ),
     'utf8',
   ),
-) as Record<string, any>;
+) as any;
 
-function playerIdentitiesForEvent(event: Record<string, any>) {
+function playerIdentitiesForEvent(event: any) {
   const names = new Set<string>();
   for (const bookmaker of event.bookmakers ?? []) {
     for (const market of bookmaker.markets ?? []) {
@@ -53,7 +53,7 @@ test('verified Pick6 and DraftKings fixture satisfies the evidence-backed raw co
 });
 
 test('DraftKings Batter Hits normalization preserves source identity and every captured side/rung without standard-book inference', () => {
-  const event = fixture.draftkings.response as Record<string, any>;
+  const event = fixture.draftkings.response;
   const board = normalizeOddsApiBatterHitsBoard({
     boardSource: 'draftkings',
     rawEventSnapshot: event,
@@ -63,10 +63,10 @@ test('DraftKings Batter Hits normalization preserves source identity and every c
   });
 
   const expectedOfferCount = (event.bookmakers?.[0]?.markets ?? [])
-    .filter((market: Record<string, any>) =>
+    .filter((market: any) =>
       market.key === 'batter_hits' || market.key === 'batter_hits_alternate')
     .reduce(
-      (sum: number, market: Record<string, any>) => sum + (market.outcomes?.length ?? 0),
+      (sum: number, market: any) => sum + (market.outcomes?.length ?? 0),
       0,
     );
 
@@ -87,7 +87,7 @@ test('DraftKings Batter Hits normalization preserves source identity and every c
 });
 
 test('temporarily unavailable Pick6 is represented as an empty source board rather than substituted', () => {
-  const event = fixture.pick6.response as Record<string, any>;
+  const event = fixture.pick6.response;
   const board = normalizeOddsApiBatterHitsBoard({
     boardSource: 'pick6',
     rawEventSnapshot: event,
@@ -101,6 +101,44 @@ test('temporarily unavailable Pick6 is represented as an empty source board rath
   assert.equal(board.providerRegion, 'us_dfs');
   assert.deepEqual(board.offers, []);
   assert.deepEqual(board.rejectedOffers, []);
+});
+
+test('legacy Underdog fixtures normalize only as explicitly non-active historical evidence', () => {
+  const legacy = rawOddsApiEventOddsSchema.parse({
+    id: 'legacy-event',
+    sport_key: 'baseball_mlb',
+    sport_title: 'MLB',
+    commence_time: '2026-07-23T20:00:00Z',
+    home_team: 'Home',
+    away_team: 'Away',
+    bookmakers: [{
+      key: 'underdog',
+      title: 'Underdog',
+      markets: [{
+        key: 'batter_hits',
+        last_update: '2026-07-23T19:00:00Z',
+        outcomes: [{ name: 'Over', description: 'Legacy Hitter', price: 100, point: 0.5, multiplier: 1 }],
+      }],
+    }],
+  });
+  const board = normalizeOddsApiBatterHitsBoard({
+    rawEventSnapshot: legacy,
+    sourceSnapshotSha256: 'a'.repeat(64),
+    sourceCapturedAt: '2026-07-23T19:00:00Z',
+    playerIdentities: [{
+      providerEventId: 'legacy-event',
+      offerPlayerName: 'Legacy Hitter',
+      providerGameId: 1,
+      providerPlayerId: 1,
+      providerTeamId: 1,
+      playerName: 'Legacy Hitter',
+      teamName: 'Home',
+    }],
+  });
+
+  assert.equal(board.boardSource, null);
+  assert.equal(board.providerBookmakerKey, 'underdog');
+  assert.equal(board.offers[0]?.boardSource, null);
 });
 
 test('product ladder classification requires a unique same-source base line', () => {

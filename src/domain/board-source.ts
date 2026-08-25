@@ -1,6 +1,7 @@
 export const ACTIVE_BOARD_SOURCES = ['pick6', 'draftkings'] as const;
 
 export type ActiveBoardSource = (typeof ACTIVE_BOARD_SOURCES)[number];
+export type BoardSource = ActiveBoardSource | null;
 
 export function isActiveBoardSource(value: unknown): value is ActiveBoardSource {
   return (

@@ -15,6 +15,7 @@ export type {
 export {
   ODDS_API_BATTER_HITS_BOARD_ERROR_CODES,
   OddsApiBatterHitsBoardError,
+  deriveStandardBookBaselineLines,
   normalizeOddsApiBatterHitsBoard,
 } from './normalize-batter-hits-board.js';
 
