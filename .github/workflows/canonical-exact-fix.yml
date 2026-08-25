@@ -1,0 +1,28 @@
+name: Canonical exact drift correction
+
+on:
+  push:
+    branches:
+      - codex/pick6-draftkings-ladders
+
+permissions:
+  contents: write
+
+jobs:
+  correct:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/pick6-draftkings-ladders
+          fetch-depth: 0
+      - name: Restore exact unchanged historical text
+        run: |
+          node -e "const fs=require('fs'); const p='CANONICAL_MATH_SPEC.md'; const from='- Distinguished replacement factors, which substitute a complete terminal\n  vector for a declared subset of plate appearances, from transformation\n  factors, which multiply a resulting terminal vector elementwise and renormalize\n  once across every plate appearance in scope.'; const to='- Distinguished replacement factors, which substitute a complete terminal\n  vector for a declared subset of plate appearances, from transformation\n  factors, which multiply a resulting vector elementwise and renormalize\n  once across every plate appearance in scope.'; const s=fs.readFileSync(p,'utf8'); const n=s.split(from).length-1; if(n!==1) throw new Error('expected exact drift occurrence once, found '+n); fs.writeFileSync(p,s.replace(from,to));"
+          rm .github/workflows/canonical-exact-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CANONICAL_MATH_SPEC.md .github/workflows/canonical-exact-fix.yml
+          git diff --cached --check
+          git commit -m "docs: remove residual Math Spec replacement drift"
+          git push origin HEAD:codex/pick6-draftkings-ladders
