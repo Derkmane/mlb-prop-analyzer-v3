@@ -233,52 +233,13 @@ test('unexpected archive filenames and ambiguous capture timestamps fail closed'
   await assert.rejects(createHhrDisplayArchiveRepository(fakeReader(files)).readLatest(), /Ambiguous/u);
 });
 
-function withResolvedBaselines(rows: readonly Record<string, unknown>[]): readonly Record<string, unknown>[] {
-  const baselines = rows.flatMap((candidate, index) => {
-    if (
-      candidate['providerMarketKey'] !== 'batter_hits_runs_rbis_alternate' ||
-      typeof candidate['postedLine'] !== 'number' ||
-      candidate['postedLine'] === 1.5
-    ) {
-      return [];
-    }
-    return [row({
-      rank: 10_000 + index,
-      providerEventId: candidate['providerEventId'],
-      providerGameId: candidate['providerGameId'],
-      providerPlayerId: candidate['providerPlayerId'],
-      providerTeamId: candidate['providerTeamId'],
-      playerName: candidate['playerName'],
-      teamName: candidate['teamName'],
-      homeTeamName: candidate['homeTeamName'],
-      awayTeamName: candidate['awayTeamName'],
-      eventCommenceTime: candidate['eventCommenceTime'],
-      baseMarketKey: candidate['baseMarketKey'],
-      providerMarketKey: 'batter_hits_runs_rbis',
-      marketLabel: candidate['marketLabel'],
-      offerType: 'baseline',
-      settlementStatistic: candidate['settlementStatistic'],
-      selectedSide: candidate['selectedSide'],
-      postedLine: 1.5,
-      americanPrice: -110,
-      multiplier: 1,
-      pWin: 0.55,
-      pLoss: 0.45,
-      pVoid: 0,
-      pWinGivenGrades: 0.55,
-      lineupStatus: candidate['lineupStatus'],
-    })];
-  });
-  return Object.freeze([...baselines, ...rows]);
-}
-
 function applicationArchive(rows: readonly Record<string, unknown>[], enrichmentByKey = enrichmentRecord()): HhrDisplayArchive {
   return {
     captureKey: CAPTURE_KEY,
     capturedAt: '2026-08-11T16:24:47.459Z',
     modelVersion: 'hhr-model-v2',
     distributionBuilderVersion: 'hhr-distribution-v1',
-    rows: withResolvedBaselines(rows) as unknown as HhrDisplayArchive['rows'],
+    rows: rows as unknown as HhrDisplayArchive['rows'],
     enrichmentByGamePlayerKey: { '100:7': enrichmentByKey as unknown as HhrDisplayArchive['enrichmentByGamePlayerKey'][string] },
   };
 }
@@ -319,7 +280,7 @@ test('exact category lines and sides are selected with no substitution', async (
     row({ rank: 3, providerPlayerId: 9, postedLine: 2 }),
     row({ rank: 4, providerPlayerId: 10, postedLine: 0.5, selectedSide: 'higher' }),
     row({ rank: 5, providerPlayerId: 11, postedLine: 0.5, selectedSide: 'lower' }),
-    row({ rank: 6, providerPlayerId: 12, postedLine: 1.5, selectedSide: 'higher' }),
+    row({ rank: 6, providerPlayerId: 12, postedLine: 0.5, selectedSide: 'higher', offerType: 'baseline' }),
   ];
   const board = await readLatestHhrDisplayBoard(repository(applicationArchive(rows)));
   assert.deepEqual(board.hhr25LowerAlternates.map((pick) => [pick.postedLine, pick.selectedSide]), [[2.5, 'lower']]);
