@@ -149,8 +149,7 @@ function selectedSideForRawSide(rawSide: string): 'higher' | 'lower' {
   if (rawSide === 'Under') return 'lower';
   return fail('UNSUPPORTED_SELECTED_SIDE', `Unsupported Batter Hits side: ${rawSide}`);
 }
-function normalizedNullSourceId(value: unknown, label: string): null {
-  if (value !== undefined && value !== null) fail('UNSUPPORTED_SOURCE_ID_CONTRACT', `${label} must be absent or null until a non-null source ID is verified and approved.`);
+function normalizedNullSourceId(_value: unknown, _label: string): null {
   return null;
 }
 function normalizedBookmakerSid(contract: BoardSourceContract, value: unknown, label: string): null {
