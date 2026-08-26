@@ -11,11 +11,13 @@ import { HHR_DISPLAY_ARCHIVE_ROOT } from './hhr-display-archive-repository.js';
 const AUTHORIZED_REPOSITORY = 'Derkmane/mlb-prop-analyzer-v3' as const;
 const AUTHORIZED_BRANCH = 'main' as const;
 const DISPLAY_ROOT = 'artifacts/display-archives' as const;
+const CATEGORY_PERFORMANCE_DIRECTORY = 'category-performance' as const;
 const MARKETS = RESEARCH_DISPLAY_MARKETS;
 const HHR_DISPLAY_ARCHIVE_DIRECTORY = path.basename(
   path.dirname(HHR_DISPLAY_ARCHIVE_ROOT),
 );
 const CAPTURE_FILE = /^\d{8}T\d{9}Z--[a-f0-9]{64}\.json$/u;
+const CATEGORY_PERFORMANCE_FILE = /^product-category-performance-v1--([a-f0-9]{64})\.json$/u;
 const DEFAULT_REFRESH_INTERVAL_MS = 60_000;
 
 type DisplayMarket = ResearchDisplayMarket;
@@ -59,6 +61,16 @@ function capturePathForMarket(value: unknown, market: DisplayMarket): string | n
   return CAPTURE_FILE.test(filename) ? rawPath : null;
 }
 
+function categoryPerformancePath(value: unknown): string | null {
+  if (!isRecord(value)) return null;
+  const rawPath = value['path'];
+  if (typeof rawPath !== 'string') return null;
+  const prefix = `${DISPLAY_ROOT}/${CATEGORY_PERFORMANCE_DIRECTORY}/`;
+  if (!rawPath.startsWith(prefix)) return null;
+  const filename = rawPath.slice(prefix.length);
+  return CATEGORY_PERFORMANCE_FILE.test(filename) ? rawPath : null;
+}
+
 function captureDateFromPath(remotePath: string): string {
   return path.posix.basename(remotePath).slice(0, 8);
 }
@@ -94,6 +106,20 @@ function newestDayCapturePaths(
   return Object.freeze(newestDay);
 }
 
+function committedCategoryPerformancePath(treePayload: unknown): string | null {
+  if (!isRecord(treePayload) || !Array.isArray(treePayload['tree'])) {
+    throw new Error('GitHub display-archive tree response is malformed.');
+  }
+  const paths = treePayload['tree'].flatMap((entry) => {
+    const result = categoryPerformancePath(entry);
+    return result === null ? [] : [result];
+  });
+  if (paths.length > 1) {
+    throw new Error('Committed category-performance display evidence must have exactly one active report.');
+  }
+  return paths[0] ?? null;
+}
+
 function validateFetchedArchive(bytes: string, market: DisplayMarket, remotePath: string): void {
   let parsed: unknown;
   try {
@@ -111,6 +137,36 @@ function validateFetchedArchive(bytes: string, market: DisplayMarket, remotePath
   }
   if (parsed['productionEnabled'] !== false || parsed['productionRankingEnabled'] !== false) {
     throw new Error(`Newest committed ${market} display archive is not research-authorized.`);
+  }
+}
+
+function validateFetchedCategoryPerformance(bytes: string, remotePath: string): void {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(bytes) as unknown;
+  } catch {
+    throw new Error('Committed category-performance display evidence is malformed JSON.');
+  }
+  const filename = path.posix.basename(remotePath);
+  const match = CATEGORY_PERFORMANCE_FILE.exec(filename);
+  if (
+    match === null ||
+    !isRecord(parsed) ||
+    parsed['reportVersion'] !== 1 ||
+    parsed['reportType'] !== 'product-category-performance-v1' ||
+    parsed['sourceSetSha256'] !== match[1]
+  ) {
+    throw new Error('Committed category-performance display evidence has an identity mismatch.');
+  }
+  const safety = parsed['safety'];
+  if (
+    !isRecord(safety) ||
+    safety['evidenceOnly'] !== true ||
+    safety['archivesModified'] !== false ||
+    safety['probabilitiesModified'] !== false ||
+    safety['rankingModified'] !== false
+  ) {
+    throw new Error('Committed category-performance display evidence safety boundary drifted.');
   }
 }
 
@@ -150,7 +206,9 @@ export function createCommittedDisplayArchiveRefresher(
     if (!treeResponse.ok) {
       throw new Error(`Unable to refresh current display board from GitHub tree: HTTP ${treeResponse.status}.`);
     }
-    const capturePaths = newestDayCapturePaths(await treeResponse.json());
+    const treePayload = await treeResponse.json();
+    const capturePaths = newestDayCapturePaths(treePayload);
+    const performancePath = committedCategoryPerformancePath(treePayload);
 
     await Promise.all(MARKETS.flatMap((market) =>
       capturePaths[market].map(async (remotePath) => {
@@ -174,6 +232,23 @@ export function createCommittedDisplayArchiveRefresher(
         await atomicWrite(destination, bytes);
       }),
     ));
+
+    if (performancePath !== null) {
+      const rawUrl = `https://raw.githubusercontent.com/${AUTHORIZED_REPOSITORY}/${AUTHORIZED_BRANCH}/${performancePath}`;
+      const response = await fetchImpl(rawUrl, {
+        headers,
+        cache: 'no-store',
+      });
+      if (!response.ok) {
+        throw new Error(`Unable to refresh category performance evidence: HTTP ${response.status}.`);
+      }
+      const bytes = await response.text();
+      validateFetchedCategoryPerformance(bytes, performancePath);
+      await atomicWrite(
+        path.join(rootDirectory, CATEGORY_PERFORMANCE_DIRECTORY, path.posix.basename(performancePath)),
+        bytes,
+      );
+    }
   }
 
   return async function refreshCommittedDisplayArchives(): Promise<void> {
