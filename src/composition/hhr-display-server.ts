@@ -8,6 +8,7 @@ import {
   createHhrDisplayAppHttpHandler,
   createHhrDisplayArchiveRepository,
   createHhrDisplayBoardHttpHandler,
+  createProductCategoryPerformanceRepository,
   createResearchDisplayArchiveRepository,
 } from '../adapters/index.js';
 import {
@@ -15,6 +16,7 @@ import {
   readLatestHhrDisplayUiBoard,
   type HhrCumulativeDisplayEvidenceRepository,
   type HhrDisplayArchiveRepository,
+  type ProductCategoryPerformanceRepository,
   type ResearchDisplayArchiveRepository,
 } from '../application/index.js';
 
@@ -56,6 +58,7 @@ export interface HhrDisplayAppServerOptions {
   readonly repository?: HhrDisplayArchiveRepository;
   readonly cumulativeRepository?: HhrCumulativeDisplayEvidenceRepository;
   readonly researchRepository?: ResearchDisplayArchiveRepository;
+  readonly categoryPerformanceRepository?: ProductCategoryPerformanceRepository;
   readonly refreshDisplayArchives?: () => Promise<void>;
   readonly sessionToken?: string;
 }
@@ -67,6 +70,8 @@ export function createHhrDisplayAppServer(options: HhrDisplayAppServerOptions): 
     createHhrCumulativeDisplayEvidenceRepository();
   const researchRepository = options.researchRepository ??
     createResearchDisplayArchiveRepository();
+  const categoryPerformanceRepository = options.categoryPerformanceRepository ??
+    createProductCategoryPerformanceRepository();
   const usesDefaultDisplayRepositories =
     options.repository === undefined && options.researchRepository === undefined;
   const refreshDisplayArchives = options.refreshDisplayArchives ??
@@ -87,6 +92,7 @@ export function createHhrDisplayAppServer(options: HhrDisplayAppServerOptions): 
       repository,
       cumulativeRepository,
       researchRepository,
+      categoryPerformanceRepository,
     );
   };
   const handler = options.sessionToken === undefined
