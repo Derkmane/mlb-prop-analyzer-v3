@@ -58,6 +58,16 @@ const TOP_FIVE_RESEARCH_CSS = `
 }
 `;
 
+const CATEGORY_PERFORMANCE_BOARD_ANCHOR =
+  "      const board = await response.json();\n";
+if (!PRODUCT_BOARD_JS.includes(CATEGORY_PERFORMANCE_BOARD_ANCHOR)) {
+  throw new Error('Product board loader no longer exposes the category-performance integration anchor.');
+}
+const PRODUCT_BOARD_JS_WITH_CATEGORY_PERFORMANCE = PRODUCT_BOARD_JS.replace(
+  CATEGORY_PERFORMANCE_BOARD_ANCHOR,
+  `${CATEGORY_PERFORMANCE_BOARD_ANCHOR}      document.dispatchEvent(new CustomEvent('mlb-category-performance', { detail: board.categoryPerformance ?? null }));\n`,
+);
+
 const TOP_FIVE_RESEARCH_JS = `
 (() => {
   'use strict';
@@ -168,27 +178,18 @@ const TOP_FIVE_RESEARCH_JS = `
     }
   };
 
-  const loadCategoryPerformance = async () => {
-    try {
-      const response = await fetch('/api/hhr-display-board', { cache: 'no-store' });
-      if (!response.ok) return;
-      const board = await response.json();
-      categoryPerformance = board?.categoryPerformance ?? null;
-      decorateAll();
-    } catch {
-      categoryPerformance = null;
-      decorateAll();
-    }
-  };
+  document.addEventListener('mlb-category-performance', (event) => {
+    categoryPerformance = event instanceof CustomEvent ? event.detail : null;
+    decorateAll();
+  });
 
   const observer = new MutationObserver(() => decorateAll());
   observer.observe(categoryPanelsNode, { childList: true, subtree: true });
   decorateAll();
-  void loadCategoryPerformance();
 })();
 `;
 
 export const LIVE_DISPLAY_APP_CSS =
   `${PRODUCT_BOARD_CSS}\n${TOP_FIVE_RESEARCH_CSS}`;
 export const LIVE_DISPLAY_APP_JS =
-  `${PRODUCT_BOARD_JS}\n${TOP_FIVE_RESEARCH_JS}`;
+  `${PRODUCT_BOARD_JS_WITH_CATEGORY_PERFORMANCE}\n${TOP_FIVE_RESEARCH_JS}`;
