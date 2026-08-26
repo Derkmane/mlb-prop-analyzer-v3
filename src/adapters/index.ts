@@ -1,4 +1,5 @@
 /** Public boundary for the adapters layer. */
+export * from './display-archives/category-performance-repository.js';
 export * from './display-archives/hhr-cumulative-evidence-repository.js';
 export * from './display-archives/hhr-display-archive-repository.js';
 export * from './display-archives/research-display-archive-repository.js';

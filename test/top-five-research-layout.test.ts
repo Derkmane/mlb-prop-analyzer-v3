@@ -51,3 +51,14 @@ test('live UI highlights Top Five while every eligible pick keeps full research 
   assert.doesNotMatch(LIVE_DISPLAY_APP_JS, /settleObserved|settleHigher|settleLower/u);
   assert.doesNotMatch(LIVE_DISPLAY_APP_JS, /pWinGivenGrades\s*[+\-*/]/u);
 });
+
+test('live UI renders W-L-V performance evidence in every category panel', () => {
+  assert.match(LIVE_DISPLAY_APP_CSS, /\.category-performance-record/u);
+  assert.match(LIVE_DISPLAY_APP_JS, /categoryPerformance\?\.categories/u);
+  assert.match(LIVE_DISPLAY_APP_JS, /W-L-V/u);
+  assert.match(LIVE_DISPLAY_APP_JS, /summary\.wins \+ '-' \+ summary\.losses \+ '-' \+ summary\.voids/u);
+  assert.match(LIVE_DISPLAY_APP_JS, /summary\.decidedPicks/u);
+  assert.match(LIVE_DISPLAY_APP_JS, /win rate/u);
+  assert.match(LIVE_DISPLAY_APP_JS, /Record unavailable · no completed grading evidence yet/u);
+  assert.match(LIVE_DISPLAY_APP_JS, /for \(const panel of categoryPanelsNode\.querySelectorAll\('\[data-category-panel\]'\)\)/u);
+});

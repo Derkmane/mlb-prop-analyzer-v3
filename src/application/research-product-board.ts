@@ -251,12 +251,18 @@ function newestTimestamp(archives: readonly ResearchDisplayArchive[]): string | 
   return newest;
 }
 
-export async function readResearchProductBoardV2(repository: ResearchDisplayArchiveRepository): Promise<ResearchProductBoardV2> {
-  const archives = (await Promise.all([
-    repository.readLatest(RESEARCH_BATTER_HITS_MARKET),
-    repository.readLatest(RESEARCH_BATTER_HHR_MARKET),
-  ])).filter((archive): archive is ResearchDisplayArchive => archive !== null);
-  const requestTime = Date.now();
+/**
+ * Deterministically reconstructs the product board from explicit archived
+ * market inputs at a caller-supplied evaluation time. Historical grading uses
+ * this exact path so category performance cannot drift from the live selector.
+ */
+export function buildResearchProductBoardV2(
+  archives: readonly ResearchDisplayArchive[],
+  requestTime: number,
+): ResearchProductBoardV2 {
+  if (!Number.isFinite(requestTime)) {
+    throw new TypeError('research product board requestTime must be finite.');
+  }
   const rows = archives.flatMap((archive) => archive.rows).filter(
     (row) => Date.parse(row.eventCommenceTime) > requestTime && sourceSettlementAuthorized(row),
   );
@@ -289,4 +295,12 @@ export async function readResearchProductBoardV2(repository: ResearchDisplayArch
       productCategorySectionV2(HIGH_PROBABILITY_ALTLINE_CATEGORY_ID, altlinePicks),
     ]),
   });
+}
+
+export async function readResearchProductBoardV2(repository: ResearchDisplayArchiveRepository): Promise<ResearchProductBoardV2> {
+  const archives = (await Promise.all([
+    repository.readLatest(RESEARCH_BATTER_HITS_MARKET),
+    repository.readLatest(RESEARCH_BATTER_HHR_MARKET),
+  ])).filter((archive): archive is ResearchDisplayArchive => archive !== null);
+  return buildResearchProductBoardV2(archives, Date.now());
 }

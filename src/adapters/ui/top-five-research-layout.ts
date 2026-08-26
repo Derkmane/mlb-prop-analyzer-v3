@@ -6,6 +6,22 @@ import {
 const TOP_FIVE_RESEARCH_CSS = `
 .category-panel { counter-reset: product-pick-rank; }
 .category-panel .pick-list { counter-reset: none !important; }
+.category-performance-record {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 5px 9px;
+  align-items: baseline;
+  margin-top: 9px;
+  border: 1px solid #35516b;
+  border-radius: 9px;
+  padding: 7px 10px;
+  background: #0b1b29;
+  color: #dce9f4;
+  font-size: .78rem;
+  font-weight: 800;
+}
+.category-performance-record strong { color: #9ff0d1; }
+.category-performance-record.unavailable { color: #9eafbd; font-weight: 700; }
 .top-five-research-shell,
 .additional-picks-shell {
   margin: 12px;
@@ -38,8 +54,19 @@ const TOP_FIVE_RESEARCH_CSS = `
 @media (max-width: 700px) {
   .top-five-research-shell,
   .additional-picks-shell { margin: 8px; }
+  .category-performance-record { display: flex; width: fit-content; }
 }
 `;
+
+const CATEGORY_PERFORMANCE_BOARD_ANCHOR =
+  "      const board = await response.json();\n";
+if (!PRODUCT_BOARD_JS.includes(CATEGORY_PERFORMANCE_BOARD_ANCHOR)) {
+  throw new Error('Product board loader no longer exposes the category-performance integration anchor.');
+}
+const PRODUCT_BOARD_JS_WITH_CATEGORY_PERFORMANCE = PRODUCT_BOARD_JS.replace(
+  CATEGORY_PERFORMANCE_BOARD_ANCHOR,
+  `${CATEGORY_PERFORMANCE_BOARD_ANCHOR}      document.dispatchEvent(new CustomEvent('mlb-category-performance', { detail: board.categoryPerformance ?? null }));\n`,
+);
 
 const TOP_FIVE_RESEARCH_JS = `
 (() => {
@@ -48,6 +75,8 @@ const TOP_FIVE_RESEARCH_JS = `
   const categoryPanelsNode = document.getElementById('category-panels');
   if (!categoryPanelsNode) return;
 
+  let categoryPerformance = null;
+
   const make = (tag, className, text) => {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -55,8 +84,36 @@ const TOP_FIVE_RESEARCH_JS = `
     return node;
   };
 
+  const percentage = (value) =>
+    typeof value === 'number' && Number.isFinite(value)
+      ? new Intl.NumberFormat(undefined, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value)
+      : null;
+
+  const decoratePerformance = (panel) => {
+    if (!(panel instanceof HTMLElement)) return;
+    const heading = panel.querySelector('.category-heading');
+    if (!(heading instanceof HTMLElement)) return;
+    const existing = heading.querySelector('.category-performance-record');
+    if (existing) existing.remove();
+    const categoryId = panel.dataset.categoryPanel;
+    const summary = categoryId ? categoryPerformance?.categories?.[categoryId] : null;
+    if (!summary) {
+      heading.append(make('div', 'category-performance-record unavailable', 'Record unavailable · no completed grading evidence yet'));
+      return;
+    }
+    const winRate = percentage(summary.winRate);
+    const record = make('div', 'category-performance-record');
+    const label = make('span', null, 'W-L-V');
+    const value = make('strong', null, summary.wins + '-' + summary.losses + '-' + summary.voids);
+    record.append(label, value);
+    record.append(make('span', null, '· ' + summary.decidedPicks + ' decided'));
+    record.append(make('span', null, '· ' + (winRate === null ? 'No decided win rate' : winRate + ' win rate')));
+    heading.append(record);
+  };
+
   const decoratePanel = (panel) => {
     if (!(panel instanceof HTMLElement)) return;
+    decoratePerformance(panel);
     if (panel.dataset.topFiveResearchReady === 'true') return;
 
     const subtitle = panel.querySelector('.category-heading p');
@@ -121,6 +178,11 @@ const TOP_FIVE_RESEARCH_JS = `
     }
   };
 
+  document.addEventListener('mlb-category-performance', (event) => {
+    categoryPerformance = event instanceof CustomEvent ? event.detail : null;
+    decorateAll();
+  });
+
   const observer = new MutationObserver(() => decorateAll());
   observer.observe(categoryPanelsNode, { childList: true, subtree: true });
   decorateAll();
@@ -130,4 +192,4 @@ const TOP_FIVE_RESEARCH_JS = `
 export const LIVE_DISPLAY_APP_CSS =
   `${PRODUCT_BOARD_CSS}\n${TOP_FIVE_RESEARCH_CSS}`;
 export const LIVE_DISPLAY_APP_JS =
-  `${PRODUCT_BOARD_JS}\n${TOP_FIVE_RESEARCH_JS}`;
+  `${PRODUCT_BOARD_JS_WITH_CATEGORY_PERFORMANCE}\n${TOP_FIVE_RESEARCH_JS}`;
