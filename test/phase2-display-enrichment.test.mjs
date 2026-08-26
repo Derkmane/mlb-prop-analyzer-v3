@@ -25,8 +25,8 @@ const player = {
   providerGameId: 100, providerPlayerId: 7, opposingStarterPitcherId: 99,
   opposingStarterName: 'Starter Person', opposingStarterHand: 'R',
 };
-function build(statsRows, games, seasonStatsRows = []) {
-  return buildPhase2DisplayEnrichment({ captureDateUtc: '2026-08-10', players: [player], games, statsRows, seasonStatsRows });
+function build(statsRows, games, seasonStatsRows = [], captureDateUtc = '2026-08-10') {
+  return buildPhase2DisplayEnrichment({ captureDateUtc, players: [player], games, statsRows, seasonStatsRows });
 }
 const entry = (result) => result.byGamePlayerKey['100:7'];
 
@@ -38,13 +38,35 @@ test('last five uses only games the player appeared in, preserves gaps, and coun
   assert.equal(entry(result).lastFiveGames.games[1].plateAppearances, 1);
 });
 
-test('capture-date games are excluded and latest five are ordered oldest to newest without padding', () => {
-  const games = Array.from({ length: 8 }, (_, index) => game(index + 1, `2026-08-${String(index + 3).padStart(2, '0')}`));
-  const result = build(games.map((_, index) => batting(index + 1, 4)), games);
+test('capture-date final games are eligible, scheduled games are excluded, and latest five stay ordered without padding', () => {
+  const games = [
+    ...Array.from({ length: 8 }, (_, index) => game(index + 1, `2026-08-${String(index + 3).padStart(2, '0')}`)),
+    game(9, '2026-08-10', 'STATUS_SCHEDULED'),
+  ];
+  const result = build([
+    ...games.slice(0, 8).map((_, index) => batting(index + 1, 4)),
+    batting(9, 4, { hits: 9 }),
+  ], games);
   assert.deepEqual(entry(result).lastFiveGames.games.map((row) => row.gameDate), [
-    '2026-08-05', '2026-08-06', '2026-08-07', '2026-08-08', '2026-08-09',
+    '2026-08-06', '2026-08-07', '2026-08-08', '2026-08-09', '2026-08-10',
   ]);
-  assert.equal(entry(result).lastFiveGames.games.some((row) => row.gameDate === '2026-08-10'), false);
+  assert.equal(entry(result).lastFiveGames.games.some((row) => row.hits === 9), false);
+});
+
+test('late Central previous-day final game represented on the capture UTC date remains in last five', () => {
+  const lateGame = {
+    ...game(1, '2026-08-25'),
+    date: '2026-08-25T01:40:00.000Z',
+  };
+  const result = build(
+    [batting(1, 5, { hits: 3, runs: 2, rbi: 2, total_bases: 4 })],
+    [lateGame],
+    [],
+    '2026-08-25',
+  );
+  assert.equal(entry(result).lastFiveGames.count, 1);
+  assert.equal(entry(result).lastFiveGames.games[0].gameDate, '2026-08-24');
+  assert.equal(entry(result).lastFiveGames.games[0].hrr, 7);
 });
 
 test('team name mismatch fails the player log closed and counts the reason', () => {
@@ -113,9 +135,10 @@ test('scheduled board archives enable Phase 2 while workflow_dispatch keeps the 
   );
 });
 
-test('capture batches stats, follows pagination, and requests active-season season_stats', async () => {
+test('capture batches stats, follows pagination, requests through the capture date, and requests active-season season_stats', async () => {
   const previous = process.env.PHASE2_ENRICHMENT;
   process.env.PHASE2_ENRICHMENT = 'on';
+  const gameUrls = [];
   const statsUrls = [];
   const seasonStatsUrls = [];
   try {
@@ -123,6 +146,7 @@ test('capture batches stats, follows pagination, and requests active-season seas
       captureDateUtc: '2026-08-10', players: [player], timeoutMs: 1_000,
       fetchPage: async (url) => {
         if (url.pathname.endsWith('/games')) {
+          gameUrls.push(url);
           return url.searchParams.get('cursor') === null && url.searchParams.getAll('dates[]').includes('2026-08-01')
             ? { data: [game(1, '2026-08-01')], meta: {} }
             : { data: [], meta: {} };
@@ -140,6 +164,7 @@ test('capture batches stats, follows pagination, and requests active-season seas
         return { data: [], meta: {} };
       },
     });
+    assert.equal(gameUrls.some((url) => url.searchParams.getAll('dates[]').includes('2026-08-10')), true);
     assert.equal(statsUrls.length, 2);
     assert.deepEqual(statsUrls[0].searchParams.getAll('game_ids[]'), ['1']);
     assert.deepEqual(statsUrls[0].searchParams.getAll('player_ids[]').sort(), ['7', '99']);
