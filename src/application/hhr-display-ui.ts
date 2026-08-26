@@ -2,6 +2,10 @@ import {
   settleObservedDiscreteStatisticV1,
   type ObservedSettlementOutcome,
 } from '../core/index.js';
+import type {
+  ProductCategoryPerformanceEvidence,
+  ProductCategoryPerformanceRepository,
+} from './category-performance.js';
 import {
   emptyProductCategorySectionsV1,
   PRODUCT_DISPLAY_BOARD_VERSION,
@@ -135,6 +139,7 @@ export interface ProductArchivedEvidence {
 export interface HhrDisplayUiBoard extends HhrDisplayBoard {
   readonly productBoardVersion: typeof PRODUCT_DISPLAY_BOARD_VERSION;
   readonly categories: readonly ProductCategoryDisplaySection[];
+  readonly categoryPerformance: ProductCategoryPerformanceEvidence | null;
   readonly archivedEvidence: ProductArchivedEvidence;
   readonly hhr25LowerAlternates: readonly HhrDisplayUiPick[];
   readonly hhr05HigherAlternates: readonly HhrDisplayUiPick[];
@@ -183,6 +188,17 @@ async function readCumulativeEvidence(
   }
 }
 
+async function readCategoryPerformance(
+  repository: ProductCategoryPerformanceRepository | undefined,
+): Promise<ProductCategoryPerformanceEvidence | null> {
+  if (repository === undefined) return null;
+  try {
+    return await repository.readLatest();
+  } catch {
+    return null;
+  }
+}
+
 function archivedEvidence(
   capturedAt: string,
   lower: readonly HhrDisplayUiPick[],
@@ -216,9 +232,13 @@ export async function readLatestHhrDisplayUiBoard(
   repository: HhrDisplayArchiveRepository,
   cumulativeRepository?: HhrCumulativeDisplayEvidenceRepository,
   researchRepository?: ResearchDisplayArchiveRepository,
+  categoryPerformanceRepository?: ProductCategoryPerformanceRepository,
 ): Promise<HhrDisplayUiBoard> {
   const board = await readLatestHhrDisplayBoard(repository);
-  const cumulativeEvidence = await readCumulativeEvidence(cumulativeRepository);
+  const [cumulativeEvidence, categoryPerformance] = await Promise.all([
+    readCumulativeEvidence(cumulativeRepository),
+    readCategoryPerformance(categoryPerformanceRepository),
+  ]);
   const hhr25LowerAlternates = Object.freeze(board.hhr25LowerAlternates.map(toUiPick));
   const hhr05HigherAlternates = Object.freeze(board.hhr05HigherAlternates.map(toUiPick));
   const categories =
@@ -229,6 +249,7 @@ export async function readLatestHhrDisplayUiBoard(
     ...board,
     productBoardVersion: PRODUCT_DISPLAY_BOARD_VERSION,
     categories,
+    categoryPerformance,
     archivedEvidence: archivedEvidence(
       board.capturedAt,
       hhr25LowerAlternates,
