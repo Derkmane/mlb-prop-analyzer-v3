@@ -1,0 +1,81 @@
+name: M10 category win loss record
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - M10 grade pending saved archives
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: m10-category-win-loss-record
+  cancel-in-progress: false
+
+jobs:
+  category-performance:
+    name: Build product category W-L-V evidence
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      M10_ARCHIVE_ROOT: artifacts/board-archives/batter-hits
+      M10_HHR_ARCHIVE_ROOT: artifacts/board-archives/batter-hhr
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Build project
+        run: npm run build
+
+      - name: Restore immutable Batter Hits archive and grade ledger
+        uses: actions/cache/restore@v4
+        with:
+          path: artifacts/board-archives/batter-hits
+          key: category-performance-hits-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            m9-board-archive-ledger-
+
+      - name: Restore immutable HHR archive and grade ledger
+        uses: actions/cache/restore@v4
+        with:
+          path: artifacts/board-archives/batter-hhr
+          key: category-performance-hhr-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            m10-hhr-board-archive-ledger-
+
+      - name: Build category win loss evidence
+        run: node scripts/build-m10-category-performance.mjs
+
+      - name: Persist latest category performance display evidence
+        run: |
+          set -euo pipefail
+          ROOT="artifacts/display-archives/category-performance"
+          if [ ! -d "${ROOT}" ] || ! find "${ROOT}" -maxdepth 1 -type f -name 'product-category-performance-v1--*.json' -print -quit | grep -q .; then
+            echo "No graded category performance evidence is available yet; clean no-op."
+            exit 0
+          fi
+          git add -A -f -- "${ROOT}"
+          node -e 'const cp=require("node:child_process");const staged=cp.execFileSync("git",["diff","--cached","--name-only"],{encoding:"utf8"}).trim().split(/\r?\n/u).filter(Boolean);const allowed=/^artifacts\/display-archives\/category-performance\/product-category-performance-v1--[a-f0-9]{64}\.json$/u;const invalid=staged.filter((value)=>!allowed.test(value));if(invalid.length>0)throw new Error(`Refusing to persist non-category-performance paths: ${invalid.join(", ")}`);if(staged.length>2)throw new Error(`Expected at most one superseded deletion and one current category performance report; staged ${staged.length}.`);console.log(`STAGED CATEGORY PERFORMANCE FILES\t${staged.length}`);'
+          if git diff --cached --quiet; then
+            echo "Category performance display evidence already current; no commit required."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "chore: persist category win loss evidence [skip ci]"
+          git push origin HEAD:main
