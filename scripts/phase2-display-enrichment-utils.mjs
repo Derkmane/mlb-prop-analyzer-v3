@@ -3,6 +3,12 @@ import { createHash } from 'node:crypto';
 export const PHASE2_DISPLAY_ENRICHMENT_VERSION = 1;
 export const PHASE2_DISPLAY_ENRICHMENT_CONTRACT = 'phase2-last-five-and-opposing-starter-v1';
 const ACTIVE_SEASON = 2026;
+const CENTRAL_GAME_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/Chicago',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
 
 export function phase2EnrichmentEnabled(value = process.env.PHASE2_ENRICHMENT) {
   const normalized = value ?? 'on';
@@ -25,6 +31,17 @@ function exactTeamName(value) {
 function gameDate(game) {
   const value = game?.date;
   return typeof value === 'string' && Number.isFinite(Date.parse(value)) ? value : null;
+}
+
+function centralGameDate(value) {
+  const parts = CENTRAL_GAME_DATE_FORMATTER.formatToParts(new Date(value));
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  if (year === undefined || month === undefined || day === undefined) {
+    throw new Error(`Unable to format Central game date: ${value}`);
+  }
+  return `${year}-${month}-${day}`;
 }
 
 function baseballInnings(outs) {
@@ -78,7 +95,7 @@ export function buildPhase2DisplayEnrichment({
   if (typeof captureDateUtc !== 'string' || !/^\d{4}-\d{2}-\d{2}$/u.test(captureDateUtc)) {
     throw new TypeError('captureDateUtc must be YYYY-MM-DD.');
   }
-  const captureBoundary = Date.parse(`${captureDateUtc}T00:00:00.000Z`);
+  const captureBoundaryExclusive = Date.parse(`${captureDateUtc}T00:00:00.000Z`) + 86_400_000;
   const gameById = new Map(games.map((game) => [game?.id ?? game?.gameId, game]));
   const seasonByPlayer = new Map(seasonStatsRows.map((row) => [row?.player?.id, row]));
   const byGamePlayerKey = {};
@@ -94,7 +111,7 @@ export function buildPhase2DisplayEnrichment({
       if (!Number.isSafeInteger(row.plate_appearances) || row.plate_appearances <= 0) continue;
       const game = gameById.get(row.game_id);
       const date = gameDate(game);
-      if (date === null || Date.parse(date) >= captureBoundary || game?.status !== 'STATUS_FINAL') continue;
+      if (date === null || Date.parse(date) >= captureBoundaryExclusive || game?.status !== 'STATUS_FINAL') continue;
       const teamName = exactTeamName(row.team_name);
       const homeName = exactTeamName(game.home_team_name ?? game.homeTeamName);
       const awayName = exactTeamName(game.away_team_name ?? game.awayTeamName);
@@ -109,23 +126,26 @@ export function buildPhase2DisplayEnrichment({
       }
       const home = teamName === homeName;
       batting.push(Object.freeze({
-        gameDate: date.slice(0, 10),
-        opponentTeamName: home ? awayName : homeName,
-        opponentAbbreviation: home
-          ? (game.away_team?.abbreviation ?? game.awayAbbreviation ?? null)
-          : (game.home_team?.abbreviation ?? game.homeAbbreviation ?? null),
-        homeOrAway: home ? 'home' : 'away',
-        hits: row.hits,
-        runs: row.runs,
-        rbi: row.rbi,
-        hrr: row.hits + row.runs + row.rbi,
-        atBats: row.at_bats,
-        plateAppearances: row.plate_appearances,
-        totalBases: row.total_bases,
+        sortTime: Date.parse(date),
+        value: Object.freeze({
+          gameDate: centralGameDate(date),
+          opponentTeamName: home ? awayName : homeName,
+          opponentAbbreviation: home
+            ? (game.away_team?.abbreviation ?? game.awayAbbreviation ?? null)
+            : (game.home_team?.abbreviation ?? game.homeAbbreviation ?? null),
+          homeOrAway: home ? 'home' : 'away',
+          hits: row.hits,
+          runs: row.runs,
+          rbi: row.rbi,
+          hrr: row.hits + row.runs + row.rbi,
+          atBats: row.at_bats,
+          plateAppearances: row.plate_appearances,
+          totalBases: row.total_bases,
+        }),
       }));
     }
     const lastFive = failureReason === null
-      ? batting.sort((a, b) => a.gameDate.localeCompare(b.gameDate)).slice(-5)
+      ? batting.sort((a, b) => a.sortTime - b.sortTime).slice(-5).map((entry) => entry.value)
       : [];
     if (failureReason !== null) countReason(failureReason);
 
@@ -135,7 +155,7 @@ export function buildPhase2DisplayEnrichment({
         const game = gameById.get(row?.game_id);
         const date = gameDate(game);
         return row?.player?.id === starterId && row?.games_started === 1 && validPitchingRow(row) &&
-          date !== null && Date.parse(date) < captureBoundary && game?.status === 'STATUS_FINAL';
+          date !== null && Date.parse(date) < captureBoundaryExclusive && game?.status === 'STATUS_FINAL';
       })
       .sort((left, right) => gameDate(gameById.get(left.game_id)).localeCompare(gameDate(gameById.get(right.game_id))))
       .slice(-10);
@@ -213,11 +233,11 @@ function chunks(values, size) {
     values.slice(index * size, (index + 1) * size));
 }
 
-function utcDatesBefore(captureDateUtc) {
+function utcDatesThrough(captureDateUtc) {
   const end = new Date(`${captureDateUtc}T00:00:00.000Z`);
   const start = new Date(Date.UTC(end.getUTCFullYear(), 0, 1));
   const dates = [];
-  for (let cursor = start; cursor < end; cursor = new Date(cursor.getTime() + 86_400_000)) {
+  for (let cursor = start; cursor <= end; cursor = new Date(cursor.getTime() + 86_400_000)) {
     dates.push(cursor.toISOString().slice(0, 10));
   }
   return dates;
@@ -263,7 +283,7 @@ export async function capturePhase2DisplayEnrichment({
   const work = async () => {
     const games = await pagedRows({
       endpoint: 'games',
-      parameterGroups: chunks(utcDatesBefore(captureDateUtc), 100).map((dates) => ({ 'dates[]': dates })),
+      parameterGroups: chunks(utcDatesThrough(captureDateUtc), 100).map((dates) => ({ 'dates[]': dates })),
       fetchPage,
       signal: controller.signal,
     });
