@@ -62,3 +62,13 @@ test('live UI renders W-L-V performance evidence in every category panel', () =>
   assert.match(LIVE_DISPLAY_APP_JS, /Record unavailable · no completed grading evidence yet/u);
   assert.match(LIVE_DISPLAY_APP_JS, /for \(const panel of categoryPanelsNode\.querySelectorAll\('\[data-category-panel\]'\)\)/u);
 });
+
+test('category W-L-V decoration is idempotent under the MutationObserver', () => {
+  assert.match(
+    LIVE_DISPLAY_APP_JS,
+    /existing instanceof HTMLElement && existing\.dataset\.performanceKey === performanceKey\) return;/u,
+  );
+  assert.match(LIVE_DISPLAY_APP_JS, /record\.dataset\.performanceKey = performanceKey/u);
+  assert.match(LIVE_DISPLAY_APP_JS, /existing\.replaceWith\(record\)/u);
+  assert.doesNotMatch(LIVE_DISPLAY_APP_JS, /if \(existing\) existing\.remove\(\);/u);
+});
