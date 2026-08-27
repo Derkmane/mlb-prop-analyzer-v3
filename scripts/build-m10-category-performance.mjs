@@ -25,6 +25,16 @@ const BATTER_HITS_PROVIDER_MARKET_BY_OFFER_TYPE = Object.freeze({
   alternate: 'batter_hits_alternate',
 });
 
+export const CATEGORY_PERFORMANCE_RECORD_START_DATE = '2026-08-26';
+export const CATEGORY_PERFORMANCE_RECORD_TIME_ZONE = 'America/Chicago';
+
+const RECORD_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  timeZone: CATEGORY_PERFORMANCE_RECORD_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
 function sha256(bytes) {
   return createHash('sha256').update(bytes).digest('hex');
 }
@@ -41,12 +51,33 @@ function array(value, label) {
   return value;
 }
 
-export function retainCategoryPerformanceDisplayRows(rawArchive) {
+function recordDateForTimestamp(value) {
+  if (typeof value !== 'string' || !Number.isFinite(Date.parse(value))) {
+    throw new TypeError('category performance capture timestamp must be an ISO timestamp.');
+  }
+  const parts = Object.fromEntries(
+    RECORD_DATE_FORMATTER
+      .formatToParts(new Date(value))
+      .filter((part) => part.type !== 'literal')
+      .map((part) => [part.type, part.value]),
+  );
+  if (parts.year === undefined || parts.month === undefined || parts.day === undefined) {
+    throw new Error('category performance record date could not be resolved.');
+  }
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+export function isCategoryPerformanceRecordCapture(capturedAt) {
+  return recordDateForTimestamp(capturedAt) >= CATEGORY_PERFORMANCE_RECORD_START_DATE;
+}
+
+export function retainCategoryAuthorizedDisplayRows(rawArchive) {
   const archive = object(rawArchive, 'category performance display archive');
   const rows = array(archive.rows, 'category performance display archive rows');
-  const retained = rows.map((rawRow, index) =>
-    object(rawRow, `category performance display archive rows[${index}]`),
-  );
+  const retained = rows.filter((rawRow, index) => {
+    const row = object(rawRow, `category performance display archive rows[${index}]`);
+    return row.boardSource === 'pick6' || row.boardSource === 'draftkings';
+  });
   return Object.freeze({
     ...archive,
     rows: Object.freeze(retained),
@@ -150,8 +181,12 @@ async function buildPairedCaptureInputs() {
   for (const timestampKey of timestamps) {
     const hitsFile = await readJsonFile(hitsByTimestamp.get(timestampKey));
     const hhrFile = await readJsonFile(hhrByTimestamp.get(timestampKey));
-    const hitsDisplayArchive = retainCategoryPerformanceDisplayRows(hitsFile.value);
-    const hhrDisplayArchive = retainCategoryPerformanceDisplayRows(hhrFile.value);
+    const hitsDisplayArchive = retainCategoryAuthorizedDisplayRows(hitsFile.value);
+    const hhrDisplayArchive = retainCategoryAuthorizedDisplayRows(hhrFile.value);
+    if (hitsDisplayArchive.capturedAt !== hhrDisplayArchive.capturedAt) {
+      throw new Error(`Paired display capture ${timestampKey} has mismatched capturedAt values.`);
+    }
+    if (!isCategoryPerformanceRecordCapture(hitsDisplayArchive.capturedAt)) continue;
     const hitsCaptureKey = hitsDisplayArchive.captureKey;
     const hhrCaptureKey = hhrDisplayArchive.captureKey;
     if (typeof hitsCaptureKey !== 'string' || typeof hhrCaptureKey !== 'string') {
@@ -197,6 +232,8 @@ export async function main() {
   const pairedCaptures = await buildPairedCaptureInputs();
   const report = buildProductCategoryPerformanceReportV1({ pairedCaptures });
   console.log('--- M10 PRODUCT CATEGORY PERFORMANCE ---');
+  console.log(`RECORD START DATE\t${CATEGORY_PERFORMANCE_RECORD_START_DATE}`);
+  console.log(`RECORD TIME ZONE\t${CATEGORY_PERFORMANCE_RECORD_TIME_ZONE}`);
   console.log(`PAIRED DISPLAY CAPTURES\t${pairedCaptures.length}`);
   if (report === null) {
     console.log('GRADED CATEGORY PICKS\t0');

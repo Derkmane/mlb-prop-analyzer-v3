@@ -34,6 +34,10 @@ const PROBABILITY_TOLERANCE = 1e-12;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/u;
 const CUMULATIVE_CAPTURE_KEY_PATTERN =
   /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(\d{3})?Z--[a-f0-9]{64}$/u;
+const HHR_PROVIDER_MARKET_KEYS = new Set([
+  'batter_hits_runs_rbis',
+  'batter_hits_runs_rbis_alternate',
+]);
 
 function object(value, label) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
@@ -216,6 +220,27 @@ function propIdentity(row) {
     row.offerType,
     row.postedLine,
   ]);
+}
+
+function activeHhrPropIdentity(row) {
+  return stableJson([
+    row.providerEventId,
+    row.providerGameId,
+    row.providerPlayerId,
+    row.boardSource,
+    row.providerBookmakerKey ?? null,
+    row.providerRegion ?? null,
+    row.providerMarketKey,
+    row.offerType,
+    row.postedLine,
+  ]);
+}
+
+function isActiveHhrRow(row) {
+  return (
+    (row?.boardSource === 'pick6' || row?.boardSource === 'draftkings') &&
+    HHR_PROVIDER_MARKET_KEYS.has(row?.providerMarketKey)
+  );
 }
 
 function rowIdentity(row) {
@@ -477,21 +502,52 @@ function validatePair(rows, key) {
   return Object.freeze({ higher, lower, selected: selected[0] });
 }
 
+function validateActiveHhrSingleton(rows, key) {
+  if (rows.length !== 1 || !isActiveHhrRow(rows[0])) {
+    throw new Error(`Prop ${key} is not an authorized active-source HHR singleton.`);
+  }
+  const row = rows[0];
+  if (row.selectedSide !== 'higher' && row.selectedSide !== 'lower') {
+    throw new Error(`Prop ${key} active-source HHR singleton has unsupported selectedSide.`);
+  }
+  const selectedProbability = probability(
+    row.archivedPWinGivenGrades,
+    `Prop ${key} active-source HHR singleton P(Win | grades)`,
+  );
+  return Object.freeze({
+    row,
+    selected: selectedProbability >= 0.5 ? row : null,
+  });
+}
+
 export function selectOneModelSidePerProp(gradedRows) {
   const rows = array(gradedRows, 'gradedRows');
+  const activeHhrMode = rows.length > 0 && rows.every(isActiveHhrRow);
   const byProp = new Map();
   for (const row of rows) {
-    const key = propIdentity(row);
+    const key = activeHhrMode ? activeHhrPropIdentity(row) : propIdentity(row);
     const group = byProp.get(key) ?? [];
     group.push(row);
     byProp.set(key, group);
   }
-  const pairs = [...byProp.entries()]
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([key, pairRows]) => validatePair(pairRows, key));
+  const pairs = [];
+  const singletons = [];
+  const selectedRows = [];
+  for (const [key, groupedRows] of [...byProp.entries()].sort(([left], [right]) => left.localeCompare(right))) {
+    if (activeHhrMode && groupedRows.length === 1) {
+      const singleton = validateActiveHhrSingleton(groupedRows, key);
+      singletons.push(singleton);
+      if (singleton.selected !== null) selectedRows.push(singleton.selected);
+      continue;
+    }
+    const pair = validatePair(groupedRows, key);
+    pairs.push(pair);
+    selectedRows.push(pair.selected);
+  }
   return Object.freeze({
     pairs: Object.freeze(pairs),
-    selectedRows: Object.freeze(pairs.map((pair) => pair.selected)),
+    singletons: Object.freeze(singletons),
+    selectedRows: Object.freeze(selectedRows),
   });
 }
 
