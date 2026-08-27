@@ -25,7 +25,7 @@ const BATTER_HITS_PROVIDER_MARKET_BY_OFFER_TYPE = Object.freeze({
   alternate: 'batter_hits_alternate',
 });
 
-export const CATEGORY_PERFORMANCE_RECORD_START_DATE = '2026-08-25';
+export const CATEGORY_PERFORMANCE_RECORD_START_DATE = '2026-08-26';
 export const CATEGORY_PERFORMANCE_RECORD_TIME_ZONE = 'America/Chicago';
 
 const RECORD_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
