@@ -94,21 +94,32 @@ const TOP_FIVE_RESEARCH_JS = `
     const heading = panel.querySelector('.category-heading');
     if (!(heading instanceof HTMLElement)) return;
     const existing = heading.querySelector('.category-performance-record');
-    if (existing) existing.remove();
     const categoryId = panel.dataset.categoryPanel;
     const summary = categoryId ? categoryPerformance?.categories?.[categoryId] : null;
-    if (!summary) {
-      heading.append(make('div', 'category-performance-record unavailable', 'Record unavailable · no completed grading evidence yet'));
-      return;
+    const winRate = summary ? percentage(summary.winRate) : null;
+    const performanceKey = summary
+      ? [summary.wins, summary.losses, summary.voids, summary.decidedPicks, winRate ?? 'none'].join('|')
+      : 'unavailable';
+    if (existing instanceof HTMLElement && existing.dataset.performanceKey === performanceKey) return;
+
+    const record = summary
+      ? make('div', 'category-performance-record')
+      : make('div', 'category-performance-record unavailable', 'Record unavailable · no completed grading evidence yet');
+    record.dataset.performanceKey = performanceKey;
+
+    if (summary) {
+      const label = make('span', null, 'W-L-V');
+      const value = make('strong', null, summary.wins + '-' + summary.losses + '-' + summary.voids);
+      record.append(label, value);
+      record.append(make('span', null, '· ' + summary.decidedPicks + ' decided'));
+      record.append(make('span', null, '· ' + (winRate === null ? 'No decided win rate' : winRate + ' win rate')));
     }
-    const winRate = percentage(summary.winRate);
-    const record = make('div', 'category-performance-record');
-    const label = make('span', null, 'W-L-V');
-    const value = make('strong', null, summary.wins + '-' + summary.losses + '-' + summary.voids);
-    record.append(label, value);
-    record.append(make('span', null, '· ' + summary.decidedPicks + ' decided'));
-    record.append(make('span', null, '· ' + (winRate === null ? 'No decided win rate' : winRate + ' win rate')));
-    heading.append(record);
+
+    if (existing instanceof HTMLElement) {
+      existing.replaceWith(record);
+    } else {
+      heading.append(record);
+    }
   };
 
   const decoratePanel = (panel) => {
