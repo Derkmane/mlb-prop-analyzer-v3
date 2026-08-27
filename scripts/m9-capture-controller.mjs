@@ -7,25 +7,36 @@ import {
   sha256Bytes,
   SNAPSHOT_CONTRACT,
 } from './m9-board-snapshot-preload.mjs';
+import { chicagoDateKey } from './chicago-slate-date-utils.mjs';
 
 export const NORMAL_WINDOW_MINUTES = 40;
 export const NORMAL_WINDOW_MAX_MINUTES = 110;
 export const BOARD_RUN_CONTRACT = 'm9-schedule-aware-board-run-v1';
 export const COVERAGE_CONTRACT = 'm9-game-coverage-receipt-v2';
+export const CURRENT_SLATE_BOOTSTRAP_MODE = 'CURRENT_SLATE_BOOTSTRAP';
 const LEGACY_COVERAGE_CONTRACT = 'm9-game-coverage-receipt-v1';
 const COVERAGE_CONTRACTS = new Set([
   LEGACY_COVERAGE_CONTRACT,
   COVERAGE_CONTRACT,
 ]);
+const DISPLAY_CAPTURE_PATTERN = /^\d{8}T\d{9}Z--[a-f0-9]{64}\.json$/u;
 
 const iso = (value) => new Date(value).toISOString();
 const gameKey = (event) => `${event.eventId}@${event.commenceTimeUtc}`;
 
-function configuredCaptureAllPregame() {
-  const raw = process.env.M9_CAPTURE_ALL_PREGAME?.trim();
+function configuredBinaryFlag(name) {
+  const raw = process.env[name]?.trim();
   if (raw === undefined || raw === '' || raw === '0') return false;
   if (raw === '1') return true;
-  throw new Error('M9_CAPTURE_ALL_PREGAME must be 0 or 1.');
+  throw new Error(`${name} must be 0 or 1.`);
+}
+
+function configuredCaptureAllPregame() {
+  return configuredBinaryFlag('M9_CAPTURE_ALL_PREGAME');
+}
+
+function configuredAutoCurrentSlate() {
+  return configuredBinaryFlag('M9_AUTO_CURRENT_SLATE');
 }
 
 export function normalizeScheduleEvents(raw) {
@@ -64,12 +75,17 @@ export function decideBoardRun({
   coveredGameIdentities = [],
   runStartedAt,
   captureAllPregame = false,
+  captureCurrentSlate = false,
 }) {
   if (typeof captureAllPregame !== 'boolean') {
     throw new TypeError('captureAllPregame must be a boolean.');
   }
+  if (typeof captureCurrentSlate !== 'boolean') {
+    throw new TypeError('captureCurrentSlate must be a boolean.');
+  }
   const startMs = Date.parse(runStartedAt);
   if (!Number.isFinite(startMs)) throw new Error('runStartedAt must be ISO time.');
+  const runSlateDate = captureCurrentSlate ? chicagoDateKey(runStartedAt) : null;
   const covered = new Set(coveredGameIdentities);
   const claimedGames = [];
   const evaluations = events.map((event) => {
@@ -78,8 +94,13 @@ export function decideBoardRun({
       (Date.parse(event.commenceTimeUtc) - startMs) / 60_000;
     let classification = 'OUTSIDE_WINDOW';
     if (minutesToFirstPitch <= 0) classification = 'STARTED';
-    else if (covered.has(gameIdentity)) classification = 'COVERED';
     else if (captureAllPregame) classification = 'USER_PROJECTION';
+    else if (
+      captureCurrentSlate &&
+      chicagoDateKey(event.commenceTimeUtc) === runSlateDate
+    ) {
+      classification = CURRENT_SLATE_BOOTSTRAP_MODE;
+    } else if (covered.has(gameIdentity)) classification = 'COVERED';
     else if (
       minutesToFirstPitch >= NORMAL_WINDOW_MINUTES &&
       minutesToFirstPitch <= NORMAL_WINDOW_MAX_MINUTES
@@ -97,7 +118,8 @@ export function decideBoardRun({
     if (
       classification === 'NORMAL' ||
       classification === 'RECOVERY' ||
-      classification === 'USER_PROJECTION'
+      classification === 'USER_PROJECTION' ||
+      classification === CURRENT_SLATE_BOOTSTRAP_MODE
     ) {
       claimedGames.push(row);
     }
@@ -209,6 +231,83 @@ async function coveredGameIdentities(root) {
   return covered;
 }
 
+async function newestDisplayCapturedAt(displayRoot, market) {
+  const directory = path.join(displayRoot, market, 'captures');
+  let entries;
+  try {
+    entries = await readdir(directory, { withFileTypes: true });
+  } catch (error) {
+    if (error?.code === 'ENOENT') return null;
+    throw error;
+  }
+  const names = entries
+    .filter((entry) => entry.isFile() && DISPLAY_CAPTURE_PATTERN.test(entry.name))
+    .map((entry) => entry.name)
+    .sort()
+    .reverse();
+  if (names.length === 0) return null;
+  const value = await readJson(path.join(directory, names[0]));
+  if (typeof value?.capturedAt !== 'string' || !Number.isFinite(Date.parse(value.capturedAt))) {
+    throw new Error(`Newest ${market} display capture has invalid capturedAt.`);
+  }
+  return iso(value.capturedAt);
+}
+
+export function shouldBootstrapCurrentSlate({
+  runStartedAt,
+  hitsCapturedAt,
+  hhrCapturedAt,
+}) {
+  const currentSlateDate = chicagoDateKey(runStartedAt);
+  const captures = [
+    ['batter-hits', hitsCapturedAt],
+    ['batter-hhr', hhrCapturedAt],
+  ];
+  for (const [market, capturedAt] of captures) {
+    if (capturedAt === null) continue;
+    if (typeof capturedAt !== 'string' || !Number.isFinite(Date.parse(capturedAt))) {
+      throw new Error(`${market} display capturedAt must be valid or null.`);
+    }
+    const captureSlateDate = chicagoDateKey(capturedAt);
+    if (captureSlateDate > currentSlateDate) {
+      throw new Error(
+        `${market} display capture is future-dated for the current Chicago slate.`,
+      );
+    }
+  }
+  if (hitsCapturedAt === null || hhrCapturedAt === null) return true;
+  if (chicagoDateKey(hitsCapturedAt) !== currentSlateDate) return true;
+  if (chicagoDateKey(hhrCapturedAt) !== currentSlateDate) return true;
+  return iso(hitsCapturedAt) !== iso(hhrCapturedAt);
+}
+
+async function currentSlateBootstrapRequired(runStartedAt) {
+  if (!configuredAutoCurrentSlate()) return false;
+  const displayRoot = path.resolve(
+    process.env.M9_DISPLAY_ARCHIVE_ROOT?.trim() || 'artifacts/display-archives',
+  );
+  const [hitsCapturedAt, hhrCapturedAt] = await Promise.all([
+    newestDisplayCapturedAt(displayRoot, 'batter-hits'),
+    newestDisplayCapturedAt(displayRoot, 'batter-hhr'),
+  ]);
+  return shouldBootstrapCurrentSlate({
+    runStartedAt,
+    hitsCapturedAt,
+    hhrCapturedAt,
+  });
+}
+
+function captureModeForDecision(decision) {
+  const classifications = new Set(
+    decision.claimedGames.map((game) => game.classification),
+  );
+  if (classifications.has('USER_PROJECTION')) return 'USER_PROJECTION';
+  if (classifications.has(CURRENT_SLATE_BOOTSTRAP_MODE)) {
+    return CURRENT_SLATE_BOOTSTRAP_MODE;
+  }
+  return decision.decision === 'CAPTURE' ? 'SCHEDULE_WINDOW' : 'NOOP';
+}
+
 function scheduleUrl(apiKey) {
   const url = new URL(
     'https://api.the-odds-api.com/v4/sports/baseball_mlb/events',
@@ -243,24 +342,32 @@ export async function planBoardRun({
   const rawEvents = JSON.parse(scheduleBytes.toString('utf8'));
   const events = normalizeScheduleEvents(rawEvents);
   const covered = await coveredGameIdentities(root);
+  const captureCurrentSlate = await currentSlateBootstrapRequired(runStartedAt);
   const decision = decideBoardRun({
     events,
     coveredGameIdentities: [...covered],
     runStartedAt,
     captureAllPregame: configuredCaptureAllPregame(),
+    captureCurrentSlate,
   });
+  const captureMode = captureModeForDecision(decision);
   if (decision.decision === 'NOOP') {
     const plan = Object.freeze({
       version: 1,
       contract: BOARD_RUN_CONTRACT,
       decision: 'NOOP',
+      captureMode,
       runStartedAt,
       claimedGames: decision.claimedGames,
       evaluations: decision.evaluations,
     });
     await mkdir(path.dirname(planPath), { recursive: true });
     await writeFile(planPath, `${JSON.stringify(plan, null, 2)}\n`);
-    await appendOutputs({ decision: 'NOOP', plan_path: planPath });
+    await appendOutputs({
+      decision: 'NOOP',
+      capture_mode: captureMode,
+      plan_path: planPath,
+    });
     output.write('M9 BOARD RUN CONTROLLER\tNOOP\n');
     return plan;
   }
@@ -288,6 +395,7 @@ export async function planBoardRun({
     version: 1,
     contract: BOARD_RUN_CONTRACT,
     decision: 'CAPTURE',
+    captureMode,
     runStartedAt,
     claimedGames: decision.claimedGames,
     evaluations: decision.evaluations,
@@ -300,6 +408,7 @@ export async function planBoardRun({
   await writeFile(planPath, `${JSON.stringify(plan, null, 2)}\n`);
   await appendOutputs({
     decision: 'CAPTURE',
+    capture_mode: captureMode,
     plan_path: planPath,
     snapshot_manifest: snapshot.manifestPath,
     snapshot_id: plan.snapshotId,
@@ -307,7 +416,7 @@ export async function planBoardRun({
     snapshot_completed_at: plan.boardSnapshotCompletedAt,
   });
   output.write(
-    `M9 BOARD RUN CONTROLLER\tCAPTURE\tclaimed=${plan.claimedGames.length}\tsnapshotSetSha256=${plan.snapshotSetSha256}\telapsedMs=${plan.runStartToSnapshotElapsedMs}\n`,
+    `M9 BOARD RUN CONTROLLER\tCAPTURE\tmode=${captureMode}\tclaimed=${plan.claimedGames.length}\tsnapshotSetSha256=${plan.snapshotSetSha256}\telapsedMs=${plan.runStartToSnapshotElapsedMs}\n`,
   );
   return plan;
 }
@@ -477,6 +586,34 @@ export function decideClaimedGameCoverage({
   });
 }
 
+export function coverageReceiptDecision({
+  captureMode,
+  claimedGames,
+  coverageDecision,
+}) {
+  if (captureMode !== CURRENT_SLATE_BOOTSTRAP_MODE) {
+    return coverageDecision;
+  }
+  const deferredByEvent = new Map(
+    coverageDecision.deferredGames.map((game) => [game.eventId, game.reasons]),
+  );
+  return Object.freeze({
+    coveredEventIds: Object.freeze([]),
+    deferredGames: Object.freeze(
+      claimedGames.map((game) =>
+        Object.freeze({
+          eventId: game.eventId,
+          gameIdentity: game.gameIdentity,
+          reasons: Object.freeze([
+            'current-slate-bootstrap-refresh',
+            ...(deferredByEvent.get(game.eventId) ?? []),
+          ]),
+        }),
+      ),
+    ),
+  });
+}
+
 async function archiveCapturedAt(root, capturedAt, label) {
   const directory = path.join(root, 'captures');
   const prefix = `${iso(capturedAt).replace(/[-:.]/gu, '')}--`;
@@ -552,10 +689,15 @@ export async function finalizeCoverage({
     archiveCapturedAt(root, plan.boardSnapshotCompletedAt, 'Batter Hits'),
     archiveCapturedAt(hhrRoot, plan.boardSnapshotCompletedAt, 'HHR'),
   ]);
-  const coverageDecision = decideClaimedGameCoverage({
+  const rawCoverageDecision = decideClaimedGameCoverage({
     claimedGames: plan.claimedGames,
     hitsArchive: hitsCapture.value,
     hhrArchive: hhrCapture.value,
+  });
+  const coverageDecision = coverageReceiptDecision({
+    captureMode: plan.captureMode,
+    claimedGames: plan.claimedGames,
+    coverageDecision: rawCoverageDecision,
   });
   const coveredIds = new Set(coverageDecision.coveredEventIds);
 
