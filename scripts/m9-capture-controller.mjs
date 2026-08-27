@@ -94,13 +94,13 @@ export function decideBoardRun({
       (Date.parse(event.commenceTimeUtc) - startMs) / 60_000;
     let classification = 'OUTSIDE_WINDOW';
     if (minutesToFirstPitch <= 0) classification = 'STARTED';
-    else if (captureAllPregame) classification = 'USER_PROJECTION';
     else if (
       captureCurrentSlate &&
       chicagoDateKey(event.commenceTimeUtc) === runSlateDate
     ) {
       classification = CURRENT_SLATE_BOOTSTRAP_MODE;
     } else if (covered.has(gameIdentity)) classification = 'COVERED';
+    else if (captureAllPregame) classification = 'USER_PROJECTION';
     else if (
       minutesToFirstPitch >= NORMAL_WINDOW_MINUTES &&
       minutesToFirstPitch <= NORMAL_WINDOW_MAX_MINUTES
