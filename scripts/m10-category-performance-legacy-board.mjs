@@ -13,8 +13,8 @@ export const LEGACY_CATEGORY_PERFORMANCE_BOARD_VERSION =
   'm10-category-performance-legacy-underdog-v1';
 
 const LEGACY_BASELINE_MARKET_KEY_BY_MARKET = Object.freeze({
-  'Batter Hits': 'batter_hits',
-  'Batter Hits + Runs + RBIs': 'batter_hits_runs_rbis',
+  'batter-hits': 'batter_hits',
+  'batter-hits-runs-rbis': 'batter_hits_runs_rbis',
 });
 
 function stableIdentity(values) {
@@ -105,8 +105,7 @@ function historicalPick(candidate) {
     player: row.playerName,
     playerId: String(row.providerPlayerId),
     gameTime: row.eventCommenceTime,
-    market:
-      row.market === 'Batter Hits' ? 'Hits' : 'Hits + Runs + RBIs',
+    market: row.market === 'batter-hits' ? 'Hits' : 'Hits + Runs + RBIs',
     boardSource: null,
     providerBookmakerKey: 'underdog',
     selectedSide: row.selectedSide,
