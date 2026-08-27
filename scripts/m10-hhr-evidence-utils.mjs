@@ -139,6 +139,57 @@ function exactRowIdentity(row) {
   ]);
 }
 
+function hhrSourceAwarePropIdentity(row) {
+  return stableJson([
+    row.providerEventId,
+    row.providerGameId,
+    row.providerPlayerId,
+    row.boardSource ?? null,
+    row.providerBookmakerKey ?? null,
+    row.providerRegion ?? null,
+    row.providerMarketKey,
+    row.offerType,
+    row.postedLine,
+  ]);
+}
+
+function isVerifiedActiveSourceSingleton(row) {
+  if (row.boardSource === 'draftkings') {
+    return row.providerBookmakerKey === 'draftkings' && row.providerRegion === 'us';
+  }
+  if (row.boardSource === 'pick6') {
+    return row.providerBookmakerKey === 'pick6' && row.providerRegion === 'us_dfs';
+  }
+  return false;
+}
+
+export function selectHhrModelSidesForEvidence(gradedRows) {
+  const rows = array(gradedRows, 'gradedRows');
+  const byProp = new Map();
+  for (const row of rows) {
+    const key = hhrSourceAwarePropIdentity(row);
+    const group = byProp.get(key) ?? [];
+    group.push(row);
+    byProp.set(key, group);
+  }
+
+  const selectedRows = [];
+  for (const [key, group] of [...byProp.entries()].sort(([left], [right]) => left.localeCompare(right))) {
+    if (group.length === 1 && isVerifiedActiveSourceSingleton(group[0])) {
+      if (group[0].archivedPWinGivenGrades >= 0.5) selectedRows.push(group[0]);
+      continue;
+    }
+    try {
+      selectedRows.push(...selectOneModelSidePerProp(group).selectedRows);
+    } catch (error) {
+      throw new Error(
+        `HHR evidence prop ${key} is not a verified active-source singleton or a valid complementary pair: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+  return Object.freeze({ selectedRows: Object.freeze(selectedRows) });
+}
+
 function captureEvidenceError(row, code, message) {
   return new HhrCaptureEvidenceError({
     code,
@@ -737,7 +788,7 @@ export function buildM10HhrFinalGradeReport({
     gameStatusEvidence: status,
     rows: Object.freeze(rows),
     summary: buildSelectedSidePerformanceSummary(
-      selectOneModelSidePerProp(rows).selectedRows,
+      selectHhrModelSidesForEvidence(rows).selectedRows,
     ),
     safety: Object.freeze({
       productionEnabled: false,
@@ -879,7 +930,7 @@ function captureAwareSelectedRecords(captureInputs) {
         `HHR cumulative capture ${capture.captureKey} contains duplicate exact offer identities.`,
       );
     }
-    const selectedRows = selectOneModelSidePerProp(capture.rows).selectedRows;
+    const selectedRows = selectHhrModelSidesForEvidence(capture.rows).selectedRows;
     for (const row of selectedRows) {
       records.push(Object.freeze({
         captureKey: capture.captureKey,
