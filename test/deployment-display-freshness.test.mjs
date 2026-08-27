@@ -46,17 +46,17 @@ test('deployment freshness accepts one current same-capture Hits/HHR pair', asyn
   }
 });
 
-test('deployment freshness accepts a prior-slate same-capture bootstrap pair', async () => {
+test('deployment freshness rejects a prior-slate same-capture pair', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'mlb-display-freshness-'));
   try {
     const capturedAt = '2026-08-21T23:46:52.710Z';
     await writeArchive(root, 'batter-hits', capturedAt, 'a');
     await writeArchive(root, 'batter-hhr', capturedAt, 'b');
 
-    const result = await verifyDeploymentDisplayFreshness({ rootDirectory: root, now: NOW });
-    assert.equal(result.slateDate, '2026-08-22');
-    assert.equal(result.capturedAt, capturedAt);
-    assert.equal(result.archives.length, 2);
+    await assert.rejects(
+      verifyDeploymentDisplayFreshness({ rootDirectory: root, now: NOW }),
+      /Deployment blocked: newest shipped batter-hits display archive is stale/u,
+    );
   } finally {
     await rm(root, { recursive: true, force: true });
   }

@@ -24,6 +24,26 @@ test('runtime lineup issue edits trigger one full-slate pass while scheduled run
   assert.match(workflow, /- cron: '0,30 \* \* \* \*'/u);
 });
 
+test('scheduled runs bootstrap a missing current Chicago slate and resolve latest main after the concurrency wait', () => {
+  const workflow = readFileSync('.github/workflows/m9-board-archive.yml', 'utf8');
+  assert.match(
+    workflow,
+    /M9_AUTO_CURRENT_SLATE: \$\{\{ github\.event_name == 'schedule' && '1' \|\| '0' \}\}/u,
+  );
+  assert.match(
+    workflow,
+    /M9_DISPLAY_ARCHIVE_ROOT: artifacts\/display-archives/u,
+  );
+  assert.match(
+    workflow,
+    /- name: Check out repository[\s\S]*?ref: \$\{\{ github\.event_name == 'schedule' && 'main' \|\| github\.ref \}\}/u,
+  );
+  assert.match(
+    workflow,
+    /PLAN_CAPTURE_MODE: \$\{\{ steps\.capture-plan\.outputs\.capture_mode \}\}/u,
+  );
+});
+
 test('manual recapture can ignore prior controller coverage without changing durable archive roots', () => {
   const workflow = readFileSync('.github/workflows/m9-board-archive.yml', 'utf8');
   assert.match(

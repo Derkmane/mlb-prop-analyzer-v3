@@ -20,10 +20,11 @@ on:
           - 'off'
           - 'on'
   schedule:
-    # Every 30 minutes. The controller performs one schedule read and captures
-    # only when an uncovered game is 40-110 minutes from first pitch, with an
-    # under-40-minute recovery band. A single missed scheduled run therefore
-    # leaves another normal-band look before recovery is needed.
+    # Every 30 minutes. If the committed display is still from a prior
+    # America/Chicago slate, the controller first bootstraps every still-pregame
+    # game on the current Chicago date. After that current-slate display exists,
+    # normal capture remains schedule-aware at 40-110 minutes before first pitch
+    # with an under-40-minute recovery band.
     - cron: '0,30 * * * *'
   issues:
     types:
@@ -51,17 +52,24 @@ jobs:
       M8_CURRENT_SEASON_SHARD_ROOT: artifacts/m8-current-season-pa/shards-2026
       M10_ARCHIVE_ROOT: artifacts/board-archives/batter-hits
       M10_HHR_ARCHIVE_ROOT: artifacts/board-archives/batter-hhr
+      M9_DISPLAY_ARCHIVE_ROOT: artifacts/display-archives
       M9_CAPTURE_CONTROLLER_PLAN: artifacts/workflow-logs/m9-capture-controller-plan.json
       M9_HITS_REPLAY_RECEIPT: artifacts/workflow-logs/m9-board-replay-hits.json
       M9_HHR_REPLAY_RECEIPT: artifacts/workflow-logs/m9-board-replay-hhr.json
       USER_PROJECTED_LINEUP_ROOT: artifacts/workflow-runtime/user-projected-lineups
       USER_PROJECTED_LINEUP_RUNTIME_ISSUE_NUMBER: '153'
       M9_CAPTURE_ALL_PREGAME: ${{ ((github.event_name == 'issues' && github.event.issue.number == 153) || (github.event_name == 'workflow_dispatch' && inputs.recapture_all_pregame == 'on')) && '1' || '0' }}
+      M9_AUTO_CURRENT_SLATE: ${{ github.event_name == 'schedule' && '1' || '0' }}
       PHASE2_ENRICHMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.phase2_enrichment || 'on' }}
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          # Scheduled runs always resolve the latest main after waiting for the
+          # workflow concurrency lock, so a just-persisted current-slate display
+          # cannot be missed because this event queued on an older SHA.
+          ref: ${{ github.event_name == 'schedule' && 'main' || github.ref }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -293,6 +301,7 @@ jobs:
         env:
           PLAN_OUTCOME: ${{ steps.capture-plan.outcome }}
           PLAN_DECISION: ${{ steps.capture-plan.outputs.decision }}
+          PLAN_CAPTURE_MODE: ${{ steps.capture-plan.outputs.capture_mode }}
           HITS_CAPTURE_OUTCOME: ${{ steps.capture-hits.outcome }}
           HITS_IDENTIFY_OUTCOME: ${{ steps.identify-hits-capture.outcome }}
           HHR_CAPTURE_OUTCOME: ${{ steps.capture-hhr.outcome }}
@@ -310,7 +319,7 @@ jobs:
             exit 1
           fi
           if [ "${PLAN_DECISION}" = "NOOP" ]; then
-            echo "Capture controller returned NOOP; no uncovered game is currently in the capture window."
+            echo "Capture controller returned NOOP; current display exists or no eligible game is currently claimable."
             exit 0
           fi
           if [ "${PLAN_DECISION}" != "CAPTURE" ]; then
@@ -335,4 +344,4 @@ jobs:
               exit 1
             fi
           done
-          echo "CAPTURE completed: both archivers consumed the first snapshot, coverage finalized, and display archives persisted."
+          echo "CAPTURE completed (${PLAN_CAPTURE_MODE}): both archivers consumed the first snapshot, display archives persisted, and coverage finalization preserved later refresh eligibility."

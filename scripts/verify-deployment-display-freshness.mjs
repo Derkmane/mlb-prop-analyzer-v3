@@ -1,25 +1,14 @@
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  CHICAGO_SLATE_TIME_ZONE,
+  chicagoDateKey,
+} from './chicago-slate-date-utils.mjs';
 
 const DISPLAY_MARKETS = Object.freeze(['batter-hits', 'batter-hhr']);
 const CAPTURE_PATTERN = /^\d{8}T\d{9}Z--[a-f0-9]{64}\.json$/u;
-export const DEPLOYMENT_DISPLAY_TIME_ZONE = 'America/Chicago';
-
-function chicagoDateKey(value, timeZone = DEPLOYMENT_DISPLAY_TIME_ZONE) {
-  const date = value instanceof Date ? value : new Date(value);
-  if (!Number.isFinite(date.getTime())) {
-    throw new TypeError('deployment freshness timestamp must be valid.');
-  }
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(date);
-  const byType = new Map(parts.map((part) => [part.type, part.value]));
-  return `${byType.get('year')}-${byType.get('month')}-${byType.get('day')}`;
-}
+export const DEPLOYMENT_DISPLAY_TIME_ZONE = CHICAGO_SLATE_TIME_ZONE;
 
 async function newestArchive(rootDirectory, market) {
   const directory = path.join(rootDirectory, market, 'captures');
@@ -94,6 +83,12 @@ export async function verifyDeploymentDisplayFreshness(options = {}) {
     if (captureSlateDate > expectedSlateDate) {
       throw new Error(
         `Deployment blocked: newest shipped ${archive.market} display archive is future-dated ` +
+          `(${captureSlateDate}; current slate date ${expectedSlateDate}).`,
+      );
+    }
+    if (captureSlateDate < expectedSlateDate) {
+      throw new Error(
+        `Deployment blocked: newest shipped ${archive.market} display archive is stale ` +
           `(${captureSlateDate}; current slate date ${expectedSlateDate}).`,
       );
     }
