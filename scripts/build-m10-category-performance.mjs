@@ -41,13 +41,12 @@ function array(value, label) {
   return value;
 }
 
-export function retainCategoryAuthorizedDisplayRows(rawArchive) {
+export function retainCategoryPerformanceDisplayRows(rawArchive) {
   const archive = object(rawArchive, 'category performance display archive');
   const rows = array(archive.rows, 'category performance display archive rows');
-  const retained = rows.filter((rawRow, index) => {
-    const row = object(rawRow, `category performance display archive rows[${index}]`);
-    return row.boardSource === 'pick6' || row.boardSource === 'draftkings';
-  });
+  const retained = rows.map((rawRow, index) =>
+    object(rawRow, `category performance display archive rows[${index}]`),
+  );
   return Object.freeze({
     ...archive,
     rows: Object.freeze(retained),
@@ -151,8 +150,8 @@ async function buildPairedCaptureInputs() {
   for (const timestampKey of timestamps) {
     const hitsFile = await readJsonFile(hitsByTimestamp.get(timestampKey));
     const hhrFile = await readJsonFile(hhrByTimestamp.get(timestampKey));
-    const hitsDisplayArchive = retainCategoryAuthorizedDisplayRows(hitsFile.value);
-    const hhrDisplayArchive = retainCategoryAuthorizedDisplayRows(hhrFile.value);
+    const hitsDisplayArchive = retainCategoryPerformanceDisplayRows(hitsFile.value);
+    const hhrDisplayArchive = retainCategoryPerformanceDisplayRows(hhrFile.value);
     const hitsCaptureKey = hitsDisplayArchive.captureKey;
     const hhrCaptureKey = hhrDisplayArchive.captureKey;
     if (typeof hitsCaptureKey !== 'string' || typeof hhrCaptureKey !== 'string') {

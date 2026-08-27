@@ -7,6 +7,7 @@ import {
   RESEARCH_BATTER_HHR_MARKET,
   RESEARCH_BATTER_HITS_MARKET,
 } from '../dist/src/application/index.js';
+import { buildLegacyCategoryPerformanceBoardV1 } from './m10-category-performance-legacy-board.mjs';
 
 export const CATEGORY_PERFORMANCE_REPORT_VERSION = 1;
 export const CATEGORY_PERFORMANCE_REPORT_TYPE = 'product-category-performance-v1';
@@ -135,7 +136,7 @@ function normalizeDisplayRow({ source, market, raw, index }) {
     providerGameId,
     providerPlayerId,
     playerName: string(row.playerName, `${market} playerName`),
-    teamName: string(row.teamName, `${market} teamName`),
+    teamName: nullableString(row.teamName, `${market} teamName`),
     homeTeamName: string(row.homeTeamName, `${market} homeTeamName`),
     awayTeamName: string(row.awayTeamName, `${market} awayTeamName`),
     eventCommenceTime: timestamp(row.eventCommenceTime, `${market} eventCommenceTime`),
@@ -275,6 +276,19 @@ function sourceRowsForPick(archives, pick) {
   );
 }
 
+function categoryBoardForCapture(archives, capturedAt) {
+  const rows = archives.flatMap((archive) => archive.rows);
+  const legacyRows = rows.filter((row) => row.boardSource === null);
+  const activeRows = rows.filter((row) => row.boardSource !== null);
+  if (legacyRows.length > 0 && activeRows.length > 0) {
+    throw new Error('Category performance capture mixes legacy and active board-source eras.');
+  }
+  if (legacyRows.length > 0) {
+    return buildLegacyCategoryPerformanceBoardV1(legacyRows);
+  }
+  return buildResearchProductBoardV2(archives, Date.parse(capturedAt));
+}
+
 function categoryPickIdentity(categoryId, row) {
   return stableJson([
     categoryId,
@@ -339,7 +353,7 @@ export function buildProductCategoryPerformanceReportV1({ pairedCaptures }) {
       [RESEARCH_BATTER_HHR_MARKET, hhrGrade],
     ]);
     const archives = Object.freeze([hitsArchive, hhrArchive]);
-    const board = buildResearchProductBoardV2(archives, Date.parse(capturedAt));
+    const board = categoryBoardForCapture(archives, capturedAt);
     let captureContributed = false;
 
     for (const category of board.categories) {
