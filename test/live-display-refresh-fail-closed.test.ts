@@ -3,7 +3,10 @@ import { once } from 'node:events';
 import type { AddressInfo } from 'node:net';
 import test from 'node:test';
 
-import { HHR_DISPLAY_SESSION_COOKIE } from '../src/adapters/index.js';
+import {
+  DisplayStoreUnavailableError,
+  HHR_DISPLAY_SESSION_COOKIE,
+} from '../src/adapters/index.js';
 import {
   PRODUCT_DISPLAY_BOARD_VERSION,
   type ResearchDisplayArchive,
@@ -12,10 +15,7 @@ import {
 } from '../src/application/index.js';
 import { createHhrDisplayAppServer } from '../src/composition/index.js';
 
-const PRIVATE_REPOSITORY_TREE_NOT_FOUND =
-  'Unable to refresh current display board from GitHub tree: HTTP 404.';
-
-test('deployable app fails closed on refresh failures after the GitHub tree lookup', async () => {
+test('deployable app fails closed on non-storage refresh failures before archive reads', async () => {
   let refreshCalls = 0;
   let archiveReads = 0;
   const server = createHhrDisplayAppServer({
@@ -24,7 +24,7 @@ test('deployable app fails closed on refresh failures after the GitHub tree look
     repository: Object.freeze({
       async readLatest() {
         archiveReads += 1;
-        throw new Error('archive read must not run after a non-tree refresh failure');
+        throw new Error('archive read must not run after an invalid persistent bundle');
       },
     }),
     cumulativeRepository: Object.freeze({
@@ -41,26 +41,20 @@ test('deployable app fails closed on refresh failures after the GitHub tree look
     }),
     async refreshDisplayArchives() {
       refreshCalls += 1;
-      throw new Error('Unable to refresh current batter-hhr display archive: HTTP 404.');
+      throw new Error('invalid persistent display bundle');
     },
   });
 
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
-  const address = server.address();
-  assert.ok(address !== null && typeof address === 'object');
-  const origin = `http://127.0.0.1:${(address as AddressInfo).port}`;
-
+  const address = server.address() as AddressInfo;
+  const origin = `http://127.0.0.1:${address.port}`;
   try {
     const response = await fetch(`${origin}/api/hhr-display-board`, {
-      headers: {
-        cookie: `${HHR_DISPLAY_SESSION_COOKIE}=refresh-fail-closed-session-token`,
-      },
+      headers: { cookie: `${HHR_DISPLAY_SESSION_COOKIE}=refresh-fail-closed-session-token` },
     });
     assert.equal(response.status, 500);
-    assert.deepEqual(await response.json(), {
-      error: 'hhr-display-board-unavailable',
-    });
+    assert.deepEqual(await response.json(), { error: 'hhr-display-board-unavailable' });
     assert.equal(refreshCalls, 1);
     assert.equal(archiveReads, 0);
   } finally {
@@ -69,52 +63,36 @@ test('deployable app fails closed on refresh failures after the GitHub tree look
   }
 });
 
-test('deployable app still fails closed when private-repository tree refresh is unavailable and no readable archive exists', async () => {
+test('deployable app still fails closed when App Storage is unavailable and no readable archive exists', async () => {
   let refreshCalls = 0;
   let archiveReads = 0;
   const server = createHhrDisplayAppServer({
-    password: 'tree-404-no-archive-password',
-    sessionToken: 'tree-404-no-archive-session-token',
+    password: 'storage-unavailable-password',
+    sessionToken: 'storage-unavailable-session-token',
     repository: Object.freeze({
       async readLatest() {
         archiveReads += 1;
-        throw new Error('forced unreadable committed archive');
+        throw new Error('forced unreadable shipped archive');
       },
     }),
-    cumulativeRepository: Object.freeze({
-      async readLatest() {
-        archiveReads += 1;
-        return null;
-      },
-    }),
-    researchRepository: Object.freeze({
-      async readLatest() {
-        archiveReads += 1;
-        return null;
-      },
-    }),
+    cumulativeRepository: Object.freeze({ async readLatest() { archiveReads += 1; return null; } }),
+    researchRepository: Object.freeze({ async readLatest() { archiveReads += 1; return null; } }),
     async refreshDisplayArchives() {
       refreshCalls += 1;
-      throw new Error(PRIVATE_REPOSITORY_TREE_NOT_FOUND);
+      throw new DisplayStoreUnavailableError('forced App Storage outage');
     },
   });
 
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
-  const address = server.address();
-  assert.ok(address !== null && typeof address === 'object');
-  const origin = `http://127.0.0.1:${(address as AddressInfo).port}`;
-
+  const address = server.address() as AddressInfo;
+  const origin = `http://127.0.0.1:${address.port}`;
   try {
     const response = await fetch(`${origin}/api/hhr-display-board`, {
-      headers: {
-        cookie: `${HHR_DISPLAY_SESSION_COOKIE}=tree-404-no-archive-session-token`,
-      },
+      headers: { cookie: `${HHR_DISPLAY_SESSION_COOKIE}=storage-unavailable-session-token` },
     });
     assert.equal(response.status, 500);
-    assert.deepEqual(await response.json(), {
-      error: 'hhr-display-board-unavailable',
-    });
+    assert.deepEqual(await response.json(), { error: 'hhr-display-board-unavailable' });
     assert.equal(refreshCalls, 1);
     assert.equal(archiveReads, 1);
   } finally {
@@ -123,32 +101,22 @@ test('deployable app still fails closed when private-repository tree refresh is 
   }
 });
 
-test('deployable app serves the latest readable board when private-repository tree refresh returns 404', async () => {
+test('deployable app serves its latest local board during a temporary App Storage outage', async () => {
   let refreshCalls = 0;
   let archiveReads = 0;
   const archive: HhrDisplayArchive = Object.freeze({
-    captureKey: '20260824T120000000Z--aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-    capturedAt: '2026-08-24T12:00:00.000Z',
+    captureKey: `20260828T183000000Z--${'a'.repeat(64)}`,
+    capturedAt: '2026-08-28T18:30:00.000Z',
     modelVersion: 'hhr-model-v1',
     distributionBuilderVersion: 'hhr-distribution-v1',
     rows: Object.freeze([]),
     enrichmentByGamePlayerKey: Object.freeze({}),
   });
   const server = createHhrDisplayAppServer({
-    password: 'tree-404-readable-password',
-    sessionToken: 'tree-404-readable-session-token',
-    repository: Object.freeze({
-      async readLatest() {
-        archiveReads += 1;
-        return archive;
-      },
-    }),
-    cumulativeRepository: Object.freeze({
-      async readLatest() {
-        archiveReads += 1;
-        return null;
-      },
-    }),
+    password: 'storage-readable-password',
+    sessionToken: 'storage-readable-session-token',
+    repository: Object.freeze({ async readLatest() { archiveReads += 1; return archive; } }),
+    cumulativeRepository: Object.freeze({ async readLatest() { archiveReads += 1; return null; } }),
     researchRepository: Object.freeze({
       async readLatest(market: ResearchDisplayMarket): Promise<ResearchDisplayArchive> {
         archiveReads += 1;
@@ -164,21 +132,17 @@ test('deployable app serves the latest readable board when private-repository tr
     }),
     async refreshDisplayArchives() {
       refreshCalls += 1;
-      throw new Error(PRIVATE_REPOSITORY_TREE_NOT_FOUND);
+      throw new DisplayStoreUnavailableError('forced App Storage outage');
     },
   });
 
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
-  const address = server.address();
-  assert.ok(address !== null && typeof address === 'object');
-  const origin = `http://127.0.0.1:${(address as AddressInfo).port}`;
-
+  const address = server.address() as AddressInfo;
+  const origin = `http://127.0.0.1:${address.port}`;
   try {
     const response = await fetch(`${origin}/api/hhr-display-board`, {
-      headers: {
-        cookie: `${HHR_DISPLAY_SESSION_COOKIE}=tree-404-readable-session-token`,
-      },
+      headers: { cookie: `${HHR_DISPLAY_SESSION_COOKIE}=storage-readable-session-token` },
     });
     assert.equal(response.status, 200);
     const board = await response.json() as Record<string, unknown>;
