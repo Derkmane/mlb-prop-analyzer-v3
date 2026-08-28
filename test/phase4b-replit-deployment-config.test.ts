@@ -11,7 +11,7 @@ test('Replit deployment explicitly targets cloudrun and launches only the passwo
   assert.match(replitConfig, /\[deployment\]/u);
   assert.match(
     replitConfig,
-    /^build = "node scripts\/verify-deployment-display-freshness\.mjs && npm run build"$/mu,
+    /^build = "node scripts\/verify-deployment-display-fallback\.mjs && npm run build"$/mu,
   );
   assert.match(replitConfig, /^run = "node dist\/src\/composition\/hhr-display-server\.js"$/mu);
   assert.match(replitConfig, /^deploymentTarget = "cloudrun"$/mu);
