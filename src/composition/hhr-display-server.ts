@@ -3,13 +3,18 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  createCommittedDisplayArchiveRefresher,
+  createGitHubActionsDisplayDeliveryHttpHandler,
   createHhrCumulativeDisplayEvidenceRepository,
   createHhrDisplayAppHttpHandler,
   createHhrDisplayArchiveRepository,
   createHhrDisplayBoardHttpHandler,
+  createHhrDisplayServerHttpHandler,
   createProductCategoryPerformanceRepository,
+  createReplitDisplayDeliveryService,
   createResearchDisplayArchiveRepository,
+  DisplayStoreUnavailableError,
+  type DisplayDeliveryHttpHandler,
+  type DisplayDeliveryService,
 } from '../adapters/index.js';
 import {
   readLatestHhrDisplayBoard,
@@ -22,9 +27,6 @@ import {
 
 export const DEFAULT_HHR_DISPLAY_SERVER_HOST = '0.0.0.0' as const;
 export const DEFAULT_HHR_DISPLAY_SERVER_PORT = 3000 as const;
-
-const PRIVATE_REPOSITORY_TREE_NOT_FOUND =
-  'Unable to refresh current display board from GitHub tree: HTTP 404.';
 
 export function resolveHhrDisplayServerPort(rawPort: string | undefined): number {
   if (rawPort === undefined) return DEFAULT_HHR_DISPLAY_SERVER_PORT;
@@ -59,11 +61,13 @@ export interface HhrDisplayAppServerOptions {
   readonly cumulativeRepository?: HhrCumulativeDisplayEvidenceRepository;
   readonly researchRepository?: ResearchDisplayArchiveRepository;
   readonly categoryPerformanceRepository?: ProductCategoryPerformanceRepository;
+  readonly displayDeliveryService?: DisplayDeliveryService;
+  readonly displayDeliveryHandler?: DisplayDeliveryHttpHandler;
   readonly refreshDisplayArchives?: () => Promise<void>;
   readonly sessionToken?: string;
 }
 
-/** Deployable composition: current committed archives -> password-gated read-only product UI/API. */
+/** Deployable composition: persistent current-board delivery -> password-gated product UI/API. */
 export function createHhrDisplayAppServer(options: HhrDisplayAppServerOptions): Server {
   const repository = options.repository ?? createHhrDisplayArchiveRepository();
   const cumulativeRepository = options.cumulativeRepository ??
@@ -74,19 +78,21 @@ export function createHhrDisplayAppServer(options: HhrDisplayAppServerOptions): 
     createProductCategoryPerformanceRepository();
   const usesDefaultDisplayRepositories =
     options.repository === undefined && options.researchRepository === undefined;
+  const displayDeliveryService = options.displayDeliveryService ??
+    (usesDefaultDisplayRepositories ? createReplitDisplayDeliveryService() : undefined);
   const refreshDisplayArchives = options.refreshDisplayArchives ??
-    (usesDefaultDisplayRepositories
-      ? createCommittedDisplayArchiveRefresher()
-      : async () => undefined);
+    (displayDeliveryService === undefined
+      ? async () => undefined
+      : async () => {
+          await displayDeliveryService.refreshFromStore();
+        });
   const readBoard = async () => {
     try {
       await refreshDisplayArchives();
     } catch (error) {
-      if (!(error instanceof Error) || error.message !== PRIVATE_REPOSITORY_TREE_NOT_FOUND) {
-        throw error;
-      }
-      // A private-repository 404 means mid-session refresh is unavailable.
-      // Continue only with the already-committed deployment archives.
+      if (!(error instanceof DisplayStoreUnavailableError)) throw error;
+      // App Storage can be temporarily unavailable. Continue only with the
+      // already-shipped or previously materialized local display archives.
     }
     return readLatestHhrDisplayUiBoard(
       repository,
@@ -95,13 +101,20 @@ export function createHhrDisplayAppServer(options: HhrDisplayAppServerOptions): 
       categoryPerformanceRepository,
     );
   };
-  const handler = options.sessionToken === undefined
+  const appHandler = options.sessionToken === undefined
     ? createHhrDisplayAppHttpHandler({ readBoard, password: options.password })
     : createHhrDisplayAppHttpHandler({
         readBoard,
         password: options.password,
         sessionToken: options.sessionToken,
       });
+  const deliveryHandler = options.displayDeliveryHandler ??
+    (displayDeliveryService === undefined
+      ? undefined
+      : createGitHubActionsDisplayDeliveryHttpHandler({ service: displayDeliveryService }));
+  const handler = deliveryHandler === undefined
+    ? appHandler
+    : createHhrDisplayServerHttpHandler({ appHandler, deliveryHandler });
   return createServer(handler);
 }
 

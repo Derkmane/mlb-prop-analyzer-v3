@@ -1,114 +1,126 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { createCommittedDisplayArchiveRefresher } from '../src/adapters/index.js';
+import {
+  RESEARCH_BATTER_HHR_MARKET,
+  RESEARCH_BATTER_HITS_MARKET,
+  type ResearchDisplayMarket,
+} from '../src/application/index.js';
+import {
+  createReplitDisplayDeliveryService,
+  HHR_DISPLAY_ARCHIVE_ROOT,
+  InvalidDisplayDeliveryBundleError,
+  type TextObjectStore,
+} from '../src/adapters/index.js';
 
-const HITS_OLDER_NAME = '20260822T150000000Z--1111111111111111111111111111111111111111111111111111111111111111.json';
-const HITS_NAME = '20260822T163841701Z--23da0de677b09f9b17d0889373f5ef64500fb1e816fdb0223db4a57050d73595.json';
-const HHR_OLDER_NAME = '20260822T150000000Z--2222222222222222222222222222222222222222222222222222222222222222.json';
-const HHR_NAME = '20260822T163841701Z--3b90f841132d603f4e7437b041864b1c12ff39fdcaba3a484ae436c705060093.json';
-const PRIOR_DAY_HITS_NAME = '20260821T230000000Z--3333333333333333333333333333333333333333333333333333333333333333.json';
-const PRIOR_DAY_HHR_NAME = '20260821T230000000Z--4444444444444444444444444444444444444444444444444444444444444444.json';
+const HITS_OLDER_NAME = `20260828T150000000Z--${'1'.repeat(64)}.json`;
+const HITS_NAME = `20260828T163841701Z--${'2'.repeat(64)}.json`;
+const HHR_OLDER_NAME = `20260828T150000000Z--${'3'.repeat(64)}.json`;
+const HHR_NAME = `20260828T163841701Z--${'4'.repeat(64)}.json`;
+const HHR_PERSISTED_IDENTITY = path.basename(path.dirname(HHR_DISPLAY_ARCHIVE_ROOT));
 
-function archiveBytes(market: 'batter-hits' | 'batter-hhr', filename: string): string {
-  return JSON.stringify({
-    market,
+function persistedIdentity(market: ResearchDisplayMarket): string {
+  return market === RESEARCH_BATTER_HHR_MARKET ? HHR_PERSISTED_IDENTITY : market;
+}
+
+function archiveBytes(market: ResearchDisplayMarket, filename: string): Buffer {
+  const prefix = filename.split('--')[0]!;
+  const capturedAt = `${prefix.slice(0, 4)}-${prefix.slice(4, 6)}-${prefix.slice(6, 8)}T${prefix.slice(9, 11)}:${prefix.slice(11, 13)}:${prefix.slice(13, 15)}.${prefix.slice(15, 18)}Z`;
+  return Buffer.from(JSON.stringify({
+    displayArchiveVersion: 1,
+    displayArchiveContract: 'phase1-trimmed-board-display-v1',
+    market: persistedIdentity(market),
     captureKey: filename.slice(0, -'.json'.length),
+    capturedAt,
+    captureDateUtc: '2026-08-28',
     productionEnabled: false,
     productionRankingEnabled: false,
-  });
+    rows: [{ rank: 1 }],
+  }));
 }
 
-function response(body: unknown, status = 200) {
-  const text = typeof body === 'string' ? body : JSON.stringify(body);
+function envelope(market: ResearchDisplayMarket, filename: string) {
+  const bytes = archiveBytes(market, filename);
   return Object.freeze({
-    ok: status >= 200 && status < 300,
-    status,
-    async json() { return JSON.parse(text) as unknown; },
-    async text() { return text; },
+    market,
+    filename,
+    sha256: createHash('sha256').update(bytes).digest('hex'),
+    bytesBase64: bytes.toString('base64'),
   });
 }
 
-test('live display refresh pulls every newest-day Hits and HHR capture into the local read cache', async () => {
+function storeFor(value: unknown): TextObjectStore {
+  return Object.freeze({
+    async downloadAsText() { return Object.freeze({ ok: true as const, value: JSON.stringify(value) }); },
+    async uploadFromText() { return Object.freeze({ ok: true as const, value: null }); },
+  });
+}
+
+test('persistent display refresh materializes every current-day Hits and HHR capture into the local read cache', async () => {
   const rootDirectory = await mkdtemp(path.join(os.tmpdir(), 'mlb-display-refresh-'));
-  const requests: string[] = [];
-  const tree = {
-    tree: [
-      { path: `artifacts/display-archives/batter-hits/captures/${PRIOR_DAY_HITS_NAME}` },
-      { path: `artifacts/display-archives/batter-hhr/captures/${PRIOR_DAY_HHR_NAME}` },
-      { path: `artifacts/display-archives/batter-hits/captures/${HITS_OLDER_NAME}` },
-      { path: `artifacts/display-archives/batter-hits/captures/${HITS_NAME}` },
-      { path: `artifacts/display-archives/batter-hhr/captures/${HHR_OLDER_NAME}` },
-      { path: `artifacts/display-archives/batter-hhr/captures/${HHR_NAME}` },
+  const bundle = Object.freeze({
+    deliveryVersion: 1,
+    displayDateUtc: '2026-08-28',
+    capturedAt: '2026-08-28T16:38:41.701Z',
+    archives: [
+      envelope(RESEARCH_BATTER_HITS_MARKET, HITS_OLDER_NAME),
+      envelope(RESEARCH_BATTER_HITS_MARKET, HITS_NAME),
+      envelope(RESEARCH_BATTER_HHR_MARKET, HHR_OLDER_NAME),
+      envelope(RESEARCH_BATTER_HHR_MARKET, HHR_NAME),
     ],
-  };
-  const fetchImpl = async (url: string) => {
-    requests.push(url);
-    if (url.startsWith('https://api.github.com/')) return response(tree);
-    if (url.endsWith(HITS_OLDER_NAME)) return response(archiveBytes('batter-hits', HITS_OLDER_NAME));
-    if (url.endsWith(HITS_NAME)) return response(archiveBytes('batter-hits', HITS_NAME));
-    if (url.endsWith(HHR_OLDER_NAME)) return response(archiveBytes('batter-hhr', HHR_OLDER_NAME));
-    if (url.endsWith(HHR_NAME)) return response(archiveBytes('batter-hhr', HHR_NAME));
-    return response('not found', 404);
-  };
-
+    categoryPerformance: null,
+  });
   try {
-    const refresh = createCommittedDisplayArchiveRefresher({
+    const service = createReplitDisplayDeliveryService({
       rootDirectory,
-      refreshIntervalMs: 60_000,
-      fetchImpl,
+      store: storeFor(bundle),
     });
-    await refresh();
-    await refresh();
-
-    assert.equal(requests.filter((url) => url.startsWith('https://api.github.com/')).length, 1);
-    assert.equal(requests.length, 5);
+    await service.refreshFromStore();
     for (const filename of [HITS_OLDER_NAME, HITS_NAME]) {
       assert.equal(
-        JSON.parse(await readFile(path.join(rootDirectory, 'batter-hits', 'captures', filename), 'utf8')).market,
-        'batter-hits',
+        JSON.parse(await readFile(path.join(rootDirectory, persistedIdentity(RESEARCH_BATTER_HITS_MARKET), 'captures', filename), 'utf8')).market,
+        persistedIdentity(RESEARCH_BATTER_HITS_MARKET),
       );
     }
     for (const filename of [HHR_OLDER_NAME, HHR_NAME]) {
       assert.equal(
-        JSON.parse(await readFile(path.join(rootDirectory, 'batter-hhr', 'captures', filename), 'utf8')).market,
-        'batter-hhr',
+        JSON.parse(await readFile(path.join(rootDirectory, persistedIdentity(RESEARCH_BATTER_HHR_MARKET), 'captures', filename), 'utf8')).market,
+        persistedIdentity(RESEARCH_BATTER_HHR_MARKET),
       );
     }
-    assert.equal(requests.some((url) => url.endsWith(PRIOR_DAY_HITS_NAME)), false);
-    assert.equal(requests.some((url) => url.endsWith(PRIOR_DAY_HHR_NAME)), false);
   } finally {
     await rm(rootDirectory, { recursive: true, force: true });
   }
 });
 
-test('live display refresh fails closed instead of serving an invented or wrong-market capture', async () => {
+test('persistent display refresh fails closed instead of materializing a wrong-market capture', async () => {
   const rootDirectory = await mkdtemp(path.join(os.tmpdir(), 'mlb-display-refresh-fail-'));
-  const tree = {
-    tree: [
-      { path: `artifacts/display-archives/batter-hits/captures/${HITS_NAME}` },
-      { path: `artifacts/display-archives/batter-hhr/captures/${HHR_NAME}` },
+  const wrongBytes = archiveBytes(RESEARCH_BATTER_HHR_MARKET, HITS_NAME);
+  const badHits = {
+    market: RESEARCH_BATTER_HITS_MARKET,
+    filename: HITS_NAME,
+    sha256: createHash('sha256').update(wrongBytes).digest('hex'),
+    bytesBase64: wrongBytes.toString('base64'),
+  };
+  const bundle = {
+    deliveryVersion: 1,
+    displayDateUtc: '2026-08-28',
+    capturedAt: '2026-08-28T16:38:41.701Z',
+    archives: [
+      badHits,
+      envelope(RESEARCH_BATTER_HHR_MARKET, HHR_NAME),
     ],
+    categoryPerformance: null,
   };
-  const fetchImpl = async (url: string) => {
-    if (url.startsWith('https://api.github.com/')) return response(tree);
-    if (url.endsWith(HITS_NAME)) return response(archiveBytes('batter-hhr', HITS_NAME));
-    if (url.endsWith(HHR_NAME)) return response(archiveBytes('batter-hhr', HHR_NAME));
-    return response('not found', 404);
-  };
-
   try {
-    const refresh = createCommittedDisplayArchiveRefresher({
-      rootDirectory,
-      refreshIntervalMs: 0,
-      fetchImpl,
-    });
+    const service = createReplitDisplayDeliveryService({ rootDirectory, store: storeFor(bundle) });
     await assert.rejects(
-      refresh(),
-      /Newest committed batter-hits display archive has the wrong market identity/u,
+      service.refreshFromStore(),
+      (error: unknown) => error instanceof InvalidDisplayDeliveryBundleError,
     );
   } finally {
     await rm(rootDirectory, { recursive: true, force: true });

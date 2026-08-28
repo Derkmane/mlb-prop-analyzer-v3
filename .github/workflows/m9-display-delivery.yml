@@ -1,0 +1,45 @@
+name: M9 display delivery
+
+on:
+  workflow_run:
+    workflows:
+      - M9 prospective board archive
+    types:
+      - completed
+  schedule:
+    - cron: '15,45 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: m9-display-delivery
+  cancel-in-progress: true
+
+jobs:
+  deliver:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out current main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Build canonical market boundaries
+        run: npm run build
+
+      - name: Deliver current display bundle
+        run: node scripts/deliver-m9-display-bundle.mjs
