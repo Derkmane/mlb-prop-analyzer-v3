@@ -1,0 +1,52 @@
+name: Temporary object storage lock generation
+
+on:
+  push:
+    branches:
+      - codex/autonomous-display-delivery
+
+permissions:
+  contents: write
+
+jobs:
+  generate-lock:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out delivery branch
+        uses: actions/checkout@v6
+        with:
+          ref: codex/autonomous-display-delivery
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install exact Replit App Storage SDK
+        run: npm install --save-exact --ignore-scripts @replit/object-storage@1.0.0
+
+      - name: Verify package and lock identities
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          if (pkg.dependencies?.['@replit/object-storage'] !== '1.0.0') throw new Error('package dependency drift');
+          if (lock.packages?.['']?.dependencies?.['@replit/object-storage'] !== '1.0.0') throw new Error('lock root dependency drift');
+          if (lock.packages?.['node_modules/@replit/object-storage']?.version !== '1.0.0') throw new Error('locked SDK version drift');
+          NODE
+
+      - name: Commit generated dependency lock
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo "Dependency lock already current."
+            exit 0
+          fi
+          git commit -m "build: add Replit App Storage SDK"
+          git push origin HEAD:codex/autonomous-display-delivery
