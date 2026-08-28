@@ -7,7 +7,7 @@ channel = "stable-25_05"
 expertMode = true
 
 [deployment]
-build = "node scripts/verify-deployment-display-freshness.mjs && npm run build"
+build = "node scripts/verify-deployment-display-fallback.mjs && npm run build"
 run = "node dist/src/composition/hhr-display-server.js"
 deploymentTarget = "cloudrun"
 

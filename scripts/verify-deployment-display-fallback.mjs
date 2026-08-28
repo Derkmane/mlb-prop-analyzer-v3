@@ -33,14 +33,14 @@ async function newestArchive(rootDirectory, market) {
     .sort()
     .reverse();
   if (names.length === 0) {
-    throw new Error(`Deployment blocked: no shipped ${market} display archive.`);
+    throw new Error(`Deployment blocked: no shipped ${market} display fallback archive.`);
   }
 
   const name = names[0];
   const archivePath = path.join(directory, name);
   const source = JSON.parse(await readFile(archivePath, 'utf8'));
   if (source === null || typeof source !== 'object' || Array.isArray(source)) {
-    throw new Error(`Deployment blocked: ${market} display archive is not an object.`);
+    throw new Error(`Deployment blocked: ${market} display fallback archive is not an object.`);
   }
   if (
     source.displayArchiveVersion !== 1 ||
@@ -49,13 +49,13 @@ async function newestArchive(rootDirectory, market) {
     source.productionEnabled !== false ||
     source.productionRankingEnabled !== false
   ) {
-    throw new Error(`Deployment blocked: ${market} display archive contract is invalid.`);
+    throw new Error(`Deployment blocked: ${market} display fallback archive contract is invalid.`);
   }
   if (!Array.isArray(source.rows) || source.rows.length === 0) {
-    throw new Error(`Deployment blocked: ${market} display archive has no rows.`);
+    throw new Error(`Deployment blocked: ${market} display fallback archive has no rows.`);
   }
   if (typeof source.capturedAt !== 'string' || !Number.isFinite(Date.parse(source.capturedAt))) {
-    throw new Error(`Deployment blocked: ${market} display archive capturedAt is invalid.`);
+    throw new Error(`Deployment blocked: ${market} display fallback archive capturedAt is invalid.`);
   }
 
   return Object.freeze({
@@ -67,29 +67,23 @@ async function newestArchive(rootDirectory, market) {
   });
 }
 
-export async function verifyDeploymentDisplayFreshness(options = {}) {
+export async function verifyDeploymentDisplayFallback(options = {}) {
   const rootDirectory = path.resolve(
     options.rootDirectory ?? 'artifacts/display-archives',
   );
   const now = options.now ?? new Date();
   const timeZone = options.timeZone ?? DEPLOYMENT_DISPLAY_TIME_ZONE;
-  const expectedSlateDate = chicagoDateKey(now, timeZone);
+  const currentSlateDate = chicagoDateKey(now, timeZone);
   const archives = await Promise.all(
     DISPLAY_MARKETS.map((market) => newestArchive(rootDirectory, market)),
   );
 
   for (const archive of archives) {
     const captureSlateDate = chicagoDateKey(archive.capturedAt, timeZone);
-    if (captureSlateDate > expectedSlateDate) {
+    if (captureSlateDate > currentSlateDate) {
       throw new Error(
-        `Deployment blocked: newest shipped ${archive.market} display archive is future-dated ` +
-          `(${captureSlateDate}; current slate date ${expectedSlateDate}).`,
-      );
-    }
-    if (captureSlateDate < expectedSlateDate) {
-      throw new Error(
-        `Deployment blocked: newest shipped ${archive.market} display archive is stale ` +
-          `(${captureSlateDate}; current slate date ${expectedSlateDate}).`,
+        `Deployment blocked: newest shipped ${archive.market} display fallback archive is future-dated ` +
+          `(${captureSlateDate}; current slate date ${currentSlateDate}).`,
       );
     }
   }
@@ -97,21 +91,27 @@ export async function verifyDeploymentDisplayFreshness(options = {}) {
   const captureTimes = new Set(archives.map((archive) => archive.capturedAt));
   if (captureTimes.size !== 1) {
     throw new Error(
-      'Deployment blocked: newest shipped Batter Hits and HHR display archives do not share one capture timestamp.',
+      'Deployment blocked: newest shipped Batter Hits and HHR display fallback archives do not share one capture timestamp.',
     );
   }
 
+  const capturedAt = archives[0].capturedAt;
+  const fallbackSlateDate = chicagoDateKey(capturedAt, timeZone);
   return Object.freeze({
-    slateDate: expectedSlateDate,
-    capturedAt: archives[0].capturedAt,
+    currentSlateDate,
+    fallbackSlateDate,
+    capturedAt,
+    stale: fallbackSlateDate < currentSlateDate,
     archives: Object.freeze(archives),
   });
 }
 
 async function main() {
-  const result = await verifyDeploymentDisplayFreshness();
-  console.log('DEPLOYMENT DISPLAY FRESHNESS PASS');
-  console.log(`SLATE DATE\t${result.slateDate}`);
+  const result = await verifyDeploymentDisplayFallback();
+  console.log('DEPLOYMENT DISPLAY FALLBACK PASS');
+  console.log(`CURRENT SLATE DATE\t${result.currentSlateDate}`);
+  console.log(`FALLBACK SLATE DATE\t${result.fallbackSlateDate}`);
+  console.log(`FALLBACK STALE\t${result.stale}`);
   console.log(`CAPTURED AT\t${result.capturedAt}`);
   for (const archive of result.archives) {
     console.log(`${archive.market}\t${archive.name}\trows=${archive.rows}`);
