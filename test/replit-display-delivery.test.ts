@@ -74,18 +74,17 @@ function validBundle(capturedAt = '2026-08-28T18:30:00.000Z'): Readonly<{
 }> {
   const hits = archiveEnvelope('batter-hits', capturedAt, 'a');
   const hhr = archiveEnvelope('batter-hhr', capturedAt, 'b');
-  return Object.freeze({
-    hits,
-    hhr,
-    bundle: Object.freeze({
-      deliveryVersion: 1,
-      capturedAt,
-      archives: Object.freeze([hits.envelope, hhr.envelope]),
-    }),
+  const bundle: DisplayDeliveryBundleV1 = Object.freeze({
+    deliveryVersion: 1,
+    displayDateUtc: capturedAt.slice(0, 10),
+    capturedAt,
+    archives: Object.freeze([hits.envelope, hhr.envelope]),
+    categoryPerformance: null,
   });
+  return Object.freeze({ hits, hhr, bundle });
 }
 
-test('persistent display delivery stores one two-market bundle and materializes exact archive bytes', async () => {
+test('persistent display delivery stores one current-day bundle and materializes exact market bytes', async () => {
   const firstRoot = await mkdtemp(path.join(tmpdir(), 'mlb-display-delivery-first-'));
   const secondRoot = await mkdtemp(path.join(tmpdir(), 'mlb-display-delivery-second-'));
   const store = new MemoryTextStore();
@@ -132,7 +131,7 @@ test('persistent display delivery rejects a tampered archive before storage or m
   const tampered = {
     ...bundle,
     archives: [
-      { ...bundle.archives[0], sha256: '0'.repeat(64) },
+      { ...bundle.archives[0]!, sha256: '0'.repeat(64) },
       bundle.archives[1],
     ],
   };
@@ -148,7 +147,7 @@ test('persistent display delivery rejects a tampered archive before storage or m
   }
 });
 
-test('persistent display delivery rejects duplicate-market and cross-timestamp bundles', async () => {
+test('persistent display delivery rejects missing-market and mismatched newest timestamps', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'mlb-display-delivery-identity-'));
   const store = new MemoryTextStore();
   const { bundle, hits } = validBundle();
@@ -156,7 +155,7 @@ test('persistent display delivery rejects duplicate-market and cross-timestamp b
   const service = createReplitDisplayDeliveryService({ store, rootDirectory: root });
   try {
     await assert.rejects(
-      service.deliver({ ...bundle, archives: [hits.envelope, hits.envelope] }),
+      service.deliver({ ...bundle, archives: [hits.envelope] }),
       (error: unknown) => error instanceof InvalidDisplayDeliveryBundleError,
     );
     await assert.rejects(

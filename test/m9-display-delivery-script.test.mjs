@@ -8,7 +8,7 @@ import {
   DISPLAY_DELIVERY_OIDC_AUDIENCE,
   buildDisplayDeliveryBundle,
   deliverDisplayBundle,
-  findLatestCommonDisplayPair,
+  findLatestCommonDisplayDay,
   requestGitHubOidcToken,
 } from '../scripts/deliver-m9-display-bundle.mjs';
 
@@ -26,6 +26,7 @@ async function writeArchive(root, market, capturedAt, hashCharacter) {
     market,
     captureKey: filename.slice(0, -'.json'.length),
     capturedAt,
+    captureDateUtc: capturedAt.slice(0, 10),
     productionEnabled: false,
     productionRankingEnabled: false,
     rows: [{ rank: 1 }],
@@ -33,28 +34,31 @@ async function writeArchive(root, market, capturedAt, hashCharacter) {
   return filename;
 }
 
-test('delivery bundle selects the newest timestamp present for both Hits and HHR', async () => {
+test('delivery bundle carries every capture from the newest date shared by Hits and HHR', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'm9-display-bundle-'));
   try {
     await Promise.all([
-      writeArchive(root, 'batter-hits', '2026-08-28T18:00:00.000Z', 'a'),
-      writeArchive(root, 'batter-hhr', '2026-08-28T18:00:00.000Z', 'b'),
-      writeArchive(root, 'batter-hits', '2026-08-28T18:30:00.000Z', 'c'),
-      writeArchive(root, 'batter-hhr', '2026-08-28T18:30:00.000Z', 'd'),
-      writeArchive(root, 'batter-hits', '2026-08-28T19:00:00.000Z', 'e'),
+      writeArchive(root, 'batter-hits', '2026-08-27T23:00:00.000Z', 'a'),
+      writeArchive(root, 'batter-hhr', '2026-08-27T23:00:00.000Z', 'b'),
+      writeArchive(root, 'batter-hits', '2026-08-28T18:00:00.000Z', 'c'),
+      writeArchive(root, 'batter-hhr', '2026-08-28T18:00:00.000Z', 'd'),
+      writeArchive(root, 'batter-hits', '2026-08-28T18:30:00.000Z', 'e'),
+      writeArchive(root, 'batter-hhr', '2026-08-28T18:30:00.000Z', 'f'),
     ]);
-    const pair = await findLatestCommonDisplayPair(root);
-    assert.equal(pair.prefix, '20260828T183000000Z');
+    const day = await findLatestCommonDisplayDay(root);
+    assert.equal(day.dateKey, '20260828');
+    assert.equal(day.files.length, 4);
     const bundle = await buildDisplayDeliveryBundle(root);
+    assert.equal(bundle.displayDateUtc, '2026-08-28');
     assert.equal(bundle.capturedAt, '2026-08-28T18:30:00.000Z');
-    assert.deepEqual(bundle.archives.map((archive) => archive.market), ['batter-hits', 'batter-hhr']);
+    assert.equal(bundle.archives.length, 4);
     assert.ok(bundle.archives.every((archive) => /^[a-f0-9]{64}$/u.test(archive.sha256)));
   } finally {
     await rm(root, { recursive: true, force: true });
   }
 });
 
-test('OIDC request uses the dedicated delivery audience without logging or exposing the request token', async () => {
+test('OIDC request uses the dedicated delivery audience without exposing a long-lived credential', async () => {
   let seenUrl = null;
   let seenAuthorization = null;
   const value = await requestGitHubOidcToken({
@@ -73,7 +77,13 @@ test('OIDC request uses the dedicated delivery audience without logging or expos
 
 test('delivery POST uses the OIDC bearer token and requires HTTP 204', async () => {
   let seen = null;
-  const bundle = Object.freeze({ deliveryVersion: 1, capturedAt: '2026-08-28T18:30:00.000Z', archives: [] });
+  const bundle = Object.freeze({
+    deliveryVersion: 1,
+    displayDateUtc: '2026-08-28',
+    capturedAt: '2026-08-28T18:30:00.000Z',
+    archives: [],
+    categoryPerformance: null,
+  });
   await deliverDisplayBundle(bundle, {
     deliveryUrl: 'https://example.test/internal/display-delivery-v1',
     oidcToken: 'short-lived-token',

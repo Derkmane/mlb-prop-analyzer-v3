@@ -9,6 +9,7 @@ export const DEFAULT_DISPLAY_DELIVERY_URL =
   'https://player-analytics--derkmane.replit.app/internal/display-delivery-v1';
 
 const CAPTURE_FILE = /^(\d{8}T\d{9}Z)--[a-f0-9]{64}\.json$/u;
+const CATEGORY_PERFORMANCE_FILE = /^product-category-performance-v1--[a-f0-9]{64}\.json$/u;
 const MARKETS = Object.freeze(['batter-hits', 'batter-hhr']);
 
 function record(value, label) {
@@ -22,48 +23,81 @@ function capturedAtIdentity(capturedAt) {
   return capturedAt.replaceAll('-', '').replaceAll(':', '').replace('.', '');
 }
 
-async function captureMap(directory) {
+function utcDateFromPrefix(prefix) {
+  return `${prefix.slice(0, 4)}-${prefix.slice(4, 6)}-${prefix.slice(6, 8)}`;
+}
+
+async function captureFilesByDate(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   const result = new Map();
   for (const entry of entries) {
     if (!entry.isFile()) continue;
     const match = CAPTURE_FILE.exec(entry.name);
     if (match === null) continue;
-    const prefix = match[1];
-    if (result.has(prefix)) throw new Error(`Ambiguous display capture timestamp: ${prefix}.`);
-    result.set(prefix, entry.name);
+    const date = match[1].slice(0, 8);
+    const names = result.get(date) ?? [];
+    names.push(entry.name);
+    result.set(date, names);
   }
+  for (const names of result.values()) names.sort();
   return result;
 }
 
-export async function findLatestCommonDisplayPair(rootDirectory = 'artifacts/display-archives') {
+export async function findLatestCommonDisplayDay(rootDirectory = 'artifacts/display-archives') {
   const root = path.resolve(rootDirectory);
   const maps = await Promise.all(MARKETS.map((market) =>
-    captureMap(path.join(root, market, 'captures'))));
-  const commonPrefixes = [...maps[0].keys()]
-    .filter((prefix) => maps[1].has(prefix))
+    captureFilesByDate(path.join(root, market, 'captures'))));
+  const commonDates = [...maps[0].keys()]
+    .filter((date) => maps[1].has(date))
     .sort()
     .reverse();
-  const prefix = commonPrefixes[0];
-  if (prefix === undefined) {
-    throw new Error('No common Batter Hits/HHR display capture timestamp is available.');
+  const dateKey = commonDates[0];
+  if (dateKey === undefined) {
+    throw new Error('No common Batter Hits/HHR display capture date is available.');
   }
   return Object.freeze({
-    prefix,
-    files: Object.freeze(MARKETS.map((market, index) => Object.freeze({
-      market,
-      path: path.join(root, market, 'captures', maps[index].get(prefix)),
-      filename: maps[index].get(prefix),
-    }))),
+    dateKey,
+    displayDateUtc: utcDateFromPrefix(dateKey),
+    files: Object.freeze(MARKETS.flatMap((market, index) =>
+      maps[index].get(dateKey).map((filename) => Object.freeze({
+        market,
+        path: path.join(root, market, 'captures', filename),
+        filename,
+      })))),
+  });
+}
+
+async function categoryPerformanceEnvelope(root) {
+  const directory = path.join(root, 'category-performance');
+  let entries;
+  try {
+    entries = await readdir(directory, { withFileTypes: true });
+  } catch (error) {
+    if (error && typeof error === 'object' && error.code === 'ENOENT') return null;
+    throw error;
+  }
+  const names = entries
+    .filter((entry) => entry.isFile() && CATEGORY_PERFORMANCE_FILE.test(entry.name))
+    .map((entry) => entry.name);
+  if (names.length === 0) return null;
+  if (names.length !== 1) {
+    throw new Error(`Expected exactly one active category-performance display report; found ${names.length}.`);
+  }
+  const filename = names[0];
+  const bytes = await readFile(path.join(directory, filename));
+  return Object.freeze({
+    filename,
+    sha256: createHash('sha256').update(bytes).digest('hex'),
+    bytesBase64: bytes.toString('base64'),
   });
 }
 
 export async function buildDisplayDeliveryBundle(rootDirectory = 'artifacts/display-archives') {
-  const pair = await findLatestCommonDisplayPair(rootDirectory);
+  const root = path.resolve(rootDirectory);
+  const day = await findLatestCommonDisplayDay(root);
   const archives = [];
-  let capturedAt = null;
-  for (const item of pair.files) {
-    if (typeof item.filename !== 'string') throw new Error(`Missing ${item.market} display filename.`);
+  const newestByMarket = new Map();
+  for (const item of day.files) {
     const bytes = await readFile(item.path);
     let parsed;
     try {
@@ -75,6 +109,7 @@ export async function buildDisplayDeliveryBundle(rootDirectory = 'artifacts/disp
       parsed.displayArchiveVersion !== 1 ||
       parsed.displayArchiveContract !== 'phase1-trimmed-board-display-v1' ||
       parsed.market !== item.market ||
+      parsed.captureDateUtc !== day.displayDateUtc ||
       parsed.productionEnabled !== false ||
       parsed.productionRankingEnabled !== false ||
       !Array.isArray(parsed.rows) || parsed.rows.length === 0
@@ -84,13 +119,16 @@ export async function buildDisplayDeliveryBundle(rootDirectory = 'artifacts/disp
     if (typeof parsed.capturedAt !== 'string' || !Number.isFinite(Date.parse(parsed.capturedAt))) {
       throw new Error(`${item.market} display archive capturedAt is invalid.`);
     }
-    if (capturedAt === null) capturedAt = parsed.capturedAt;
-    if (parsed.capturedAt !== capturedAt || capturedAtIdentity(parsed.capturedAt) !== pair.prefix) {
-      throw new Error('Batter Hits/HHR display archives do not share one capture timestamp.');
+    const match = CAPTURE_FILE.exec(item.filename);
+    if (match === null || capturedAtIdentity(parsed.capturedAt) !== match[1]) {
+      throw new Error(`${item.market} display archive capturedAt does not match its filename.`);
     }
-    const captureKey = item.filename.slice(0, -'.json'.length);
-    if (parsed.captureKey !== captureKey) {
+    if (parsed.captureKey !== item.filename.slice(0, -'.json'.length)) {
       throw new Error(`${item.market} display archive captureKey does not match its filename.`);
+    }
+    const prior = newestByMarket.get(item.market);
+    if (prior === undefined || item.filename > prior.filename) {
+      newestByMarket.set(item.market, { filename: item.filename, capturedAt: parsed.capturedAt });
     }
     archives.push(Object.freeze({
       market: item.market,
@@ -99,11 +137,22 @@ export async function buildDisplayDeliveryBundle(rootDirectory = 'artifacts/disp
       bytesBase64: bytes.toString('base64'),
     }));
   }
-  if (capturedAt === null) throw new Error('Display delivery bundle has no capturedAt timestamp.');
+  const newestHits = newestByMarket.get('batter-hits');
+  const newestHhr = newestByMarket.get('batter-hhr');
+  if (
+    newestHits === undefined ||
+    newestHhr === undefined ||
+    newestHits.filename.slice(0, 18) !== newestHhr.filename.slice(0, 18) ||
+    newestHits.capturedAt !== newestHhr.capturedAt
+  ) {
+    throw new Error('Newest Batter Hits/HHR display captures do not share one timestamp.');
+  }
   return Object.freeze({
     deliveryVersion: DISPLAY_DELIVERY_BUNDLE_VERSION,
-    capturedAt,
+    displayDateUtc: day.displayDateUtc,
+    capturedAt: newestHits.capturedAt,
     archives: Object.freeze(archives),
+    categoryPerformance: await categoryPerformanceEnvelope(root),
   });
 }
 
@@ -158,7 +207,9 @@ export async function deliverDisplayBundle(bundle, options = {}) {
 async function main() {
   const bundle = await buildDisplayDeliveryBundle();
   await deliverDisplayBundle(bundle);
-  console.log(`DISPLAY DELIVERY PASS\t${bundle.capturedAt}`);
+  console.log(
+    `DISPLAY DELIVERY PASS\t${bundle.displayDateUtc}\t${bundle.capturedAt}\tarchives=${bundle.archives.length}`,
+  );
 }
 
 const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : null;

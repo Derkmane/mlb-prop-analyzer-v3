@@ -80,6 +80,7 @@ test('GitHub Actions OIDC verifier accepts only the authorized main delivery wor
 
 const MOCK_BUNDLE: DisplayDeliveryBundleV1 = Object.freeze({
   deliveryVersion: 1,
+  displayDateUtc: '2026-08-28',
   capturedAt: '2026-08-28T18:30:00.000Z',
   archives: Object.freeze([
     Object.freeze({
@@ -95,6 +96,7 @@ const MOCK_BUNDLE: DisplayDeliveryBundleV1 = Object.freeze({
       bytesBase64: 'e30=',
     }),
   ]),
+  categoryPerformance: null,
 });
 
 test('display delivery endpoint requires bearer identity and accepts a verified delivery', async () => {

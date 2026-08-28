@@ -15,10 +15,18 @@ export interface DisplayDeliveryArchiveV1 {
   readonly bytesBase64: string;
 }
 
+export interface DisplayDeliverySupplementalFileV1 {
+  readonly filename: string;
+  readonly sha256: string;
+  readonly bytesBase64: string;
+}
+
 export interface DisplayDeliveryBundleV1 {
   readonly deliveryVersion: typeof DISPLAY_DELIVERY_BUNDLE_VERSION;
+  readonly displayDateUtc: string;
   readonly capturedAt: string;
-  readonly archives: readonly [DisplayDeliveryArchiveV1, DisplayDeliveryArchiveV1];
+  readonly archives: readonly DisplayDeliveryArchiveV1[];
+  readonly categoryPerformance: DisplayDeliverySupplementalFileV1 | null;
 }
 
 export type TextObjectStoreResult<T> =
@@ -50,8 +58,10 @@ export class InvalidDisplayDeliveryBundleError extends Error {
 }
 
 const CAPTURE_FILE = /^(\d{8}T\d{9}Z)--[a-f0-9]{64}\.json$/u;
+const CATEGORY_PERFORMANCE_FILE = /^product-category-performance-v1--([a-f0-9]{64})\.json$/u;
 const SHA256 = /^[a-f0-9]{64}$/u;
 const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u;
+const UTC_DATE = /^\d{4}-\d{2}-\d{2}$/u;
 
 function objectRecord(value: unknown, label: string): Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
@@ -71,80 +81,135 @@ function capturedAtIdentity(capturedAt: string): string {
   return capturedAt.replaceAll('-', '').replaceAll(':', '').replace('.', '');
 }
 
-function expectedPersistedMarket(market: DisplayDeliveryMarket): string {
-  return market;
+function filenameDateUtc(filename: string): string {
+  return `${filename.slice(0, 4)}-${filename.slice(4, 6)}-${filename.slice(6, 8)}`;
 }
 
-function parseArchiveEnvelope(raw: unknown, index: number, capturedAt: string): DisplayDeliveryArchiveV1 {
-  const source = objectRecord(raw, `archives[${index}]`);
-  const market = source['market'];
-  if (market !== 'batter-hits' && market !== 'batter-hhr') {
-    throw new InvalidDisplayDeliveryBundleError(`archives[${index}].market is unsupported.`);
-  }
-  const filename = nonemptyString(source['filename'], `archives[${index}].filename`);
-  const match = CAPTURE_FILE.exec(filename);
-  if (match === null) {
-    throw new InvalidDisplayDeliveryBundleError(`archives[${index}].filename is invalid.`);
-  }
-  if (match[1] !== capturedAtIdentity(capturedAt)) {
-    throw new InvalidDisplayDeliveryBundleError(
-      `archives[${index}].filename does not match bundle capturedAt.`,
-    );
-  }
-  const sha256 = nonemptyString(source['sha256'], `archives[${index}].sha256`);
+function decodeVerifiedBytes(
+  source: Record<string, unknown>,
+  label: string,
+): Readonly<{ sha256: string; bytesBase64: string; bytes: Buffer }> {
+  const sha256 = nonemptyString(source['sha256'], `${label}.sha256`);
   if (!SHA256.test(sha256)) {
-    throw new InvalidDisplayDeliveryBundleError(`archives[${index}].sha256 is invalid.`);
+    throw new InvalidDisplayDeliveryBundleError(`${label}.sha256 is invalid.`);
   }
-  const bytesBase64 = nonemptyString(source['bytesBase64'], `archives[${index}].bytesBase64`);
+  const bytesBase64 = nonemptyString(source['bytesBase64'], `${label}.bytesBase64`);
   if (!BASE64.test(bytesBase64)) {
-    throw new InvalidDisplayDeliveryBundleError(`archives[${index}].bytesBase64 is invalid.`);
+    throw new InvalidDisplayDeliveryBundleError(`${label}.bytesBase64 is invalid.`);
   }
   const bytes = Buffer.from(bytesBase64, 'base64');
   if (bytes.toString('base64') !== bytesBase64) {
-    throw new InvalidDisplayDeliveryBundleError(`archives[${index}].bytesBase64 is not canonical.`);
+    throw new InvalidDisplayDeliveryBundleError(`${label}.bytesBase64 is not canonical.`);
   }
   const digest = createHash('sha256').update(bytes).digest('hex');
   if (digest !== sha256) {
-    throw new InvalidDisplayDeliveryBundleError(`archives[${index}] SHA-256 mismatch.`);
+    throw new InvalidDisplayDeliveryBundleError(`${label} SHA-256 mismatch.`);
   }
+  return Object.freeze({ sha256, bytesBase64, bytes });
+}
 
-  let archiveUnknown: unknown;
+function parseJsonBytes(bytes: Buffer, label: string): Record<string, unknown> {
   try {
-    archiveUnknown = JSON.parse(bytes.toString('utf8')) as unknown;
+    return objectRecord(JSON.parse(bytes.toString('utf8')) as unknown, label);
   } catch (error) {
-    throw new InvalidDisplayDeliveryBundleError(
-      `archives[${index}] is not valid JSON.`,
-      { cause: error },
-    );
+    if (error instanceof InvalidDisplayDeliveryBundleError) throw error;
+    throw new InvalidDisplayDeliveryBundleError(`${label} is not valid JSON.`, { cause: error });
   }
-  const archive = objectRecord(archiveUnknown, `archives[${index}] display archive`);
+}
+
+function parseArchiveEnvelope(
+  raw: unknown,
+  index: number,
+  displayDateUtc: string,
+): Readonly<{
+  envelope: DisplayDeliveryArchiveV1;
+  capturedAt: string;
+  capturePrefix: string;
+}> {
+  const label = `archives[${index}]`;
+  const source = objectRecord(raw, label);
+  const market = source['market'];
+  if (market !== 'batter-hits' && market !== 'batter-hhr') {
+    throw new InvalidDisplayDeliveryBundleError(`${label}.market is unsupported.`);
+  }
+  const filename = nonemptyString(source['filename'], `${label}.filename`);
+  const match = CAPTURE_FILE.exec(filename);
+  if (match === null || filenameDateUtc(filename) !== displayDateUtc) {
+    throw new InvalidDisplayDeliveryBundleError(`${label}.filename is outside the bundle display date.`);
+  }
+  const verified = decodeVerifiedBytes(source, label);
+  const archive = parseJsonBytes(verified.bytes, `${label} display archive`);
   if (
     archive['displayArchiveVersion'] !== 1 ||
     archive['displayArchiveContract'] !== 'phase1-trimmed-board-display-v1' ||
-    archive['market'] !== expectedPersistedMarket(market) ||
+    archive['market'] !== market ||
     archive['productionEnabled'] !== false ||
     archive['productionRankingEnabled'] !== false
   ) {
-    throw new InvalidDisplayDeliveryBundleError(
-      `archives[${index}] display archive contract is invalid.`,
-    );
+    throw new InvalidDisplayDeliveryBundleError(`${label} display archive contract is invalid.`);
   }
-  if (archive['capturedAt'] !== capturedAt) {
-    throw new InvalidDisplayDeliveryBundleError(
-      `archives[${index}] capturedAt does not match bundle capturedAt.`,
-    );
+  const capturedAt = nonemptyString(archive['capturedAt'], `${label} capturedAt`);
+  if (!Number.isFinite(Date.parse(capturedAt)) || capturedAtIdentity(capturedAt) !== match[1]) {
+    throw new InvalidDisplayDeliveryBundleError(`${label} capturedAt does not match its filename.`);
   }
-  const captureKey = nonemptyString(archive['captureKey'], `archives[${index}] captureKey`);
+  if (archive['captureDateUtc'] !== displayDateUtc) {
+    throw new InvalidDisplayDeliveryBundleError(`${label} captureDateUtc does not match the bundle date.`);
+  }
+  const captureKey = nonemptyString(archive['captureKey'], `${label} captureKey`);
   if (captureKey !== filename.slice(0, -'.json'.length)) {
-    throw new InvalidDisplayDeliveryBundleError(
-      `archives[${index}] captureKey does not match filename.`,
-    );
+    throw new InvalidDisplayDeliveryBundleError(`${label} captureKey does not match filename.`);
   }
   if (!Array.isArray(archive['rows']) || archive['rows'].length === 0) {
-    throw new InvalidDisplayDeliveryBundleError(`archives[${index}] rows must be nonempty.`);
+    throw new InvalidDisplayDeliveryBundleError(`${label} rows must be nonempty.`);
   }
+  return Object.freeze({
+    envelope: Object.freeze({
+      market,
+      filename,
+      sha256: verified.sha256,
+      bytesBase64: verified.bytesBase64,
+    }),
+    capturedAt,
+    capturePrefix: match[1],
+  });
+}
 
-  return Object.freeze({ market, filename, sha256, bytesBase64 });
+function parseCategoryPerformance(
+  raw: unknown,
+): DisplayDeliverySupplementalFileV1 {
+  const label = 'categoryPerformance';
+  const source = objectRecord(raw, label);
+  const filename = nonemptyString(source['filename'], `${label}.filename`);
+  const match = CATEGORY_PERFORMANCE_FILE.exec(filename);
+  if (match === null) {
+    throw new InvalidDisplayDeliveryBundleError('categoryPerformance filename is invalid.');
+  }
+  const verified = decodeVerifiedBytes(source, label);
+  const report = parseJsonBytes(verified.bytes, 'categoryPerformance report');
+  if (
+    report['reportVersion'] !== 1 ||
+    report['reportType'] !== 'product-category-performance-v1' ||
+    report['sourceSetSha256'] !== match[1]
+  ) {
+    throw new InvalidDisplayDeliveryBundleError('categoryPerformance report identity is invalid.');
+  }
+  if (typeof report['generatedAt'] !== 'string' || !Number.isFinite(Date.parse(report['generatedAt']))) {
+    throw new InvalidDisplayDeliveryBundleError('categoryPerformance generatedAt is invalid.');
+  }
+  const safety = objectRecord(report['safety'], 'categoryPerformance safety');
+  if (
+    safety['evidenceOnly'] !== true ||
+    safety['archivesModified'] !== false ||
+    safety['probabilitiesModified'] !== false ||
+    safety['rankingModified'] !== false
+  ) {
+    throw new InvalidDisplayDeliveryBundleError('categoryPerformance safety boundary drifted.');
+  }
+  return Object.freeze({
+    filename,
+    sha256: verified.sha256,
+    bytesBase64: verified.bytesBase64,
+  });
 }
 
 export function validateDisplayDeliveryBundle(value: unknown): DisplayDeliveryBundleV1 {
@@ -152,33 +217,70 @@ export function validateDisplayDeliveryBundle(value: unknown): DisplayDeliveryBu
   if (source['deliveryVersion'] !== DISPLAY_DELIVERY_BUNDLE_VERSION) {
     throw new InvalidDisplayDeliveryBundleError('display delivery bundle version is unsupported.');
   }
+  const displayDateUtc = nonemptyString(source['displayDateUtc'], 'display delivery displayDateUtc');
+  if (
+    !UTC_DATE.test(displayDateUtc) ||
+    new Date(`${displayDateUtc}T00:00:00.000Z`).toISOString().slice(0, 10) !== displayDateUtc
+  ) {
+    throw new InvalidDisplayDeliveryBundleError('display delivery displayDateUtc is invalid.');
+  }
   const capturedAt = nonemptyString(source['capturedAt'], 'display delivery capturedAt');
   if (!Number.isFinite(Date.parse(capturedAt))) {
     throw new InvalidDisplayDeliveryBundleError('display delivery capturedAt must be an ISO timestamp.');
   }
   const rawArchives = source['archives'];
-  if (!Array.isArray(rawArchives) || rawArchives.length !== 2) {
+  if (!Array.isArray(rawArchives) || rawArchives.length < 2) {
+    throw new InvalidDisplayDeliveryBundleError('display delivery bundle must contain both market archives.');
+  }
+  const parsed = rawArchives.map((archive, index) =>
+    parseArchiveEnvelope(archive, index, displayDateUtc));
+  const identities = new Set<string>();
+  const timestampsByMarket = new Map<DisplayDeliveryMarket, Set<string>>([
+    ['batter-hits', new Set<string>()],
+    ['batter-hhr', new Set<string>()],
+  ]);
+  for (const candidate of parsed) {
+    const identity = `${candidate.envelope.market}:${candidate.envelope.filename}`;
+    if (identities.has(identity)) {
+      throw new InvalidDisplayDeliveryBundleError(`duplicate display archive identity: ${identity}.`);
+    }
+    identities.add(identity);
+    const timestamps = timestampsByMarket.get(candidate.envelope.market)!;
+    if (timestamps.has(candidate.capturePrefix)) {
+      throw new InvalidDisplayDeliveryBundleError(
+        `duplicate ${candidate.envelope.market} capture timestamp: ${candidate.capturePrefix}.`,
+      );
+    }
+    timestamps.add(candidate.capturePrefix);
+  }
+  const byMarket = (market: DisplayDeliveryMarket) =>
+    parsed.filter((candidate) => candidate.envelope.market === market)
+      .sort((left, right) => left.capturePrefix.localeCompare(right.capturePrefix));
+  const hits = byMarket('batter-hits');
+  const hhr = byMarket('batter-hhr');
+  if (hits.length === 0 || hhr.length === 0) {
+    throw new InvalidDisplayDeliveryBundleError('display delivery bundle must contain both markets.');
+  }
+  const newestHits = hits.at(-1)!;
+  const newestHhr = hhr.at(-1)!;
+  if (
+    newestHits.capturePrefix !== newestHhr.capturePrefix ||
+    newestHits.capturedAt !== capturedAt ||
+    newestHhr.capturedAt !== capturedAt
+  ) {
     throw new InvalidDisplayDeliveryBundleError(
-      'display delivery bundle must contain exactly two archives.',
+      'newest Batter Hits and HHR display captures must share the bundle capturedAt.',
     );
   }
-  const archives = rawArchives.map((archive, index) =>
-    parseArchiveEnvelope(archive, index, capturedAt));
-  const markets = new Set(archives.map((archive) => archive.market));
-  if (!markets.has('batter-hits') || !markets.has('batter-hhr') || markets.size !== 2) {
-    throw new InvalidDisplayDeliveryBundleError(
-      'display delivery bundle must contain exactly one Batter Hits and one HHR archive.',
-    );
-  }
-  const hits = archives.find((archive) => archive.market === 'batter-hits');
-  const hhr = archives.find((archive) => archive.market === 'batter-hhr');
-  if (hits === undefined || hhr === undefined) {
-    throw new InvalidDisplayDeliveryBundleError('display delivery market pair is incomplete.');
-  }
+  const categoryPerformance = source['categoryPerformance'] === null
+    ? null
+    : parseCategoryPerformance(source['categoryPerformance']);
   return Object.freeze({
     deliveryVersion: DISPLAY_DELIVERY_BUNDLE_VERSION,
+    displayDateUtc,
     capturedAt,
-    archives: Object.freeze([hits, hhr]) as readonly [DisplayDeliveryArchiveV1, DisplayDeliveryArchiveV1],
+    archives: Object.freeze(parsed.map((candidate) => candidate.envelope)),
+    categoryPerformance,
   });
 }
 
@@ -211,25 +313,32 @@ async function materializeBundle(
   bundle: DisplayDeliveryBundleV1,
   rootDirectory: string,
 ): Promise<void> {
-  const targets = bundle.archives.map((archive) => {
-    const directory = path.join(rootDirectory, archive.market, 'captures');
-    return Object.freeze({
-      archive,
-      directory,
-      finalPath: path.join(directory, archive.filename),
-      tempPath: path.join(directory, `.${archive.filename}.${process.pid}.${randomUUID()}.tmp`),
-    });
-  });
-  if ((await Promise.all(targets.map((target) => exists(target.finalPath)))).every(Boolean)) return;
-
-  await Promise.all(targets.map(async (target) => {
-    await mkdir(target.directory, { recursive: true });
-    await writeFile(target.tempPath, Buffer.from(target.archive.bytesBase64, 'base64'), { flag: 'wx' });
+  const targets = bundle.archives.map((archive) => Object.freeze({
+    bytesBase64: archive.bytesBase64,
+    directory: path.join(rootDirectory, archive.market, 'captures'),
+    filename: archive.filename,
   }));
+  if (bundle.categoryPerformance !== null) {
+    targets.push(Object.freeze({
+      bytesBase64: bundle.categoryPerformance.bytesBase64,
+      directory: path.join(rootDirectory, 'category-performance'),
+      filename: bundle.categoryPerformance.filename,
+    }));
+  }
+  const materializationTargets = targets.map((target) => Object.freeze({
+    ...target,
+    finalPath: path.join(target.directory, target.filename),
+    tempPath: path.join(target.directory, `.${target.filename}.${process.pid}.${randomUUID()}.tmp`),
+  }));
+  if ((await Promise.all(materializationTargets.map((target) => exists(target.finalPath)))).every(Boolean)) return;
 
+  await Promise.all(materializationTargets.map(async (target) => {
+    await mkdir(target.directory, { recursive: true });
+    await writeFile(target.tempPath, Buffer.from(target.bytesBase64, 'base64'), { flag: 'wx' });
+  }));
   const renamed: string[] = [];
   try {
-    for (const target of targets) {
+    for (const target of materializationTargets) {
       await rename(target.tempPath, target.finalPath);
       renamed.push(target.finalPath);
     }
@@ -237,7 +346,7 @@ async function materializeBundle(
     await Promise.all(renamed.map((filePath) => rm(filePath, { force: true })));
     throw error;
   } finally {
-    await Promise.all(targets.map((target) => rm(target.tempPath, { force: true })));
+    await Promise.all(materializationTargets.map((target) => rm(target.tempPath, { force: true })));
   }
 }
 

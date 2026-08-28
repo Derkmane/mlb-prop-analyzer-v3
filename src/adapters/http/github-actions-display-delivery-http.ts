@@ -171,7 +171,9 @@ export function createGitHubActionsOidcVerifier(
     }
     let publicKey;
     try {
-      publicKey = createPublicKey({ key: jwk, format: 'jwk' });
+      publicKey = createPublicKey(
+        { key: jwk, format: 'jwk' } as unknown as Parameters<typeof createPublicKey>[0],
+      );
     } catch (error) {
       throw new GitHubActionsOidcVerificationError('GitHub OIDC signing key is invalid.', {
         cause: error,
