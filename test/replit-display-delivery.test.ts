@@ -6,7 +6,12 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
+  RESEARCH_BATTER_HHR_MARKET,
+  RESEARCH_BATTER_HITS_MARKET,
+} from '../src/application/index.js';
+import {
   createReplitDisplayDeliveryService,
+  HHR_DISPLAY_ARCHIVE_ROOT,
   InvalidDisplayDeliveryBundleError,
   REPLIT_DISPLAY_BUNDLE_OBJECT,
   type DisplayDeliveryArchiveV1,
@@ -34,6 +39,12 @@ class MemoryTextStore implements TextObjectStore {
   }
 }
 
+const HHR_PERSISTED_IDENTITY = path.basename(path.dirname(HHR_DISPLAY_ARCHIVE_ROOT));
+
+function persistedIdentity(market: DisplayDeliveryMarket): string {
+  return market === RESEARCH_BATTER_HHR_MARKET ? HHR_PERSISTED_IDENTITY : market;
+}
+
 function capturePrefix(capturedAt: string): string {
   return capturedAt.replaceAll('-', '').replaceAll(':', '').replace('.', '');
 }
@@ -48,7 +59,7 @@ function archiveEnvelope(
   const bytes = Buffer.from(JSON.stringify({
     displayArchiveVersion: 1,
     displayArchiveContract: 'phase1-trimmed-board-display-v1',
-    market,
+    market: persistedIdentity(market),
     captureKey,
     capturedAt,
     captureDateUtc: capturedAt.slice(0, 10),
@@ -72,8 +83,8 @@ function validBundle(capturedAt = '2026-08-28T18:30:00.000Z'): Readonly<{
   hits: ReturnType<typeof archiveEnvelope>;
   hhr: ReturnType<typeof archiveEnvelope>;
 }> {
-  const hits = archiveEnvelope('batter-hits', capturedAt, 'a');
-  const hhr = archiveEnvelope('batter-hhr', capturedAt, 'b');
+  const hits = archiveEnvelope(RESEARCH_BATTER_HITS_MARKET, capturedAt, 'a');
+  const hhr = archiveEnvelope(RESEARCH_BATTER_HHR_MARKET, capturedAt, 'b');
   const bundle: DisplayDeliveryBundleV1 = Object.freeze({
     deliveryVersion: 1,
     displayDateUtc: capturedAt.slice(0, 10),
@@ -97,11 +108,11 @@ test('persistent display delivery stores one current-day bundle and materializes
     assert.ok(store.text !== null);
     assert.deepEqual(JSON.parse(store.text) as unknown, bundle);
     assert.deepEqual(
-      await readFile(path.join(firstRoot, 'batter-hits', 'captures', hits.envelope.filename)),
+      await readFile(path.join(firstRoot, persistedIdentity(hits.envelope.market), 'captures', hits.envelope.filename)),
       hits.bytes,
     );
     assert.deepEqual(
-      await readFile(path.join(firstRoot, 'batter-hhr', 'captures', hhr.envelope.filename)),
+      await readFile(path.join(firstRoot, persistedIdentity(hhr.envelope.market), 'captures', hhr.envelope.filename)),
       hhr.bytes,
     );
 
@@ -109,11 +120,11 @@ test('persistent display delivery stores one current-day bundle and materializes
     const refreshed = await second.refreshFromStore();
     assert.equal(refreshed.capturedAt, bundle.capturedAt);
     assert.deepEqual(
-      await readFile(path.join(secondRoot, 'batter-hits', 'captures', hits.envelope.filename)),
+      await readFile(path.join(secondRoot, persistedIdentity(hits.envelope.market), 'captures', hits.envelope.filename)),
       hits.bytes,
     );
     assert.deepEqual(
-      await readFile(path.join(secondRoot, 'batter-hhr', 'captures', hhr.envelope.filename)),
+      await readFile(path.join(secondRoot, persistedIdentity(hhr.envelope.market), 'captures', hhr.envelope.filename)),
       hhr.bytes,
     );
   } finally {
@@ -151,7 +162,7 @@ test('persistent display delivery rejects missing-market and mismatched newest t
   const root = await mkdtemp(path.join(tmpdir(), 'mlb-display-delivery-identity-'));
   const store = new MemoryTextStore();
   const { bundle, hits } = validBundle();
-  const other = archiveEnvelope('batter-hhr', '2026-08-28T18:31:00.000Z', 'c');
+  const other = archiveEnvelope(RESEARCH_BATTER_HHR_MARKET, '2026-08-28T18:31:00.000Z', 'c');
   const service = createReplitDisplayDeliveryService({ store, rootDirectory: root });
   try {
     await assert.rejects(

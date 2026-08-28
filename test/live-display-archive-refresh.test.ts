@@ -6,7 +6,13 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
+  RESEARCH_BATTER_HHR_MARKET,
+  RESEARCH_BATTER_HITS_MARKET,
+  type ResearchDisplayMarket,
+} from '../src/application/index.js';
+import {
   createReplitDisplayDeliveryService,
+  HHR_DISPLAY_ARCHIVE_ROOT,
   InvalidDisplayDeliveryBundleError,
   type TextObjectStore,
 } from '../src/adapters/index.js';
@@ -15,14 +21,19 @@ const HITS_OLDER_NAME = `20260828T150000000Z--${'1'.repeat(64)}.json`;
 const HITS_NAME = `20260828T163841701Z--${'2'.repeat(64)}.json`;
 const HHR_OLDER_NAME = `20260828T150000000Z--${'3'.repeat(64)}.json`;
 const HHR_NAME = `20260828T163841701Z--${'4'.repeat(64)}.json`;
+const HHR_PERSISTED_IDENTITY = path.basename(path.dirname(HHR_DISPLAY_ARCHIVE_ROOT));
 
-function archiveBytes(market: 'batter-hits' | 'batter-hhr', filename: string): Buffer {
+function persistedIdentity(market: ResearchDisplayMarket): string {
+  return market === RESEARCH_BATTER_HHR_MARKET ? HHR_PERSISTED_IDENTITY : market;
+}
+
+function archiveBytes(market: ResearchDisplayMarket, filename: string): Buffer {
   const prefix = filename.split('--')[0]!;
   const capturedAt = `${prefix.slice(0, 4)}-${prefix.slice(4, 6)}-${prefix.slice(6, 8)}T${prefix.slice(9, 11)}:${prefix.slice(11, 13)}:${prefix.slice(13, 15)}.${prefix.slice(15, 18)}Z`;
   return Buffer.from(JSON.stringify({
     displayArchiveVersion: 1,
     displayArchiveContract: 'phase1-trimmed-board-display-v1',
-    market,
+    market: persistedIdentity(market),
     captureKey: filename.slice(0, -'.json'.length),
     capturedAt,
     captureDateUtc: '2026-08-28',
@@ -32,7 +43,7 @@ function archiveBytes(market: 'batter-hits' | 'batter-hhr', filename: string): B
   }));
 }
 
-function envelope(market: 'batter-hits' | 'batter-hhr', filename: string) {
+function envelope(market: ResearchDisplayMarket, filename: string) {
   const bytes = archiveBytes(market, filename);
   return Object.freeze({
     market,
@@ -56,10 +67,10 @@ test('persistent display refresh materializes every current-day Hits and HHR cap
     displayDateUtc: '2026-08-28',
     capturedAt: '2026-08-28T16:38:41.701Z',
     archives: [
-      envelope('batter-hits', HITS_OLDER_NAME),
-      envelope('batter-hits', HITS_NAME),
-      envelope('batter-hhr', HHR_OLDER_NAME),
-      envelope('batter-hhr', HHR_NAME),
+      envelope(RESEARCH_BATTER_HITS_MARKET, HITS_OLDER_NAME),
+      envelope(RESEARCH_BATTER_HITS_MARKET, HITS_NAME),
+      envelope(RESEARCH_BATTER_HHR_MARKET, HHR_OLDER_NAME),
+      envelope(RESEARCH_BATTER_HHR_MARKET, HHR_NAME),
     ],
     categoryPerformance: null,
   });
@@ -71,14 +82,14 @@ test('persistent display refresh materializes every current-day Hits and HHR cap
     await service.refreshFromStore();
     for (const filename of [HITS_OLDER_NAME, HITS_NAME]) {
       assert.equal(
-        JSON.parse(await readFile(path.join(rootDirectory, 'batter-hits', 'captures', filename), 'utf8')).market,
-        'batter-hits',
+        JSON.parse(await readFile(path.join(rootDirectory, persistedIdentity(RESEARCH_BATTER_HITS_MARKET), 'captures', filename), 'utf8')).market,
+        persistedIdentity(RESEARCH_BATTER_HITS_MARKET),
       );
     }
     for (const filename of [HHR_OLDER_NAME, HHR_NAME]) {
       assert.equal(
-        JSON.parse(await readFile(path.join(rootDirectory, 'batter-hhr', 'captures', filename), 'utf8')).market,
-        'batter-hhr',
+        JSON.parse(await readFile(path.join(rootDirectory, persistedIdentity(RESEARCH_BATTER_HHR_MARKET), 'captures', filename), 'utf8')).market,
+        persistedIdentity(RESEARCH_BATTER_HHR_MARKET),
       );
     }
   } finally {
@@ -88,14 +99,20 @@ test('persistent display refresh materializes every current-day Hits and HHR cap
 
 test('persistent display refresh fails closed instead of materializing a wrong-market capture', async () => {
   const rootDirectory = await mkdtemp(path.join(os.tmpdir(), 'mlb-display-refresh-fail-'));
-  const badHits = envelope('batter-hhr', HITS_NAME);
+  const wrongBytes = archiveBytes(RESEARCH_BATTER_HHR_MARKET, HITS_NAME);
+  const badHits = {
+    market: RESEARCH_BATTER_HITS_MARKET,
+    filename: HITS_NAME,
+    sha256: createHash('sha256').update(wrongBytes).digest('hex'),
+    bytesBase64: wrongBytes.toString('base64'),
+  };
   const bundle = {
     deliveryVersion: 1,
     displayDateUtc: '2026-08-28',
     capturedAt: '2026-08-28T16:38:41.701Z',
     archives: [
-      { ...badHits, market: 'batter-hits' },
-      envelope('batter-hhr', HHR_NAME),
+      badHits,
+      envelope(RESEARCH_BATTER_HHR_MARKET, HHR_NAME),
     ],
     categoryPerformance: null,
   };

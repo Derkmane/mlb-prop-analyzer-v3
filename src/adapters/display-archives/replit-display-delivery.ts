@@ -2,11 +2,18 @@ import { createHash, randomUUID } from 'node:crypto';
 import { access, mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import {
+  RESEARCH_BATTER_HHR_MARKET,
+  RESEARCH_BATTER_HITS_MARKET,
+  type ResearchDisplayMarket,
+} from '../../application/research-display-archive.js';
+import { HHR_DISPLAY_ARCHIVE_ROOT } from './hhr-display-archive-repository.js';
+
 export const DISPLAY_DELIVERY_BUNDLE_VERSION = 1 as const;
 export const REPLIT_DISPLAY_BUNDLE_OBJECT =
   'mlb-prop-analyzer-v3/display/current-board-v1.json' as const;
 
-export type DisplayDeliveryMarket = 'batter-hits' | 'batter-hhr';
+export type DisplayDeliveryMarket = ResearchDisplayMarket;
 
 export interface DisplayDeliveryArchiveV1 {
   readonly market: DisplayDeliveryMarket;
@@ -57,11 +64,16 @@ export class InvalidDisplayDeliveryBundleError extends Error {
   }
 }
 
+const HHR_DISPLAY_ARCHIVE_DIRECTORY = path.basename(path.dirname(HHR_DISPLAY_ARCHIVE_ROOT));
 const CAPTURE_FILE = /^(\d{8}T\d{9}Z)--[a-f0-9]{64}\.json$/u;
 const CATEGORY_PERFORMANCE_FILE = /^product-category-performance-v1--([a-f0-9]{64})\.json$/u;
 const SHA256 = /^[a-f0-9]{64}$/u;
 const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u;
 const UTC_DATE = /^\d{4}-\d{2}-\d{2}$/u;
+
+function persistedIdentityForMarket(market: DisplayDeliveryMarket): string {
+  return market === RESEARCH_BATTER_HHR_MARKET ? HHR_DISPLAY_ARCHIVE_DIRECTORY : market;
+}
 
 function objectRecord(value: unknown, label: string): Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
@@ -128,10 +140,11 @@ function parseArchiveEnvelope(
 }> {
   const label = `archives[${index}]`;
   const source = objectRecord(raw, label);
-  const market = source['market'];
-  if (market !== 'batter-hits' && market !== 'batter-hhr') {
+  const marketValue = source['market'];
+  if (marketValue !== RESEARCH_BATTER_HITS_MARKET && marketValue !== RESEARCH_BATTER_HHR_MARKET) {
     throw new InvalidDisplayDeliveryBundleError(`${label}.market is unsupported.`);
   }
+  const market: DisplayDeliveryMarket = marketValue;
   const filename = nonemptyString(source['filename'], `${label}.filename`);
   const match = CAPTURE_FILE.exec(filename);
   if (match === null || filenameDateUtc(filename) !== displayDateUtc) {
@@ -142,7 +155,7 @@ function parseArchiveEnvelope(
   if (
     archive['displayArchiveVersion'] !== 1 ||
     archive['displayArchiveContract'] !== 'phase1-trimmed-board-display-v1' ||
-    archive['market'] !== market ||
+    archive['market'] !== persistedIdentityForMarket(market) ||
     archive['productionEnabled'] !== false ||
     archive['productionRankingEnabled'] !== false
   ) {
@@ -174,9 +187,7 @@ function parseArchiveEnvelope(
   });
 }
 
-function parseCategoryPerformance(
-  raw: unknown,
-): DisplayDeliverySupplementalFileV1 {
+function parseCategoryPerformance(raw: unknown): DisplayDeliverySupplementalFileV1 {
   const label = 'categoryPerformance';
   const source = objectRecord(raw, label);
   const filename = nonemptyString(source['filename'], `${label}.filename`);
@@ -236,8 +247,8 @@ export function validateDisplayDeliveryBundle(value: unknown): DisplayDeliveryBu
     parseArchiveEnvelope(archive, index, displayDateUtc));
   const identities = new Set<string>();
   const timestampsByMarket = new Map<DisplayDeliveryMarket, Set<string>>([
-    ['batter-hits', new Set<string>()],
-    ['batter-hhr', new Set<string>()],
+    [RESEARCH_BATTER_HITS_MARKET, new Set<string>()],
+    [RESEARCH_BATTER_HHR_MARKET, new Set<string>()],
   ]);
   for (const candidate of parsed) {
     const identity = `${candidate.envelope.market}:${candidate.envelope.filename}`;
@@ -256,8 +267,8 @@ export function validateDisplayDeliveryBundle(value: unknown): DisplayDeliveryBu
   const byMarket = (market: DisplayDeliveryMarket) =>
     parsed.filter((candidate) => candidate.envelope.market === market)
       .sort((left, right) => left.capturePrefix.localeCompare(right.capturePrefix));
-  const hits = byMarket('batter-hits');
-  const hhr = byMarket('batter-hhr');
+  const hits = byMarket(RESEARCH_BATTER_HITS_MARKET);
+  const hhr = byMarket(RESEARCH_BATTER_HHR_MARKET);
   if (hits.length === 0 || hhr.length === 0) {
     throw new InvalidDisplayDeliveryBundleError('display delivery bundle must contain both markets.');
   }
@@ -315,7 +326,7 @@ async function materializeBundle(
 ): Promise<void> {
   const targets = bundle.archives.map((archive) => Object.freeze({
     bytesBase64: archive.bytesBase64,
-    directory: path.join(rootDirectory, archive.market, 'captures'),
+    directory: path.join(rootDirectory, persistedIdentityForMarket(archive.market), 'captures'),
     filename: archive.filename,
   }));
   if (bundle.categoryPerformance !== null) {

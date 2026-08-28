@@ -6,6 +6,10 @@ import type { AddressInfo } from 'node:net';
 import test from 'node:test';
 
 import {
+  RESEARCH_BATTER_HHR_MARKET,
+  RESEARCH_BATTER_HITS_MARKET,
+} from '../src/application/index.js';
+import {
   createGitHubActionsDisplayDeliveryHttpHandler,
   createGitHubActionsOidcVerifier,
   DISPLAY_DELIVERY_OIDC_AUDIENCE,
@@ -84,13 +88,13 @@ const MOCK_BUNDLE: DisplayDeliveryBundleV1 = Object.freeze({
   capturedAt: '2026-08-28T18:30:00.000Z',
   archives: Object.freeze([
     Object.freeze({
-      market: 'batter-hits',
+      market: RESEARCH_BATTER_HITS_MARKET,
       filename: `${'20260828T183000000Z'}--${'a'.repeat(64)}.json`,
       sha256: '1'.repeat(64),
       bytesBase64: 'e30=',
     }),
     Object.freeze({
-      market: 'batter-hhr',
+      market: RESEARCH_BATTER_HHR_MARKET,
       filename: `${'20260828T183000000Z'}--${'b'.repeat(64)}.json`,
       sha256: '2'.repeat(64),
       bytesBase64: 'e30=',

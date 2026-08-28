@@ -6,7 +6,13 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
+  RESEARCH_BATTER_HHR_MARKET,
+  RESEARCH_BATTER_HITS_MARKET,
+  type ResearchDisplayMarket,
+} from '../src/application/index.js';
+import {
   createReplitDisplayDeliveryService,
+  HHR_DISPLAY_ARCHIVE_ROOT,
   type TextObjectStore,
 } from '../src/adapters/index.js';
 
@@ -14,13 +20,18 @@ const CAPTURED_AT = '2026-08-28T22:00:00.000Z';
 const PREFIX = '20260828T220000000Z';
 const SOURCE_SHA = '3'.repeat(64);
 const PERFORMANCE_NAME = `product-category-performance-v1--${SOURCE_SHA}.json`;
+const HHR_PERSISTED_IDENTITY = path.basename(path.dirname(HHR_DISPLAY_ARCHIVE_ROOT));
 
-function archiveEnvelope(market: 'batter-hits' | 'batter-hhr', hashCharacter: string) {
+function persistedIdentity(market: ResearchDisplayMarket): string {
+  return market === RESEARCH_BATTER_HHR_MARKET ? HHR_PERSISTED_IDENTITY : market;
+}
+
+function archiveEnvelope(market: ResearchDisplayMarket, hashCharacter: string) {
   const filename = `${PREFIX}--${hashCharacter.repeat(64)}.json`;
   const bytes = Buffer.from(JSON.stringify({
     displayArchiveVersion: 1,
     displayArchiveContract: 'phase1-trimmed-board-display-v1',
-    market,
+    market: persistedIdentity(market),
     captureKey: filename.slice(0, -'.json'.length),
     capturedAt: CAPTURED_AT,
     captureDateUtc: '2026-08-28',
@@ -62,7 +73,10 @@ test('persistent display refresh also materializes the active category W-L-V evi
     deliveryVersion: 1,
     displayDateUtc: '2026-08-28',
     capturedAt: CAPTURED_AT,
-    archives: [archiveEnvelope('batter-hits', '1'), archiveEnvelope('batter-hhr', '2')],
+    archives: [
+      archiveEnvelope(RESEARCH_BATTER_HITS_MARKET, '1'),
+      archiveEnvelope(RESEARCH_BATTER_HHR_MARKET, '2'),
+    ],
     categoryPerformance: performanceEnvelope(),
   };
   const store: TextObjectStore = Object.freeze({

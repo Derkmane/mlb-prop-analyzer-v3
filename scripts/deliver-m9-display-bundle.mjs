@@ -3,6 +3,12 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import {
+  RESEARCH_BATTER_HHR_MARKET,
+  RESEARCH_BATTER_HITS_MARKET,
+} from '../dist/src/application/index.js';
+import { HHR_DISPLAY_ARCHIVE_ROOT } from '../dist/src/adapters/index.js';
+
 export const DISPLAY_DELIVERY_BUNDLE_VERSION = 1;
 export const DISPLAY_DELIVERY_OIDC_AUDIENCE = 'mlb-prop-analyzer-v3-display-delivery-v1';
 export const DEFAULT_DISPLAY_DELIVERY_URL =
@@ -10,7 +16,17 @@ export const DEFAULT_DISPLAY_DELIVERY_URL =
 
 const CAPTURE_FILE = /^(\d{8}T\d{9}Z)--[a-f0-9]{64}\.json$/u;
 const CATEGORY_PERFORMANCE_FILE = /^product-category-performance-v1--[a-f0-9]{64}\.json$/u;
-const MARKETS = Object.freeze(['batter-hits', 'batter-hhr']);
+const HHR_DISPLAY_ARCHIVE_DIRECTORY = path.basename(path.dirname(HHR_DISPLAY_ARCHIVE_ROOT));
+const MARKET_DESCRIPTORS = Object.freeze([
+  Object.freeze({
+    market: RESEARCH_BATTER_HITS_MARKET,
+    persistedIdentity: RESEARCH_BATTER_HITS_MARKET,
+  }),
+  Object.freeze({
+    market: RESEARCH_BATTER_HHR_MARKET,
+    persistedIdentity: HHR_DISPLAY_ARCHIVE_DIRECTORY,
+  }),
+]);
 
 function record(value, label) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
@@ -45,8 +61,8 @@ async function captureFilesByDate(directory) {
 
 export async function findLatestCommonDisplayDay(rootDirectory = 'artifacts/display-archives') {
   const root = path.resolve(rootDirectory);
-  const maps = await Promise.all(MARKETS.map((market) =>
-    captureFilesByDate(path.join(root, market, 'captures'))));
+  const maps = await Promise.all(MARKET_DESCRIPTORS.map((descriptor) =>
+    captureFilesByDate(path.join(root, descriptor.persistedIdentity, 'captures'))));
   const commonDates = [...maps[0].keys()]
     .filter((date) => maps[1].has(date))
     .sort()
@@ -58,10 +74,11 @@ export async function findLatestCommonDisplayDay(rootDirectory = 'artifacts/disp
   return Object.freeze({
     dateKey,
     displayDateUtc: utcDateFromPrefix(dateKey),
-    files: Object.freeze(MARKETS.flatMap((market, index) =>
+    files: Object.freeze(MARKET_DESCRIPTORS.flatMap((descriptor, index) =>
       maps[index].get(dateKey).map((filename) => Object.freeze({
-        market,
-        path: path.join(root, market, 'captures', filename),
+        market: descriptor.market,
+        persistedIdentity: descriptor.persistedIdentity,
+        path: path.join(root, descriptor.persistedIdentity, 'captures', filename),
         filename,
       })))),
   });
@@ -108,7 +125,7 @@ export async function buildDisplayDeliveryBundle(rootDirectory = 'artifacts/disp
     if (
       parsed.displayArchiveVersion !== 1 ||
       parsed.displayArchiveContract !== 'phase1-trimmed-board-display-v1' ||
-      parsed.market !== item.market ||
+      parsed.market !== item.persistedIdentity ||
       parsed.captureDateUtc !== day.displayDateUtc ||
       parsed.productionEnabled !== false ||
       parsed.productionRankingEnabled !== false ||
@@ -137,8 +154,8 @@ export async function buildDisplayDeliveryBundle(rootDirectory = 'artifacts/disp
       bytesBase64: bytes.toString('base64'),
     }));
   }
-  const newestHits = newestByMarket.get('batter-hits');
-  const newestHhr = newestByMarket.get('batter-hhr');
+  const newestHits = newestByMarket.get(RESEARCH_BATTER_HITS_MARKET);
+  const newestHhr = newestByMarket.get(RESEARCH_BATTER_HHR_MARKET);
   if (
     newestHits === undefined ||
     newestHhr === undefined ||
