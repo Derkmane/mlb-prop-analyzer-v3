@@ -19,6 +19,10 @@ The sole ranking objective is to order eligible selected Higher or Lower sides b
 
 Foundation only. No market is production-enabled and no displayed value is a production probability.
 
+Set the Replit deployment variable `REPLIT_DISPLAY_BUCKET_ID=player-analytics-display` so
+persistent display delivery addresses the deployment bucket explicitly. Leaving it unset
+preserves the Object Storage SDK's default-bucket resolution for local development.
+
 See:
 
 - `PROJECT_RULES.md`

@@ -11,15 +11,53 @@ import {
 } from '../src/application/index.js';
 import {
   createReplitDisplayDeliveryService,
+  createReplitSdkTextObjectStore,
+  DisplayStoreUnavailableError,
   HHR_DISPLAY_ARCHIVE_ROOT,
   InvalidDisplayDeliveryBundleError,
   REPLIT_DISPLAY_BUNDLE_OBJECT,
+  REPLIT_DISPLAY_BUCKET_ID_ENV,
   type DisplayDeliveryArchiveV1,
   type DisplayDeliveryBundleV1,
   type DisplayDeliveryMarket,
   type TextObjectStore,
   type TextObjectStoreResult,
 } from '../src/adapters/index.js';
+
+test('Replit store uses the explicit deployment bucket when configured', async () => {
+  const constructorOptions: unknown[] = [];
+  class Client {
+    constructor(options?: Readonly<{ bucketId?: string }>) {
+      constructorOptions.push(options);
+    }
+    async downloadAsText() { throw new Error('forced explicit bucket failure'); }
+    async uploadFromText() { return { ok: true, value: null }; }
+  }
+  const store = createReplitSdkTextObjectStore(Client, 'player-analytics-display');
+  assert.deepEqual(constructorOptions, [{ bucketId: 'player-analytics-display' }]);
+  const result = await store.downloadAsText('board.json');
+  assert.equal(result.ok, false);
+  assert.match(String(result.error), /REPLIT_DISPLAY_BUCKET_ID explicit-bucket path/u);
+  assert.equal(REPLIT_DISPLAY_BUCKET_ID_ENV, 'REPLIT_DISPLAY_BUCKET_ID');
+});
+
+test('Replit store preserves the SDK default-bucket path when no bucket is configured', async () => {
+  const constructorOptions: unknown[] = [];
+  class Client {
+    constructor(options?: Readonly<{ bucketId?: string }>) {
+      constructorOptions.push(options);
+      throw new Error('default bucket unavailable');
+    }
+    async downloadAsText() { return { ok: true, value: 'unused' }; }
+    async uploadFromText() { return { ok: true, value: null }; }
+  }
+  assert.throws(
+    () => createReplitSdkTextObjectStore(Client, undefined),
+    (error: unknown) =>
+      error instanceof DisplayStoreUnavailableError && /SDK default-bucket path/u.test(error.message),
+  );
+  assert.deepEqual(constructorOptions, [undefined]);
+});
 
 class MemoryTextStore implements TextObjectStore {
   public text: string | null = null;
