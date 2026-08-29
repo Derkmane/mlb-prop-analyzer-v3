@@ -17,6 +17,7 @@ import {
   DISPLAY_DELIVERY_REPOSITORY,
   DISPLAY_DELIVERY_REPOSITORY_ID,
   DISPLAY_DELIVERY_WORKFLOW_REF,
+  DisplayStoreUnavailableError,
   GITHUB_OIDC_ISSUER,
   GitHubActionsOidcVerificationError,
   type DisplayDeliveryBundleV1,
@@ -179,6 +180,53 @@ test('display delivery endpoint requires bearer identity and accepts a verified 
     assert.equal(accepted.headers.get('x-display-captured-at'), MOCK_BUNDLE.capturedAt);
     assert.deepEqual(deliveredBody, payload);
   } finally {
+    server.close();
+    await once(server, 'close');
+  }
+});
+
+test('authenticated display delivery exposes and logs a redacted App Storage cause chain', async () => {
+  const originalBucketId = process.env['REPLIT_DISPLAY_BUCKET_ID'];
+  process.env['REPLIT_DISPLAY_BUCKET_ID'] = 'secret-deployment-bucket';
+  const logged: string[] = [];
+  const handler = createGitHubActionsDisplayDeliveryHttpHandler({
+    verifyToken: async () => undefined,
+    log: (detail) => logged.push(detail),
+    service: Object.freeze({
+      async deliver(): Promise<DisplayDeliveryBundleV1> {
+        throw new DisplayStoreUnavailableError('Unable to persist current display bundle.', {
+          cause: new Error('SDK upload failed for secret-deployment-bucket', {
+            cause: { message: 'permission denied by storage backend' },
+          }),
+        });
+      },
+    }),
+  });
+  const server = createServer(handler);
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const address = server.address() as AddressInfo;
+  try {
+    const response = await fetch(`http://127.0.0.1:${address.port}`, {
+      method: 'POST',
+      headers: {
+        authorization: 'Bearer verified-token',
+        'content-type': 'application/json',
+      },
+      body: '{}',
+    });
+    assert.equal(response.status, 503);
+    const body = await response.json() as { error: string; detail: string };
+    assert.equal(body.error, 'display-delivery-store-unavailable');
+    assert.equal(
+      body.detail,
+      'Unable to persist current display bundle.: SDK upload failed for [REDACTED]: permission denied by storage backend',
+    );
+    assert.deepEqual(logged, [body.detail]);
+    assert.doesNotMatch(JSON.stringify(body), /secret-deployment-bucket/u);
+  } finally {
+    if (originalBucketId === undefined) delete process.env['REPLIT_DISPLAY_BUCKET_ID'];
+    else process.env['REPLIT_DISPLAY_BUCKET_ID'] = originalBucketId;
     server.close();
     await once(server, 'close');
   }

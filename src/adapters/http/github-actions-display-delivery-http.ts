@@ -201,6 +201,45 @@ function writeJson(response: ServerResponse, statusCode: number, body: unknown):
   response.end(bytes);
 }
 
+function redactEnvironmentValues(value: string): string {
+  const sensitiveName = /(?:AUTH|BUCKET|CREDENTIAL|KEY|PASSWORD|SECRET|TOKEN)/iu;
+  const configuredValues = Object.entries(process.env)
+    .filter(([name, candidate]) =>
+      candidate !== undefined && candidate.length > 0 &&
+      (candidate.length >= 4 || sensitiveName.test(name)))
+    .map(([, candidate]) => candidate as string)
+    .sort((left, right) => right.length - left.length);
+  return configuredValues.reduce(
+    (redacted, configuredValue) => redacted.replaceAll(configuredValue, '[REDACTED]'),
+    value,
+  );
+}
+
+function displayStoreFailureDetail(error: DisplayStoreUnavailableError): string {
+  const messages: string[] = [];
+  const seen = new Set<unknown>();
+  let current: unknown = error;
+  while (current !== undefined && current !== null && messages.length < 8 && !seen.has(current)) {
+    seen.add(current);
+    if (current instanceof Error) {
+      if (current.message.length > 0) messages.push(current.message);
+      current = current.cause;
+      continue;
+    }
+    if (typeof current === 'object') {
+      const record = current as Record<string, unknown>;
+      if (typeof record['message'] === 'string' && record['message'].length > 0) {
+        messages.push(record['message']);
+      }
+      current = record['cause'];
+      continue;
+    }
+    messages.push(String(current));
+    break;
+  }
+  return redactEnvironmentValues(messages.join(': ') || 'App Storage failed without an error message.');
+}
+
 function bearerToken(request: IncomingMessage): string | null {
   const header = request.headers.authorization;
   if (header === undefined) return null;
@@ -248,9 +287,11 @@ export function createGitHubActionsDisplayDeliveryHttpHandler(
   options: Readonly<{
     service: Pick<DisplayDeliveryService, 'deliver'>;
     verifyToken?: VerifyGitHubActionsOidcToken;
+    log?: (detail: string) => void;
   }>,
 ): DisplayDeliveryHttpHandler {
   const verifyToken = options.verifyToken ?? createGitHubActionsOidcVerifier();
+  const log = options.log ?? ((detail: string) => console.log(detail));
   return (request, response) => {
     if (request.method !== 'POST') {
       writeJson(response, 405, { error: 'method-not-allowed' });
@@ -286,7 +327,9 @@ export function createGitHubActionsDisplayDeliveryHttpHandler(
           return;
         }
         if (error instanceof DisplayStoreUnavailableError) {
-          writeJson(response, 503, { error: 'display-delivery-store-unavailable' });
+          const detail = displayStoreFailureDetail(error);
+          log(detail);
+          writeJson(response, 503, { error: 'display-delivery-store-unavailable', detail });
           return;
         }
         writeJson(response, 500, { error: 'display-delivery-failed' });
