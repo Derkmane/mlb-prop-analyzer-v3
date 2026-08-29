@@ -32,6 +32,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
   issues: read
 
 concurrency:
@@ -239,6 +240,9 @@ jobs:
           node -e 'const cp=require("node:child_process");const staged=cp.execFileSync("git",["diff","--cached","--name-only"],{encoding:"utf8"}).trim().split(/\r?\n/u).filter(Boolean);const allowed=/^artifacts\/display-archives\/(batter-hits|batter-hhr)\/captures\/\d{8}T\d{9}Z--[a-f0-9]{64}\.json$/u;const invalid=staged.filter((value)=>!allowed.test(value));if(invalid.length>0)throw new Error(`Refusing to persist non-display paths: ${invalid.join(", ")}`);const markets=new Set(staged.map((value)=>allowed.exec(value)?.[1]).filter(Boolean));if(staged.length!==2||markets.size!==2)throw new Error(`Expected exactly two trimmed display archives, one per market; staged ${staged.length}.`);console.log(`STAGED TRIMMED DISPLAY ARCHIVES\t${staged.length}`);'
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "chore: persist trimmed display archives [skip ci]"
           git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Deliver display bundle to deployed app
+        run: node scripts/deliver-m9-display-bundle.mjs
 
       - name: Verify capture prerequisites before coverage
         id: verify-precoverage
