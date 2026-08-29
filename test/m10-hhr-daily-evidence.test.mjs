@@ -327,6 +327,7 @@ test('daily workflows keep full ledgers in cache/artifacts and durably commit on
   const captureWorkflow = await readFile('.github/workflows/m9-board-archive.yml', 'utf8');
   assert.match(captureWorkflow, /cron:\s*'0,30 \* \* \* \*'/u);
   assert.match(captureWorkflow, /permissions:\s*\n\s*contents:\s*write/u);
+  assert.match(captureWorkflow, /contents:\s*write\s*\n\s*id-token:\s*write/u);
   assert.match(captureWorkflow, /Snapshot immutable archive ledgers/u);
   assert.match(captureWorkflow, /id:\s*capture-hits/u);
   assert.match(captureWorkflow, /id:\s*identify-hits-capture/u);
@@ -367,6 +368,14 @@ test('daily workflows keep full ledgers in cache/artifacts and durably commit on
     /commit -m "chore: persist trimmed display archives \[skip ci\]"/u,
   );
   assert.match(captureWorkflow, /git push origin "HEAD:\$\{GITHUB_REF_NAME\}"/u);
+  assert.match(
+    captureWorkflow,
+    /name: Deliver display bundle to deployed app\s*\n\s*run: node scripts\/deliver-m9-display-bundle\.mjs/u,
+  );
+  assert.ok(
+    captureWorkflow.indexOf('Persist trimmed display archives to repository') <
+      captureWorkflow.indexOf('Deliver display bundle to deployed app'),
+  );
   assert.doesNotMatch(captureWorkflow, /git add -f -- "\$\{HITS_CAPTURE_PATH\}"/u);
   assert.doesNotMatch(captureWorkflow, /git add -f -- "\$\{HHR_CAPTURE_PATH\}"/u);
   assert.doesNotMatch(captureWorkflow, /git push origin[^\n]*main/u);

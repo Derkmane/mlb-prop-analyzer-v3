@@ -16,7 +16,7 @@ export const DISPLAY_DELIVERY_REPOSITORY = 'Derkmane/mlb-prop-analyzer-v3' as co
 export const DISPLAY_DELIVERY_REPOSITORY_ID = '1309982123' as const;
 export const DISPLAY_DELIVERY_REF = 'refs/heads/main' as const;
 export const DISPLAY_DELIVERY_WORKFLOW_REF =
-  'Derkmane/mlb-prop-analyzer-v3/.github/workflows/m9-display-delivery.yml@refs/heads/main' as const;
+  'Derkmane/mlb-prop-analyzer-v3/.github/workflows/m9-board-archive.yml@refs/heads/main' as const;
 
 const MAX_DELIVERY_BODY_BYTES = 20 * 1024 * 1024;
 const CLOCK_SKEW_SECONDS = 60;
@@ -93,7 +93,7 @@ function assertClaims(claims: Record<string, unknown>, nowSeconds: number): void
   if (stringClaim(claims, 'workflow_ref') !== DISPLAY_DELIVERY_WORKFLOW_REF) {
     throw new GitHubActionsOidcVerificationError('GitHub OIDC workflow_ref is invalid.');
   }
-  if (stringClaim(claims, 'repository_visibility') !== 'private') {
+  if (stringClaim(claims, 'repository_visibility') !== 'public') {
     throw new GitHubActionsOidcVerificationError('GitHub OIDC repository visibility is invalid.');
   }
   if (stringClaim(claims, 'runner_environment') !== 'github-hosted') {
@@ -201,6 +201,45 @@ function writeJson(response: ServerResponse, statusCode: number, body: unknown):
   response.end(bytes);
 }
 
+function redactEnvironmentValues(value: string): string {
+  const sensitiveName = /(?:AUTH|BUCKET|CREDENTIAL|KEY|PASSWORD|SECRET|TOKEN)/iu;
+  const configuredValues = Object.entries(process.env)
+    .filter(([name, candidate]) =>
+      candidate !== undefined && candidate.length > 0 &&
+      (candidate.length >= 4 || sensitiveName.test(name)))
+    .map(([, candidate]) => candidate as string)
+    .sort((left, right) => right.length - left.length);
+  return configuredValues.reduce(
+    (redacted, configuredValue) => redacted.replaceAll(configuredValue, '[REDACTED]'),
+    value,
+  );
+}
+
+function displayStoreFailureDetail(error: DisplayStoreUnavailableError): string {
+  const messages: string[] = [];
+  const seen = new Set<unknown>();
+  let current: unknown = error;
+  while (current !== undefined && current !== null && messages.length < 8 && !seen.has(current)) {
+    seen.add(current);
+    if (current instanceof Error) {
+      if (current.message.length > 0) messages.push(current.message);
+      current = current.cause;
+      continue;
+    }
+    if (typeof current === 'object') {
+      const record = current as Record<string, unknown>;
+      if (typeof record['message'] === 'string' && record['message'].length > 0) {
+        messages.push(record['message']);
+      }
+      current = record['cause'];
+      continue;
+    }
+    messages.push(String(current));
+    break;
+  }
+  return redactEnvironmentValues(messages.join(': ') || 'App Storage failed without an error message.');
+}
+
 function bearerToken(request: IncomingMessage): string | null {
   const header = request.headers.authorization;
   if (header === undefined) return null;
@@ -248,9 +287,11 @@ export function createGitHubActionsDisplayDeliveryHttpHandler(
   options: Readonly<{
     service: Pick<DisplayDeliveryService, 'deliver'>;
     verifyToken?: VerifyGitHubActionsOidcToken;
+    log?: (detail: string) => void;
   }>,
 ): DisplayDeliveryHttpHandler {
   const verifyToken = options.verifyToken ?? createGitHubActionsOidcVerifier();
+  const log = options.log ?? ((detail: string) => console.log(detail));
   return (request, response) => {
     if (request.method !== 'POST') {
       writeJson(response, 405, { error: 'method-not-allowed' });
@@ -286,7 +327,9 @@ export function createGitHubActionsDisplayDeliveryHttpHandler(
           return;
         }
         if (error instanceof DisplayStoreUnavailableError) {
-          writeJson(response, 503, { error: 'display-delivery-store-unavailable' });
+          const detail = displayStoreFailureDetail(error);
+          log(detail);
+          writeJson(response, 503, { error: 'display-delivery-store-unavailable', detail });
           return;
         }
         writeJson(response, 500, { error: 'display-delivery-failed' });

@@ -12,6 +12,8 @@ import { HHR_DISPLAY_ARCHIVE_ROOT } from './hhr-display-archive-repository.js';
 export const DISPLAY_DELIVERY_BUNDLE_VERSION = 1 as const;
 export const REPLIT_DISPLAY_BUNDLE_OBJECT =
   'mlb-prop-analyzer-v3/display/current-board-v1.json' as const;
+/** Deployment value: player-analytics-display. Unset keeps the SDK default-bucket path. */
+export const REPLIT_DISPLAY_BUCKET_ID_ENV = 'REPLIT_DISPLAY_BUCKET_ID' as const;
 
 export type DisplayDeliveryMarket = ResearchDisplayMarket;
 
@@ -366,7 +368,9 @@ interface ReplitObjectStorageClient {
   uploadFromText(objectName: string, contents: string): Promise<unknown>;
 }
 
-type ReplitObjectStorageClientConstructor = new () => ReplitObjectStorageClient;
+export type ReplitObjectStorageClientConstructor = new (
+  options?: Readonly<{ bucketId?: string }>,
+) => ReplitObjectStorageClient;
 
 function normalizeSdkResult<T>(value: unknown, operation: string): TextObjectStoreResult<T> {
   if (value === null || typeof value !== 'object') {
@@ -380,6 +384,53 @@ function normalizeSdkResult<T>(value: unknown, operation: string): TextObjectSto
 }
 
 let defaultStorePromise: Promise<TextObjectStore> | undefined;
+
+export function createReplitSdkTextObjectStore(
+  Client: ReplitObjectStorageClientConstructor,
+  bucketId: string | undefined,
+): TextObjectStore {
+  const usesExplicitBucket = bucketId !== undefined && bucketId.length > 0;
+  const resolutionPath = usesExplicitBucket
+    ? `${REPLIT_DISPLAY_BUCKET_ID_ENV} explicit-bucket path`
+    : 'SDK default-bucket path';
+  let client: ReplitObjectStorageClient;
+  try {
+    client = usesExplicitBucket ? new Client({ bucketId }) : new Client();
+  } catch (error) {
+    throw new DisplayStoreUnavailableError(
+      `Replit App Storage client initialization failed using the ${resolutionPath}.`,
+      { cause: error },
+    );
+  }
+  return Object.freeze({
+    async downloadAsText(objectName: string): Promise<TextObjectStoreResult<string>> {
+      try {
+        return normalizeSdkResult<string>(
+          await client.downloadAsText(objectName),
+          `App Storage download using the ${resolutionPath}`,
+        );
+      } catch (error) {
+        return Object.freeze({
+          ok: false,
+          error: new Error(`App Storage download failed using the ${resolutionPath}.`, { cause: error }),
+        });
+      }
+    },
+    async uploadFromText(objectName: string, contents: string): Promise<TextObjectStoreResult<null>> {
+      try {
+        return normalizeSdkResult<null>(
+          await client.uploadFromText(objectName, contents),
+          `App Storage upload using the ${resolutionPath}`,
+        );
+      } catch (error) {
+        return Object.freeze({
+          ok: false,
+          error: new Error(`App Storage upload failed using the ${resolutionPath}.`, { cause: error }),
+        });
+      }
+    },
+  });
+}
 
 async function loadDefaultReplitStore(): Promise<TextObjectStore> {
   defaultStorePromise ??= (async () => {
@@ -400,23 +451,10 @@ async function loadDefaultReplitStore(): Promise<TextObjectStore> {
     if (typeof Client !== 'function') {
       throw new DisplayStoreUnavailableError('Replit App Storage SDK Client export is unavailable.');
     }
-    const client = new (Client as ReplitObjectStorageClientConstructor)();
-    return Object.freeze({
-      async downloadAsText(objectName: string): Promise<TextObjectStoreResult<string>> {
-        try {
-          return normalizeSdkResult<string>(await client.downloadAsText(objectName), 'App Storage download');
-        } catch (error) {
-          return Object.freeze({ ok: false, error });
-        }
-      },
-      async uploadFromText(objectName: string, contents: string): Promise<TextObjectStoreResult<null>> {
-        try {
-          return normalizeSdkResult<null>(await client.uploadFromText(objectName, contents), 'App Storage upload');
-        } catch (error) {
-          return Object.freeze({ ok: false, error });
-        }
-      },
-    });
+    return createReplitSdkTextObjectStore(
+      Client as ReplitObjectStorageClientConstructor,
+      process.env[REPLIT_DISPLAY_BUCKET_ID_ENV],
+    );
   })();
   return defaultStorePromise;
 }
