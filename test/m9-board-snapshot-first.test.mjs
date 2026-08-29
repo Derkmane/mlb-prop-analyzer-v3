@@ -78,6 +78,7 @@ test('unified first-snapshot preload preserves workflow guards with exact active
     'name: Build immutable trimmed display archives',
     'name: Upload full archives and diagnostics before repository persistence',
     'name: Persist trimmed display archives to repository',
+    'name: Deliver display bundle to deployed app',
     'name: Verify capture prerequisites before coverage',
     'name: Finalize game coverage',
     'name: Save immutable HHR archive ledger',

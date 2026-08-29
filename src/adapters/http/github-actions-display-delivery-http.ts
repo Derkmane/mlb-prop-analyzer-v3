@@ -16,7 +16,7 @@ export const DISPLAY_DELIVERY_REPOSITORY = 'Derkmane/mlb-prop-analyzer-v3' as co
 export const DISPLAY_DELIVERY_REPOSITORY_ID = '1309982123' as const;
 export const DISPLAY_DELIVERY_REF = 'refs/heads/main' as const;
 export const DISPLAY_DELIVERY_WORKFLOW_REF =
-  'Derkmane/mlb-prop-analyzer-v3/.github/workflows/m9-display-delivery.yml@refs/heads/main' as const;
+  'Derkmane/mlb-prop-analyzer-v3/.github/workflows/m9-board-archive.yml@refs/heads/main' as const;
 
 const MAX_DELIVERY_BODY_BYTES = 20 * 1024 * 1024;
 const CLOCK_SKEW_SECONDS = 60;
@@ -93,7 +93,7 @@ function assertClaims(claims: Record<string, unknown>, nowSeconds: number): void
   if (stringClaim(claims, 'workflow_ref') !== DISPLAY_DELIVERY_WORKFLOW_REF) {
     throw new GitHubActionsOidcVerificationError('GitHub OIDC workflow_ref is invalid.');
   }
-  if (stringClaim(claims, 'repository_visibility') !== 'private') {
+  if (stringClaim(claims, 'repository_visibility') !== 'public') {
     throw new GitHubActionsOidcVerificationError('GitHub OIDC repository visibility is invalid.');
   }
   if (stringClaim(claims, 'runner_environment') !== 'github-hosted') {

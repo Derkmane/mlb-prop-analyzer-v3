@@ -21,6 +21,7 @@ import {
   GitHubActionsOidcVerificationError,
   type DisplayDeliveryBundleV1,
 } from '../src/adapters/index.js';
+import { createHhrDisplayAppServer } from '../src/composition/index.js';
 
 const NOW_SECONDS = 1_787_940_000;
 const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -42,7 +43,7 @@ function token(overrides: Readonly<Record<string, unknown>> = {}): string {
     ref: DISPLAY_DELIVERY_REF,
     ref_type: 'branch',
     workflow_ref: DISPLAY_DELIVERY_WORKFLOW_REF,
-    repository_visibility: 'private',
+    repository_visibility: 'public',
     runner_environment: 'github-hosted',
     iat: NOW_SECONDS - 10,
     nbf: NOW_SECONDS - 10,
@@ -68,6 +69,10 @@ function verifier() {
 }
 
 test('GitHub Actions OIDC verifier accepts only the authorized main delivery workflow identity', async () => {
+  assert.equal(
+    DISPLAY_DELIVERY_WORKFLOW_REF,
+    'Derkmane/mlb-prop-analyzer-v3/.github/workflows/m9-board-archive.yml@refs/heads/main',
+  );
   const verifyToken = verifier();
   await verifyToken(token());
   await assert.rejects(
@@ -80,6 +85,38 @@ test('GitHub Actions OIDC verifier accepts only the authorized main delivery wor
     (error: unknown) =>
       error instanceof GitHubActionsOidcVerificationError && /repository/u.test(error.message),
   );
+  await assert.rejects(
+    verifyToken(token({ repository_visibility: 'private' })),
+    (error: unknown) =>
+      error instanceof GitHubActionsOidcVerificationError && /visibility/u.test(error.message),
+  );
+});
+
+test('deployable display server mounts the delivery handler at the internal delivery path', async () => {
+  let deliveryCalls = 0;
+  const server = createHhrDisplayAppServer({
+    password: 'delivery-route-password',
+    displayDeliveryHandler(request, response) {
+      deliveryCalls += 1;
+      assert.equal(request.method, 'POST');
+      response.statusCode = 204;
+      response.end();
+    },
+  });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const address = server.address() as AddressInfo;
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:${address.port}/internal/display-delivery-v1`,
+      { method: 'POST' },
+    );
+    assert.equal(response.status, 204);
+    assert.equal(deliveryCalls, 1);
+  } finally {
+    server.close();
+    await once(server, 'close');
+  }
 });
 
 const MOCK_BUNDLE: DisplayDeliveryBundleV1 = Object.freeze({
