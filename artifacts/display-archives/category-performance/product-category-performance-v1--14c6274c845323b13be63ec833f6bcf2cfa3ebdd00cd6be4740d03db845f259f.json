@@ -1,12 +1,12 @@
 {
   "reportVersion": 1,
   "reportType": "product-category-performance-v1",
-  "generatedAt": "2026-08-30T14:21:44.248Z",
+  "generatedAt": "2026-08-31T16:52:40.911Z",
   "productDisplayBoardVersion": "three-category-research-product-v4",
-  "sourceSetSha256": "7787fee10fb55cde380a790d08f53b6de3e629726ebfb050c3b65fdc805c9499",
-  "pairedCapturesIncluded": 11,
+  "sourceSetSha256": "14c6274c845323b13be63ec833f6bcf2cfa3ebdd00cd6be4740d03db845f259f",
+  "pairedCapturesIncluded": 13,
   "firstCaptureAt": "2026-08-26T16:17:32.541Z",
-  "lastCaptureAt": "2026-08-30T01:03:35.165Z",
+  "lastCaptureAt": "2026-08-30T17:40:46.433Z",
   "categories": {
     "opportunity-miner-favorites": {
       "gradedPicks": 4,
@@ -17,20 +17,20 @@
       "winRate": 0.5
     },
     "high-probability-baseline-props": {
-      "gradedPicks": 117,
-      "wins": 78,
-      "losses": 39,
-      "voids": 0,
-      "decidedPicks": 117,
-      "winRate": 0.6666666666666666
-    },
-    "high-probability-altline-props": {
       "gradedPicks": 152,
-      "wins": 111,
-      "losses": 41,
+      "wins": 99,
+      "losses": 53,
       "voids": 0,
       "decidedPicks": 152,
-      "winRate": 0.7302631578947368
+      "winRate": 0.6513157894736842
+    },
+    "high-probability-altline-props": {
+      "gradedPicks": 185,
+      "wins": 134,
+      "losses": 51,
+      "voids": 0,
+      "decidedPicks": 185,
+      "winRate": 0.7243243243243244
     }
   },
   "safety": {
