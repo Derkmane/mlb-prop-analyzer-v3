@@ -1,0 +1,42 @@
+{
+  "reportVersion": 1,
+  "reportType": "product-category-performance-v1",
+  "generatedAt": "2026-09-02T13:25:43.065Z",
+  "productDisplayBoardVersion": "three-category-research-product-v4",
+  "sourceSetSha256": "c86c466062a6a413499322edaabcd5dcd0ae809b4c8ae677cad1ef08cb63e083",
+  "pairedCapturesIncluded": 19,
+  "firstCaptureAt": "2026-08-26T16:17:32.541Z",
+  "lastCaptureAt": "2026-09-01T23:47:47.313Z",
+  "categories": {
+    "opportunity-miner-favorites": {
+      "gradedPicks": 14,
+      "wins": 5,
+      "losses": 9,
+      "voids": 0,
+      "decidedPicks": 14,
+      "winRate": 0.35714285714285715
+    },
+    "high-probability-baseline-props": {
+      "gradedPicks": 215,
+      "wins": 148,
+      "losses": 67,
+      "voids": 0,
+      "decidedPicks": 215,
+      "winRate": 0.6883720930232559
+    },
+    "high-probability-altline-props": {
+      "gradedPicks": 277,
+      "wins": 203,
+      "losses": 74,
+      "voids": 0,
+      "decidedPicks": 277,
+      "winRate": 0.7328519855595668
+    }
+  },
+  "safety": {
+    "evidenceOnly": true,
+    "archivesModified": false,
+    "probabilitiesModified": false,
+    "rankingModified": false
+  }
+}
